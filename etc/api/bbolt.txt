@@ -1,7 +1,6 @@
 # bbolt's importable modules (the API spec's landing, 2026-11-03): what proofs outside bbolt's tree
 # may import (`etc/api-check.py etc/api/bbolt.txt --check`). Every other module of the tree is
-# internal. What each importable module exposes, as a client sees it, is `etc/gen-interface.py`'s
-# output under `interface/`. Adding a module here is an API change: review its interface.
+# internal. Adding a module here is an API change.
 
 inside Proof/go_etcd_io/bbolt/
 inside Spec/go_etcd_io/bbolt/

@@ -6,23 +6,25 @@ go 1.27
 // `etc/goose.py --check` fails if they differ). tests/v3 is linkvtxn's differential test's
 // (robustness's model), test-only.
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261121171209-d7c7f6434abc
-	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261121171209-d7c7f6434abc
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261124070122-df6af0c36a6b
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 )
 
-// The driver (a module of its own, which kvwitness shares), the library models (models/:
+// The driver (a module of its own, which kvwitness shares), Remote (examples/lib/remote, a module
+// of its own: etcd-dist's clients on machines of their own), the library models (models/:
 // examples/models tests models/protobuf/pbgen.py on etcd's messages), the vendored porcupine
 // (third_party/porcupine/UPSTREAM.md) and etcd's test bridge (third_party/bridge/UPSTREAM.md),
 // as translated.
 replace (
 	github.com/anishathalye/porcupine => ../third_party/porcupine
 	github.com/mit-pdos/etcd-grove/examples/lib/lintest => ./lib/lintest
+	github.com/mit-pdos/etcd-grove/examples/lib/remote => ./lib/remote
 	github.com/mit-pdos/etcd-grove/third_party/bridge => ../third_party/bridge
 	models.lab => ../models
 )
@@ -33,14 +35,15 @@ require (
 	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/mit-pdos/etcd-grove/examples/lib/lintest v0.0.0-00010101000000-000000000000
+	github.com/mit-pdos/etcd-grove/examples/lib/remote v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/gokv v0.1.1
+	github.com/prometheus/client_golang v1.24.1
 	github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510
 	go.etcd.io/bbolt v1.5.0
 	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/cache/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
-	models.lab v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/pkg/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0
@@ -57,6 +60,7 @@ require (
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
 	k8s.io/utils v0.0.0-20260108192941-914a6e750570
+	models.lab v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -73,7 +77,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.31.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/prometheus/client_golang v1.24.1 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
@@ -90,4 +93,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 )
 
-replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261120232526-ca88bb6a8339
+replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23

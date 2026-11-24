@@ -57,8 +57,9 @@ theorem arbAuthorizer.EvaluateConditions.wp_proof
     arbAuthorizer.EvaluateConditions.spec (GF := GF) (hG := hG) := by
   intro z ctx d data
   wp_start as #Hwf
-  iunfold isWFDecision at Hwf
-  icases Hwf with ⟨%m, #Hd, %Hm⟩
+  iunfold isWFDecisionFit at Hwf
+  icases Hwf with ⟨%m, #Hd, %Hm', #Hdn⟩
+  have Hm := Hm'.1
   wp_auto
   wp_apply wp_Int63n as %x %Hx
   · ipureintro; decide
@@ -75,10 +76,12 @@ theorem arbAuthorizer.EvaluateConditions.wp_proof
     itrivial
   · -- partial evaluation
     wp_auto
-    wp_apply (wp_PartiallyEvaluateConditionsAwareDecision ctx d m data _) as %d' #Hwf'
+    wp_apply (wp_PartiallyEvaluateConditionsAwareDecision ctx d m data _ authzNameMax) as %d' #Hwf'
     · iframe #
       isplitr
       · ipureintro; exact Hm
+      isplitr
+      · ipureintro; exact Hm'.2
       iunfold maybeEvalFnOk
       iright
       iintro %ctx' %cond %data'
@@ -87,8 +90,8 @@ theorem arbAuthorizer.EvaluateConditions.wp_proof
       wp_apply wp_arbMaybeEval as %r #Hr
       iapply HΨ
       iexact Hr
-    iunfold isWFDecision at Hwf'
-    icases Hwf' with ⟨%m', #Hd', %Hm'⟩
+    iunfold isWFDecisionBnd at Hwf'
+    icases Hwf' with ⟨%m', #Hd', %Hm'', -⟩
     (try wp_auto)
     wp_apply (wp_ptr_UnconditionalPartsOrFailClosed_of
       wp_ConditionsAwareDecision_UnconditionalPartsOrFailClosed pd_ptr (DFrac.own 1) d' m')

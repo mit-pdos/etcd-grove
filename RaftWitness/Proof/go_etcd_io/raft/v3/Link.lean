@@ -374,6 +374,7 @@ public import RaftWitness.Proof.go_etcd_io.raft.v3.witness__isHealthy
 public import RaftWitness.Proof.go_etcd_io.raft.v3.witness__processMessageWithNewerTerm
 public import RaftWitness.Proof.go_etcd_io.raft.v3.witness__processMessageWithOlderTerm
 public import RaftWitness.Proof.go_etcd_io.raft.v3.witness__processNoUpdate
+public import Perennial.Proof.strings.Link
 public import Proof.context.Link
 public import Proof.fmt.Link
 
@@ -1027,7 +1028,7 @@ theorem fmt.wp_Sprintf [StorageModel GF] :
 
 theorem strings.wp_Join [StorageModel GF] :
     strings.Join.spec (GF := GF) (hG := hG) :=
-  strings.Join.wp_proof
+  strings.Join.wp_proof _root_.Perennial.strings.wp_Join
 
 theorem wp_newRaft [StorageModel GF] :
     newRaft.spec (GF := GF) (hG := hG) :=

@@ -50,10 +50,11 @@ abbrev EtcdServer.Start.spec : Prop :=
       -- (D19i part 2) the storage version monitor's backend access (`NewServer`'s)
       srvSVRes s E ∗
       -- (audit B4a, D19m) the hash and downgrade monitors off, and `monitorDowngrade`'s `lgMu`
-      -- reader slot (`NewServer`'s `srvMonitorCfg`, `srvMonitorsOff_of`)
-      srvMonitorsOff s ∗ srvLgReader s ∗
+      -- reader slot with (rdslot) `adjustTicks`'s transport slot and switch (`NewServer`'s
+      -- `srvMonitorCfg`)
+      srvMonitorsOff s ∗ srvMonitorRes s ∗
       -- (2026-10-23) `publishV3`'s right to close `readych` (`NewServer`'s)
-      srvReadyCloser s }}
+      srvReadyCloser s E }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReqM C.isOn s E { ρ with wait := γw } ∗
       isServerReadM C.isOn s E γr ∗ srvAuthLb s E ∗

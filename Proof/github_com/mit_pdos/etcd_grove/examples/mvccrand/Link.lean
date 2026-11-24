@@ -17,6 +17,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.checkRange
 public import Proof.context.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.copyState
 public import Proof.container.heap.Fix
+public import Proof.container.heap.Init_
+public import Proof.container.heap.Pop
 public import Proof.container.heap.Push
 public import Proof.container.heap.down
 public import Proof.container.heap.up
@@ -26,12 +28,18 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.history__se
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.history__snapshot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.inRange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.itoa
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Init
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Len
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Peek
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Unregister
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Len
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Less
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Pop
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Push
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Swap
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Keys
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__expired
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__forever
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__getRemainingTTL
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__persistTo
@@ -46,12 +54,22 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Revoke
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Stop
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__checkpointScheduledLeases
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__expireExists
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__findDueScheduledCheckpoints
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__findExpiredLeases
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__initAndRecover
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__revokeExpiredLeases
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__runLoop
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
+public import Proof.go_etcd_io.etcd.server.v3.lease.newLeaseExpiredNotifier
+public import Proof.go_etcd_io.etcd.server.v3.lease.newLessor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.newHistory
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.noCluster__Version
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.pending__del
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.pending__put
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.reader
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.rng__genEnd
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.rng__genKey
@@ -59,8 +77,13 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.rng__genRan
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.rng__intn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.rng__next
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.runChecks
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeGetAllLeases
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateLeaseBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeDeleteLease
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__ID
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__IsSafeRangeBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__Name
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.leaseIDToBytes
 public import Proof.sort.StringSlice__Sort
 public import Proof.time.Duration__Seconds
@@ -120,6 +143,94 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem zap.wp_NewNop :
     EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.NewNop.wp_proof
+
+theorem lease.wp_newLeaseExpiredNotifier :
+    EtcdGrove.lease.newLeaseExpiredNotifier.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.newLeaseExpiredNotifier.wp_proof
+
+theorem schema.wp_UnsafeCreateLeaseBucket :
+    EtcdGrove.schema.UnsafeCreateLeaseBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.schema.UnsafeCreateLeaseBucket.wp_proof
+
+theorem schema.bucket.wp_ID :
+    EtcdGrove.schema.bucket.ID.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.schema.bucket.ID.wp_proof
+
+theorem schema.bucket.wp_Name :
+    EtcdGrove.schema.bucket.Name.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.schema.bucket.Name.wp_proof
+
+theorem schema.bucket.wp_IsSafeRangeBucket :
+    EtcdGrove.schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.schema.bucket.IsSafeRangeBucket.wp_proof
+
+theorem schema.wp_MustUnsafeGetAllLeases :
+    EtcdGrove.schema.MustUnsafeGetAllLeases.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof
+
+theorem lease.LeaseQueue.wp_Len :
+    EtcdGrove.lease.LeaseQueue.Len.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseQueue.Len.wp_proof
+
+theorem lease.LeaseQueue.wp_Less :
+    EtcdGrove.lease.LeaseQueue.Less.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseQueue.Less.wp_proof
+
+theorem lease.LeaseQueue.wp_Swap :
+    EtcdGrove.lease.LeaseQueue.Swap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseQueue.Swap.wp_proof
+
+theorem lease.LeaseQueue.wp_Push :
+    EtcdGrove.lease.LeaseQueue.Push.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseQueue.Push.wp_proof
+
+theorem heap.wp_down :
+    EtcdGrove.heap.down.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.heap.down.wp_proof
+
+theorem lease.lessor.wp_isPrimary :
+    EtcdGrove.lease.lessor.isPrimary.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.isPrimary.wp_proof
+
+theorem lease.LeaseExpiredNotifier.wp_Len :
+    EtcdGrove.lease.LeaseExpiredNotifier.Len.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseExpiredNotifier.Len.wp_proof
+
+theorem lease.LeaseExpiredNotifier.wp_Peek :
+    EtcdGrove.lease.LeaseExpiredNotifier.Peek.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseExpiredNotifier.Peek.wp_proof lease.LeaseExpiredNotifier.wp_Len
+
+theorem lease.LeaseQueue.wp_Pop :
+    EtcdGrove.lease.LeaseQueue.Pop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseQueue.Pop.wp_proof
+
+theorem heap.wp_up :
+    EtcdGrove.heap.up.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.heap.up.wp_proof
+
+theorem heap.wp_Fix :
+    EtcdGrove.heap.Fix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.heap.Fix.wp_proof heap.wp_down heap.wp_up
+
+theorem heap.wp_Push :
+    EtcdGrove.heap.Push.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.heap.Push.wp_proof heap.wp_up
+
+theorem lease.LeaseExpiredNotifier.wp_RegisterOrUpdate :
+    EtcdGrove.lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseExpiredNotifier.RegisterOrUpdate.wp_proof lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Fix heap.wp_Push
+
+theorem lease.Lease.wp_expired :
+    EtcdGrove.lease.Lease.expired.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.Lease.expired.wp_proof
+
+theorem lease.lessor.wp_findDueScheduledCheckpoints :
+    EtcdGrove.lease.lessor.findDueScheduledCheckpoints.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.findDueScheduledCheckpoints.wp_proof
+
+theorem lease.lessor.wp_checkpointScheduledLeases :
+    EtcdGrove.lease.lessor.checkpointScheduledLeases.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.checkpointScheduledLeases.wp_proof lease.lessor.wp_isPrimary lease.lessor.wp_findDueScheduledCheckpoints
 
 theorem lease.lessor.wp_GetLease :
     EtcdGrove.lease.lessor.GetLease.spec (GF := GF) (hG := hG) :=
@@ -213,10 +324,6 @@ theorem rng.wp_genRange :
     EtcdGrove.mvccrand.rng.genRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.rng.genRange.wp_proof rng.wp_intn rng.wp_genKey rng.wp_genEnd
 
-theorem lease.lessor.wp_isPrimary :
-    EtcdGrove.lease.lessor.isPrimary.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lease.lessor.isPrimary.wp_proof
-
 theorem lease.Lease.wp_getRemainingTTL :
     EtcdGrove.lease.Lease.getRemainingTTL.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lease.Lease.getRemainingTTL.wp_proof
@@ -233,42 +340,6 @@ theorem schema.wp_MustUnsafePutLease :
     EtcdGrove.schema.MustUnsafePutLease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.schema.MustUnsafePutLease.wp_proof
 
-theorem lease.LeaseQueue.wp_Len :
-    EtcdGrove.lease.LeaseQueue.Len.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lease.LeaseQueue.Len.wp_proof
-
-theorem lease.LeaseQueue.wp_Less :
-    EtcdGrove.lease.LeaseQueue.Less.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lease.LeaseQueue.Less.wp_proof
-
-theorem lease.LeaseQueue.wp_Swap :
-    EtcdGrove.lease.LeaseQueue.Swap.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lease.LeaseQueue.Swap.wp_proof
-
-theorem lease.LeaseQueue.wp_Push :
-    EtcdGrove.lease.LeaseQueue.Push.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lease.LeaseQueue.Push.wp_proof
-
-theorem heap.wp_down :
-    EtcdGrove.heap.down.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.down.wp_proof
-
-theorem heap.wp_up :
-    EtcdGrove.heap.up.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.up.wp_proof
-
-theorem heap.wp_Fix :
-    EtcdGrove.heap.Fix.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.Fix.wp_proof heap.wp_down heap.wp_up
-
-theorem heap.wp_Push :
-    EtcdGrove.heap.Push.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.heap.Push.wp_proof heap.wp_up
-
-theorem lease.LeaseExpiredNotifier.wp_RegisterOrUpdate :
-    EtcdGrove.lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lease.LeaseExpiredNotifier.RegisterOrUpdate.wp_proof lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Fix heap.wp_Push
-
 theorem time.Duration.wp_Seconds :
     EtcdGrove.time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
   EtcdGrove.time.Duration.Seconds.wp_proof
@@ -277,9 +348,13 @@ theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
@@ -350,9 +425,49 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+theorem heap.wp_Init_ :
+    EtcdGrove.heap.Init_.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.heap.Init_.wp_proof heap.wp_down
+
+theorem lease.LeaseExpiredNotifier.wp_Init :
+    EtcdGrove.lease.LeaseExpiredNotifier.Init.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseExpiredNotifier.Init.wp_proof lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Init_
+
+theorem lease.lessor.wp_initAndRecover :
+    EtcdGrove.lease.lessor.initAndRecover.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.initAndRecover.wp_proof backend.backend.wp_BatchTx backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeCreateBucket schema.wp_UnsafeCreateLeaseBucket schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket schema.wp_MustUnsafeGetAllLeases backend.batchTxBuffered.wp_Unlock lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Init_ lease.LeaseExpiredNotifier.wp_Init backend.backend.wp_ForceCommit
+
+theorem heap.wp_Pop :
+    EtcdGrove.heap.Pop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.heap.Pop.wp_proof heap.wp_down
+
+theorem lease.LeaseExpiredNotifier.wp_Unregister :
+    EtcdGrove.lease.LeaseExpiredNotifier.Unregister.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.LeaseExpiredNotifier.Unregister.wp_proof lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push lease.LeaseQueue.wp_Pop heap.wp_Pop
+
+theorem lease.lessor.wp_expireExists :
+    EtcdGrove.lease.lessor.expireExists.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.expireExists.wp_proof lease.LeaseExpiredNotifier.wp_Len lease.LeaseExpiredNotifier.wp_Peek lease.LeaseExpiredNotifier.wp_Unregister lease.LeaseExpiredNotifier.wp_RegisterOrUpdate
+
+theorem lease.lessor.wp_findExpiredLeases :
+    EtcdGrove.lease.lessor.findExpiredLeases.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.findExpiredLeases.wp_proof lease.lessor.wp_expireExists lease.Lease.wp_expired
+
+theorem lease.lessor.wp_revokeExpiredLeases :
+    EtcdGrove.lease.lessor.revokeExpiredLeases.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.revokeExpiredLeases.wp_proof lease.lessor.wp_isPrimary lease.lessor.wp_findExpiredLeases
+
+theorem lease.lessor.wp_runLoop :
+    EtcdGrove.lease.lessor.runLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.lessor.runLoop.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop lease.lessor.wp_revokeExpiredLeases lease.lessor.wp_checkpointScheduledLeases
+
+theorem lease.wp_newLessor :
+    EtcdGrove.lease.newLessor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lease.newLessor.wp_proof lease.wp_newLeaseExpiredNotifier lease.lessor.wp_initAndRecover lease.lessor.wp_runLoop backend.backend.wp_BatchTx backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_Unlock schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
 theorem lease.wp_NewLessor :
     EtcdGrove.lease.NewLessor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lease.NewLessor.wp_proof
+  EtcdGrove.lease.NewLessor.wp_proof lease.wp_newLessor
 
 theorem writer.wp_cur :
     EtcdGrove.mvccrand.writer.cur.spec (GF := GF) (hG := hG) :=

@@ -62,7 +62,10 @@ theorem v3rpc.getServerMetrics.wp_proof
   icases HP with ⟨%m, Hm, Hmok⟩
   (try wp_auto)
   wp_if_destruct
-  · (try wp_auto)
+  · icases Hmok with (⟨%Hn0, %x, #Pprom, Htoks⟩ | ⟨%Hnn, -⟩)
+    rotate_left
+    · first | exact absurd rfl Hnn | exact absurd Hif Hnn | simp_all
+    (try wp_auto)
     wp_join iprop(∃ (msl : GoSlice) (os : List GoFunc), mopts_ptr ↦ msl ∗ msl ↦*□ os ∗
         □ ([∗list] o ∈ os, promSrvMetricsOpt o)) with [mopts] as ⟨%msl, %os, mopts, #Hos, #Hos'⟩
     · wp_apply hHist as %o #Ho
@@ -92,52 +95,35 @@ theorem v3rpc.getServerMetrics.wp_proof
       imodintro
       iapply BigSepL.bigSepL_nil.2; itrivial
     (try wp_auto)
-    wp_apply (hNew msl os) as %m' ⟨%Hm', #Hmet⟩
+    wp_apply (hNew msl os) as %m' ⟨%Hm', #Hmet, %ps, %ds, #Hdesc, #Hps, %Hds⟩
     · iframe #
     (try wp_auto)
-    wp_apply (hReg m') as %err -
+    wp_apply (@hReg x _ ps ds) $$ [Htoks]
     · iframe #
+      isplitl [Htoks]
+      · rw [grpc_prometheus.srvDescs_keys _ ds Hds]
+        iapply grpc_prometheus.grpcKeys_srv $$ Htoks
+      ipureintro; exact grpc_prometheus.srvDescs_descsOk _ ds Hds
     (try wp_auto)
-    cases err with
-    | ok ei =>
-      (try wp_auto)
-      wp_apply (hErr _) as %f -
-      (try wp_auto)
-      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) (l := [f])
-      isplitr
-      · ipureintro; rfl
-      iintro %zsl ⟨-, -⟩
-      (try wp_auto)
-      wp_apply (hWarn lg _ _)
-      · iframe #
-      (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hvars $Hlocked Hm]
-      · iunfold v3rpc.metricsP
-        iexists m'
-        iframe
-        iright
-        iexact Hmet
-      iapply HΦ
-      iexact Hmet
-    | nil =>
-      (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hvars $Hlocked Hm]
-      · iunfold v3rpc.metricsP
-        iexists m'
-        iframe
-        iright
-        iexact Hmet
-      iapply HΦ
-      iexact Hmet
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hvars $Hlocked Hm]
+    · iunfold v3rpc.metricsP
+      iexists m'
+      iframe
+      iright
+      iframe Hmet
+      ipureintro; exact Hm'
+    iapply HΦ
+    iexact Hmet
   · (try wp_auto)
-    icases Hmok with (%Hn | #Hmet)
+    icases Hmok with (⟨%Hn, -⟩ | ⟨%Hnn, #Hmet⟩)
     · exact absurd Hn Hif
     wp_apply sync.Mutex.wp_Unlock $$ [$Hvars $Hlocked Hm]
     · iunfold v3rpc.metricsP
       iexists m
       iframe
       iright
-      iexact Hmet
+      iframe Hmet
+      ipureintro; exact Hnn
     iapply HΦ
     iexact Hmet
 

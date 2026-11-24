@@ -41,7 +41,14 @@ What is missing, each a gap that would force re-proving if found late:
 
 ## Interfaces to freeze before any kvnet proof (each, decided late, redoes proofs)
 
-- **A. Raft's crash law** (first: it changes raft's API and its run-loop proofs). `StartNode`/
+- **A. Raft's crash law** (first: it changes raft's API and its run-loop proofs). **Decided
+  (2026-11-21): route 1, the crash invariant** (`notes/raft-crash-law-design.md`): `raft_stop`
+  (`Protocol/Enter.lean:1866`) already works from any state and needs only six timeless exclusive
+  pieces (half the virtual maps, `slotLive 1 g`, the four leader-side authorities), changed only at
+  the win, the cut, the enter and start/restart/stop; they move into a per-id
+  `inv ((∃X, view ½ X ∗ pieces X) ∨ crashed ∗ tok)`, `nodeVacant_arm`/`nodeCrash` the new laws,
+  `notCrashed` threaded at cut/enter/win (`wp_notCrashed_acc`). About 1000-1500 lines, mostly
+  mechanical; main risk the traced instance's win gate (`StepG`). Was: `StartNode`/
   `RestartNode` give a per-generation resource with a law of the shape
   `crashed ∗ nodeCrashable n γ N id ={E}=∗ nodeVacant γ id`, covering a batch cut but not entered
   (`raftIdSlot`'s `slotFree` is broken by a pending cut). Two ways: keep the slot in an

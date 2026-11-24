@@ -50,7 +50,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -147,7 +147,7 @@ theorem openStorage.wp_proof
       rw [Hdrop]; exact .rfl
     ihave #Hrv' := EC.1 $$ Hrv
     try wp_auto
-    wp_apply wp_getEntry rv e0 _ Hwf0 $$ [$Hrv'] as %l %rest2 ⟨Hl, #Hrest2⟩
+    wp_apply wp_getEntry rv DFrac.discard e0 _ Hwf0 $$ [$Hrv'] as %l %rest2 ⟨Hl, #Hrest2⟩
     try wp_auto
     wp_apply wp_EGetIndex.1 l (DFrac.own 1) e0 $$ [$Hl] as Hl
     have Hei : e0.Index' = f.prev + W64 1 + j := by

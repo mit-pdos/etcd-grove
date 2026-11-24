@@ -5,3 +5,39 @@ imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+# (etcd-grove#32, 2026-11-22) the `init` function trusted: a model that does nothing
+# (TrustedCode/k8s_io/apiserver/pkg/storage/value.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0"]
+
+[[skip]]
+names = ["transformerLatencies", "dataKeyGenerationLatencies"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here); `metrics.ExponentialBuckets` of constants
+(count ≥ 1, start > 0, factor > 1: the cases it panics on are excluded) allocates the bucket bounds.
+So each terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["transformerOperationsTotal", "envelopeTransformationCacheMissTotal",
+  "dataKeyGenerationFailuresTotal"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable."""
+
+[[skip]]
+names = ["_@transformer.go:86"]
+reason = """
+An interface check: `&prefixTransformers{}` converted to `Transformer`. No call, no panic, no
+effect."""
+# --- end of skipped package variables ---

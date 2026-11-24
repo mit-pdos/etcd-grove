@@ -1,10 +1,10 @@
 /-
 zap's logger vocabulary (sweep repairs 1, L1; `notes/axiom-review/zap-zero.md`): `zapLoggerOk l`,
-a logger as zap's constructors build it, and `zapcore.zapEntry ce`, an entry `Logger.Check` returned
-and not yet written. A logger is `zap.NewNop()`'s (`zap.nopLogger`, defined: `NewNop`'s spec is
-proved over zap's code, prove-zap3, 2026-11-21) or another constructor's (`zap.loggerOther`, opaque:
-the trust boundary, which `Logger.check`'s axiom covers); `zapEntry` is opaque, given only by
-`Logger.check`. Lean-first.
+a logger as `zap.NewNop()` builds it (`zap.nopLogger`: `NewNop`'s spec is proved over zap's code,
+prove-zap3, 2026-11-21), and `zapcore.zapEntry ce`, an entry to write. Both defined (zap-z1, 2026-11-23;
+until then the logger had an opaque case `zap.loggerOther` and `zapEntry` was opaque): `Logger.check` is
+proved over zap's code; zap-z2, 2026-11-23: so are `CheckedEntry.Write`, `Panic` and `Fatal`, with
+`zapcore.pooledEntry`, the elements of zapcore's `_cePool`. Lean-first.
 -/
 module
 
@@ -30,53 +30,45 @@ variable [sem : go.Semantics]
 addStack: zapcore.FatalLevel + 1, clock: zapcore.DefaultClock}`): its core is zapcore's `nopCore` (whose
 `Enabled` is `false`, whose `Check` returns its entry argument, whose `Write` returns `nil`), it is not
 in development mode, adds no caller, and its terminal hooks are the defaults (`nil`: `WriteThenPanic`,
-`WriteThenFatal`). -/
+`WriteThenFatal`). (zap-z1, 2026-11-23: the core is the value `nopCore{}`, until then some value of type
+`nopCore`, which a proof cannot call a method on.) Its clock is zapcore's `DefaultClock`, a
+`systemClock` (zap-z2, 2026-11-23: `check` at `PanicLevel`/`FatalLevel` reads it, `log.clock.Now()`). -/
 def zap.nopLoggerVal (v : go_uber_org.zap.Logger) : Prop :=
-  (∃ w : val, v.core' = interface.mkOk go_uber_org.zap.zapcore.nopCore.ty w) ∧
+  v.core' = interface.mkOk go_uber_org.zap.zapcore.nopCore.ty #go_uber_org.zap.zapcore.nopCore.mk ∧
   v.development' = false ∧ v.addCaller' = false ∧
-  v.onPanic' = GoInterface.nil ∧ v.onFatal' = GoInterface.nil
+  v.onPanic' = GoInterface.nil ∧ v.onFatal' = GoInterface.nil ∧
+  ∃ c : go_uber_org.zap.zapcore.systemClock,
+    v.clock' = interface.mkOk go_uber_org.zap.zapcore.systemClock.ty #c
 
 /-- **`l` is a logger as `zap.NewNop()` builds it** (persistent; prove-zap3): the fields of a
 `nopLoggerVal` (core a `nopCore`, not development, no caller, default terminal hooks), never written
 afterwards. Stated over the fields (whose types need no package assumptions) rather than the struct.
-One of `zap.loggerRaw`'s two cases, the one `NewNop`'s proof gives. -/
+What `zapLoggerOk` holds of a logger. (zap-z2, 2026-11-23) Also its `name` (some string) and its `clock`
+(a `systemClock`), which `check` reads at `PanicLevel` and `FatalLevel` (`Panic`, `Fatal`). -/
 def zap.nopLogger (l : Loc) : IProp GF :=
-  iprop((∃ w : val, l.[go_uber_org.zap.Logger, go!"core"] ↦□
-      interface.mkOk go_uber_org.zap.zapcore.nopCore.ty w) ∗
+  iprop(l.[go_uber_org.zap.Logger, go!"core"] ↦□
+      interface.mkOk go_uber_org.zap.zapcore.nopCore.ty #go_uber_org.zap.zapcore.nopCore.mk ∗
     l.[go_uber_org.zap.Logger, go!"development"] ↦□ false ∗
     l.[go_uber_org.zap.Logger, go!"addCaller"] ↦□ false ∗
     l.[go_uber_org.zap.Logger, go!"onPanic"] ↦□ GoInterface.nil ∗
-    l.[go_uber_org.zap.Logger, go!"onFatal"] ↦□ GoInterface.nil)
+    l.[go_uber_org.zap.Logger, go!"onFatal"] ↦□ GoInterface.nil ∗
+    (∃ n : GoString, l.[go_uber_org.zap.Logger, go!"name"] ↦□ n) ∗
+    (∃ c : go_uber_org.zap.zapcore.systemClock,
+      l.[go_uber_org.zap.Logger, go!"clock"] ↦□ interface.mkOk go_uber_org.zap.zapcore.systemClock.ty #c))
 
 instance zap.nopLogger_persistent (l : Loc) : Persistent (zap.nopLogger (GF := GF) l) := by
   unfold zap.nopLogger; infer_instance
 
-/-- **`l` is a zap logger other than `NewNop`'s** (opaque; the trust boundary). What it means: `l`
-points to a `zap.Logger` struct as one of zap's other constructors leaves it (`zap.New`,
-`NewProduction`, `NewDevelopment`, `NewExample`, `Config.Build`, and the derivations `Named`, `With`,
-`WithOptions` with `AddCaller*`/`AddStacktrace`/`Development`), never written afterwards: its `core`
-one of zap's own (`nopCore`, `ioCore` over a non-nil encoder, write syncer and level enabler, and
-`multiCore`, `levelFilterCore`, `sampler` of such; not `Hooks`' `hooked` nor a user core), its
-encoders, write syncers (the `errorOutput` too) and level enablers zap's own or ones whose methods
-return without panicking, its `clock`, `errorOutput` and `addStack` non-nil, its terminal hooks the
-defaults (`onFatal`/`onPanic` nil, `WriteThenNoop`, or `WriteThenFatal`/`WriteThenPanic`). Go check:
-`examples/sweeprepairs/logger` (`ZapLoggerOk`). (Until 2026-11-21 all of `zap.loggerRaw`, which
-covered `NewNop`'s loggers too.) -/
-opaque zap.loggerOther (l : Loc) : IProp GF
-
-/-- `zapLoggerOk`'s fact, raw: a logger as `zap.NewNop()` builds it (`zap.nopLogger`, defined), or as
-zap's other constructors build it (`zap.loggerOther`, opaque). (Until 2026-11-21 opaque as a whole:
-prove-zap3 split `NewNop`'s case out, so that `NewNop`'s spec is proved over the real code.) -/
-def zap.loggerRaw (l : Loc) : IProp GF := iprop(zap.nopLogger l ∨ zap.loggerOther l)
-
-/-- **`l` is a zap logger** (persistent; sweep repairs 1, L1): non-nil, and as a constructor
-returns it (`zap.loggerRaw`). Given only by constructor specs (`zap.NewNop`), and carried from
+/-- **`l` is a zap logger** (persistent; sweep repairs 1, L1): non-nil, and as `zap.NewNop()` returns
+it (`zap.nopLogger`; zap-z1, 2026-11-23: until then also as zap's other constructors return it, an opaque
+`zap.loggerOther` no spec produced, which kept `Logger.check` a trust-boundary axiom; a theorem about a
+logger with a real core brings it back with the cores' specs, #40's Z3). Given only by constructor specs (`zap.NewNop`), and carried from
 there by `bootstrap`'s contract (`bootstrapContract`), the server's (`NewServer.spec`) and the
 client's (`clientCfgOk`) preconditions. A zero `zap.Logger` (`&zap.Logger{}`: nil core and clock)
 is not one: each logging method of it panics (`notes/axiom-review/zap-zero.md`). zap's loggers are
 safe for concurrent use. Every logging method's spec requires it but `Logger.Panic`'s, which asks `l ≠ null`
 (`zapLoggerOk_ne_null`; premise fixes 6). -/
-def zapLoggerOk (l : Loc) : IProp GF := iprop(⌜l ≠ null⌝ ∗ □ zap.loggerRaw l)
+def zapLoggerOk (l : Loc) : IProp GF := iprop(⌜l ≠ null⌝ ∗ □ zap.nopLogger l)
 
 instance zapLoggerOk_persistent (l : Loc) : Persistent (zapLoggerOk (GF := GF) l) := by
   unfold zapLoggerOk; infer_instance
@@ -105,14 +97,28 @@ theorem zapLoggerOrNil_ok (l : Loc) (h : l ≠ null) : zapLoggerOrNil (GF := GF)
   · exact absurd h' h
   · iexact H
 
-/-- **An entry to write** (opaque, exclusive; sweep repairs 1, L1): `ce` is a
-`*zapcore.CheckedEntry` that `Logger.Check` returned non-nil, at a level below `DPanicLevel`
-(`Check.spec` admits only those), not yet written. `CheckedEntry.Write` consumes it: a second
-`Write` of the same entry reports the re-use to the entry's `ErrorOutput`
-(`zapcore/entry.go:251-263`), which this model does not cover; an entry built by hand may carry
-any `ErrorOutput`, and an entry at `DPanicLevel` (under `Development()`) or `PanicLevel` panics in
-its `Write`. Not persistent, not duplicable. -/
-opaque zapcore.zapEntry (ce : Loc) : IProp GF
+/-- **An entry to write** (exclusive; sweep repairs 1, L1; defined, zap-z1, 2026-11-23: until then
+opaque): `ce` points to a `*zapcore.CheckedEntry` that `Write` writes without effect -- not yet written
+(`dirty` false), with no `before` hooks, no cores and no `after` hook (its two slices empty and owned:
+zap-z2, 2026-11-23, until then of length 0, so that `Write` can return it to `_cePool` as a
+`pooledEntry`); its `Entry` and `ErrorOutput` any.
+`CheckedEntry.Write` consumes it (marks it written and returns it to zapcore's `_cePool`). A second `Write`
+of the same entry reports the re-use to the entry's `ErrorOutput` (`zapcore/entry.go:251-263`), which this
+excludes; so does an entry at `DPanicLevel` (under `Development()`) or `PanicLevel`, whose `after` hook
+panics, and one with a core, whose `Write` this does not model. No spec produces one: `Logger.check` of a
+`NewNop` logger returns `nil` below `DPanicLevel` (its core is disabled). Not persistent, not duplicable. -/
+def zapcore.zapEntry (ce : Loc) : IProp GF :=
+  iprop(∃ v : go_uber_org.zap.zapcore.CheckedEntry, ce ↦ v ∗
+    ⌜v.dirty' = false ∧ v.after' = GoInterface.nil⌝ ∗
+    v.before' ↦* ([] : List GoFunc) ∗ v.cores' ↦* ([] : List GoInterface))
+
+/-- **An entry of zapcore's `_cePool`** (exclusive; zap-z2, 2026-11-23): `ce` points to a
+`*zapcore.CheckedEntry` with its `cores` and `before` slices owned, whatever their contents (`reset`, which
+`getCheckedEntry` runs on what the pool returns, writes `nil` into each before truncating them). The
+predicate of `_cePool`'s elements in zapcore's package fact; `zapEntry` gives one (`zapEntry_pooled`). -/
+def zapcore.pooledEntry (ce : Loc) : IProp GF :=
+  iprop(∃ v : go_uber_org.zap.zapcore.CheckedEntry, ce ↦ v ∗
+    (∃ bs : List GoFunc, v.before' ↦* bs) ∗ (∃ cs : List GoInterface, v.cores' ↦* cs))
 
 end defs
 

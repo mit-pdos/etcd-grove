@@ -10,7 +10,7 @@
 # The constructor (2026-10-17, branch `construct`): `New`, `newBackend`, `newBatchTxBuffered`,
 # `BackendConfig.mmapSize`; bbolt's `Open` and the backend's names-only `newBoltLoggerZap` are the
 # trust boundary, as are zap's `NewNop`, `String` and `Logger.Panic` (bbolt's `Options` through
-# `BboltOptions.lean`'s axioms, `sync.Mutex{}` through `MutexLit.lean`'s: lemmas, not linked).
+# `BboltOptions.lean`'s axioms, lemmas, not linked).
 # `NewDefaultBackend` and `DefaultBackendConfig` are not proved (the server builds its
 # configuration itself).
 verify_IsVerificationEnabled: os_Getenv strings_ToLower
@@ -49,8 +49,8 @@ os_Getenv:
 strings_ToLower:
 verify_Verify: verify_IsVerificationEnabled
 zap_Error:
-zap_Logger__Fatal:
-zap_Logger__Panic:
+zap_Logger__Fatal: pool_Pool__Get os_Exit
+zap_Logger__Panic: pool_Pool__Get
 zap_NewNop:
 zap_String:
 zap_Stack:
@@ -76,6 +76,7 @@ backend__unsafeBegin: bbolt_DB__Begin zap_Error zap_Logger__Fatal
 baseReadTx__UnsafeForEach: txReadBuffer__ForEach unsafeForEach
 baseReadTx__UnsafeRange: txReadBuffer__Range bbolt_Tx__Bucket bbolt_Bucket__Cursor unsafeRange
 batchTxBuffered__Commit: batchTx__lock batchTxBuffered__commit batchTx__Unlock
+batchTxBuffered__Commit+Cnt: batchTx__lock batchTxBuffered__commit batchTx__Unlock
 batchTxBuffered__CommitAndStop: batchTx__lock batchTxBuffered__commit batchTx__Unlock
 batchTxBuffered__Lock: batchTx__Lock
 batchTxBuffered__LockInsideApply: batchTx__LockInsideApply
@@ -146,11 +147,23 @@ newBoltLoggerZap:
 # (D22 S-f, 2026-10-19) the snapshot path's backend boundary (InvSnapshot.lean): `backend.Snapshot`
 # (a read transaction begun outside the batch lock), an axiom (translated since S4b, 2026-11-18, not
 # proved: `notes/bbolt-integration-plan.md`, "S4b"). Linked for the sender (D22 S-h).
-backend__Snapshot:
+backend__Snapshot: batchTxBuffered__Commit+Cnt bbolt_DB__Begin zap_Error zap_Logger__Fatal bbolt_Tx__Size =_root_.Perennial.time.wp_Now =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop =_root_.Perennial.time.wp_Since zap_Duration zap_Int64 go_humanize_Bytes zap_String zap_Logger__Warn time_Duration__Seconds
 # (S4b, 2026-11-18; axioms until then, D22 S-f/S-h) the snapshot's `WriteTo` and `Size` (bbolt's
 # `Tx.WriteTo`/`Tx.Size`, promoted) and `Close` (its channels, bbolt's `Tx.Rollback`), proved
 snapshot__WriteTo: bbolt_Tx__WriteTo
 snapshot__Size: bbolt_Tx__Size
 snapshot__Close: bbolt_Tx__Rollback
+zap_Duration:
+zap_Int64:
+zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
+zap_Logger__check:
+zapcore_CheckedEntry__Write: pool_Pool__Put
+go_humanize_Bytes:
 snapshot__UnsafeRange: bbolt_Tx__Bucket bbolt_Bucket__Cursor unsafeRange
 snapshot__UnsafeForEach: unsafeForEach
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Get:
+os_Exit: syscall_Exit
+syscall_Exit:
+pool_Pool__Put:

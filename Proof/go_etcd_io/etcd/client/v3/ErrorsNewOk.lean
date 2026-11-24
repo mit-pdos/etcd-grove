@@ -196,7 +196,7 @@ theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
   iintro #Hpkg
   ihave #Hv := _root_.Perennial.io.eof_of_init $$ Hpkg
   iunfold _root_.Perennial.errors.newVar at Hv
-  icases Hv with ⟨%x, #Hpt, #Hmsg⟩
+  icases Hv with ⟨%x, #Hpt, #_, #Hmsg⟩
   ihave #Hm : EtcdGrove.errMsgOk (GF := GF)
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ $$ []
   · iunfold EtcdGrove.errMsgOk
@@ -323,7 +323,9 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
         GoInterface.ok.inj Hx
       isplitl []
       · ipureintro
-        exact ⟨rfl, Or.inl rfl, Htc.2, Hlc.2.2.1⟩
+        refine ⟨rfl, Or.inl rfl, ⟨Htc.2, Hlc.2.2.1⟩, fun h => ?_⟩
+        rw [hx] at h
+        exact absurd h (_root_.Perennial.context.deadlineExceededError_ne_ptr _).symm
       · rw [hx]; iapply errorMsgIs_errorString $$ Hcell
   · icombine Hv Hed gives %Heq
     subst Heq
@@ -338,7 +340,7 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
           #(zero_val _root_.Perennial.context.deadlineExceededError) := GoInterface.ok.inj HtyD
       isplitl []
       · ipureintro
-        exact ⟨rfl, Or.inr rfl, Htd.2, Hld.2.1⟩
+        exact ⟨rfl, Or.inr rfl, ⟨Htd.2, Hld.2.1⟩, fun _ => by rw [hd]⟩
       · rw [hd]; iapply errorMsgIs_deadline
 
 end proofs

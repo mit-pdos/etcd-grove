@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.etcd.api.v3.membershippb
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.api.v3.membershippb
@@ -50,7 +51,7 @@ noncomputable instance RaftAttributes_access_load_state (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance RaftAttributes_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.RaftAttributes) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance RaftAttributes_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.RaftAttributes) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.RaftAttributes go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.RaftAttributes go!"state" l) state' (DFrac.own 1))
@@ -158,7 +159,7 @@ noncomputable instance Attributes_access_load_state (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Attributes_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.Attributes) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Attributes_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.Attributes) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.Attributes go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.Attributes go!"state" l) state' (DFrac.own 1))
@@ -267,7 +268,7 @@ noncomputable instance Member_access_load_state (l : Loc) (v : go_etcd_io.etcd.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance Member_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.Member) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Member_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.Member) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.Member go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.Member go!"state" l) state' (DFrac.own 1))
@@ -390,7 +391,7 @@ noncomputable instance ClusterVersionSetRequest_access_load_state (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClusterVersionSetRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ClusterVersionSetRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest go!"state" l) state' (DFrac.own 1))
@@ -482,7 +483,7 @@ noncomputable instance ClusterMemberAttrSetRequest_access_load_state (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClusterMemberAttrSetRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ClusterMemberAttrSetRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest go!"state" l) state' (DFrac.own 1))
@@ -590,7 +591,7 @@ noncomputable instance DowngradeInfoSetRequest_access_load_state (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DowngradeInfoSetRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance DowngradeInfoSetRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest go!"state" l) state' (DFrac.own 1))

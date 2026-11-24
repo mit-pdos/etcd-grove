@@ -30,9 +30,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **`node.ReportUnreachable(id)`**, from any goroutine (the transport's): a leader's progress of
 `id` only; nothing is promised. -/
 abbrev node.ReportUnreachable.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64),
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (to : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportUnreachable")) (Val #to))
+    (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"ReportUnreachable")) (Val #to))
   {{ RET #(); True }}
 
 end spec

@@ -1,0 +1,7 @@
+# (projects dsv-epaxos and dsv-swiftpaxos) gods v1.18.1's red-black tree, from its model
+# models/gods (module_models): gods' code but the iterator's Next and Prev, rewritten there without
+# `goto` (which goose does not take); notes/gods-verified.md.
+translate = ["*"]
+imports = ["*"]
+
+translate_types = true

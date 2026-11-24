@@ -25,7 +25,7 @@ public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.golang_org.x.time.rate
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import GeneratedProof.net.http
 public import GeneratedProof.net.url
 public import GeneratedProof.path
@@ -97,7 +97,7 @@ noncomputable instance pipelineHandler_access_load_localID (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance pipelineHandler_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (localID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance pipelineHandler_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"localID" l) v.localID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"localID" l) localID' (DFrac.own 1))
@@ -145,7 +145,7 @@ noncomputable instance pipelineHandler_access_load_cid (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance pipelineHandler_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (cid' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance pipelineHandler_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler) (cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"cid" l) v.cid' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler go!"cid" l) cid' (DFrac.own 1))
@@ -254,7 +254,7 @@ noncomputable instance snapshotHandler_access_load_localID (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshotHandler_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (localID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance snapshotHandler_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"localID" l) v.localID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"localID" l) localID' (DFrac.own 1))
@@ -270,7 +270,7 @@ noncomputable instance snapshotHandler_access_load_cid (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshotHandler_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (cid' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance snapshotHandler_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler) (cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"cid" l) v.cid' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler go!"cid" l) cid' (DFrac.own 1))
@@ -379,7 +379,7 @@ noncomputable instance streamHandler_access_load_id (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance streamHandler_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (id' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance streamHandler_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"id" l) id' (DFrac.own 1))
@@ -395,7 +395,7 @@ noncomputable instance streamHandler_access_load_cid (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance streamHandler_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (cid' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance streamHandler_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler) (cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"cid" l) v.cid' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler go!"cid" l) cid' (DFrac.own 1))
@@ -468,7 +468,7 @@ noncomputable instance peer_access_load_localID (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance peer_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer) (localID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance peer_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer) (localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer go!"localID" l) v.localID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer go!"localID" l) localID' (DFrac.own 1))
@@ -484,7 +484,7 @@ noncomputable instance peer_access_load_id (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance peer_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer) (id' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance peer_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer) (id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer go!"id" l) id' (DFrac.own 1))
@@ -676,7 +676,7 @@ noncomputable instance peer_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance peer_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer) (mu' : sync.Mutex) :
+noncomputable instance peer_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer go!"mu" l) mu' (DFrac.own 1))
@@ -708,7 +708,7 @@ noncomputable instance peer_access_load_cancel (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance peer_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer) (cancel' : context.CancelFunc) :
+noncomputable instance peer_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer) (cancel' : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer go!"cancel" l) v.cancel' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer go!"cancel" l) cancel' (DFrac.own 1))
@@ -773,7 +773,7 @@ noncomputable instance pipeline_access_load_peerID (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance pipeline_access_store_peerID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (peerID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance pipeline_access_store_peerID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (peerID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"peerID" l) v.peerID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"peerID" l) peerID' (DFrac.own 1))
@@ -901,7 +901,7 @@ noncomputable instance pipeline_access_load_wg (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance pipeline_access_store_wg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (wg' : sync.WaitGroup) :
+noncomputable instance pipeline_access_store_wg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline) (wg' : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline go!"wg" l) wg' (DFrac.own 1))
@@ -965,7 +965,7 @@ noncomputable instance snapshotSender_access_load_from (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshotSender_access_store_from (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender) (from' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance snapshotSender_access_store_from (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender) (from' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender go!"from" l) v.from' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender go!"from" l) from' (DFrac.own 1))
@@ -981,7 +981,7 @@ noncomputable instance snapshotSender_access_load_to (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshotSender_access_store_to (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender) (to' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance snapshotSender_access_store_to (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender) (to' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender go!"to" l) v.to' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender go!"to" l) to' (DFrac.own 1))
@@ -997,7 +997,7 @@ noncomputable instance snapshotSender_access_load_cid (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance snapshotSender_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender) (cid' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance snapshotSender_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender) (cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender go!"cid" l) v.cid' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender go!"cid" l) cid' (DFrac.own 1))
@@ -1154,7 +1154,7 @@ noncomputable instance outgoingConn_access_load_Writer (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance outgoingConn_access_store_Writer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (Writer' : io.Writer) :
+noncomputable instance outgoingConn_access_store_Writer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (Writer' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"Writer" l) v.Writer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"Writer" l) Writer' (DFrac.own 1))
@@ -1170,7 +1170,7 @@ noncomputable instance outgoingConn_access_load_Flusher (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance outgoingConn_access_store_Flusher (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (Flusher' : net.http.Flusher) :
+noncomputable instance outgoingConn_access_store_Flusher (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (Flusher' : _root_.Perennial.net.http.Flusher) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"Flusher" l) v.Flusher' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"Flusher" l) Flusher' (DFrac.own 1))
@@ -1186,7 +1186,7 @@ noncomputable instance outgoingConn_access_load_Closer (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance outgoingConn_access_store_Closer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (Closer' : io.Closer) :
+noncomputable instance outgoingConn_access_store_Closer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (Closer' : _root_.Perennial.io.Closer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"Closer" l) v.Closer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"Closer" l) Closer' (DFrac.own 1))
@@ -1202,7 +1202,7 @@ noncomputable instance outgoingConn_access_load_localID (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance outgoingConn_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (localID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance outgoingConn_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"localID" l) v.localID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"localID" l) localID' (DFrac.own 1))
@@ -1218,7 +1218,7 @@ noncomputable instance outgoingConn_access_load_peerID (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance outgoingConn_access_store_peerID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (peerID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance outgoingConn_access_store_peerID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn) (peerID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"peerID" l) v.peerID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.outgoingConn go!"peerID" l) peerID' (DFrac.own 1))
@@ -1286,7 +1286,7 @@ noncomputable instance streamWriter_access_load_localID (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance streamWriter_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter) (localID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance streamWriter_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter) (localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter go!"localID" l) v.localID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter go!"localID" l) localID' (DFrac.own 1))
@@ -1302,7 +1302,7 @@ noncomputable instance streamWriter_access_load_peerID (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance streamWriter_access_store_peerID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter) (peerID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance streamWriter_access_store_peerID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter) (peerID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter go!"peerID" l) v.peerID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter go!"peerID" l) peerID' (DFrac.own 1))
@@ -1366,7 +1366,7 @@ noncomputable instance streamWriter_access_load_mu (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance streamWriter_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter) (mu' : sync.Mutex) :
+noncomputable instance streamWriter_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter go!"mu" l) mu' (DFrac.own 1))
@@ -1382,7 +1382,7 @@ noncomputable instance streamWriter_access_load_closer (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance streamWriter_access_store_closer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter) (closer' : io.Closer) :
+noncomputable instance streamWriter_access_store_closer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter) (closer' : _root_.Perennial.io.Closer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter go!"closer" l) v.closer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter go!"closer" l) closer' (DFrac.own 1))

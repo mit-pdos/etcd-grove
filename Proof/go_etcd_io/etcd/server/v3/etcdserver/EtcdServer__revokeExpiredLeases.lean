@@ -29,6 +29,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -78,7 +80,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
   iunfold srvFieldsAt at Hf
   icases Hf with ⟨#Hlgf, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -, -⟩
   iunfold srvRunFieldsAt at Hrf
-  icases Hrf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
+  icases Hrf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
   ihave ⟨%sch, #Hsch, #Hstop⟩ := srvGoAttachOk_stopping s γg $$ Hgok
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -275,11 +277,9 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
             iintro %al ⟨Hal, -⟩
             (try wp_auto)
             -- `fmt.Sprintf("%016x", lid)` of an `int64`: Perennial's `fmt.wp_Sprintf`
-            wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ (DFrac.own 1) ?wf $$ [$Hal]
-              as %msg ⟨-, -⟩
-            case wf =>
-              exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ []
-                (_root_.Perennial.fmt.IntArgValue.int64 id) _root_.Perennial.fmt.ArgsWf.nil
+            wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%016x"
+              [.dir (some 16) _root_.Perennial.fmt.verb_x] _ _ _ (DFrac.own 1) (by fmt_encode)
+              (by fmt_fits) (.int _ _ _ _ (.int64 id) .nil) $$ [$Hal] as %msg ⟨-, -⟩
             wp_apply hStr $$ [] as %f1 -
             wp_apply hErr $$ [] as %f2 -
             wp_apply wp_slice_literal (V := zap.zapcore.Field) [f1, f2]

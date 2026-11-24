@@ -46,9 +46,7 @@ section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- A queued message: its pointer and the state it holds (stage R4). -/
 structure QMsg [GooseExts] where
@@ -396,9 +394,7 @@ section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- (2026-10-21, D22 S-r) **A `MsgSnap`'s data certificate**: the snapshot it carries has the data
 the cluster admits at its index (`snapDataOk`). Vacuous for every other message. What a `Ready`
@@ -526,9 +522,7 @@ section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem mtypeOf_MsgReadIndex : mtypeOf MsgReadIndex = some .readIndex := rfl
@@ -536,6 +530,16 @@ theorem mtypeOf_MsgReadIndex : mtypeOf MsgReadIndex = some .readIndex := rfl
 /-- A message's tickets: a proposal's entries'. -/
 def stTks (γ : RaftNames) (st : MsgSt) : IProp GF :=
   if st.msg.Type' = MsgProp then iprop([∗list] e ∈ st.ents, entTk γ e) else iprop(emp)
+
+
+end
+
+section anonHeap534
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A `Ready`'s `SoftState` as the application reads it (2026-10-16, stage R7a, D10): `nil`, or a
 `*SoftState` whose `Lead` and `RaftState` are read-only (raft never writes a `SoftState` after
@@ -545,8 +549,44 @@ def softStateRO (p : Loc) : IProp GF :=
   iprop(⌜p = null⌝ ∨ ∃ (lead : w64) (rs : StateType),
     structFieldRef SoftState go!"Lead" p ↦□ lead ∗ structFieldRef SoftState go!"RaftState" p ↦□ rs)
 
+
+
+
+end anonHeap534
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap560
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 instance softStateRO_persistent (p : Loc) : Persistent (softStateRO (GF := GF) p) := by
   unfold softStateRO; infer_instance
+
+
+
+
+end anonHeap560
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap549
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (2026-11-01, durability stage I-3) **A `Ready`'s `SoftState` is `ss`**: `nil` (`none`), or a
 `*SoftState` whose `Lead` and `RaftState` are `ss`'s, read-only: what the receive's `roleAfter`
@@ -556,11 +596,47 @@ def softStateIs (p : Loc) : Option (w64 × StateType) → IProp GF
   | some (lead, rs) => iprop(⌜p ≠ null⌝ ∗ structFieldRef SoftState go!"Lead" p ↦□ lead ∗
       structFieldRef SoftState go!"RaftState" p ↦□ rs)
 
+
+
+
+end anonHeap549
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap591
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 instance softStateIs_persistent (p : Loc) (ss : Option (w64 × StateType)) :
     Persistent (softStateIs (GF := GF) p ss) := by
   cases ss with
   | none => unfold softStateIs; infer_instance
   | some x => obtain ⟨a, b⟩ := x; unfold softStateIs; infer_instance
+
+
+
+
+end anonHeap591
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap599
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A soft state at a value is read-only (`softStateRO`). -/
 theorem softStateIs_RO (p : Loc) (ss : Option (w64 × StateType)) :
@@ -574,12 +650,48 @@ theorem softStateIs_RO (p : Loc) (ss : Option (w64 × StateType)) :
     iintro ⟨-, #H1, #H2⟩
     iright; iexists lead, rs; iframe H1 H2
 
+
+
+
+end anonHeap599
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap613
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (2026-11-01, durability stage II (m), kvdurable's G21) **A soft state is a non-`nil` pointer.** -/
 theorem softStateIs_ne_null (p : Loc) (x : w64 × StateType) :
     softStateIs (GF := GF) p (some x) ⊢ ⌜p ≠ null⌝ := by
   obtain ⟨lead, rs⟩ := x
   unfold softStateIs
   iintro ⟨%H, -⟩; ipureintro; exact H
+
+
+
+
+end anonHeap613
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap590
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (U8 v2, 2026-10-29; until then the right to append, or with a snapshot the storage itself and
 its certificate in the storage's registry) **What a `Ready` hands the application for the storage**
@@ -593,6 +705,24 @@ def readyOut (st : Storage) (sn : StorNames) (es : List EntryM) : Option SnapLoa
       storLog st k (DFrac.own 1) old ∗ storEnd st (k + old.length)) ∗
       storGiven sn (uint.nat l.snap.Metadata'.Index'))
 
+
+
+
+end anonHeap590
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap604
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (U8 v2, 2026-10-29) **A `Ready`'s committed entries `ce` below its batch, frozen** (the frozen
 design's §3, `ceBelow`): after the `n` entries delivered before, the first `m` of `ce` -- all of them,
 or those below the batch's first index -- frozen. -/
@@ -600,9 +730,45 @@ def ceFrozen (st : Storage) (n : Nat) (ce es : List EntryM) : IProp GF :=
   iprop(∃ m : Nat, storLog st (n + 1) DFrac.discard (ce.take m) ∗
     ⌜m = ce.length ∨ ∃ e0, es.head? = some e0 ∧ n + 1 + m = uint.nat e0.Index'⌝)
 
+
+
+
+end anonHeap604
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap677
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 instance ceFrozen_pers (st : Storage) (n : Nat) (ce es : List EntryM) :
     Persistent (ceFrozen (GF := GF) st n ce es) := by
   unfold ceFrozen; infer_instance
+
+
+
+
+end anonHeap677
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap619
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (U8 v2, 2026-10-29; until then the storage at the snapshot, with its floor, lists and data)
 **The application's receipt of a snapshot `Ready`'s loan**, which `Advance` takes (§3): the half of
@@ -617,6 +783,24 @@ def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
     storLog st (uint.nat l.snap.Metadata'.Index' + 1) (DFrac.own 1) es ∗
     storEnd st (uint.nat l.snap.Metadata'.Index' + 1 + es.length))
 
+
+
+
+end anonHeap619
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap634
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- (U8 v2, 2026-10-29) The driver's receipt at `Advance` for the `Ready`'s storage hand-out (§3):
 its batch `es` back (`appendReceipt`), as a frozen prefix `a` within the committed log delivered
 (`n` entries) and an owned rest, or after a snapshot `Ready` the snapshot's receipt. -/
@@ -625,6 +809,14 @@ def advReceipt (st : Storage) (n : Nat) (es : List EntryM) : Option SnapLoan →
       ⌜a ≠ [] → ∀ e0, es.head? = some e0 → uint.nat e0.Index' - 1 + a.length ≤ n⌝)
   | some l => snapReceipt st l es
 
+
+
+end anonHeap634
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 /-- The indices a `Ready` hands out are within the node's log at hand-out time (2026-10-18, D19b
 stage 5): its last index `L` has a record (`lastRec`, whose time receipt bounds it,
 `lastRec_receipt`), the entries to append end at most at `L`, the committed log handed out is
@@ -645,44 +837,117 @@ section
 open Iris Iris.BI go_etcd_io.raft.v3
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+
+
+end
+
+section anonHeap666
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The `Context` bytes of the peers `pv`, read-only: `ctxs[k]` behind `pv[k].Context`. -/
+/-- The `Context` bytes of the peers `pv`, read-only: `ctxs[k]` behind `pv[k].Context`, and an
+empty context the `nil` slice. (2026-11-24, tracecheck non-vacuity: `Context` is a proto2 `bytes`
+field, present iff the slice is not `nil`, so an empty context's bytes in `proto.Marshal`'s output
+depend on which slice it is; `ctxs[k] = []` stands for the absent field, which is what a
+`Peer{ID: id}` carries. Until then empty contexts were excluded instead, by `bootMarshal`'s
+`⌜∀ c ∈ ctxs, c ≠ []⌝`, which made the trace check's premise, at `[[], [], []]`, false.) -/
 def peersCtx (pv : List Peer) (ctxs : List (List w8)) : IProp GF :=
-  iprop([∗list] p;ctx ∈ pv;ctxs, p.Context' ↦*□ ctx)
+  iprop([∗list] p;ctx ∈ pv;ctxs, p.Context' ↦*□ ctx ∗ ⌜ctx = [] → p.Context' = slice.nil⌝)
+
+
+
+
+end anonHeap666
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap784
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 instance peersCtx_persistent (pv : List Peer) (ctxs : List (List w8)) :
     Persistent (peersCtx (GF := GF) pv ctxs) := by
   unfold peersCtx; infer_instance
 
+
+
+
+end anonHeap784
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap678
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- **The `k`-th peer's conf change as raft's `Bootstrap` builds it** (premise fixes 1, 2026-11-10):
 `&pb.ConfChange{Type: AddNode.Enum(), NodeId: new(id), Context: ctx}` at `p`, at `dq`: its `Type`
 and `NodeId` cells set (non-`nil`) to `m.type` and `m.nodeId`, its `Id` unset (`nil`), its
-`Context` holding `m.context`, no unknown fields. Unlike `ownConfChange`, which forgets which
-fields are set and the unknown fields, it fixes everything `proto.Marshal`'s bytes depend on. -/
+`Context` holding `m.context`, `nil` (absent) when `m.context` is empty, no unknown fields. Unlike
+`ownConfChange`, which forgets which fields are set and the unknown fields, it fixes everything
+`proto.Marshal`'s bytes depend on. (2026-11-24) The `nil` for an empty context: `Context` is a
+proto2 `bytes` field, so an empty non-`nil` slice is marshalled as present (`0x22 0x00`) and a
+`nil` one not at all (see `peersCtx`). -/
 def bootConfChange (p : Loc) (dq : DFrac) (m : ConfChangeM) : IProp GF :=
   iprop(∃ (pt pn : Loc) (cs : GoSlice),
-    ⌜p ≠ null ∧ pt ≠ null ∧ pn ≠ null⌝ ∗
+    ⌜p ≠ null ∧ pt ≠ null ∧ pn ≠ null ∧ (m.context = [] → cs = slice.nil)⌝ ∗
     p.[raftpb.ConfChange, go!"Type"] ↦{dq} pt ∗ pt ↦□ m.type ∗
     p.[raftpb.ConfChange, go!"NodeId"] ↦{dq} pn ∗ pn ↦□ m.nodeId ∗
     p.[raftpb.ConfChange, go!"Id"] ↦{dq} (null : Loc) ∗
     p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
     pbMsg raftpb.ConfChange p [])
 
+
+
+
+end anonHeap678
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap694
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- `proto.Marshal` of the `k`-th peer's conf change returns the bytes of the `k`-th boot entry
 (see the file header): for the `*pb.ConfChange` raft's `Bootstrap` builds at `p` (`bootConfChange`:
 `Type = AddNode` and `NodeId = ps[k]` set, `Id` unset, `Context = ctxs[k]`, no unknown fields), the
 call returns a fresh slice holding `e.Data'` for `bootLog[k] = e`, with a `nil` error, and gives the
-message back; and the peers' contexts are not empty (an empty one's bytes depend on whether the
-slice is `nil`, proto2 presence). Persistent (one call per peer). (Premise fixes 1, 2026-11-10:
+message back. An empty context is the absent field (`bootConfChange`: its slice `nil`). Persistent (one call per peer). (Premise fixes 1, 2026-11-10:
 until then stated over every `ownConfChange p dq m` with these fields, which also covers `Id`
 set to `0`, `Type` unset and unknown fields, which Go marshals to other bytes: the premise attack,
 `examples/premisefix/confchange`, `TestBootBytesDependOnPresence`; so no faithful `proto.Marshal`
-met it and every closed theorem assuming it held vacuously.) -/
+met it and every closed theorem assuming it held vacuously.) (2026-11-24, tracecheck non-vacuity:
+until then also `⌜∀ c ∈ ctxs, c ≠ []⌝`, since an empty context's bytes depend on whether its slice is
+`nil`; the trace check's peers have no context, so its premise `bootMarshal _ [[], [], []] _` was
+false and `raft_tracecheck_safe`/`_robust` held vacuously. Now `bootConfChange` and `peersCtx` fix
+an empty context's slice to `nil`, the bytes Go computes for a `Peer{ID: id}`.) -/
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
-  iprop(⌜∀ c ∈ ctxs, c ≠ []⌝ ∗ □ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : ConfChangeM) (e : EntryM)
+  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : ConfChangeM) (e : EntryM)
     (_ : ps[k]? = some m.nodeId ∧ ctxs[k]? = some m.context ∧ bootLog[k]? = some e ∧
       m.type = W32 0 ∧ m.id = W64 0) (Φ : val → IProp GF),
     bootConfChange p dq m -∗
@@ -690,14 +955,52 @@ def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) 
     WP (App (Val (@! google_golang_org.protobuf.proto.Marshal))
           (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p))) {{ Φ }})
 
+
+
+
+end anonHeap694
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap859
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 instance bootMarshal_persistent (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) :
     Persistent (bootMarshal (GF := GF) ps ctxs bootLog) := by
   unfold bootMarshal; infer_instance
 
+
+
+
+end anonHeap859
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+end
+
+section anonHeap721
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- A freshly allocated `*pb.ConfChange` (hidden fields zero, `Id` unset) with its `Type` and
-`NodeId` cells set: the conf change `Bootstrap` marshals (`bootConfChange`). -/
+`NodeId` cells set, an empty context `nil`: the conf change `Bootstrap` marshals
+(`bootConfChange`). -/
 theorem bootConfChange_of_struct (p : Loc) (v : raftpb.ConfChange) (m : ConfChangeM) (E : CoPset)
-    (Hu : v.unknownFields' = slice.nil) (Hi : v.Id' = null) :
+    (Hu : v.unknownFields' = slice.nil) (Hi : v.Id' = null)
+    (Hc : m.context = [] → v.Context' = slice.nil) :
     (p ↦ v ∗ v.Type' ↦□ m.type ∗ v.NodeId' ↦□ m.nodeId ∗ v.Context' ↦*□ m.context : IProp GF) ⊢
       |={E}=> bootConfChange p (DFrac.own 1) m := by
   iintro ⟨Hp, #cT, #cN, #Hcs⟩
@@ -717,10 +1020,19 @@ theorem bootConfChange_of_struct (p : Loc) (v : raftpb.ConfChange) (m : ConfChan
   iunfold bootConfChange
   iexists v.Type', v.NodeId', v.Context'
   isplitr
-  · ipureintro; exact ⟨Hnn, HnT, HnN⟩
+  · ipureintro; exact ⟨Hnn, HnT, HnN, Hc⟩
   iframe
   iframe cT cN Hcs Hpb
 
+
+
+end anonHeap721
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+variable [CrashGS GF] in
 /-- (2026-10-25, T-M M2a) The ghost state a member of a new cluster starts `Bootstrap` with, in the
 mode `md` (as `rnInit` for `RestartNode`): statically the bootstrap state `bootPState bootLog`
 (`ownRaftGhost_alloc_boot`); dynamically the dynamic model's `rboot c0 bootLog`
@@ -772,10 +1084,9 @@ section
 open Iris Iris.BI go_etcd_io.raft.v3
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
+variable [CrashGS GF] in
 /-- The ghost state a fresh node starts from, in the mode `md` (2026-10-14, reconfiguration stage
 B7 part 2): statically the protocol's initial state (`ownRaftGhost_alloc`); dynamically the
 dynamic model's (`raft_dyn_alloc`, at `rinit c0`), the initial configuration `c0` the voters `V`
@@ -793,9 +1104,7 @@ section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **What `ProposeConfChange` takes for the conf change `o`** (2026-10-27; until then
 `CCAllowed`, that the cluster's policy `reCCOk` admitted the change, whose entry then fired the

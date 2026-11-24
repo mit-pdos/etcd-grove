@@ -100,7 +100,7 @@ noncomputable instance blockLogger_access_load_interval (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_interval (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (interval' : time.Duration) :
+noncomputable instance blockLogger_access_store_interval (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (interval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"interval" l) v.interval' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"interval" l) interval' (DFrac.own 1))
@@ -116,7 +116,7 @@ noncomputable instance blockLogger_access_load_threshold (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_threshold (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (threshold' : time.Duration) :
+noncomputable instance blockLogger_access_store_threshold (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (threshold' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"threshold" l) v.threshold' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"threshold" l) threshold' (DFrac.own 1))
@@ -164,7 +164,7 @@ noncomputable instance blockLogger_access_load_groupResource (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (groupResource' : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance blockLogger_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (groupResource' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"groupResource" l) v.groupResource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"groupResource" l) groupResource' (DFrac.own 1))
@@ -180,7 +180,7 @@ noncomputable instance blockLogger_access_load_clock (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance blockLogger_access_store_clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"clock" l) clock' (DFrac.own 1))
@@ -196,7 +196,7 @@ noncomputable instance blockLogger_access_load_mu (l : Loc) (v : k8s_io.apiserve
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_mu (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (mu' : sync.Mutex) :
+noncomputable instance blockLogger_access_store_mu (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"mu" l) mu' (DFrac.own 1))
@@ -212,7 +212,7 @@ noncomputable instance blockLogger_access_load_lastLogTime (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_lastLogTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (lastLogTime' : time.Time) :
+noncomputable instance blockLogger_access_store_lastLogTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (lastLogTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"lastLogTime" l) v.lastLogTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"lastLogTime" l) lastLogTime' (DFrac.own 1))
@@ -244,7 +244,7 @@ noncomputable instance blockLogger_access_load_timeWaiting (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_timeWaiting (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (timeWaiting' : time.Duration) :
+noncomputable instance blockLogger_access_store_timeWaiting (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.blockLogger) (timeWaiting' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"timeWaiting" l) v.timeWaiting' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.blockLogger go!"timeWaiting" l) timeWaiting' (DFrac.own 1))
@@ -308,7 +308,7 @@ noncomputable instance compactor_access_load_wg (l : Loc) (v : k8s_io.apiserver.
  by
   solve_pointsto_access_struct
 
-noncomputable instance compactor_access_store_wg (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (wg' : sync.WaitGroup) :
+noncomputable instance compactor_access_store_wg (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (wg' : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"wg" l) wg' (DFrac.own 1))
@@ -324,7 +324,7 @@ noncomputable instance compactor_access_load_clock (l : Loc) (v : k8s_io.apiserv
  by
   solve_pointsto_access_struct
 
-noncomputable instance compactor_access_store_clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance compactor_access_store_clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"clock" l) clock' (DFrac.own 1))
@@ -356,7 +356,7 @@ noncomputable instance compactor_access_load_stopOnce (l : Loc) (v : k8s_io.apis
  by
   solve_pointsto_access_struct
 
-noncomputable instance compactor_access_store_stopOnce (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (stopOnce' : sync.Once) :
+noncomputable instance compactor_access_store_stopOnce (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (stopOnce' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stopOnce" l) v.stopOnce' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"stopOnce" l) stopOnce' (DFrac.own 1))
@@ -388,7 +388,7 @@ noncomputable instance compactor_access_load_mux (l : Loc) (v : k8s_io.apiserver
  by
   solve_pointsto_access_struct
 
-noncomputable instance compactor_access_store_mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (mux' : sync.Mutex) :
+noncomputable instance compactor_access_store_mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (mux' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"mux" l) v.mux' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"mux" l) mux' (DFrac.own 1))
@@ -420,7 +420,7 @@ noncomputable instance compactor_access_load_interval (l : Loc) (v : k8s_io.apis
  by
   solve_pointsto_access_struct
 
-noncomputable instance compactor_access_store_interval (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (interval' : time.Duration) :
+noncomputable instance compactor_access_store_interval (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.compactor) (interval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"interval" l) v.interval' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"interval" l) interval' (DFrac.own 1))
@@ -535,7 +535,7 @@ noncomputable instance corruptObjectDeleter_access_load_Interface (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance corruptObjectDeleter_access_store_Interface (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeleter) (Interface' : k8s_io.apiserver.pkg.storage.Interface) :
+noncomputable instance corruptObjectDeleter_access_store_Interface (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeleter) (Interface' : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeleter go!"Interface" l) v.Interface' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeleter go!"Interface" l) Interface' (DFrac.own 1))
@@ -551,7 +551,7 @@ noncomputable instance corruptObjectDeleter_access_load_groupResource (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance corruptObjectDeleter_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeleter) (groupResource' : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance corruptObjectDeleter_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeleter) (groupResource' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeleter go!"groupResource" l) v.groupResource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeleter go!"groupResource" l) groupResource' (DFrac.own 1))
@@ -591,7 +591,7 @@ noncomputable instance corruptObjErrorInterpretingTransformer_access_load_Transf
  by
   solve_pointsto_access_struct
 
-noncomputable instance corruptObjErrorInterpretingTransformer_access_store_Transformer (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrorInterpretingTransformer) (Transformer' : k8s_io.apiserver.pkg.storage.value.Transformer) :
+noncomputable instance corruptObjErrorInterpretingTransformer_access_store_Transformer (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrorInterpretingTransformer) (Transformer' : _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Transformer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrorInterpretingTransformer go!"Transformer" l) v.Transformer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrorInterpretingTransformer go!"Transformer" l) Transformer' (DFrac.own 1))
@@ -723,7 +723,7 @@ noncomputable instance aggregatedStorageError_access_load_errs (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance aggregatedStorageError_access_store_errs (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.aggregatedStorageError) (errs' : k8s_io.apimachinery.pkg.util.errors.Aggregate) :
+noncomputable instance aggregatedStorageError_access_store_errs (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.aggregatedStorageError) (errs' : _root_.Perennial.k8s_io.apimachinery.pkg.util.errors.Aggregate) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.aggregatedStorageError go!"errs" l) v.errs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.aggregatedStorageError go!"errs" l) errs' (DFrac.own 1))
@@ -780,7 +780,7 @@ noncomputable instance defaultDecoder_access_load_codec (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance defaultDecoder_access_store_codec (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.defaultDecoder) (codec' : k8s_io.apimachinery.pkg.runtime.Codec) :
+noncomputable instance defaultDecoder_access_store_codec (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.defaultDecoder) (codec' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Codec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.defaultDecoder go!"codec" l) v.codec' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.defaultDecoder go!"codec" l) codec' (DFrac.own 1))
@@ -796,7 +796,7 @@ noncomputable instance defaultDecoder_access_load_versioner (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance defaultDecoder_access_store_versioner (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.defaultDecoder) (versioner' : k8s_io.apiserver.pkg.storage.Versioner) :
+noncomputable instance defaultDecoder_access_store_versioner (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.defaultDecoder) (versioner' : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.defaultDecoder go!"versioner" l) v.versioner' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.defaultDecoder go!"versioner" l) versioner' (DFrac.own 1))
@@ -876,7 +876,7 @@ noncomputable instance clientV3KVLatencyTracker_access_load_KV (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientV3KVLatencyTracker_access_store_KV (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.clientV3KVLatencyTracker) (KV' : go_etcd_io.etcd.client.v3.KV) :
+noncomputable instance clientV3KVLatencyTracker_access_store_KV (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.clientV3KVLatencyTracker) (KV' : _root_.Perennial.go_etcd_io.etcd.client.v3.KV) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.clientV3KVLatencyTracker go!"KV" l) v.KV' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.clientV3KVLatencyTracker go!"KV" l) KV' (DFrac.own 1))
@@ -917,7 +917,7 @@ noncomputable instance clientV3TxnTracker_access_load_ctx (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientV3TxnTracker_access_store_ctx (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.clientV3TxnTracker) (ctx' : context.Context) :
+noncomputable instance clientV3TxnTracker_access_store_ctx (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.clientV3TxnTracker) (ctx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.clientV3TxnTracker go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.clientV3TxnTracker go!"ctx" l) ctx' (DFrac.own 1))
@@ -933,7 +933,7 @@ noncomputable instance clientV3TxnTracker_access_load_Txn (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientV3TxnTracker_access_store_Txn (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.clientV3TxnTracker) (Txn' : go_etcd_io.etcd.client.v3.Txn) :
+noncomputable instance clientV3TxnTracker_access_store_Txn (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.clientV3TxnTracker) (Txn' : _root_.Perennial.go_etcd_io.etcd.client.v3.Txn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.clientV3TxnTracker go!"Txn" l) v.Txn' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.clientV3TxnTracker go!"Txn" l) Txn' (DFrac.own 1))
@@ -1053,7 +1053,7 @@ noncomputable instance leaseManager_access_load_leaseMu (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance leaseManager_access_store_leaseMu (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.leaseManager) (leaseMu' : sync.Mutex) :
+noncomputable instance leaseManager_access_store_leaseMu (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.leaseManager) (leaseMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.leaseManager go!"leaseMu" l) v.leaseMu' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.leaseManager go!"leaseMu" l) leaseMu' (DFrac.own 1))
@@ -1069,7 +1069,7 @@ noncomputable instance leaseManager_access_load_prevLeaseID (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance leaseManager_access_store_prevLeaseID (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.leaseManager) (prevLeaseID' : go_etcd_io.etcd.client.v3.LeaseID) :
+noncomputable instance leaseManager_access_store_prevLeaseID (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.leaseManager) (prevLeaseID' : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.leaseManager go!"prevLeaseID" l) v.prevLeaseID' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.leaseManager go!"prevLeaseID" l) prevLeaseID' (DFrac.own 1))
@@ -1085,7 +1085,7 @@ noncomputable instance leaseManager_access_load_prevLeaseExpirationTime (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance leaseManager_access_store_prevLeaseExpirationTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.leaseManager) (prevLeaseExpirationTime' : time.Time) :
+noncomputable instance leaseManager_access_store_prevLeaseExpirationTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.leaseManager) (prevLeaseExpirationTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.leaseManager go!"prevLeaseExpirationTime" l) v.prevLeaseExpirationTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.leaseManager go!"prevLeaseExpirationTime" l) prevLeaseExpirationTime' (DFrac.own 1))
@@ -1250,7 +1250,7 @@ noncomputable instance resourceSizeEstimator_access_load_wg (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance resourceSizeEstimator_access_store_wg (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator) (wg' : sync.WaitGroup) :
+noncomputable instance resourceSizeEstimator_access_store_wg (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator) (wg' : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator go!"wg" l) wg' (DFrac.own 1))
@@ -1266,7 +1266,7 @@ noncomputable instance resourceSizeEstimator_access_load_lastKeyCleanup (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance resourceSizeEstimator_access_store_lastKeyCleanup (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator) (lastKeyCleanup' : (sync.atomic.Pointer time.Time)) :
+noncomputable instance resourceSizeEstimator_access_store_lastKeyCleanup (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator) (lastKeyCleanup' : (_root_.Perennial.sync.atomic.Pointer _root_.Perennial.time.Time)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator go!"lastKeyCleanup" l) v.lastKeyCleanup' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator go!"lastKeyCleanup" l) lastKeyCleanup' (DFrac.own 1))
@@ -1282,7 +1282,7 @@ noncomputable instance resourceSizeEstimator_access_load_getKeys (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance resourceSizeEstimator_access_store_getKeys (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator) (getKeys' : k8s_io.apiserver.pkg.storage.KeysFunc) :
+noncomputable instance resourceSizeEstimator_access_store_getKeys (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator) (getKeys' : _root_.Perennial.k8s_io.apiserver.pkg.storage.KeysFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator go!"getKeys" l) v.getKeys' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator go!"getKeys" l) getKeys' (DFrac.own 1))
@@ -1298,7 +1298,7 @@ noncomputable instance resourceSizeEstimator_access_load_keysLock (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance resourceSizeEstimator_access_store_keysLock (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator) (keysLock' : sync.Mutex) :
+noncomputable instance resourceSizeEstimator_access_store_keysLock (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator) (keysLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator go!"keysLock" l) v.keysLock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.resourceSizeEstimator go!"keysLock" l) keysLock' (DFrac.own 1))
@@ -1416,7 +1416,7 @@ noncomputable instance objState_access_load_obj (l : Loc) (v : k8s_io.apiserver.
  by
   solve_pointsto_access_struct
 
-noncomputable instance objState_access_store_obj (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.objState) (obj' : k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance objState_access_store_obj (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.objState) (obj' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.objState go!"obj" l) v.obj' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.objState go!"obj" l) obj' (DFrac.own 1))

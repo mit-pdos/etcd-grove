@@ -24,11 +24,17 @@ public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
+public import Perennial.Code.hash
+public import Perennial.Code.internal.bytealg
+public import Perennial.Code.internal.byteorder
 public import Perennial.Code.internal.oserror
+public import Perennial.Code.internal.strconv
 public import Perennial.Code.internal.stringslite
+public import Perennial.Code.internal.testlog
 public import Perennial.Code.io
 public import Perennial.Code.iter
 public import Perennial.Code.log
+public import Perennial.Code.maps
 public import Perennial.Code.math
 public import Perennial.Code.math.big
 public import Perennial.Code.reflect
@@ -39,6 +45,7 @@ public import Perennial.Code.strings
 public import Perennial.Code.sync
 public import Perennial.Code.sync.atomic
 public import Perennial.Code.time
+public import Perennial.Code.unicode.utf8
 public import Perennial.Code.«unsafe»
 
 @[expose] public section
@@ -62,11 +69,17 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | errors : ExternalInit pkg_id.errors _root_.Perennial.errors.initialize'
   | fmt : ExternalInit pkg_id.fmt _root_.Perennial.fmt.initialize'
   | github_com_goose_lang_primitive : ExternalInit pkg_id.github_com.goose_lang.primitive _root_.Perennial.github_com.goose_lang.primitive.initialize'
+  | hash : ExternalInit pkg_id.hash _root_.Perennial.hash.initialize'
+  | internal_bytealg : ExternalInit pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize'
+  | internal_byteorder : ExternalInit pkg_id.internal.byteorder _root_.Perennial.internal.byteorder.initialize'
   | internal_oserror : ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
+  | internal_strconv : ExternalInit pkg_id.internal.strconv _root_.Perennial.internal.strconv.initialize'
   | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
+  | internal_testlog : ExternalInit pkg_id.internal.testlog _root_.Perennial.internal.testlog.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
   | iter : ExternalInit pkg_id.iter _root_.Perennial.iter.initialize'
   | log : ExternalInit pkg_id.log _root_.Perennial.log.initialize'
+  | maps : ExternalInit pkg_id.maps _root_.Perennial.maps.initialize'
   | math : ExternalInit pkg_id.math _root_.Perennial.math.initialize'
   | math_big : ExternalInit pkg_id.math.big _root_.Perennial.math.big.initialize'
   | reflect : ExternalInit pkg_id.reflect _root_.Perennial.reflect.initialize'
@@ -77,6 +90,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | sync : ExternalInit pkg_id.sync _root_.Perennial.sync.initialize'
   | sync_atomic : ExternalInit pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
   | time : ExternalInit pkg_id.time _root_.Perennial.time.initialize'
+  | unicode_utf8 : ExternalInit pkg_id.unicode.utf8 _root_.Perennial.unicode.utf8.initialize'
   | unsafe_ : ExternalInit pkg_id.«unsafe» _root_.Perennial.«unsafe».initialize'
 
 section ax

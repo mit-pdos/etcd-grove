@@ -70,7 +70,9 @@ theorem lease.LeaseExpiredNotifier.Init.wp_proof
   · iPkgInit
   ihave #Hiface := queue_heapIface hLen hLess hSwap hPush (nF go!"queue" np) $$ Hpkg
   iunfold notifierAt at Hn
-  icases Hn with ⟨%mp, %s, %M, %xs, Hm, HM, Hq, Hqa, %Hinv⟩
+  icases Hn with ⟨%M, Hn⟩
+  iunfold notifierAtM at Hn
+  icases Hn with ⟨%mp, %s, %xs, Hm, HM, Hq, Hqa, %Hinv⟩
   wp_auto
   wp_apply (hInit (Loc × w64) (interface.mk (go.GoType.PointerType LeaseQueue.ty)
       #(nF go!"queue" np)) (queueHeap (nF go!"queue" np)) queueElem xs)
@@ -150,7 +152,9 @@ theorem lease.LeaseExpiredNotifier.Init.wp_proof
     rw [hys] at HMn
     iapply HΦ
     iunfold notifierAt
-    iexists mp', s', M', ys
+    iexists M'
+    iunfold notifierAtM
+    iexists mp', s', ys
     iframe
     iunfold queueAt
     iframe

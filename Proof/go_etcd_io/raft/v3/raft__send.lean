@@ -252,8 +252,13 @@ private theorem send_hookW (wp_traceSendMessage : traceSendMessage.spec (GF := G
       (App (App (Val #(functions traceSendMessage [])) (Val #r)) (Val #ml))
     {{ RET #(); ownRaftPhysCV c c.voters r id { s with outbox := o } ∗ Q }} := by
   iintro %Φ ⟨#Hpkg, Hphys, Hgate, %Hty0, %Hsn, %HE⟩ HΦ
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGateOpt at Hgate
-  imod Hgate with ⟨%tl, #Htl, %Hok, HF⟩
+  unfold ncfupd
+  iintro Hnc
+  imod Hgate $$ Hnc with ⟨Hnc, %tl, #Htl, %Hok, HF⟩
+  imodintro
+  iframe Hnc
   icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hownb⟩
   have Hsn' : s.gh.tr ≠ none → mtypeOf st.msg.Type' ≠ some .snap := by rw [Hty0]; exact Hsn
   ihave Hown := trOwn_pure s.gh.tr _ _ Hsn' $$ Hown

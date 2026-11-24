@@ -24,7 +24,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
@@ -32,7 +32,7 @@ attribute [local instance] kvrStorageModel
 abbrev Cluster.config.spec : Prop :=
   ∀ (γr : RNames) (vs : List w64) (c : Loc) (id : w64) (st : Loc),
   id ≠ W64 0 → uint.Z id < 2 ^ 64 - 2 →
-  {{ isClusterC γr vs c }}
+  {{ isClusterC (GF := GF) γr vs c }}
     (App (App (Val (c @!! go.GoType.PointerType rClusterTy @!! go!"config")) (Val #id)) (Val #st))
   {{ (p : Loc), RET #p; ∃ cv : Config, p ↦ cv ∗ ⌜CfgOk id st cv⌝ }}
 

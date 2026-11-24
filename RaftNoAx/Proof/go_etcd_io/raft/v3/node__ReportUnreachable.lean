@@ -146,12 +146,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_ReportUnreachable_impl
     (hR : EtcdGrove.node.ReportUnreachable.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ReportUnreachable.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.ReportUnreachable.spec EtcdGrove.Cluster EtcdGrove.isNode
+  unfold EtcdGrove.node.ReportUnreachable.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode
   intro n γ N id to
   iintro %Φ ⟨#Hinit, #Hnode⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, -, #Hrn, -⟩
-  iapply (hR γn id n to) $$ []
+  iapply (hR γn id n.loc to) $$ []
   · iframe Hinit Hrn
   iexact HΦ
 

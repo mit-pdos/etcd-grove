@@ -149,7 +149,7 @@ def srvRunBuilt (s : Loc) (v : RunFields) : IProp GF :=
   iprop(srvErrorcAddr s ↦□ v.errorc ∗
       (∃ γe : ChanNames, isChanBag γe v.errorc (V := GoInterface) (fun _ => iprop(False))) ∗
     srvCompactorAddr s ↦□ v.compactor ∗ compactorOk v.compactor ∗
-    srvStatsAddr s ↦□ v.stats ∗
+    srvStatsAddr s ↦□ v.stats ∗ v2stats.isServerStats v.stats ∗
     sync.isRWMutexGuard (srvLeadTimeMuAddr s) (leadTimeP s))
 
 instance srvRunBuilt_persistent (s : Loc) (v : RunFields) : Persistent (srvRunBuilt (GF := GF) s v) := by
@@ -179,20 +179,24 @@ instance srvApplyAllBuilt_persistent (s : Loc) (γr : ReadNames) :
   unfold srvApplyAllBuilt; infer_instance
 
 /-- **`s.ClusterVersion()`** (names-only: a trust-boundary contract, in the premise as the
-lessor's): some `*semver.Version`, `nil` until the cluster's version is known, and non-`nil` from
-then on (the ghost witness `monoNatLbOwn γcv 1`: `start` calls it three times and dereferences the
+lessor's): some `*semver.Version`, `nil` until the cluster's version is known, and non-`nil` (a
+read-only version: prove-ps2-bootstage1, 2026-11-23) from then on (the ghost witness `monoNatLbOwn γcv 1`: `start` calls it three times and dereferences the
 last two results when the first was non-`nil`). -/
 def clusterVersionOk (s : Loc) : IProp GF :=
   iprop(∃ γcv : GName, □ (∀ known : Bool,
     {{ if known then monoNatLbOwn γcv 1 else True }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ClusterVersion")) (Val #()))
-    {{ (v : Loc), RET #v; ⌜v = null ∧ known = false⌝ ∨ ⌜v ≠ null⌝ ∗ monoNatLbOwn γcv 1 }}))
+    {{ (v : Loc), RET #v; ⌜v = null ∧ known = false⌝ ∨
+      ⌜v ≠ null⌝ ∗ (∃ x : github_com.Masterminds.semver.v3.Version, v ↦□ x) ∗
+        monoNatLbOwn γcv 1 }}))
 
 instance clusterVersionOk_persistent (s : Loc) : Persistent (clusterVersionOk (GF := GF) s) := by
   unfold clusterVersionOk; infer_instance
 
-/-- **The cluster `cl`'s `Version()`** (`membership.RaftCluster`, names-only; a contract of
-`bootstrap`'s, `bootOk`; srvBuildGap's rows, 2026-10-17): `cl` is not `nil`, and its `Version()`
+/-- **The cluster `cl`'s `Version()`** (`membership.RaftCluster`; srvBuildGap's rows, 2026-10-17: a
+contract of `bootstrap`'s, `bootOk`, until prove-ps2-bootstage1, 2026-11-23, #34 stage 1, which proves
+it of the cluster's lock, `clusterVersionMono_of`, `ClusterLaws.lean`, and adds the result's
+read-only version): `cl` is not `nil`, and its `Version()`
 returns `nil` until the cluster's version is known, non-`nil` from then on (the ghost witness
 `monoNatLbOwn γcv 1`). True of the Go code: `Version` reads `c.version` under the cluster's lock
 and returns `nil` or a fresh parse of it; `c.version` is written by `SetVersion` (non-`nil`) and
@@ -205,7 +209,9 @@ def clusterVersionMono (cl : Loc) (γcv : GName) : IProp GF :=
       (App (Val (cl @!! go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Version"))
         (Val #()))
-    {{ (v : Loc), RET #v; ⌜v = null ∧ known = false⌝ ∨ ⌜v ≠ null⌝ ∗ monoNatLbOwn γcv 1 }}))
+    {{ (v : Loc), RET #v; ⌜v = null ∧ known = false⌝ ∨
+      ⌜v ≠ null⌝ ∗ (∃ x : github_com.Masterminds.semver.v3.Version, v ↦□ x) ∗
+        monoNatLbOwn γcv 1 }}))
 
 instance clusterVersionMono_persistent (cl : Loc) (γcv : GName) :
     Persistent (clusterVersionMono (GF := GF) cl γcv) := by

@@ -2,13 +2,22 @@
 Package initialization of `net`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact (`Base.lean`'s `isInit`): `ErrClosed` and `errClosed` hold `poll.ErrNetClosing`,
+`errTimeout` a `*timeoutError`. Its initializer initializes its imports, allocates `errTimeout` and
+`ErrClosed` and runs their translated initializers (`&timeoutError{}`, `errClosed`), runs the
+trusted model of `errClosed`'s (which allocates it and stores `poll.ErrNetClosing`'s value) and the
+trusted initializers of its other variables (models in `TrustedCode/` that do nothing).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Net.Proof.net.Base
+public import Perennial.Proof.context.Link
+public import Perennial.Proof.errors.Link
+public import Perennial.Proof.io.Link
+public import Perennial.Proof.time.Link
+public import Proof.internal.poll.Init
+public import Proof.os.Init
+public import Proof.syscall.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -26,101 +35,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace net
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `net`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([rfc6724policyTable.init,
-        confVal.init,
-        netdns.init,
-        multipathtcp.init,
-        errLameReferral.init,
-        errCannotUnmarshalDNSMessage.init,
-        errCannotMarshalDNSMessage.init,
-        errServerMisbehaving.init,
-        errInvalidDNSResponse.init,
-        errNoAnswerFromDNSServer.init,
-        errServerTemporarilyMisbehaving.init,
-        netedns0.init,
-        distantFuture.init,
-        lookupOrderName.init,
-        defaultNS.init,
-        getHostname.init,
-        testHookLookupIP.init,
-        testPreHookSetKeepAlive.init,
-        testHookSetKeepAlive.init,
-        testHookStepTime.init,
-        testHookCanceledDial.init,
-        hostsFilePath.init,
-        socketFunc.init,
-        connectFunc.init,
-        listenFunc.init,
-        getsockoptIntFunc.init,
-        errInvalidInterface.init,
-        errInvalidInterfaceIndex.init,
-        errInvalidInterfaceName.init,
-        errNoSuchInterface.init,
-        errNoSuchMulticastInterface.init,
-        flagNames.init,
-        zoneCache.init,
-        v4InV6Prefix.init,
-        IPv4bcast.init,
-        IPv4allsys.init,
-        IPv4allrouter.init,
-        IPv4zero.init,
-        IPv6zero.init,
-        IPv6unspecified.init,
-        IPv6loopback.init,
-        IPv6interfacelocalallnodes.init,
-        IPv6linklocalallnodes.init,
-        IPv6linklocalallrouters.init,
-        classAMask.init,
-        classBMask.init,
-        classCMask.init,
-        protocols.init,
-        services.init,
-        DefaultResolver.init,
-        «_».init,
-        errMalformedDNSRecordsDetail.init,
-        readProtocolsOnce.init,
-        errNoSuitableAddress.init,
-        errMissingAddress.init,
-        errCanceled.init,
-        ErrWriteToConnected.init,
-        aLongTimeAgo.init,
-        noDeadline.init,
-        noCancel.init,
-        «_».init,
-        errTimeout.init,
-        errNoSuchHost.init,
-        errUnknownPort.init,
-        errClosed.init,
-        ErrClosed.init,
-        «_».init,
-        «_».init,
-        pollSplice.init,
-        _cgo_77133bf98b3a_C2func_getaddrinfo.init,
-        _cgo_77133bf98b3a_C2func_getnameinfo.init,
-        _cgo_77133bf98b3a_Cfunc_free.init,
-        _cgo_77133bf98b3a_Cfunc_freeaddrinfo.init,
-        _cgo_77133bf98b3a_Cfunc_gai_strerror.init,
-        _cgo_77133bf98b3a_Cfunc_getaddrinfo.init,
-        _cgo_77133bf98b3a_Cfunc_getnameinfo.init,
-        _cgo_77133bf98b3a_Cfunc_res_search.init,
-        _cgo_77133bf98b3a_Cfunc__Cmalloc.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end net
-end opaqueInits
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -143,86 +57,120 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk rfc6724policyTable.init (by mem_tac))
-  wp_apply (opaqueInitsOk confVal.init (by mem_tac))
-  wp_apply (opaqueInitsOk netdns.init (by mem_tac))
-  wp_apply (opaqueInitsOk multipathtcp.init (by mem_tac))
-  wp_apply (opaqueInitsOk errLameReferral.init (by mem_tac))
-  wp_apply (opaqueInitsOk errCannotUnmarshalDNSMessage.init (by mem_tac))
-  wp_apply (opaqueInitsOk errCannotMarshalDNSMessage.init (by mem_tac))
-  wp_apply (opaqueInitsOk errServerMisbehaving.init (by mem_tac))
-  wp_apply (opaqueInitsOk errInvalidDNSResponse.init (by mem_tac))
-  wp_apply (opaqueInitsOk errNoAnswerFromDNSServer.init (by mem_tac))
-  wp_apply (opaqueInitsOk errServerTemporarilyMisbehaving.init (by mem_tac))
-  wp_apply (opaqueInitsOk netedns0.init (by mem_tac))
-  wp_apply (opaqueInitsOk distantFuture.init (by mem_tac))
-  wp_apply (opaqueInitsOk lookupOrderName.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultNS.init (by mem_tac))
-  wp_apply (opaqueInitsOk getHostname.init (by mem_tac))
-  wp_apply (opaqueInitsOk testHookLookupIP.init (by mem_tac))
-  wp_apply (opaqueInitsOk testPreHookSetKeepAlive.init (by mem_tac))
-  wp_apply (opaqueInitsOk testHookSetKeepAlive.init (by mem_tac))
-  wp_apply (opaqueInitsOk testHookStepTime.init (by mem_tac))
-  wp_apply (opaqueInitsOk testHookCanceledDial.init (by mem_tac))
-  wp_apply (opaqueInitsOk hostsFilePath.init (by mem_tac))
-  wp_apply (opaqueInitsOk socketFunc.init (by mem_tac))
-  wp_apply (opaqueInitsOk connectFunc.init (by mem_tac))
-  wp_apply (opaqueInitsOk listenFunc.init (by mem_tac))
-  wp_apply (opaqueInitsOk getsockoptIntFunc.init (by mem_tac))
-  wp_apply (opaqueInitsOk errInvalidInterface.init (by mem_tac))
-  wp_apply (opaqueInitsOk errInvalidInterfaceIndex.init (by mem_tac))
-  wp_apply (opaqueInitsOk errInvalidInterfaceName.init (by mem_tac))
-  wp_apply (opaqueInitsOk errNoSuchInterface.init (by mem_tac))
-  wp_apply (opaqueInitsOk errNoSuchMulticastInterface.init (by mem_tac))
-  wp_apply (opaqueInitsOk flagNames.init (by mem_tac))
-  wp_apply (opaqueInitsOk zoneCache.init (by mem_tac))
-  wp_apply (opaqueInitsOk v4InV6Prefix.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv4bcast.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv4allsys.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv4allrouter.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv4zero.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv6zero.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv6unspecified.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv6loopback.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv6interfacelocalallnodes.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv6linklocalallnodes.init (by mem_tac))
-  wp_apply (opaqueInitsOk IPv6linklocalallrouters.init (by mem_tac))
-  wp_apply (opaqueInitsOk classAMask.init (by mem_tac))
-  wp_apply (opaqueInitsOk classBMask.init (by mem_tac))
-  wp_apply (opaqueInitsOk classCMask.init (by mem_tac))
-  wp_apply (opaqueInitsOk protocols.init (by mem_tac))
-  wp_apply (opaqueInitsOk services.init (by mem_tac))
-  wp_apply (opaqueInitsOk DefaultResolver.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk errMalformedDNSRecordsDetail.init (by mem_tac))
-  wp_apply (opaqueInitsOk readProtocolsOnce.init (by mem_tac))
-  wp_apply (opaqueInitsOk errNoSuitableAddress.init (by mem_tac))
-  wp_apply (opaqueInitsOk errMissingAddress.init (by mem_tac))
-  wp_apply (opaqueInitsOk errCanceled.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrWriteToConnected.init (by mem_tac))
-  wp_apply (opaqueInitsOk aLongTimeAgo.init (by mem_tac))
-  wp_apply (opaqueInitsOk noDeadline.init (by mem_tac))
-  wp_apply (opaqueInitsOk noCancel.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk errTimeout.init (by mem_tac))
-  wp_apply (opaqueInitsOk errNoSuchHost.init (by mem_tac))
-  wp_apply (opaqueInitsOk errUnknownPort.init (by mem_tac))
-  wp_apply (opaqueInitsOk errClosed.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrClosed.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk pollSplice.init (by mem_tac))
-  wp_apply (opaqueInitsOk _cgo_77133bf98b3a_C2func_getaddrinfo.init (by mem_tac))
-  wp_apply (opaqueInitsOk _cgo_77133bf98b3a_C2func_getnameinfo.init (by mem_tac))
-  wp_apply (opaqueInitsOk _cgo_77133bf98b3a_Cfunc_free.init (by mem_tac))
-  wp_apply (opaqueInitsOk _cgo_77133bf98b3a_Cfunc_freeaddrinfo.init (by mem_tac))
-  wp_apply (opaqueInitsOk _cgo_77133bf98b3a_Cfunc_gai_strerror.init (by mem_tac))
-  wp_apply (opaqueInitsOk _cgo_77133bf98b3a_Cfunc_getaddrinfo.init (by mem_tac))
-  wp_apply (opaqueInitsOk _cgo_77133bf98b3a_Cfunc_getnameinfo.init (by mem_tac))
-  wp_apply (opaqueInitsOk _cgo_77133bf98b3a_Cfunc_res_search.init (by mem_tac))
-  wp_apply (opaqueInitsOk _cgo_77133bf98b3a_Cfunc__Cmalloc.init (by mem_tac))
+  iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := _) ErrClosed _ as HErrClosed
+  wp_apply wp_GlobalAlloc (V := _) errTimeout _ as HerrTimeout
+  wp_apply (_root_.Perennial.internal.poll.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (_root_.Perennial.syscall.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_call  -- rfc6724policyTable: its trusted initializer does nothing
+  wp_call  -- confVal: its trusted initializer does nothing
+  wp_call  -- netdns: its trusted initializer does nothing
+  wp_call  -- multipathtcp: its trusted initializer does nothing
+  wp_call  -- errLameReferral: its trusted initializer does nothing
+  wp_call  -- errCannotUnmarshalDNSMessage: its trusted initializer does nothing
+  wp_call  -- errCannotMarshalDNSMessage: its trusted initializer does nothing
+  wp_call  -- errServerMisbehaving: its trusted initializer does nothing
+  wp_call  -- errInvalidDNSResponse: its trusted initializer does nothing
+  wp_call  -- errNoAnswerFromDNSServer: its trusted initializer does nothing
+  wp_call  -- errServerTemporarilyMisbehaving: its trusted initializer does nothing
+  wp_call  -- netedns0: its trusted initializer does nothing
+  wp_call  -- distantFuture: its trusted initializer does nothing
+  wp_call  -- lookupOrderName: its trusted initializer does nothing
+  wp_call  -- defaultNS: its trusted initializer does nothing
+  wp_call  -- getHostname: its trusted initializer does nothing
+  wp_call  -- testHookLookupIP: its trusted initializer does nothing
+  wp_call  -- testPreHookSetKeepAlive: its trusted initializer does nothing
+  wp_call  -- testHookSetKeepAlive: its trusted initializer does nothing
+  wp_call  -- testHookStepTime: its trusted initializer does nothing
+  wp_call  -- testHookCanceledDial: its trusted initializer does nothing
+  wp_call  -- hostsFilePath: its trusted initializer does nothing
+  wp_call  -- socketFunc: its trusted initializer does nothing
+  wp_call  -- connectFunc: its trusted initializer does nothing
+  wp_call  -- listenFunc: its trusted initializer does nothing
+  wp_call  -- getsockoptIntFunc: its trusted initializer does nothing
+  wp_call  -- errInvalidInterface: its trusted initializer does nothing
+  wp_call  -- errInvalidInterfaceIndex: its trusted initializer does nothing
+  wp_call  -- errInvalidInterfaceName: its trusted initializer does nothing
+  wp_call  -- errNoSuchInterface: its trusted initializer does nothing
+  wp_call  -- errNoSuchMulticastInterface: its trusted initializer does nothing
+  wp_call  -- flagNames: its trusted initializer does nothing
+  wp_call  -- zoneCache: its trusted initializer does nothing
+  wp_call  -- v4InV6Prefix: its trusted initializer does nothing
+  wp_call  -- IPv4bcast: its trusted initializer does nothing
+  wp_call  -- IPv4allsys: its trusted initializer does nothing
+  wp_call  -- IPv4allrouter: its trusted initializer does nothing
+  wp_call  -- IPv4zero: its trusted initializer does nothing
+  wp_call  -- IPv6zero: its trusted initializer does nothing
+  wp_call  -- IPv6unspecified: its trusted initializer does nothing
+  wp_call  -- IPv6loopback: its trusted initializer does nothing
+  wp_call  -- IPv6interfacelocalallnodes: its trusted initializer does nothing
+  wp_call  -- IPv6linklocalallnodes: its trusted initializer does nothing
+  wp_call  -- IPv6linklocalallrouters: its trusted initializer does nothing
+  wp_call  -- classAMask: its trusted initializer does nothing
+  wp_call  -- classBMask: its trusted initializer does nothing
+  wp_call  -- classCMask: its trusted initializer does nothing
+  wp_call  -- protocols: its trusted initializer does nothing
+  wp_call  -- services: its trusted initializer does nothing
+  wp_call  -- DefaultResolver: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- errMalformedDNSRecordsDetail: its trusted initializer does nothing
+  wp_call  -- readProtocolsOnce: its trusted initializer does nothing
+  wp_call  -- errNoSuitableAddress: its trusted initializer does nothing
+  wp_call  -- errMissingAddress: its trusted initializer does nothing
+  wp_call  -- errCanceled: its trusted initializer does nothing
+  wp_call  -- ErrWriteToConnected: its trusted initializer does nothing
+  wp_call  -- aLongTimeAgo: its trusted initializer does nothing
+  wp_call  -- noDeadline: its trusted initializer does nothing
+  wp_call  -- noCancel: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  -- translated initializer of errTimeout))
+  (try wp_auto)
+  wp_alloc_anon
+  wp_auto
+  wp_call  -- errNoSuchHost: its trusted initializer does nothing
+  wp_call  -- errUnknownPort: its trusted initializer does nothing
+  -- errClosed: its trusted initializer
+  wp_call
+  rw [show (go!"net.errClosed" : GoString) = errClosed by rfl]
+  wp_apply wp_GlobalAlloc (V := _) errClosed _ as HerrClosed
+  (try wp_auto)
+  -- translated initializer of ErrClosed))
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- pollSplice: its trusted initializer does nothing
+  wp_call  -- _cgo_77133bf98b3a_C2func_getaddrinfo: its trusted initializer does nothing
+  wp_call  -- _cgo_77133bf98b3a_C2func_getnameinfo: its trusted initializer does nothing
+  wp_call  -- _cgo_77133bf98b3a_Cfunc_free: its trusted initializer does nothing
+  wp_call  -- _cgo_77133bf98b3a_Cfunc_freeaddrinfo: its trusted initializer does nothing
+  wp_call  -- _cgo_77133bf98b3a_Cfunc_gai_strerror: its trusted initializer does nothing
+  wp_call  -- _cgo_77133bf98b3a_Cfunc_getaddrinfo: its trusted initializer does nothing
+  wp_call  -- _cgo_77133bf98b3a_Cfunc_getnameinfo: its trusted initializer does nothing
+  wp_call  -- _cgo_77133bf98b3a_Cfunc_res_search: its trusted initializer does nothing
+  wp_call  -- _cgo_77133bf98b3a_Cfunc__Cmalloc: its trusted initializer does nothing
+  -- translated initializer of errClosed))
+  ipersist HerrTimeout
+  ipersist HerrClosed
+  ipersist HErrClosed
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  unfold isInit closedErr
+  imodintro
+  iframe HErrClosed HerrClosed
+  iexists _
+  iexact HerrTimeout
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

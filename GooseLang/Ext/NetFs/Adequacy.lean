@@ -10,13 +10,16 @@ Each extension's semantics, interpretation and crash interpretation are its own 
 `Net.net_interp`, `Net.net_crash_interp`; `Fs.fs_semantics`, `Fs.fs_interp`, `Fs.fs_crash_interp`):
 Perennial's `ExtTuple` composes them, an extension's specs see only their own part (`HasExt`), so a
 proof over `kvnetExts` uses both extensions' specs unchanged. The initial states: the network has no
-connection (`Net.NetGlobal.init`, the net interpretation's `initgP`) and every machine's files are as
-on disk (`Fs.FsInit`, the file interpretation's `initP`).
+connection and no machine a listener (`Net.NetGlobal.init`, `Net.NetLocal.init`: the net semantics'
+`initGlobal`/`initLocal`), and every machine's files are as on disk (`Fs.FsInit`, the file semantics'
+`initLocal`); the interpretations accept them (`kvnetInitCompat`).
 -/
 module
 
 public import GooseLang.Ext.Net.Adequacy
 public import GooseLang.Ext.Fs.Adequacy
+public import Perennial.GooseLang.InitAdequacy
+public import Iris.Instances.Lib.NaInvariants
 
 @[expose] public section
 
@@ -58,10 +61,16 @@ set_option linter.defProp false in
 
 attribute [local instance] kvnetExts_hasNet kvnetExts_hasFs
 
+/-- The interpretations of `[netExt, fsExt]` accept every initial state of the semantics
+(`Net.net_init_compat`, `Fs.fs_init_compat`): Perennial's `*_adequacy_init` theorems apply. -/
+theorem kvnetInitCompat : GooseInitCompat := ⟨Net.net_init_compat, Fs.fs_init_compat, trivial⟩
+
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- Ghost state for a networked program with Linux files: one slot for each camera `GooseGpreS`
-needs for `[netExt, fsExt]` (both extensions need only the universal camera, `AllG`, at slot 0). -/
+needs for `[netExt, fsExt]` (both extensions need only the universal camera, `AllG`, at slot 0), and
+iris-lean's camera of non-atomic invariants at slot 8 (`NaInvG`: lintest's linked results, which kvnet's
+checking client runs, take it). -/
 noncomputable def kvnetGF : BundledGFunctors := fun
   | 0 => ⟨AllURF, inferInstance⟩
   | 1 => ⟨InvMapF, inferInstance⟩
@@ -71,7 +80,11 @@ noncomputable def kvnetGF : BundledGFunctors := fun
   | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
   | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)), inferInstance⟩
   | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
+  | 8 => ⟨NaInvF, inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
+
+/-- iris-lean's camera of non-atomic invariants, at slot 8. -/
+instance kvnetGF_naInvG : NaInvG kvnetGF := ⟨⟨8, rfl⟩⟩
 
 noncomputable instance kvnetGpreS : GooseGpreS kvnetGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
@@ -148,7 +161,17 @@ theorem kvnet_dist_crash_adequacy (N T : Nat)
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
   goose_dist_crash_adequacy (GF := kvnetGF) N T es g φ hφ ⟨Hconns, trivial, trivial⟩
-    (fun m hm => ⟨trivial, Hfs m hm, trivial⟩) P Hstart Hwp n κs c Hsteps Hbound Hthreads Hlive
+    (fun m hm => ⟨trivial, Hfs m hm, trivial⟩) P Hstart
+    (by
+      -- the crash obligation's later credit is not needed
+      intro hG HN HT i e σ Hes Hlctx
+      iintro HP Htok
+      imod Hwp HN HT i e σ Hes Hlctx $$ HP Htok with ⟨Hwp, Hcrash⟩
+      imodintro
+      iframe Hwp
+      iintro %L' Hcr Hcs Hgs _
+      iapply Hcrash $$ %L' Hcr Hcs Hgs)
+    n κs c Hsteps Hbound Hthreads Hlive
 
 end adequacy
 

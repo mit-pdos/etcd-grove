@@ -169,12 +169,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem node.wp_Tick_impl
     (hT : EtcdGrove.node.Tick.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.Tick.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Tick.spec EtcdGrove.Cluster EtcdGrove.isNode
+  unfold EtcdGrove.node.Tick.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode
   intro n γ N id
   iintro %Φ ⟨#Hinit, #Hnode⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, -, #Hrn, -⟩
-  iapply (hT γn id n) $$ []
+  iapply (hT γn id n.loc) $$ []
   · iframe Hinit Hrn
   iexact HΦ
 

@@ -90,10 +90,10 @@ structure DCand where
   m : OsMeta
   v : GoString
 
-/-- A candidate's `OsMeta` says a crash leaves it at its size; its contents fit one `ReadAt` (1 GiB,
-as `Write`'s `data`). -/
+/-- A candidate's `OsMeta` says a crash leaves it at its size; its contents fit a Go slice (as
+`Write`'s `data`: a `ReadAt` of any length reads them back). -/
 def DCand.Ok (c : DCand) : Prop :=
-  c.m.size = c.v.length ∧ c.m.lo = c.m.size ∧ c.m.hi = c.m.size ∧ c.v.length ≤ 0x40000000
+  c.m.size = c.v.length ∧ c.m.lo = c.m.size ∧ c.m.hi = c.m.size ∧ c.v.length < 2 ^ 63
 
 /-- **The physical state**: the claims' histories of the file's name (`hb`) and of the
 temporary's (`ht`), a commit lower bound `nc`, the candidates, and the state's `alt` (a copy, so
@@ -250,10 +250,47 @@ and its commit (`alt = none`). -/
 def durHandle (γ : DurGS) (f : DFile) (R : Roots) : IProp GF :=
   iprop(∃ p : DurPhys, durHandleP γ f R p ∗ ⌜p.alt = none⌝)
 
-/-- The second update of a `Write`: the directory's sync, `alt := none`. -/
+/-- The second update of a `Write`: the directory's sync, `alt := none`. It may use the generation's
+`notCrashed` (given before the update, returned with its result): the sync is a ghost step after
+`Sync` returns, where `Write`'s proof holds the token (`durInv_commit`), and a client whose own
+update needs it there (kvnet's `persist`, firing raft's batch *enter*, `readyEnter`, at the sync: a
+crash before it may keep the old file) gets it. A client that needs no token gives a plain atomic
+update (`durWriteSync_of_au`). (2026-11-22, notes/kvnet-part.md, "`persist`".) -/
 abbrev durWriteSync (γ : DurGS) (Ψ : IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
-    <{ durSt (GF := GF) γ ⟨s.cur, none⟩, COMM Ψ }>)
+  iprop(notCrashed (hC := L.goose_crashGS) -∗ AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
+    <{ durSt (GF := GF) γ ⟨s.cur, none⟩, COMM notCrashed (hC := L.goose_crashGS) ∗ Ψ }>)
+
+/-- An atomic update's postcondition weakened (Rocq Iris's `atomic_update_wand`, absent from the
+Lean port: `notes/perennial-changes.md`; as raft's `TracedCap.aupd_wand_post`). -/
+theorem durAupd_wand_post {TA TB : Std.Tele} {Eo Ei : CoPset} {α : TA.Arg → IProp GF}
+    {β Φ1 Φ2 : TA.Arg → TB.Arg → IProp GF} :
+    iprop(atomic_update Eo Ei α β Φ1 ∗ (∀.. x, ∀.. y, Φ1 x y -∗ Φ2 x y)) ⊢ atomic_update Eo Ei α β Φ2 := by
+  have h := aupd_intro (P := iprop(True))
+    (Q := iprop(atomic_update Eo Ei α β Φ1 ∗ (∀.. x, ∀.. y, Φ1 x y -∗ Φ2 x y))) (α := α) (β := β)
+    (Φ := Φ2) (Eo := Eo) (Ei := Ei) (by
+      iintro ⟨-, ⟨HAU, HW⟩⟩
+      ihave Hacc : atomic_acc Eo Ei α (atomic_update Eo Ei α β Φ1) β Φ1 $$ [HAU]
+      · iapply aupd_aacc; iexact HAU
+      iapply atomic_acc_wand $$ [HW] Hacc
+      isplit
+      · iintro HAU'; iframe
+      · iexact HW)
+  iintro H
+  iapply h
+  isplit
+  · ipureintro; trivial
+  · iexact H
+
+/-- **A plain sync update is one** (`durWriteSync`, the token passed through). -/
+theorem durWriteSync_of_au (γ : DurGS) (Ψ : IProp GF) :
+    iprop(AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
+      <{ durSt (GF := GF) γ ⟨s.cur, none⟩, COMM Ψ }>) ⊢ durWriteSync (L := L) γ Ψ := by
+  iintro HAU Hnc
+  iapply durAupd_wand_post
+  iframe HAU
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iintro %_ HΨ
+  iframe
 
 /-- The first update of a `Write` of `data`: the rename, `cur := data, alt := some cur`; then the
 second (`durWriteSync`). -/

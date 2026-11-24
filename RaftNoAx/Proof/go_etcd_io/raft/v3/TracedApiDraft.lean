@@ -124,19 +124,22 @@ abbrev StartNode.gatedSpec : Prop :=
   csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
   vs = pv.map Peer.ID' →
+  -- (2026-11-21, the crash invariant) the id's vacancy armed at `x` (`nodeVacant_arm`)
+  ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacant γ cv.ID' ∗
+      nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacantA γ cv.ID' x ∗
       AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q }> ∗
       restartStorage γ (interface.ok si) ⟨hsZero, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F SV ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ startTrace γ N vs cv }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+      ∃ (n : NodeH) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n.loc⌝ ∗
         nodeStartedFresh n γ N vs ctxs cv.ID' ∗
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si) K) ∗
         nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
-        nodeRunning n γ N 1 ∗ nodeTagPin γ n SV ∗ Q ∗ F K ∗ peers ↦*{dq} pv ∗ startDoneB γ cv.ID' }}
+        nodeRunning n γ N 1 ∗ nodeTagPin γ n SV ∗ nodeArm n γ x ∗ Q ∗ F K ∗ peers ↦*{dq} pv ∗
+        startDoneB γ cv.ID' }}
 
 /-- For an untraced cluster, the gated statement is `StartNode.spec`'s: the gate's only content is
 the nil logger, `StartNode.spec`'s premise (and the post's `startDoneB` is `True`, `startDoneB_untraced`). -/

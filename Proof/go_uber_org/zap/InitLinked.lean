@@ -16,7 +16,9 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_uber_org.zap.internal.InitLinked
+public import Proof.go_uber_org.zap.internal.bufferpool.InitLinked
 public import Proof.go_uber_org.zap.internal.pool.Init
+public import Proof.go_uber_org.zap.internal.stacktrace.Init
 public import Proof.go_uber_org.zap.zapcore.InitLinked
 public import Proof.net.url.Init
 public import Proof.os.Init
@@ -69,15 +71,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := Loc) _errArrayElemPool _ as H_errArrayElemPool
   wp_apply wp_GlobalAlloc (V := Loc) _encoderNameToConstructor _ as H_encoderNameToConstructor
   wp_apply wp_GlobalAlloc (V := GoInterface) errNoEncoderNameSpecified _ as HerrNoEncoderNameSpecified
-  wp_apply (_root_.Perennial.net.url.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply (_root_.Perennial.net.url.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.internal.bufferpool.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
-      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply (_root_.Perennial.go_uber_org.zap.internal.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.internal.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
-      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
-      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.internal.stacktrace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
       EtcdGrove.ExternalInit.math _root_.Perennial.math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (_root_.Perennial.go_uber_org.zap.internal.pool.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
@@ -92,7 +96,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of errNoEncoderNameSpecified))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xerrNoEncoderNameSpecified #MerrNoEncoderNameSpecified
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xerrNoEncoderNameSpecified ⟨#_, #MerrNoEncoderNameSpecified⟩
   -- translated initializer of _encoderNameToConstructor))
   try wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := GoFunc) go.string (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error]))) as %mHenc Henc
@@ -104,7 +108,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of _errArrayElemPool))
   try wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
-  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pea -
+  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pea -
   try wp_auto
   -- translated initializer of _minTimeInt64))
   try wp_auto
@@ -118,7 +122,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   ihave #HNN : (iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore) : IProp GF) $$ []
   · isplitl []
-    · iexact Hd9
+    · iexact Hd10
     · iexact Hd3
   wp_apply EtcdGrove.zap_wp_NewNop_init $$ HNN as %lgl ⟨%vgl, Hgl, -⟩
   try wp_auto

@@ -3,7 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.errors
-public import GeneratedProof.internal.bytealg
+public import Perennial.GeneratedProof.internal.bytealg
 public import Perennial.Golang.Theory
 public import Code.path
 

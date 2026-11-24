@@ -40,8 +40,7 @@ unix_Madvise:
 os_File__Close:
 bboltfs_DB__Get: bboltfs_DB__meta bboltfs_pageAt
 bboltfs_DB__Snapshot: bboltfs_DB__meta bboltfs_pageAt os_File__ReadAt+Racy
-bboltfs_Open: os_OpenFile =_root_.Perennial.EtcdGrove.os.OpenFile.wp_proofCreate os_File__Name bboltfs_flock os_File__Stat os_fileStat__Size os_File__Close bboltfs_DB__close bboltfs_DB__readPageSize bboltfs_DB__init bboltfs_DB__mmap
-os_OpenFile:
+bboltfs_Open: =_root_.Perennial.EtcdGrove.os.OpenFile.wp_proofCreateS os_File__Name bboltfs_flock os_File__Stat os_fileStat__Size os_File__Close bboltfs_DB__close bboltfs_DB__readPageSize bboltfs_DB__init bboltfs_DB__mmap
 os_File__Name:
 os_File__Stat:
 os_fileStat__Size:

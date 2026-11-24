@@ -55,7 +55,7 @@ theorem etcd_all.wp_spawn : etcd_all.spawn.spec (GF := GF) (hG := hG) :=
   etcd_all.spawn.wp_proof etcd_all.holdToken.wp_proof
 
 /-- **The KV part** (`KV.lean`), over its five drivers' linked results. -/
-theorem etcd_all.wp_KV
+theorem etcd_all.wp_KV [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_all.KV.spec (GF := GF) (hG := hG) :=
@@ -63,27 +63,27 @@ theorem etcd_all.wp_KV
     etcd_compactwatch.wp_Main etcd_compacted.wp_Main etcd_cache.wp_Main
 
 /-- **The Auth part** (`Auth.lean`), over its two drivers' linked results. -/
-theorem etcd_all.wp_Auth
+theorem etcd_all.wp_Auth [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_all.Auth.spec (GF := GF) (hG := hG) :=
   etcd_all.Auth.wp_proof etcd_all.wp_spawn etcd_authN.wp_Main etcd_authlease.wp_Main
 
 /-- **The Lease part** (`Lease.lean`), over its two drivers' linked results. -/
-theorem etcd_all.wp_Lease
+theorem etcd_all.wp_Lease [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_all.Lease.spec (GF := GF) (hG := hG) :=
   etcd_all.Lease.wp_proof etcd_all.wp_spawn etcd_leaseN.wp_Main etcd_leasecatchup.wp_Main
 
 /-- **The Restart part** (`Restart.lean`), over its two drivers' linked results. -/
-theorem etcd_all.wp_Restart
+theorem etcd_all.wp_Restart [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] : etcd_all.Restart.spec (GF := GF) (hG := hG) :=
   etcd_all.Restart.wp_proof etcd_all.wp_spawn etcd_restartN.wp_Main etcd_restart1.wp_Main
 
 /-- **The one closed etcd theorem's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/Main.lean`), under the semantic premises of the
 eleven drivers' linked results. -/
-theorem etcd_all.wp_Main
+theorem etcd_all.wp_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_all.Main.spec (GF := GF) (hG := hG) :=

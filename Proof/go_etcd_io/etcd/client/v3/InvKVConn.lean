@@ -1097,10 +1097,231 @@ def txnCallOut (Q : TxnRespM → IProp GF) (resp : Loc) (err : GoInterface) : IP
 
 /-! ## The KV service's messages -/
 
+/-! ### The messages' stored forms (moved here from the `PerType*` files at phase 7 S2's
+interface, 2026-11-24: a `ProtoMsg` holds its `tree`) -/
+
+/-- **The store of a put request**: its key and value (`nil` if empty, as protobuf-go decodes
+them), its lease and flags. -/
+def putReqTree (o : OpFull) : VTree :=
+  .strct etcdserverpb.PutRequest.ty
+    [(go!"Key", go.GoType.SliceType go.byte), (go!"Value", go.GoType.SliceType go.byte),
+     (go!"Lease", go.int64), (go!"PrevKv", go.bool), (go!"IgnoreValue", go.bool),
+     (go!"IgnoreLease", go.bool)]
+    [bytesTree go.byte o.key, bytesTree go.byte o.val, .leaf #o.leaseID, .leaf #o.base.prevKV,
+     .leaf #o.ignoreValue, .leaf #o.ignoreLease]
+
+/-- **The store of a response header** (always present: the sender's is not nil). -/
+def hdrTree (h : HdrM) : VTree :=
+  .ptr etcdserverpb.ResponseHeader.ty (.strct etcdserverpb.ResponseHeader.ty
+    [(go!"ClusterId", go.uint64), (go!"MemberId", go.uint64), (go!"Revision", go.int64),
+     (go!"RaftTerm", go.uint64), (go!"LeaderId", go.uint64)]
+    [.leaf #h.clusterId, .leaf #h.memberId, .leaf #h.revision, .leaf #h.raftTerm, .leaf #h.leaderId])
+
+/-- **The store of a key-value** (`nil` key and value if empty). -/
+def kvTree (v : EtcdKv) : VTree :=
+  .ptr mvccpb.KeyValue.ty (.strct mvccpb.KeyValue.ty
+    [(go!"Key", go.GoType.SliceType go.byte), (go!"CreateRevision", go.int64),
+     (go!"ModRevision", go.int64), (go!"Version", go.int64),
+     (go!"Value", go.GoType.SliceType go.byte), (go!"Lease", go.int64)]
+    [bytesTree go.byte v.key, .leaf #v.createRev, .leaf #v.modRev, .leaf #v.version,
+     bytesTree go.byte v.value, .leaf #v.lease])
+
+/-- **The store of a range response**: its header, its key-values (`nil` if none), `More`,
+`Count`. -/
+def rangeRespTree (m : RangeRespM) : VTree :=
+  .strct etcdserverpb.RangeResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
+     (go!"Kvs", go.GoType.SliceType (go.GoType.PointerType mvccpb.KeyValue.ty)),
+     (go!"More", go.bool), (go!"Count", go.int64)]
+    [hdrTree m.hdr, sliceTree (go.GoType.PointerType mvccpb.KeyValue.ty) (m.kvs.map kvTree),
+     .leaf #m.more, .leaf #m.count]
+
+/-- The type of a comparison's operand wrapper (`TargetUnion`'s dynamic type). -/
+def unionTy : CmpTarget → go.GoType
+  | .value => go.GoType.PointerType etcdserverpb.Compare_Value.ty
+  | .version => go.GoType.PointerType etcdserverpb.Compare_Version.ty
+  | .create => go.GoType.PointerType etcdserverpb.Compare_CreateRevision.ty
+  | .mod => go.GoType.PointerType etcdserverpb.Compare_ModRevision.ty
+  | .lease => go.GoType.PointerType etcdserverpb.Compare_Lease.ty
+
+/-- **The store of a comparison's operand**: the target's wrapper, always allocated. -/
+def unionTree (c : CmpModel) : VTree :=
+  match c.target with
+  | .value => .ptr etcdserverpb.Compare_Value.ty (.strct etcdserverpb.Compare_Value.ty
+      [(go!"Value", go.GoType.SliceType go.byte)] [bytesTree go.byte c.val])
+  | .version => .ptr etcdserverpb.Compare_Version.ty (.strct etcdserverpb.Compare_Version.ty
+      [(go!"Version", go.int64)] [.leaf #c.num])
+  | .create => .ptr etcdserverpb.Compare_CreateRevision.ty
+      (.strct etcdserverpb.Compare_CreateRevision.ty [(go!"CreateRevision", go.int64)] [.leaf #c.num])
+  | .mod => .ptr etcdserverpb.Compare_ModRevision.ty
+      (.strct etcdserverpb.Compare_ModRevision.ty [(go!"ModRevision", go.int64)] [.leaf #c.num])
+  | .lease => .ptr etcdserverpb.Compare_Lease.ty (.strct etcdserverpb.Compare_Lease.ty
+      [(go!"Lease", go.int64)] [.leaf #c.num])
+
+/-- **The store of a comparison** (its key and range end `nil` if empty). -/
+def cmpTree (c : CmpModel) : VTree :=
+  .ptr etcdserverpb.Compare.ty (.strct etcdserverpb.Compare.ty
+    [(go!"Result", etcdserverpb.Compare_CompareResult.ty),
+     (go!"Target", etcdserverpb.Compare_CompareTarget.ty),
+     (go!"Key", go.GoType.SliceType go.byte), (go!"TargetUnion", unionTy c.target),
+     (go!"RangeEnd", go.GoType.SliceType go.byte)]
+    [.leaf #c.op.code, .leaf #c.target.code, bytesTree go.byte c.key, unionTree c,
+     bytesTree go.byte c.rangeEnd])
+
+/-- **The store of a get's request** (its fields read back from the get's `OpFull`). -/
+def getStrct (o : OpFull) : VTree :=
+  .strct etcdserverpb.RangeRequest.ty
+    [(go!"Key", go.GoType.SliceType go.byte), (go!"RangeEnd", go.GoType.SliceType go.byte),
+     (go!"Limit", go.int64), (go!"Revision", go.int64),
+     (go!"SortOrder", etcdserverpb.RangeRequest_SortOrder.ty),
+     (go!"SortTarget", etcdserverpb.RangeRequest_SortTarget.ty),
+     (go!"Serializable", go.bool), (go!"KeysOnly", go.bool), (go!"CountOnly", go.bool),
+     (go!"MinModRevision", go.int64), (go!"MaxModRevision", go.int64),
+     (go!"MinCreateRevision", go.int64), (go!"MaxCreateRevision", go.int64)]
+    [bytesTree go.byte o.key, bytesTree go.byte o.base.rangeEnd, .leaf #o.base.limit,
+     .leaf #o.base.rev, .leaf #(W32 (uint.Z o.sortOrder)), .leaf #(W32 (uint.Z o.sortTarget)),
+     .leaf #o.base.serializable, .leaf #o.keysOnly, .leaf #o.base.countOnly,
+     .leaf #o.base.minModRev, .leaf #o.base.maxModRev, .leaf #o.base.minCreateRev,
+     .leaf #o.base.maxCreateRev]
+
+/-- **The store of a delete's request.** -/
+def delStrct (o : OpFull) : VTree :=
+  .strct etcdserverpb.DeleteRangeRequest.ty
+    [(go!"Key", go.GoType.SliceType go.byte), (go!"RangeEnd", go.GoType.SliceType go.byte),
+     (go!"PrevKv", go.bool)]
+    [bytesTree go.byte o.key, bytesTree go.byte o.base.rangeEnd, .leaf #o.base.prevKV]
+
+/-- **A put's request from the model's operation** (`putTxnOp` maps it back: `putTxnOp_putOfOp`). -/
+def putOfOp : TxnOp → OpFull
+  | .put k v l => txn.putOpOf k v l false false false
+  | .putKeep k v => txn.putOpOf k v (W64 0) false false true
+  | .putIgnVal k none => txn.putOpOf k [] (W64 0) false true true
+  | .putIgnVal k (some l) => txn.putOpOf k [] l false true false
+  | _ => txn.putOpOf [] [] (W64 0) false false false
+
+/-- **A `RequestOp` whose oneof wraps (`wty`, its field `fname`) a fresh request.** -/
+def wrapTree (wty : go.GoType) (fname : GoString) (innerTy : go.GoType) (inner : VTree) : VTree :=
+  .ptr etcdserverpb.RequestOp.ty (.strct etcdserverpb.RequestOp.ty
+    [(go!"Request", go.GoType.PointerType wty)]
+    [.ptr wty (.strct wty [(fname, go.GoType.PointerType innerTy)] [inner])])
+
+/-- **A transaction request's fields**: its comparisons, its branches' stores `tsT`, `esT`. -/
+def txnStrct (cs : List CmpModel) (tsT esT : VTree) : VTree :=
+  .strct etcdserverpb.TxnRequest.ty
+    [(go!"Compare", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.Compare.ty)),
+     (go!"Success", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.RequestOp.ty)),
+     (go!"Failure", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.RequestOp.ty))]
+    [sliceTree (go.GoType.PointerType etcdserverpb.Compare.ty) (cs.map cmpTree), tsT, esT]
+
+mutual
+/-- **The store of an operation** (a nested transaction's recursively). -/
+def reqOpTree : TxnOp → VTree
+  | .get o => wrapTree etcdserverpb.RequestOp_RequestRange.ty go!"RequestRange"
+      etcdserverpb.RangeRequest.ty (.ptr etcdserverpb.RangeRequest.ty (getStrct o))
+  | .delete o => wrapTree etcdserverpb.RequestOp_RequestDeleteRange.ty go!"RequestDeleteRange"
+      etcdserverpb.DeleteRangeRequest.ty (.ptr etcdserverpb.DeleteRangeRequest.ty (delStrct o))
+  | .txn cs ts es => wrapTree etcdserverpb.RequestOp_RequestTxn.ty go!"RequestTxn"
+      etcdserverpb.TxnRequest.ty (.ptr etcdserverpb.TxnRequest.ty (txnStrct cs
+        (sliceTree (go.GoType.PointerType etcdserverpb.RequestOp.ty) (reqOpsTree ts))
+        (sliceTree (go.GoType.PointerType etcdserverpb.RequestOp.ty) (reqOpsTree es))))
+  | op => wrapTree etcdserverpb.RequestOp_RequestPut.ty go!"RequestPut"
+      etcdserverpb.PutRequest.ty (.ptr etcdserverpb.PutRequest.ty (putReqTree (putOfOp op)))
+/-- The stores of operations, in order. -/
+def reqOpsTree : List TxnOp → List VTree
+  | [] => []
+  | op :: ops => reqOpTree op :: reqOpsTree ops
+end
+
+/-- **The store of a transaction request.** -/
+def txnReqTree (t : TxnModel) : VTree :=
+  txnStrct t.cmps (sliceTree (go.GoType.PointerType etcdserverpb.RequestOp.ty) (reqOpsTree t.thenOps))
+    (sliceTree (go.GoType.PointerType etcdserverpb.RequestOp.ty) (reqOpsTree t.elseOps))
+
+theorem reqOpsTree_length : ∀ ops : List TxnOp, (reqOpsTree ops).length = ops.length
+  | [] => rfl
+  | _ :: ops => by simp only [reqOpsTree, List.length_cons, reqOpsTree_length ops]
+
+/-- **The store of a previous key-value** (`nil` if none). -/
+def prevKvTree : Option EtcdKv → VTree
+  | none => .leaf #(null : Loc)
+  | some v => kvTree v
+
+/-- **The store of a put response**: its header, its previous key-value (`nil` if none). -/
+def putRespTree (m : PutRespM) : VTree :=
+  .strct etcdserverpb.PutResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
+     (go!"PrevKv", go.GoType.PointerType mvccpb.KeyValue.ty)]
+    [hdrTree m.hdr, prevKvTree m.prev]
+
+/-- **The store of a delete response**: its header, `Deleted`, its previous key-values (`nil` if
+none). -/
+def delRespTree (m : DelRespM) : VTree :=
+  .strct etcdserverpb.DeleteRangeResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
+     (go!"Deleted", go.int64),
+     (go!"PrevKvs", go.GoType.SliceType (go.GoType.PointerType mvccpb.KeyValue.ty))]
+    [hdrTree m.hdr, .leaf #m.deleted,
+     sliceTree (go.GoType.PointerType mvccpb.KeyValue.ty) (m.prevs.map kvTree)]
+
+/-- **The store of a range request** (`PerTypeTxn`'s `getStrct`: its fields read back from the
+get's `OpFull`, `Key` and `RangeEnd` `nil` if empty). -/
+def rangeReqTree (o : OpFull) : VTree := getStrct o
+
+/-- **The store of a delete request** (`PerTypeTxn`'s `delStrct`). -/
+def delReqTree (o : OpFull) : VTree := delStrct o
+
+/-- **A nested response's header**: its revision only (`OpRespM`'s model; the other fields zero,
+which the decoder leaves unset). -/
+def revHdr (rev : w64) : HdrM :=
+  { clusterId := W64 0, memberId := W64 0, revision := rev, raftTerm := W64 0, leaderId := W64 0 }
+
+/-- **A `ResponseOp` whose oneof wraps (`wty`, its field `fname`) a fresh response.** -/
+def respWrap (wty : go.GoType) (fname : GoString) (innerTy : go.GoType) (inner : VTree) : VTree :=
+  .ptr etcdserverpb.ResponseOp.ty (.strct etcdserverpb.ResponseOp.ty
+    [(go!"Response", go.GoType.PointerType wty)]
+    [.ptr wty (.strct wty [(fname, go.GoType.PointerType innerTy)] [inner])])
+
+/-- **A transaction response's fields**: its header, `Succeeded`, its responses' store `rsT`. -/
+def txnRespStrct (hdr : HdrM) (ok : Bool) (rsT : VTree) : VTree :=
+  .strct etcdserverpb.TxnResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
+     (go!"Succeeded", go.bool),
+     (go!"Responses", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.ResponseOp.ty))]
+    [hdrTree hdr, .leaf #ok, rsT]
+
+mutual
+/-- **The store of an operation's response** (a nested transaction's recursively). -/
+def respOpTree : OpRespM → VTree
+  | .range rev kvs more count => respWrap etcdserverpb.ResponseOp_ResponseRange.ty
+      go!"ResponseRange" etcdserverpb.RangeResponse.ty
+      (.ptr etcdserverpb.RangeResponse.ty (rangeRespTree ⟨revHdr rev, kvs, more, count⟩))
+  | .put rev prev => respWrap etcdserverpb.ResponseOp_ResponsePut.ty
+      go!"ResponsePut" etcdserverpb.PutResponse.ty
+      (.ptr etcdserverpb.PutResponse.ty (putRespTree ⟨revHdr rev, prev⟩))
+  | .delete rev n prevs => respWrap etcdserverpb.ResponseOp_ResponseDeleteRange.ty
+      go!"ResponseDeleteRange" etcdserverpb.DeleteRangeResponse.ty
+      (.ptr etcdserverpb.DeleteRangeResponse.ty (delRespTree ⟨revHdr rev, n, prevs⟩))
+  | .txn rev ok resps => respWrap etcdserverpb.ResponseOp_ResponseTxn.ty
+      go!"ResponseTxn" etcdserverpb.TxnResponse.ty
+      (.ptr etcdserverpb.TxnResponse.ty (txnRespStrct (revHdr rev) ok
+        (sliceTree (go.GoType.PointerType etcdserverpb.ResponseOp.ty) (respOpsTree resps))))
+/-- The stores of responses, in order. -/
+def respOpsTree : List OpRespM → List VTree
+  | [] => []
+  | m :: ms => respOpTree m :: respOpsTree ms
+end
+
+/-- **The store of a transaction response**: its header, `Succeeded`, its responses (`nil` if
+none). -/
+def txnRespTree (m : TxnRespM) : VTree :=
+  txnRespStrct m.hdr m.succeeded
+    (sliceTree (go.GoType.PointerType etcdserverpb.ResponseOp.ty) (respOpsTree m.resps))
+
 /-- **A `*pb.PutRequest`** on the wire (see the file header). -/
 def pbPutRequest : ProtoMsg GF where
   ty := etcdserverpb.PutRequest.ty
   M := OpFull
+  tree := putReqTree
   send inp o := iprop(∃ (req : etcdserverpb.PutRequest) (k v : GoString), inp ↦ req ∗
     req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗ ⌜o = putReqOp req k v ∧ req.unknownFields' = slice.nil⌝)
   wireLen := opWireLen
@@ -1114,6 +1335,7 @@ def pbPutRequest : ProtoMsg GF where
 def pbRangeRequest : ProtoMsg GF where
   ty := etcdserverpb.RangeRequest.ty
   M := OpFull
+  tree := rangeReqTree
   send inp o := iprop(∃ (req : etcdserverpb.RangeRequest) (k e : GoString), inp ↦ req ∗
     req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗ ⌜o = rangeReqOp req k e ∧ req.unknownFields' = slice.nil⌝)
   wireLen := opWireLen
@@ -1127,6 +1349,7 @@ def pbRangeRequest : ProtoMsg GF where
 def pbPutResponse : ProtoMsg GF where
   ty := etcdserverpb.PutResponse.ty
   M := PutRespM
+  tree := putRespTree
   send := putRespMsg
   recv := putRespMsg
   recv_persistent _ _ := inferInstance
@@ -1138,6 +1361,7 @@ def pbPutResponse : ProtoMsg GF where
 def pbRangeResponse : ProtoMsg GF where
   ty := etcdserverpb.RangeResponse.ty
   M := RangeRespM
+  tree := rangeRespTree
   send := rangeRespMsg
   recv := rangeRespRecv
   recv_persistent _ _ := inferInstance
@@ -1151,6 +1375,7 @@ client's `kv.Do` does not send one in this development). -/
 def pbDeleteRangeRequest : ProtoMsg GF where
   ty := etcdserverpb.DeleteRangeRequest.ty
   M := OpFull
+  tree := delReqTree
   send inp o := iprop(∃ (req : etcdserverpb.DeleteRangeRequest) (k e : GoString), inp ↦ req ∗
     req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
     ⌜o = deleteReqOp req k e ∧ req.unknownFields' = slice.nil⌝)
@@ -1165,6 +1390,7 @@ def pbDeleteRangeRequest : ProtoMsg GF where
 def pbDeleteRangeResponse : ProtoMsg GF where
   ty := etcdserverpb.DeleteRangeResponse.ty
   M := DelRespM
+  tree := delRespTree
   send := delRespMsg
   recv := delRespMsg
   recv_persistent _ _ := inferInstance
@@ -1186,6 +1412,7 @@ nor counted (`ProtoMsg.wireLen`'s scope). -/
 def pbTxnRequest : ProtoMsg GF where
   ty := etcdserverpb.TxnRequest.ty
   M := TxnModel
+  tree := txnReqTree
   send inp t := iprop(∃ req : etcdserverpb.TxnRequest, inp ↦ req ∗ txnReqAt req t ∗
     ⌜req.unknownFields' = slice.nil⌝)
   wireLen := txnWireLen
@@ -1200,6 +1427,7 @@ def pbTxnRequest : ProtoMsg GF where
 def pbTxnResponse : ProtoMsg GF where
   ty := etcdserverpb.TxnResponse.ty
   M := TxnRespM
+  tree := txnRespTree
   send := txnRespMsg
   recv := txnRespMsg
   recv_persistent _ _ := inferInstance
@@ -1227,6 +1455,18 @@ instance compactRespMsg_persistent (l : Loc) (m : CompactRespM) :
     Persistent (compactRespMsg (GF := GF) l m) := by
   unfold compactRespMsg; infer_instance
 
+/-- **The store of a compaction request**: its revision and `Physical` flag. -/
+def compactReqTree (m : CompactReqM) : VTree :=
+  .strct etcdserverpb.CompactionRequest.ty
+    [(go!"Revision", go.int64), (go!"Physical", go.bool)]
+    [.leaf #m.revision, .leaf #m.physical]
+
+/-- **The store of a compaction response**: its header. -/
+def compactRespTree (m : CompactRespM) : VTree :=
+  .strct etcdserverpb.CompactionResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty)]
+    [hdrTree m.hdr]
+
 /-- **A `*pb.CompactionRequest`** on the wire: the sender's whole message (no unknown fields), at
 most 13 bytes encoded (the `Revision` field's tag and varint, at most 1 + 10 bytes; `Physical`'s
 tag and byte, 2); the receiver owns the decoded message (`EtcdServer.Compact` hands it to the
@@ -1234,6 +1474,7 @@ raft proposal: `compactReqIs`). -/
 def pbCompactionRequest : ProtoMsg GF where
   ty := etcdserverpb.CompactionRequest.ty
   M := CompactReqM
+  tree := compactReqTree
   send inp o := iprop(∃ req : etcdserverpb.CompactionRequest, inp ↦ req ∗
     ⌜o = ⟨req.Revision', req.Physical'⟩ ∧ req.unknownFields' = slice.nil⌝)
   wireLen _ := 13
@@ -1249,6 +1490,7 @@ def pbCompactionRequest : ProtoMsg GF where
 def pbCompactionResponse : ProtoMsg GF where
   ty := etcdserverpb.CompactionResponse.ty
   M := CompactRespM
+  tree := compactRespTree
   send := compactRespMsg
   recv := compactRespMsg
   recv_persistent _ _ := inferInstance
@@ -1441,7 +1683,7 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ grpcConn conn addr ics dopts anyRes ∗ grpcInvokerOk conn addr anyRes inv ∗ isGrpcRpcsMd addr method Spec ∗
         □ ▷ attemptPre conn om Spec m Φ Ψe ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
@@ -1486,7 +1728,7 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ grpcConn conn addr ics dopts anyRes ∗ grpcInvokerOk conn addr anyRes inv ∗ isGrpcRpcsMd addr method Spec ∗
         modePre md method addr vs (attemptPre conn om Spec m Φ Ψe) ∗ ctxOk ctx cd ∗
         metadata.outMD ctx om ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
@@ -1536,7 +1778,7 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
 file header): grpc's connection with one unary interceptor, the client's retry interceptor
 (`etcdInterceptorOk`), and no default call options. -/
 def isEtcdConn (conn : Loc) (addr : List GoString) : IProp GF :=
-  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] ∗ etcdInterceptorOk ic ∗
+  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] anyRes ∗ etcdInterceptorOk ic ∗
     -- (2026-10-21, D29) a write on a refusal-free connection: ordinary, whatever the bound
     etcdInterceptorOkW ic)
 
@@ -1587,7 +1829,9 @@ file header): `isContext`'s triple of `Err()` (`"#HErr"`: a non-nil error makes 
 error"), with `clientErr` of the error returned, which grpc's `status` accepts (`statusErrOk`,
 unit P3a: `kv.Put` passes `ContextError`'s result, possibly the context's error, to a second
 `ContextError`, which passes it to `rpctypes.Error`; `context.Canceled` is an `errors.New` error,
-`DeadlineExceeded` a `deadlineExceededError`, neither with a `GRPCStatus` or `Is` method). -/
+`DeadlineExceeded` a `deadlineExceededError`, neither with a `GRPCStatus` or `Is` method). The body is
+`ctxErrsErr`'s (`ctxErrClient_eq_errs`): since errors-is-deadline (2026-11-23), an error of type
+`deadlineExceededError` holds `deadlineExceededError{}`. -/
 def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(□ ∀ (cl : Broadcast) (Φ : val → IProp GF),
     (match cl with
@@ -1601,7 +1845,9 @@ def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IP
         ⌜clientErr err⌝ -∗ statusErrOk err -∗ errCellOk err -∗
         (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
           ⌜err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧
-            go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
+            go_etcd_io.etcd.cache.v3.ctxErrShape e ∧
+            (e.ty = _root_.Perennial.context.deadlineExceededError.ty →
+              e.v = #(zero_val _root_.Perennial.context.deadlineExceededError))⌝ ∗
           go_etcd_io.etcd.cache.v3.errorMsgIs e m) -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 

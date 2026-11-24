@@ -59,11 +59,11 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
     · iexact Hte
     iapply HΦ
     iframe
-    unfold isWFDecision
+    unfold isWFDecisionLe
     iexists .noOpinion
     isplitr
     · iexact Hd
-    · ipureintro; trivial
+    · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
   simp only [h0, _root_.decide_false]
   wp_auto
   by_cases h128 : sint.Z (W64 128) < sint.Z (sd.len + sn.len + sa.len)
@@ -85,22 +85,22 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .deny
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     · simp only [hdl, _root_.decide_false]
       wp_auto
       wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .noOpinion
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
   simp only [h128, _root_.decide_false]
   wp_auto
   -- the fold of a map with only NoOpinion conditions; past it, a Deny or an Allow condition
@@ -114,11 +114,11 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .noOpinion
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     simp only [haz, _root_.decide_false]
     wp_auto
     have hWF : dn ≠ [] ∨ al ≠ [] := by
@@ -137,11 +137,11 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .noOpinion
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     wp_auto
     wp_apply (wp_validateConditions seen _ sn qn no) $$ [Hseen Hsn] as %e2 ⟨⟨%S2, Hseen⟩, Hsn, #Hte2⟩
     · iframe; iexact Hno
@@ -152,11 +152,11 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .noOpinion
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     wp_auto
     wp_apply (wp_validateConditions seen _ sa qa al) $$ [Hseen Hsa] as %e3 ⟨⟨%S3, Hseen⟩, Hsa, #Hte3⟩
     · iframe; iexact Hal
@@ -167,11 +167,11 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .noOpinion
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     wp_auto
     iapply wp_fupd
     wp_apply (wp_Clone (V := GoInterface) (E := Condition.ty) sd qd dn) $$ [$Hsd] as %sdc ⟨Hsd, Hcd, -⟩
@@ -188,13 +188,13 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
     imodintro
     iapply HΦ
     iframe
-    unfold isWFDecision isDecision
+    unfold isWFDecisionLe isDecision
     iexists (.cmap dn no al)
     isplitr
     · imodintro
       simp only [isDecisionRaw, isConditionsMap, condsOk]
       iframe #
-    · ipureintro; exact hWF
+    · ipureintro; exact ⟨hWF, by simp [Dec.depth]⟩
   simp only [hdz, _root_.decide_false]
   wp_auto
   have hWF : dn ≠ [] ∨ al ≠ [] := by
@@ -216,22 +216,22 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .deny
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     · simp only [hdl, _root_.decide_false]
       wp_auto
       wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .noOpinion
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
   wp_auto
   wp_apply (wp_validateConditions seen _ sn qn no) $$ [Hseen Hsn] as %e2 ⟨⟨%S2, Hseen⟩, Hsn, #Hte2⟩
   · iframe; iexact Hno
@@ -245,22 +245,22 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .deny
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     · simp only [hdl, _root_.decide_false]
       wp_auto
       wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .noOpinion
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
   wp_auto
   wp_apply (wp_validateConditions seen _ sa qa al) $$ [Hseen Hsa] as %e3 ⟨⟨%S3, Hseen⟩, Hsa, #Hte3⟩
   · iframe; iexact Hal
@@ -274,22 +274,22 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .deny
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
     · simp only [hdl, _root_.decide_false]
       wp_auto
       wp_apply (wp_ConditionsAwareDecisionNoOpinion) $$ [] as %d #Hd
       · first | iassumption | iapply utilerrors.errTreeOrNil_nil
       iapply HΦ
       iframe
-      unfold isWFDecision
+      unfold isWFDecisionLe
       iexists .noOpinion
       isplitr
       · iexact Hd
-      · ipureintro; trivial
+      · ipureintro; exact ⟨trivial, by simp [Dec.depth]⟩
   wp_auto
   iapply wp_fupd
   wp_apply (wp_Clone (V := GoInterface) (E := Condition.ty) sd qd dn) $$ [$Hsd] as %sdc ⟨Hsd, Hcd, -⟩
@@ -306,13 +306,13 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
   imodintro
   iapply HΦ
   iframe
-  unfold isWFDecision isDecision
+  unfold isWFDecisionLe isDecision
   iexists (.cmap dn no al)
   isplitr
   · imodintro
     simp only [isDecisionRaw, isConditionsMap, condsOk]
     iframe #
-  · ipureintro; exact hWF
+  · ipureintro; exact ⟨hWF, by simp [Dec.depth]⟩
 
 end proof
 

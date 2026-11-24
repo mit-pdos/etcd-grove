@@ -169,11 +169,13 @@ def ownFbr (fbr : Loc) (IoE : GoInterface → Prop) (eof : GoInterface) (F : Dec
     ⌜err ≠ GoInterface.nil → IoE err⌝ ∗ decAns eof err ∗ ioUeof IoE err ∗
     (⌜err = GoInterface.nil⌝ -∗ fileInfoOk fi F.bs.length))
 
-/-- The CRC digest the decoder holds (`d.crc`, `crc.New(prev, crcTable)`), at `c`. -/
+/-- The CRC digest the decoder holds (`d.crc`, `crc.New(prev, crcTable)`), at `c`, with `hash/crc32`
+initialized (crc32-hooks2, 2026-11-22: its `Update` reads the package's state, etcd-grove#14). -/
 def ownDecCrc (h : GoInterface) (c : w32) : IProp GF :=
   iprop(∃ (l tab : Loc),
     ⌜h = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.crc.digest.ty) #l⌝ ∗
-    l ↦ go_etcd_io.etcd.pkg.v3.crc.digest.mk c tab ∗ tab ↦□ hash.crc32.castagnoliTableArr)
+    l ↦ go_etcd_io.etcd.pkg.v3.crc.digest.mk c tab ∗ tab ↦□ hash.crc32.castagnoliTableArr ∗
+    isPkgInit (PROP := IProp GF) pkg_id.hash.crc32)
 
 /-- The files' readers: each at its delivered bytes (`rs`). -/
 def ownFbrs (IoE : GoInterface → Prop) (eof : GoInterface) :
@@ -223,11 +225,12 @@ def ownDecoder (d : Loc) (IoE : GoInterface → Prop) (eof : GoInterface) (fs : 
     ⌜off < 2 ^ 62 ∧ (live → rs = liveRs fs off)⌝)
 
 /-- The WAL's CRC table (`crcTable = crc32.MakeTable(crc32.Castagnoli)`, decoder.go's package
-variable, wal.go:69): the Castagnoli table, read-only. -/
+variable, wal.go:69): the Castagnoli table, read-only, of an initialized `hash/crc32` (crc32-hooks2,
+2026-11-22: what `crc32.Update` needs since its `update` reads the package's state, etcd-grove#14). -/
 def walCrcTable : IProp GF :=
   iprop(∃ tab : Loc,
     globalAddr go_etcd_io.etcd.server.v3.storage.wal.crcTable ↦□ tab ∗
-    tab ↦□ hash.crc32.castagnoliTableArr)
+    tab ↦□ hash.crc32.castagnoliTableArr ∗ isPkgInit (PROP := IProp GF) pkg_id.hash.crc32)
 
 instance walCrcTable_persistent : Persistent (walCrcTable (GF := GF)) := by
   unfold walCrcTable; infer_instance
@@ -276,8 +279,10 @@ variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 `io.ErrUnexpectedEOF` at `eof`/`ueof`, `errors.Is(_, io.EOF)` on the readers' errors
 (`isEofOk`), the WAL's CRC table, `walpb.ErrCRCMismatch` (read by `Record.Validate`) and
 protobuf's `proto` initialized (`proto.Unmarshal`). `errors.Is(ErrCRCMismatch, io.EOF)` is false
-(`errIsNot`; two `errors.New` allocations, a client obligation as `isEofOk`), and `errors.Is` on it
-returns for every pointer target (`errIsTerm`: a leaf; 2026-11-14, `wal-vsnap3`). -/
+(`errTreeNot`; two `errors.New` allocations, a client obligation as `isEofOk`), and `errors.Is` on it
+returns for every pointer target (`errTreeTerm`: a leaf; 2026-11-14, `wal-vsnap3`). As error trees since
+2026-11-22, which `Record.Validate`'s `fmt.Errorf` needs (ledger 2026-11-22, "`fmt.ErrorfErrsNot.spec`/
+`fmt.ErrorfErrsTerm.spec` -- premises no proof can use"). -/
 def decEnv (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗
     isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ isPkgInit (PROP := IProp GF) pkg_id.sync ∗
@@ -287,7 +292,7 @@ def decEnv (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
     isEofOk IoE eof ueof ∗ walCrcTable ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch ↦□ GoInterface.ok e ∗
-      errOk e ∗ errIsNot (GoInterface.ok e) eof ∗ errIsTerm (GoInterface.ok e)) ∗
+      errOk e ∗ errTreeNot (GoInterface.ok e) eof ∗ errTreeTerm (GoInterface.ok e)) ∗
     isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto)
 
 instance decEnv_persistent (IoE : GoInterface → Prop) (eof ueof : GoInterface) :

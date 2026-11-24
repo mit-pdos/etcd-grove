@@ -1,11 +1,13 @@
 /-
-Trust boundary: `config.ServerConfig.BackendPath` (an axiom; see
-`Spec/go_etcd_io/etcd/server/v3/config/ServerConfig__BackendPath.lean`). D22 S-f, 2026-10-19;
-`notes/decisions.md`, "D22 S-f carried out".
+Proof of `Spec/go_etcd_io/etcd/server/v3/config/ServerConfig__BackendPath.lean` (bkarea, 2026-11-22;
+until then a trust-boundary axiom, D22 S-f, 2026-10-19): `BackendPath()` is
+`datadir.ToBackendFileName(c.DataDir)`, whose spec returns `filepath.Join(d, "member", "snap") + "/db"`,
+`config.backendPathOf d` by definition.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
+public import Spec.go_etcd_io.etcd.server.v3.storage.datadir.ToBackendFileName
 
 @[expose] public section
 
@@ -14,26 +16,29 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.config.Assumptions]
 
-/-- **Trust boundary** (D22 S-f): `BackendPath()` is `datadir.ToBackendFileName(c.DataDir)`,
-`filepath.Join(c.DataDir, "member", "snap", "db")`: a pure function of the field, `backendPathOf`,
-with no other effect. (wal-link, 2026-11-19, option B1) `backendPathOf d` is the name `db` in the
-snapshot directory `snapDirOf d`; (wal-fsfix2, 2026-11-20, approved by the user) `snapDirOf d` is
-Go's `filepath.Join(d, "member", "snap")` (`path.joinModel`; until then opaque, `c.SnapDir()`), so
-this axiom claims that `BackendPath()` is `filepath.Join(d, "member", "snap") + "/db"`, the string
-Go's `filepath.Join(d, "member", "snap", "db")` is (`config/Defs.lean`'s header; the Go test
-`examples/etcd/snappaths/snappaths_test.go`). What would discharge it: translating `datadir` with
-its body over the spec of `filepath.Join` (`Spec/path/filepath/Join.lean`) and a lemma that
-`Clean(p + "/db")` is `Clean(p) + "/db"` when `Clean(p)` ends in the element `snap`. -/
-axiom config.ServerConfig.BackendPath.wp_proof :
-  config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG)
+theorem config.ServerConfig.BackendPath.wp_proof
+    (wp_ToBackendFileName : datadir.ToBackendFileName.spec (GF := GF) (hG := hG)) :
+    config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) := by
+  intro c dq d hd
+  wp_start as Hf
+  wp_auto
+  wp_apply wp_ToBackendFileName d hd
+  (try wp_auto)
+  have e : path.joinModel [d, go!"member", go!"snap"] ++ [path.slash] ++ go!"db" =
+      config.backendPathOf d := by
+    simp [config.backendPathOf, config.snapDirOf]; rfl
+  rw [e]
+  iapply HΦ
+  iexact Hf
 
 end proof
 

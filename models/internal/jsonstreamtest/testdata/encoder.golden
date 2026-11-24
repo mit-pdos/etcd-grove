@@ -1,0 +1,49 @@
+  write "{\"@type\":1,\"data\":{\"id\":\"1\",\"client_id\":\"10\",\"op\":\"set x 1\"}}\n"
+encode 1: nil
+  write "{\"@type\":2,\"data\":{\"id\":\"1\",\"client_id\":\"10\",\"view_num\":\"3\",\"result\":\"ok\"}}\n"
+encode 2: nil
+  write "{\"@type\":3,\"data\":{\"view_num\":\"3\",\"op_num\":\"18446744073709551615\",\"commit_num\":\"4\",\"request\":{\"id\":\"1\",\"client_id\":\"10\",\"op\":\"set x 1\"},\"replica_id\":\"2\"}}\n"
+encode 3: nil
+  write "{\"@type\":4,\"data\":{\"view_num\":\"3\",\"op_num\":\"5\",\"replica_id\":\"1\"}}\n"
+encode 4: nil
+  write "{\"@type\":5,\"data\":{\"view_num\":\"3\",\"commit_num\":\"5\",\"replica_id\":\"0\"}}\n"
+encode 5: nil
+  write "{\"@type\":6,\"data\":{\"view_num\":\"4\",\"replica_id\":\"1\"}}\n"
+encode 6: nil
+  write "{\"@type\":7,\"data\":{\"view_num\":\"4\",\"logs\":[{\"data\":\"op-0\",\"client_id\":\"0\",\"request_id\":\"18446744073709551615\"},{\"data\":\"op-1\",\"client_id\":\"7919\",\"request_id\":\"18446744073709551614\"},{\"data\":\"op-2\",\"client_id\":\"15838\",\"request_id\":\"18446744073709551613\"}],\"last_stable_view_num\":\"3\",\"op_num\":\"3\",\"commit_num\":\"2\",\"replica_id\":\"1\"}}\n"
+encode 7: nil
+  write "{\"@type\":8,\"data\":{\"view_num\":\"4\",\"op_num\":\"3\",\"commit_num\":\"2\",\"logs\":null,\"replica_id\":\"2\"}}\n"
+encode 8: nil
+  write "{\"@type\":9,\"data\":{\"view_num\":\"4\",\"op_num\":\"1\",\"replica_id\":\"0\"}}\n"
+encode 9: nil
+  write "{\"@type\":10,\"data\":{\"view_num\":\"4\",\"logs\":[],\"commit_num\":\"2\",\"op_num\":\"3\",\"replica_id\":\"2\"}}\n"
+encode 10: nil
+  write "{\"@type\":11,\"data\":{}}\n"
+encode 11: nil
+  write "{\"@type\":1,\"data\":{\"id\":\"1\",\"client_id\":\"10\",\"op\":\"set x 1\"}}\n"
+encoder 0: nil
+  write "{\"@type\":2,\"data\":{\"id\":\"1\",\"client_id\":\"10\",\"view_num\":\"3\",\"result\":\"ok\"}}\n"
+encoder 1: nil
+  write "{\"@type\":3,\"data\":{\"view_num\":\"3\",\"op_num\":\"18446744073709551615\",\"commit_num\":\"4\",\"request\":{\"id\":\"1\",\"client_id\":\"10\",\"op\":\"set x 1\"},\"replica_id\":\"2\"}}\n" -> boom
+encoder 2: boom
+encoder 3: boom
+encoder 4: boom
+bad raw: error
+  write "{\"@type\":1,\"data\":[1,2]}\n"
+after: nil
+  write "{\"@type\":1,\"data\":null}\n"
+nil data: nil
+  write "null\n"
+nil event: nil
+marshal 1: 42 bytes nil
+marshal 2: 56 bytes nil
+marshal 3: 135 bytes nil
+marshal 4: 46 bytes nil
+marshal 5: 50 bytes nil
+marshal 6: 33 bytes nil
+marshal 7: 310 bytes nil
+marshal 8: 75 bytes nil
+marshal 9: 46 bytes nil
+marshal 10: 73 bytes nil
+marshal 11: 2 bytes nil
+marshal 10: 26821 bytes nil

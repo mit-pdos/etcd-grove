@@ -90,9 +90,161 @@ theorem durShares_agree (γ : RaftNames) (id : w64) (q1 q2 : Qp) (E1 E2 : DurMap
   simp only at E1v E1a E1c E1l E1e
   subst E1v E1a E1c E1l E1e; rfl
 
+variable [CrashGS GF] in
 /-- The slot invariant is inside raft's namespace. -/
 theorem slotN_raftN (γ : RaftNames) (id : w64) : (↑(slotN γ id) : CoPset) ⊆ ↑(raftN γ) :=
   fun p hp => nclose_subseteq (raftN γ) "slot" p (nclose_subseteq _ _ p hp)
+
+/-! ### The crash invariant's pieces through their views (2026-11-21) -/
+
+variable [CrashGS GF] in
+/-- **The generation, read through its view** against the slot's half `g0` (the slot invariant
+open): the arm's crash invariant holds the whole generation. -/
+theorem genView_slot_agree (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashNames) (q : Qp)
+    (g g0 : Nat) (γs : SlotNames) :
+    γ.reSlot !! id = some γs → ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ genView (GF := GF) γ id x q g -∗ ghostVar γs.2.2 (1 : Qp).half g0 ={E}=∗
+      notCrashed ∗ genView γ id x q g ∗ ghostVar γs.2.2 (1 : Qp).half g0 ∗ ⌜g = g0⌝ := by
+  intro Hs HE
+  unfold genView
+  iintro Hnc ⟨#Hinv, Hg⟩ Hg0
+  imod nodeCrashInv_acc E γ id x iprop(ghostVar x.g q.half g ∗ ghostVar γs.2.2 (1 : Qp).half g0 ∗
+      ⌜g = g0⌝) HE $$ Hnc Hinv [Hg Hg0] with ⟨Hnc, Hg, Hg0, %Heq⟩
+  · iintro Hl
+    icases crashLens_g γ id x $$ Hl with ⟨Hp, Hback⟩
+    unfold crashG slotLive
+    icases Hp with ⟨%g1, Hxg, %γs', %Hs', Hl1⟩
+    rw [Hs] at Hs'; cases Hs'
+    icases ghostVar_agree _ _ _ _ _ $$ Hg Hxg with %H1
+    icases ghostVar_agree _ _ _ _ _ $$ Hl1 Hg0 with %H2
+    imodintro
+    iframe Hg Hg0
+    isplitl [Hxg Hl1 Hback]
+    · iapply Hback; iexists g1; iframe Hxg; iexists γs; iframe Hl1; ipureintro; exact Hs
+    ipureintro; rw [H1, H2]
+  imodintro
+  iframe Hnc Hg Hg0 Hinv
+  ipureintro; exact Heq
+
+variable [CrashGS GF] in
+/-- **The virtual maps set through their view** (the cut), against the slot's halves of the
+virtual maps `V0` and the generation `g0` (the slot invariant open): the generation is the view's,
+and the slot's half of `V` (in the crash invariant) and the view move to `W` with the slot's. -/
+theorem crash_virt_set (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashNames) (q : Qp)
+    (g g0 : Nat) (γs : SlotNames) (V V0 W : DurMaps) :
+    γ.reSlot !! id = some γs → ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ genView (GF := GF) γ id x q g -∗ cview γ id CrashNames.v (1 : Qp).half V -∗
+      ghostVar γs.1 (1 : Qp).half V0 -∗ ghostVar γs.2.2 (1 : Qp).half g0 ={E}=∗
+      notCrashed ∗ genView γ id x q g ∗ cview γ id CrashNames.v (1 : Qp).half W ∗
+      ghostVar γs.1 (1 : Qp).half W ∗ ghostVar γs.2.2 (1 : Qp).half g0 ∗ ⌜g = g0 ∧ V = V0⌝ := by
+  intro Hs HE
+  unfold genView
+  iintro Hnc ⟨#Hinv, Hg⟩ Hv Hv0 Hg0
+  unfold cview
+  icases Hv with ⟨%x', #Hinv', Hv⟩
+  imod nodeCrashInv_agree E γ id x x' HE $$ Hnc Hinv Hinv' with ⟨Hnc, %Hxx⟩
+  subst Hxx
+  imod nodeCrashInv_acc E γ id x iprop(ghostVar x.g q.half g ∗ ghostVar x.v (1 : Qp).half W ∗
+      ghostVar γs.1 (1 : Qp).half W ∗ ghostVar γs.2.2 (1 : Qp).half g0 ∗ ⌜g = g0 ∧ V = V0⌝) HE
+      $$ Hnc Hinv [Hg Hv Hv0 Hg0] with ⟨Hnc, Hg, Hv, Hv0, Hg0, %Heq⟩
+  · iintro Hl
+    unfold crashLeft slotLive
+    icases Hl with ⟨%γs', %V1, %g1, %Hs', Hxv, Hsv, Hxg, ⟨%γs'', %Hs'', Hl1⟩, Ht, Hw, Hll, Hq⟩
+    rw [Hs] at Hs'; cases Hs'
+    rw [Hs] at Hs''; cases Hs''
+    icases ghostVar_agree _ _ _ _ _ $$ Hv Hxv with %HV1
+    icases ghostVar_agree _ _ _ _ _ $$ Hsv Hv0 with %HV0
+    icases ghostVar_agree _ _ _ _ _ $$ Hg Hxg with %Hg1
+    icases ghostVar_agree _ _ _ _ _ $$ Hl1 Hg0 with %Hg01
+    imod ghostVar_update_halves W γs.1 _ _ $$ Hsv Hv0 with ⟨Hsv, Hv0⟩
+    imod ghostVar_update_halves W x.v _ _ $$ Hv Hxv with ⟨Hv, Hxv⟩
+    imodintro
+    isplitl [Hxv Hsv Hxg Hl1 Ht Hw Hll Hq]
+    · iexists γs, W, g1
+      isplitr; · ipureintro; exact Hs
+      isplitl [Hxv]; · iexact Hxv
+      isplitl [Hsv]; · iexact Hsv
+      isplitl [Hxg]; · iexact Hxg
+      isplitl [Hl1]; · iexists γs; iframe Hl1; ipureintro; exact Hs
+      iframe Ht Hw Hll Hq
+    isplitl [Hg]; · iexact Hg
+    isplitl [Hv]; · iexact Hv
+    isplitl [Hv0]; · iexact Hv0
+    isplitl [Hg0]; · iexact Hg0
+    ipureintro; exact ⟨by rw [Hg1, Hg01], by rw [HV1, HV0]⟩
+  imodintro
+  isplitl [Hnc]; · iexact Hnc
+  isplitl [Hg]; · iframe Hinv Hg
+  isplitl [Hv]; · iexists x; iframe Hinv Hv
+  isplitl [Hv0]; · iexact Hv0
+  isplitl [Hg0]; · iexact Hg0
+  ipureintro; exact Heq
+
+variable [CrashGS GF] in
+/-- **An armed vacancy's pieces, read** against the slot's halves `V0`, `g0` (the slot invariant
+open; a start or a restart): the views are the slot's, and the leader-side maps' fragments, with
+their campaigns, come out of the crash invariant. -/
+theorem armed_read (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashNames) (V : DurMaps) (g : Nat)
+    (terms : GMap w64 TermRec) (wins : GMap w64 (GSet w64)) (lcm rqm : GMap w64 GName)
+    (γs : SlotNames) (V0 : DurMaps) (g0 : Nat) :
+    γ.reSlot !! id = some γs → ↑(crashNs γ id) ⊆ E →
+    ⊢ notCrashed -∗ nodeCrashInv (GF := GF) γ id x -∗ ghostVar x.v (1 : Qp).half V -∗
+      ghostVar x.g (1 : Qp).half g -∗ ghostVar x.t (1 : Qp).half terms -∗
+      ghostVar x.w (1 : Qp).half wins -∗ ghostVar x.l (1 : Qp).half lcm -∗
+      ghostVar x.q (1 : Qp).half rqm -∗ ghostVar γs.1 (1 : Qp).half V0 -∗
+      ghostVar γs.2.2 (1 : Qp).half g0 ={E}=∗
+      notCrashed ∗ ghostVar x.v (1 : Qp).half V ∗ ghostVar x.g (1 : Qp).half g ∗
+      ghostVar x.t (1 : Qp).half terms ∗ ghostVar x.w (1 : Qp).half wins ∗
+      ghostVar x.l (1 : Qp).half lcm ∗ ghostVar x.q (1 : Qp).half rqm ∗
+      ghostVar γs.1 (1 : Qp).half V0 ∗ ghostVar γs.2.2 (1 : Qp).half g0 ∗ ⌜V = V0 ∧ g = g0⌝ ∗
+      (∃ γm, ⌜γ.reTerms !! id = some γm⌝ ∗ [∗map] t ↦ a ∈ terms, t ↪[γm]□ a ∗ campKey γ id t) ∗
+      (∃ γw, ⌜γ.reWins !! id = some γw⌝ ∗ [∗map] t ↦ a ∈ wins, t ↪[γw]□ a ∗ campKey γ id t) ∗
+      (∃ γl, ⌜γ.reLcm !! id = some γl⌝ ∗ [∗map] t ↦ a ∈ lcm, t ↪[γl]□ a ∗ campKey γ id t) ∗
+      (∃ γq, ⌜γ.reRdq !! id = some γq⌝ ∗ [∗map] t ↦ a ∈ rqm, t ↪[γq]□ a ∗ campKey γ id t) := by
+  intro Hs HE
+  iintro Hnc #Hinv Hv Hg Ht Hw Hl Hq Hv0 Hg0
+  iapply nodeCrashInv_acc E γ id x _ HE $$ Hnc Hinv
+  iintro Hcl
+  unfold crashLeft slotLive leadPiece
+  icases Hcl with ⟨%γs', %V1, %g1, %Hs', Hxv, Hsv, Hxg, ⟨%γs'', %Hs'', Hl1⟩,
+    ⟨%mt, %γm, %Hm, Hxt, Hat, #Hft⟩, ⟨%mw, %γw, %Hw', Hxw, Haw, #Hfw⟩,
+    ⟨%ml, %γl, %Hl', Hxl, Hal, #Hfl⟩, ⟨%mq, %γq, %Hq', Hxq, Haq, #Hfq⟩⟩
+  rw [Hs] at Hs'; cases Hs'
+  rw [Hs] at Hs''; cases Hs''
+  icases ghostVar_agree _ _ _ _ _ $$ Hv Hxv with %HV1
+  icases ghostVar_agree _ _ _ _ _ $$ Hsv Hv0 with %HV0
+  icases ghostVar_agree _ _ _ _ _ $$ Hg Hxg with %Hg1
+  icases ghostVar_agree _ _ _ _ _ $$ Hl1 Hg0 with %Hg01
+  icases ghostVar_agree _ _ _ _ _ $$ Ht Hxt with %Ht1
+  icases ghostVar_agree _ _ _ _ _ $$ Hw Hxw with %Hw1
+  icases ghostVar_agree _ _ _ _ _ $$ Hl Hxl with %Hl1'
+  icases ghostVar_agree _ _ _ _ _ $$ Hq Hxq with %Hq1
+  subst Ht1 Hw1 Hl1' Hq1
+  imodintro
+  isplitl [Hxv Hsv Hxg Hl1 Hxt Hat Hxw Haw Hxl Hal Hxq Haq]
+  · iexists γs, V1, g1
+    isplitr; · ipureintro; exact Hs
+    isplitl [Hxv]; · iexact Hxv
+    isplitl [Hsv]; · iexact Hsv
+    isplitl [Hxg]; · iexact Hxg
+    isplitl [Hl1]; · iexists γs; iframe Hl1; ipureintro; exact Hs
+    isplitl [Hxt Hat]; · iexists terms, γm; iframe Hxt Hat Hft; ipureintro; exact Hm
+    isplitl [Hxw Haw]; · iexists wins, γw; iframe Hxw Haw Hfw; ipureintro; exact Hw'
+    isplitl [Hxl Hal]; · iexists lcm, γl; iframe Hxl Hal Hfl; ipureintro; exact Hl'
+    iexists rqm, γq; iframe Hxq Haq Hfq; ipureintro; exact Hq'
+  isplitl [Hv]; · iexact Hv
+  isplitl [Hg]; · iexact Hg
+  isplitl [Ht]; · iexact Ht
+  isplitl [Hw]; · iexact Hw
+  isplitl [Hl]; · iexact Hl
+  isplitl [Hq]; · iexact Hq
+  isplitl [Hv0]; · iexact Hv0
+  isplitl [Hg0]; · iexact Hg0
+  isplitr; · ipureintro; exact ⟨by rw [HV1, HV0], by rw [Hg1, Hg01]⟩
+  isplitr; · iexists γm; iframe Hft; ipureintro; exact Hm
+  isplitr; · iexists γw; iframe Hfw; ipureintro; exact Hw'
+  isplitr; · iexists γl; iframe Hfl; ipureintro; exact Hl'
+  iexists γq; iframe Hfq; ipureintro; exact Hq'
 
 /-- The slot invariant opens inside a ghost step (the commit invariant's registry half open). -/
 theorem slotN_sub (γ : RaftNames) (id : w64) :
@@ -176,6 +328,7 @@ theorem promsJust_cons (γ : RaftNames) (id : w64) (W : DurMaps) (p : Prom) (π 
   unfold promsJust
   exact BigSepL.bigSepL_cons
 
+variable [CrashGS GF] in
 /-- (stage II helper, 2026-11-01, approved repair 1) **The acknowledgements' leaders of a pending
 list's maps** (`ackInF`), given the fragments of maps above them: the entered ones' (given), and
 each pending acknowledgement's from its justification. -/
@@ -211,6 +364,8 @@ theorem acksInF_virt (γ : RaftNames) (id : w64) (W : DurMaps) :
     | vote T c d Fv => rw [show (V.add (.vote T c d Fv)).acks = V.acks from rfl]; iexact Hm
     | camp T F k => rw [show (V.add (.camp T F k)).acks = V.acks from rfl]; iexact Hm
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- (stage II helper) **The durable invariants at the cut**, from the volatile ones: the cut
 state `S'` has the node's term, vote and commit, and its full log (`DurFull`), with its base at
 most the commit; the acknowledgements of the term above the commit agree with the log -- a
@@ -392,6 +547,7 @@ theorem durI1_of_full (γ : RaftNames) (S : RaftState) (F : List EntryM) (c : w6
   rw [Hfe, He, List.take_append_drop]
   exact HI
 
+variable [CrashGS GF] in
 /-- (2026-11-02, stage II (p)) **I1 at a restart**: the durable half's I1 at `S.wcommit`
 (`durI1`), re-based at a base `b` within `S`'s log, at a commit `c ≥ S.wcommit` (`ConfI1.mono`);
 and the re-based log is `S`'s full log (`DurFull`). -/
@@ -439,14 +595,16 @@ theorem durI1_rebase (γ : RaftNames) (id : w64) (S : RaftState) (Ed : DurMaps) 
   · rw [← HF, Hn0, List.take_left]
     exact HfullS
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- **The cut** (at a `Ready`, `InvRawnodeReady`'s handout, beside `ownRaftGhost_drain`): the outbox
 drained to `o'`, its messages `out` with their read credits and tickets, and the promises made since
 the last cut queued in generation `g`'s free slot, as a batch entering `S'` -- the cut state's term,
 vote and commit, its full log (`DurFull`, given the node's full prefix `fp`) -- with the node's
 virtual maps `W`, behind whose fragments the drained messages' facts are. -/
 theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bool}
-    (q : Qp) (g : Nat) (S' : RaftState) (o' out : List Msg) :
-    ↑(slotN γ id) ⊆ E →
+    (x : CrashNames) (q : Qp) (g : Nat) (S' : RaftState) (o' out : List Msg) :
+    ↑(slotN γ id) ⊆ E → ↑(crashNs γ id) ⊆ E →
     (o' ++ out).Perm s.outbox →
     S'.term = s.term → S'.vote = s.vote → S'.commit = s.commit →
     -- (2026-11-01, stage II(d), approved stage-I repair) the cut state's base is at most the
@@ -457,13 +615,13 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
     ⊢ (□ ∀ fp, ⌜FullOk s.base fp⌝ -∗ logRecs (GF := GF) γ base0 fp -∗ ⌜DurFull S' (fp ++ s.log)⌝) -∗
       -- (2026-11-02, stage II (p)) I1 of the batch's log at its commit
       durI1 γ S' S'.commit -∗
-      slotLive γ id q g -∗ slotFree γ id g -∗ ownRaftGhost γ id s md ={E}=∗
-      slotLive γ id q g ∗ ∃ W, pendBatch γ id g S' W ∗
+      notCrashed -∗ genView γ id x q g -∗ slotFree γ id g -∗ ownRaftGhost γ id s md ={E}=∗
+      notCrashed ∗ genView γ id x q g ∗ ∃ W, pendBatch γ id g S' W ∗
         ownRaftGhost γ id { s with outbox := o' } md ∗
         ([∗list] m ∈ out, □ (durFrags γ id W -∗ isMessage γ m)) ∗
         rdCred γ (rdCount s.outbox - rdCount o') ∗ msgsTks γ out := by
-  intro HE Hp Ht Hv Hc Hbc Hself
-  iintro #Hdf #HI1 Hlive Hfree Hown
+  intro HE HC Hp Ht Hv Hc Hbc Hself
+  iintro #Hdf #HI1 Hnc Hlive Hfree Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
@@ -495,10 +653,8 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
       iframe Hw
       ipureintro; exact ⟨fun h => absurd Hxd h, Hns⟩
   icases rdOwn_drain γ id s o' out Hp $$ Hrd with ⟨Hrd, Hcr, Htk⟩
-  -- the slot: the batch queued in the free generation
-  iunfold slotLive at Hlive
-  icases Hlive with ⟨%γs1, %H1, Hl⟩
-  rw [Hsname] at H1; cases H1
+  -- the slot: the batch queued in the free generation (2026-11-21: the slot's half of the
+  -- virtual maps and the whole generation in the crash invariant, read and set through the views)
   iunfold slotFree at Hfree
   icases Hfree with ⟨%γs2, %H2, Hfr⟩
   rw [Hsname] at H2; cases H2
@@ -508,13 +664,13 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
   iunfold slotBody at H
   icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, #>Hai, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hsname] at Hγs'; cases Hγs'
-  icombine Hl Hg0 gives %Hgg
-  obtain ⟨-, Hgg⟩ := Hgg
+  imod crash_virt_set (E \ ↑(slotN γ id)) γ id x q g g0 γs V (virtQ E0 (Mq !! g0)) (virt V πc) Hsname
+      (crashNs_diff_slot E γ id HC) $$ Hnc Hlive Hvirt Hv0 Hg0
+    with ⟨Hnc, Hlive, Hvirt, Hv0, Hg0, %Heqs⟩
+  obtain ⟨Hgg, HV⟩ := Heqs
   subst Hgg
   icombine Hq Hfr gives %HMq
   have HMq' : Mq !! g = some none := HMq
-  icombine Hvirt Hv0 gives %HV
-  obtain ⟨-, HV⟩ := HV
   rw [HMq'] at HV
   simp only [virtQ] at HV
   subst HV
@@ -525,7 +681,6 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
   icases cut_durPers γ id s kl (virt V πc) S' Ht Hv Hc Hbc Hhist $$ Hdf Hlead Hlg HaiW
     with ⟨Hlg, #Hdp⟩
   imod ghost_map_update (some ((S', virt V πc, V) : RaftBatch)) $$ Hq Hfr with ⟨Hq, Hpf⟩
-  imod ghostVar_update_halves (virt V πc) γs.1 _ _ $$ Hvirt Hv0 with ⟨Hvirt, Hv0⟩
   imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
   · inext
     unfold slotBody
@@ -546,8 +701,8 @@ theorem ownRaftGhost_cut (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {
         exact Hdom k hk
     · cases hb; exact ⟨rfl, DurLe_virt V πc Hfresh⟩
   imodintro
-  isplitl [Hl]
-  · unfold slotLive; iexists γs; iframe Hl; ipureintro; exact Hsname
+  iframe Hnc
+  isplitl [Hlive]; · iexact Hlive
   iexists virt V πc
   iframe Hcr Htk Houtw
   isplitl [Hpf]
@@ -801,6 +956,7 @@ theorem mint_one (Em : CoPset) (γ : RaftNames) (id : w64) (X : DurMaps) (p : Pr
       iframe Hfl Hvlog
     iexists γe; iframe Hlbn; ipureintro; exact Hγe
 
+variable [CrashGS GF] in
 /-- Entering a pending list, in order. -/
 theorem mint_list (Em : CoPset) (γ : RaftNames) (id : w64) :
     ∀ (π : List Prom) (X : DurMaps),
@@ -824,43 +980,32 @@ theorem mint_list (Em : CoPset) (γ : RaftNames) (id : w64) :
     iapply mint_list Em γ id π (X.add p) HlE Hf2 (AcksEvs_add X p Hae) Hsort
       $$ Hci Hsh Hfrg' Hj2
 
-/-- **Entering a batch** (the client's *enter*, under the node's generation): its promises minted
-in order in the authorities (`vote_insert`, `ghost_map_insert_persist` of the acknowledgements,
-campaign records and vote-time logs, the event history's appends), from their justifications; the
-durable half moved to the batch's state; the batch's fragments out, which discharge its drained
-messages' wands; the generation's queue free again. -/
-theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q : Qp) (g : Nat)
-    (S' : RaftState) (W : DurMaps) :
-    ↑(raftN γ) ⊆ E →
-    -- (2026-11-02, stage II (p)) the batch moves `wcommit` to its commit, or writes nothing
-    -- (`RaftState.next_wcommit`)
-    (S'.wcommit = S'.commit ∨ (S'.wcommit = S.wcommit ∧ S'.base = S.base ∧ S'.ents = S.ents)) →
-    ⊢ ownDurGhost (GF := GF) γ id S -∗ slotLive γ id q g -∗ pendBatch γ id g S' W ={E}=∗
-      ownDurGhost γ id S' ∗ slotLive γ id q g ∗ slotFree γ id g ∗ durFrags γ id W := by
-  intro HE HwS
-  have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
-  have HlE : (↑(raftLogN γ) : CoPset) ⊆ E \ ↑(slotN γ id) := by
-    intro p hp
-    rw [Iris.Std.LawfulSet.mem_diff]
-    refine ⟨raftLogN_of HE p hp, fun h => ?_⟩
-    have h1 := nclose_subseteq (raftN γ .@ "slot") id p h
-    exact ndot_ne_disjoint (raftN γ) (show "log" ≠ "slot" by decide) p ⟨hp, h1⟩
-  iintro Hdur Hlive Hpend
+variable [CrashGS GF] in
+/-- **Entering a batch**, the core (2026-11-22): `raft_enter`'s proof, with the generation checked
+against the slot's by `Hag`, from a resource `R`. In `raft_enter`, `R` is the live generation's view
+with the crash token; in `raft_crash_enter`, the slot's generation itself, out of the arm's crash
+invariant. -/
+theorem raft_enter_core (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (g : Nat)
+    (S' : RaftState) (W : DurMaps) (R : IProp GF)
+    (HsE : (↑(slotN γ id) : CoPset) ⊆ E) (HlE : (↑(raftLogN γ) : CoPset) ⊆ E \ ↑(slotN γ id))
+    (Hag : ∀ (γs : SlotNames) (g0 : Nat), γ.reSlot !! id = some γs →
+      ⊢ R -∗ ghostVar γs.2.2 (1 : Qp).half g0 ={E \ ↑(slotN γ id)}=∗
+        R ∗ ghostVar γs.2.2 (1 : Qp).half g0 ∗ ⌜g = g0⌝)
+    (HwS : S'.wcommit = S'.commit ∨ (S'.wcommit = S.wcommit ∧ S'.base = S.base ∧ S'.ents = S.ents)) :
+    ⊢ R -∗ ownDurGhost (GF := GF) γ id S -∗ pendBatch γ id g S' W ={E}=∗
+      R ∗ ownDurGhost γ id S' ∗ slotFree γ id g ∗ durFrags γ id W := by
+  iintro HR Hdur Hpend
   unfold ownDurGhost
   icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv, #HI1⟩
-  iunfold slotLive at Hlive
-  icases Hlive with ⟨%γs, %Hγs, Hl⟩
   iunfold pendBatch at Hpend
-  icases Hpend with ⟨%γs2, %Ep, %H2, Hpf, #Hbo⟩
-  rw [Hγs] at H2; cases H2
+  icases Hpend with ⟨%γs, %Ep, %Hγs, Hpf, #Hbo⟩
   ihave #Hsi := Hsinv
   iunfold slotInv at Hsi
   iinv Hsi with H Hclose
   iunfold slotBody at H
   icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, #>Hai0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hγs] at Hγs'; cases Hγs'
-  icombine Hl Hg0 gives %Hgg
-  obtain ⟨-, Hgg⟩ := Hgg
+  imod Hag γs g0 Hγs $$ HR Hg0 with ⟨HR, Hg0, %Hgg⟩
   subst Hgg
   icombine Hq Hpf gives %HMq
   have HMq' : Mq !! g = some (some ((S', W, Ep) : RaftBatch)) := HMq
@@ -909,16 +1054,52 @@ theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (q :
       rw [this] at hk
       exact Hdom k hk
   imodintro
+  iframe HR
   isplitl [Hsh1]
   · iexists W; iframe Hsh1 Hdp' Hsinv
     rcases HwS with hw | ⟨hw, hb, he⟩
     · iapply durI1_congr γ rfl rfl hw $$ HI1'
     · iapply durI1_congr γ hb he hw $$ HI1
-  isplitl [Hl]
-  · unfold slotLive; iexists γs; iframe Hl; ipureintro; exact Hγs
   isplitl [Hfree]
   · unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hγs
   iexact HfrW
+
+variable [CrashGS GF] in
+/-- **Entering a batch** (the client's *enter*, under the node's generation): its promises minted
+in order in the authorities (`vote_insert`, `ghost_map_insert_persist` of the acknowledgements,
+campaign records and vote-time logs, the event history's appends), from their justifications; the
+durable half moved to the batch's state; the batch's fragments out, which discharge its drained
+messages' wands; the generation's queue free again. -/
+theorem raft_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (x : CrashNames) (q : Qp)
+    (g : Nat) (S' : RaftState) (W : DurMaps) :
+    ↑(raftN γ) ⊆ E →
+    -- (2026-11-02, stage II (p)) the batch moves `wcommit` to its commit, or writes nothing
+    -- (`RaftState.next_wcommit`)
+    (S'.wcommit = S'.commit ∨ (S'.wcommit = S.wcommit ∧ S'.base = S.base ∧ S'.ents = S.ents)) →
+    ⊢ notCrashed -∗ ownDurGhost (GF := GF) γ id S -∗ genView γ id x q g -∗ pendBatch γ id g S' W ={E}=∗
+      notCrashed ∗ ownDurGhost γ id S' ∗ genView γ id x q g ∗ slotFree γ id g ∗ durFrags γ id W := by
+  intro HE HwS
+  have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
+  have HC : (↑(crashNs γ id) : CoPset) ⊆ E := fun p hp => HE p (crashNs_raftN γ id p hp)
+  have HlE : (↑(raftLogN γ) : CoPset) ⊆ E \ ↑(slotN γ id) := by
+    intro p hp
+    rw [Iris.Std.LawfulSet.mem_diff]
+    refine ⟨raftLogN_of HE p hp, fun h => ?_⟩
+    have h1 := nclose_subseteq (raftN γ .@ "slot") id p h
+    exact ndot_ne_disjoint (raftN γ) (show "log" ≠ "slot" by decide) p ⟨hp, h1⟩
+  iintro Hnc Hdur Hlive Hpend
+  imod raft_enter_core E γ id S g S' W iprop(notCrashed ∗ genView γ id x q g) HsE HlE
+      (fun γs g0 Hγs => by
+        iintro ⟨Hnc, Hlive⟩ Hg0
+        imod genView_slot_agree (E \ ↑(slotN γ id)) γ id x q g g0 γs Hγs
+          (crashNs_diff_slot E γ id HC) $$ Hnc Hlive Hg0 with ⟨Hnc, Hlive, Hg0, %Hgg⟩
+        imodintro
+        iframe Hnc Hlive Hg0
+        ipureintro; exact Hgg) HwS
+    $$ [Hnc Hlive] Hdur Hpend with ⟨⟨Hnc, Hlive⟩, Hdur, Hfree, #Hfr⟩
+  · iframe Hnc Hlive
+  imodintro
+  iframe Hnc Hdur Hlive Hfree Hfr
 
 /-- (stage II helper) **`durPers` re-based** at a base `b` within `S`'s log and a lower commit `c`:
 the same full log, cut at `b` (`fp ++ S.entsFrom b`), with `S.commit`'s certificate lowered to `c`
@@ -1244,6 +1425,7 @@ theorem durPers_restart_acks (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftS
   imodintro
   iexact Hres
 
+variable [CrashGS GF] in
 /-- (stage II helper) Every key of a map whose fragments carry `campKey` is an entered campaign's
 term. -/
 theorem keys_camps {V : Type} (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps)
@@ -1276,6 +1458,7 @@ theorem keys_camps {V : Type} (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps)
     · rw [GMap.lookup_insert_ne _ _ htk] at ht
       exact HIH t ht
 
+variable [CrashGS GF] in
 /-- (stage II helper) A key bounded by the entered campaigns, at a follower of `S.term`. -/
 private theorem key_ok_follower (S : RaftState) (E : DurMaps) (s : PState) (t : w64) :
     (∀ T, (E.camps !! T).isSome → uint.Z T ≤ uint.Z S.term) → s.term = S.term →
@@ -1288,12 +1471,16 @@ private theorem key_ok_follower (S : RaftState) (E : DurMaps) (s : PState) (t : 
   · left; exact h
   · right; exact ⟨uint_Z_inj.mp (by omega), by decide⟩
 
+variable [CrashGS GF] in
+variable [CrashGS GF] in
 /-- **A restart** (in `RestartNode`, when its update fires; R8: the durable half given back,
 unchanged): the vacant slot and the durable half at `S` give the volatile half of a follower of
 `S.term` restarted from a storage holding `S` from the base `b` with the commit `c`
 (`restartP`: `kl` forgotten, the durable `kd` taken; an empty outbox and tally), with the whole
-generation and its free queue slot. Amendment 1: the bootstrap log within the stored commit. -/
-theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
+generation and its free queue slot. Amendment 1: the bootstrap log within the stored commit.
+(2026-11-22, ledger `RestartNode`) The accessor (the client's update) is given the generation's
+`notCrashed` and gives it back, so that it may open a crash invariant. -/
+theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : CrashNames)
     (b : entryID) (c : w64) (Φ : RaftState → Prop) (R : RaftState → IProp GF) :
     ↑(raftN γ) ⊆ E →
     γ.reDyn.isSome = md →
@@ -1302,28 +1489,26 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
       -- (2026-11-02, stage II (p)) at or above the commit of the last batch that wrote the log
       uint.nat S.wcommit ≤ uint.nat c) →
     (γ.reBoot.length : Int) ≤ uint.Z c →
-    ⊢ raftIdSlot (GF := GF) γ id -∗
-      (|={E \ ↑(slotN γ id), ∅}=> ∃ S, ownDurGhost γ id S ∗ ⌜Φ S⌝ ∗
-        (ownDurGhost γ id S ={∅, E \ ↑(slotN γ id)}=∗ R S)) ={E}=∗
-      ∃ S, ⌜Φ S⌝ ∗ R S ∗ ownRaftGhost γ id (restartP S b c) md ∗
-        ∃ g, slotLive γ id 1 g ∗ slotFree γ id g ∗
+    ⊢ notCrashed -∗ raftArmed (GF := GF) γ id x -∗
+      (notCrashed -∗ |={E \ ↑(slotN γ id), ∅}=> ∃ S, ownDurGhost γ id S ∗ ⌜Φ S⌝ ∗
+        (ownDurGhost γ id S ={∅, E \ ↑(slotN γ id)}=∗ notCrashed ∗ R S)) ={E}=∗
+      notCrashed ∗ ∃ S, ⌜Φ S⌝ ∗ R S ∗ ownRaftGhost γ id (restartP S b c) md ∗
+        ∃ g, genView γ id x 1 g ∗ slotFree γ id g ∗
         -- (2026-11-02, stage II (p)) the restarted log is `S`'s full log, with I1 at the commit
         -- (`durI1_rebase`)
         □ (∀ fp, ⌜FullOk b fp⌝ -∗ logRecs γ base0 fp -∗
           ⌜DurFull S (fp ++ S.entsFrom b) ∧ (md = true → ConfI1 (fp ++ S.entsFrom b) (uint.nat c))⌝) := by
   intro HE Hmd HΦ Hboot
-  iintro Hslot Hacc
-  unfold raftIdSlot
-  icases Hslot with ⟨%γs, %V, %g, %Hγs, %Hnz, Hvirt, Hlive, Hfree, #Hsinv, #Hcinv, #Hrci,
-    ⟨%γm, %terms, %Htm, Hterms, #Htf⟩, ⟨%γw, %wins, %Hwn, Hwins, #Hwf⟩,
-    ⟨%γl, %lcm, %Hln, Hlcm, #Hlf⟩, ⟨%γq, %rqm, %Hqn, Hrqm, #Hqf⟩⟩
-  iunfold slotLive at Hlive
-  icases Hlive with ⟨%γs1, %H1, Hl⟩
-  rw [Hγs] at H1; cases H1
+  have HC : (↑(crashNs γ id) : CoPset) ⊆ E := fun p hp => HE p (crashNs_raftN γ id p hp)
+  iintro Hnc Hslot Hacc
+  unfold raftArmed
+  icases Hslot with ⟨%V, %g, %terms, %wins, %lcm, %rqm, %Hnz, Hxv, Hxg, Hxt, Hxw, Hxl, Hxq, Hfree,
+    #Hinv, #Hsinv, #Hcinv, #Hrci⟩
   iunfold slotFree at Hfree
-  icases Hfree with ⟨%γs2, %H2, Hfr⟩
-  rw [Hγs] at H2; cases H2
+  icases Hfree with ⟨%γs, %Hγs, Hfr⟩
   -- the slot: the queue is free, so the virtual half is the entered maps, the durable half's
+  -- (2026-11-21: the slot's halves of the virtual maps and the generation, with the leader-side
+  -- maps, in the crash invariant: read through the views)
   have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
   ihave #Hsi := Hsinv
   iunfold slotInv at Hsi
@@ -1331,19 +1516,30 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
   iunfold slotBody at H
   icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, #>Hai0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hγs] at Hγs'; cases Hγs'
-  icombine Hl Hg0 gives %Hgg
-  obtain ⟨-, Hgg⟩ := Hgg
+  imod armed_read (E \ ↑(slotN γ id)) γ id x V g terms wins lcm rqm γs _ _ Hγs
+      (crashNs_diff_slot E γ id HC) $$ Hnc Hinv Hxv Hxg Hxt Hxw Hxl Hxq Hv0 Hg0
+    with ⟨Hnc, Hxv, Hxg, Hxt, Hxw, Hxl, Hxq, Hv0, Hg0, %Heq, ⟨%γm, %Htm, #Htf⟩,
+      ⟨%γw, %Hwn, #Hwf⟩, ⟨%γl, %Hln, #Hlf⟩, ⟨%γq, %Hqn, #Hqf⟩⟩
+  obtain ⟨HV, Hgg⟩ := Heq
   subst Hgg
   icombine Hq Hfr gives %HMq
-  icombine Hvirt Hv0 gives %HV
-  obtain ⟨-, HV⟩ := HV
   have HMq' : Mq !! g = some none := HMq
   rw [HMq'] at HV
   simp only [virtQ] at HV
   subst HV
+  ihave Hvirt : cview γ id CrashNames.v (1 : Qp).half V $$ [Hxv]
+  · unfold cview; iexists x; iframe Hinv Hxv
+  ihave Hterms : cview γ id CrashNames.t (1 : Qp).half terms $$ [Hxt]
+  · unfold cview; iexists x; iframe Hinv Hxt
+  ihave Hwins : cview γ id CrashNames.w (1 : Qp).half wins $$ [Hxw]
+  · unfold cview; iexists x; iframe Hinv Hxw
+  ihave Hlcm : cview γ id CrashNames.l (1 : Qp).half lcm $$ [Hxl]
+  · unfold cview; iexists x; iframe Hinv Hxl
+  ihave Hrqm : cview γ id CrashNames.q (1 : Qp).half rqm $$ [Hxq]
+  · unfold cview; iexists x; iframe Hinv Hxq
   -- the durable half, through the accessor (the client's update: `RestartNode`'s), while the slot
   -- is open
-  imod Hacc with ⟨%S, Hdur, %HS, Hcl⟩
+  imod Hacc $$ Hnc with ⟨%S, Hdur, %HS, Hcl⟩
   obtain ⟨Hb1, Hb2, Hb3, Hbt, Hwc⟩ := HΦ S HS
   unfold ownDurGhost
   icases Hdur with ⟨%E1, Hsh1, #Hdp, #Hsinv1, #HI1⟩
@@ -1359,7 +1555,7 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
   icases keys_camps γ id _ V (fun t (x : GName) => iprop(t ↪[γq]□ x)) rqm $$ [$Hsh1 $Hqf]
     with ⟨Hsh1, %Kqn⟩
   ihave #HI1r := durI1_rebase γ id S V b c Hb1 Hbt Hwc $$ Hdp HI1
-  imod Hcl $$ [Hsh1] with HR
+  imod Hcl $$ [Hsh1] with ⟨Hnc, HR⟩
   · iexists V; iframe Hsh1 Hdp Hsinv1 HI1
   imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
   · inext
@@ -1380,15 +1576,16 @@ theorem raft_restart (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool}
   have Hcommit : (restartP S b c).commit = c := rfl
   have Hvote : (restartP S b c).vote = S.vote := rfl
   imodintro
+  iframe Hnc
   iexists S
   isplitr; · ipureintro; exact HS
   iframe HR
-  isplitr [Hl Hfr]
+  isplitr [Hxg Hfr]
 
   rotate_left
   · iexists g
-    isplitl [Hl]
-    · unfold slotLive; iexists γs; iframe Hl; ipureintro; exact Hγs
+    isplitl [Hxg]
+    · unfold genView; iframe Hinv Hxg
     isplitl [Hfr]
     · unfold slotFree; iexists γs; iframe Hfr; ipureintro; exact Hγs
     rw [← Hmd]; iexact HI1r
@@ -1524,6 +1721,7 @@ instance committedJust_persistent' (γ : RaftNames) (l : List EntryM) :
     Persistent (committedJust (GF := GF) γ l) := by
   unfold committedJust; infer_instance
 
+variable [CrashGS GF] in
 /-- (stage II helper) The bootstrap log is committed, well-formed and has its records. -/
 private theorem boot_facts (E : CoPset) (γ : RaftNames) :
     ↑(raftN γ) ⊆ E →
@@ -1607,29 +1805,27 @@ private theorem boot_facts (E : CoPset) (γ : RaftNames) :
     iframe Hcb Hrecs
     ipureintro; exact ⟨Hwf, Hones⟩
 
+variable [CrashGS GF] in
 /-- **A first start from the bootstrap log** (`StartNode`, I-7): a node that has stored nothing
 starts at the cluster's bootstrap state (`bootPState`: term `1`, the bootstrap log committed), which
 its first `Ready` writes. -/
-theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (R : IProp GF) :
+theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (x : CrashNames)
+    (R : IProp GF) :
     ↑(raftN γ) ⊆ E →
     γ.reDyn.isSome = md →
-    ⊢ raftIdSlot (GF := GF) γ id -∗
+    ⊢ notCrashed -∗ raftArmed (GF := GF) γ id x -∗
       (|={E \ ↑(slotN γ id), ∅}=> ownDurGhost γ id RaftState.init ∗
         (ownDurGhost γ id RaftState.init ={∅, E \ ↑(slotN γ id)}=∗ R)) ={E}=∗
-      R ∗ ownRaftGhost γ id (bootPState γ.reBoot) md ∗
-      ∃ g, slotLive γ id 1 g ∗ slotFree γ id g := by
+      notCrashed ∗ R ∗ ownRaftGhost γ id (bootPState γ.reBoot) md ∗
+      ∃ g, genView γ id x 1 g ∗ slotFree γ id g := by
   intro HE Hmd
-  iintro Hslot Hacc
-  unfold raftIdSlot
-  icases Hslot with ⟨%γs, %V, %g, %Hγs, %Hnz, Hvirt, Hlive, Hfree, #Hsinv, #Hcinv, #Hrci,
-    ⟨%γm, %terms, %Htm, Hterms, #Htf⟩, ⟨%γw, %wins, %Hwn, Hwins, #Hwf⟩,
-    ⟨%γl, %lcm, %Hln, Hlcm, #Hlf⟩, ⟨%γq, %rqm, %Hqn, Hrqm, #Hqf⟩⟩
-  iunfold slotLive at Hlive
-  icases Hlive with ⟨%γs1, %H1, Hl⟩
-  rw [Hγs] at H1; cases H1
+  have HC : (↑(crashNs γ id) : CoPset) ⊆ E := fun p hp => HE p (crashNs_raftN γ id p hp)
+  iintro Hnc Hslot Hacc
+  unfold raftArmed
+  icases Hslot with ⟨%V, %g, %terms, %wins, %lcm, %rqm, %Hnz, Hxv, Hxg, Hxt, Hxw, Hxl, Hxq, Hfree,
+    #Hinv, #Hsinv, #Hcinv, #Hrci⟩
   iunfold slotFree at Hfree
-  icases Hfree with ⟨%γs2, %H2, Hfr⟩
-  rw [Hγs] at H2; cases H2
+  icases Hfree with ⟨%γs, %Hγs, Hfr⟩
   have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
   ihave #Hsi := Hsinv
   iunfold slotInv at Hsi
@@ -1637,16 +1833,27 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (R 
   iunfold slotBody at H
   icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, #>Hai0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
   rw [Hγs] at Hγs'; cases Hγs'
-  icombine Hl Hg0 gives %Hgg
-  obtain ⟨-, Hgg⟩ := Hgg
+  imod armed_read (E \ ↑(slotN γ id)) γ id x V g terms wins lcm rqm γs _ _ Hγs
+      (crashNs_diff_slot E γ id HC) $$ Hnc Hinv Hxv Hxg Hxt Hxw Hxl Hxq Hv0 Hg0
+    with ⟨Hnc, Hxv, Hxg, Hxt, Hxw, Hxl, Hxq, Hv0, Hg0, %Heq, ⟨%γm, %Htm, #Htf⟩,
+      ⟨%γw, %Hwn, #Hwf⟩, ⟨%γl, %Hln, #Hlf⟩, ⟨%γq, %Hqn, #Hqf⟩⟩
+  obtain ⟨HV, Hgg⟩ := Heq
   subst Hgg
   icombine Hq Hfr gives %HMq
-  icombine Hvirt Hv0 gives %HV
-  obtain ⟨-, HV⟩ := HV
   have HMq' : Mq !! g = some none := HMq
   rw [HMq'] at HV
   simp only [virtQ] at HV
   subst HV
+  ihave Hvirt : cview γ id CrashNames.v (1 : Qp).half V $$ [Hxv]
+  · unfold cview; iexists x; iframe Hinv Hxv
+  ihave Hterms : cview γ id CrashNames.t (1 : Qp).half terms $$ [Hxt]
+  · unfold cview; iexists x; iframe Hinv Hxt
+  ihave Hwins : cview γ id CrashNames.w (1 : Qp).half wins $$ [Hxw]
+  · unfold cview; iexists x; iframe Hinv Hxw
+  ihave Hlcm : cview γ id CrashNames.l (1 : Qp).half lcm $$ [Hxl]
+  · unfold cview; iexists x; iframe Hinv Hxl
+  ihave Hrqm : cview γ id CrashNames.q (1 : Qp).half rqm $$ [Hxq]
+  · unfold cview; iexists x; iframe Hinv Hxq
   -- the durable half, through the accessor (the client's update: `StartNode`'s), while the slot
   -- is open
   imod Hacc with ⟨Hdur, Hcl⟩
@@ -1701,12 +1908,12 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (R 
         (t = (bootPState γ.reBoot).term ∧ (bootPState γ.reBoot).role ≠ .candidate) := by
     intro t ht; left; have := Hcp t ht; rw [Hi0] at this; rw [Hterm, H1]; omega
   imodintro
-  iframe HR
-  isplitr [Hl Hfr]
+  iframe Hnc HR
+  isplitr [Hxg Hfr]
   rotate_left
   · iexists g
-    isplitl [Hl]
-    · unfold slotLive; iexists γs; iframe Hl; ipureintro; exact Hγs
+    isplitl [Hxg]
+    · unfold genView; iframe Hinv Hxg
     · unfold slotFree; iexists γs; iframe Hfr; ipureintro; exact Hγs
   unfold ownRaftGhost
   iexists γs, V, [], none
@@ -1860,29 +2067,17 @@ theorem raft_start_boot (E : CoPset) (γ : RaftNames) (id : w64) {md : Bool} (R 
     rw [show (bootPState γ.reBoot).outbox = [] from rfl]; iapply msgsTks_nil
   ipureintro; exact Hmd
 
-/-- **A stop** (R8; review 1's N6: the read credits and proposal tickets the volatile half holds
-are dropped): the volatile half and the whole generation give back the vacant slot -- the
-leader-side authorities with their keys' campaigns, the virtual maps reset to the entered ones --
-with the generation bumped, so that a batch cut in it and not entered can no longer be. -/
-theorem raft_stop (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bool} (g : Nat) :
-    ↑(raftN γ) ⊆ E →
-    ⊢ slotLive (GF := GF) γ id 1 g -∗ ownRaftGhost γ id s md ={E}=∗ raftIdSlot γ id := by
-  intro HE
-  have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
-  iintro Hlive Hg
-  unfold ownRaftGhost
-  icases Hg with ⟨%γs, %V, %πc, %kl, %Hsname, #Hslot, Hvirt, -, -, %Hidnz, -, -, -, -, Hlg, -, -, -,
-    Hlcm, Hrd, -⟩
-  unfold ownLogGhost
-  icases Hlg with ⟨%γm, %terms, %fp, %γw, %wins, %Htname, Hterms, #Htfrags, -, -, -, -, -, -, -, -,
-    -, -, -, -, -, -, -, %Hwname, Hwins, #Hwfrags, -, -, -, #Hinv, -⟩
-  unfold lcmOwn
-  icases Hlcm with ⟨%γl, %lcm, %Hγl, Hlcma, #Hlcmf, -, -⟩
-  unfold rdOwn
-  icases Hrd with ⟨%γq, %rqm, %Hγq, Hrqa, #Hrqf, -, -, -, -, -, #Hcinv, -⟩
-  unfold slotLive
-  icases Hlive with ⟨%γs', %Hγs', Hgen⟩
-  rw [Hsname] at Hγs'; cases Hγs'
+variable [CrashGS GF] in
+/-- **The slot moved to the next generation** (a stop's and a crash's): the virtual maps reset to
+the entered ones, the generation bumped, the next generation's queue free -- so that a batch cut in
+the old generation and not entered can no longer be. -/
+theorem slot_bump (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V : DurMaps) (g : Nat) :
+    γ.reSlot !! id = some γs → ↑(slotN γ id) ⊆ E →
+    ⊢ slotInv (GF := GF) γ id -∗ ghostVar γs.1 (1 : Qp).half V -∗ ghostVar γs.2.2 (1 : Qp).half g ={E}=∗
+      ∃ E0 : DurMaps, ghostVar γs.1 (1 : Qp).half E0 ∗ ghostVar γs.2.2 (1 : Qp).half (g + 1) ∗
+        (g + 1) ↪[γs.2.1] (none : Option RaftBatch) := by
+  intro Hsname HsE
+  iintro #Hslot Hvirt Hgen
   unfold slotInv
   iinv Hslot with H Hclose
   unfold slotBody
@@ -1923,22 +2118,257 @@ theorem raft_stop (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bo
     isplitr; · ipureintro; rfl
     ipureintro; intro b hb; cases hb
   imodintro
-  unfold raftIdSlot slotInv slotBody
-  iexists γs, E0, g + 1
-  iframe Hvirt Hslot Hinv Hcinv
-  isplitr; · ipureintro; exact Hsname
+  iexists E0
+  iframe Hvirt Hgen Hfree
+
+variable [CrashGS GF] in
+variable [CrashGS GF] in
+/-- **A stop** (R8; review 1's N6: the read credits and proposal tickets the volatile half holds
+are dropped; 2026-11-21, the crash invariant): the volatile half and the whole generation (the
+client's and `run`'s shares of its view) give back the armed vacancy, the pieces staying in the
+arm's crash invariant -- the virtual maps reset to the entered ones, the generation bumped
+(`slot_bump`). With the generation running (`notCrashed`): the views' names are the arm's. -/
+theorem raft_stop (E : CoPset) (γ : RaftNames) (id : w64) (s : PState) {md : Bool} (x : CrashNames)
+    (g : Nat) :
+    ↑(raftN γ) ⊆ E →
+    ⊢ notCrashed -∗ genView (GF := GF) γ id x 1 g -∗ ownRaftGhost γ id s md ={E}=∗
+      notCrashed ∗ raftArmed γ id x := by
+  intro HE
+  have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
+  have HC : (↑(crashNs γ id) : CoPset) ⊆ E := fun p hp => HE p (crashNs_raftN γ id p hp)
+  unfold genView
+  iintro Hnc ⟨#Hinv, Hgv⟩ Hg
+  unfold ownRaftGhost
+  icases Hg with ⟨%γs, %V, %πc, %kl, %Hsname, #Hslot, Hvirt, -, -, %Hidnz, -, -, -, -, Hlg, -, -, -,
+    Hlcm, Hrd, -⟩
+  unfold ownLogGhost
+  icases Hlg with ⟨%γm, %terms, %fp, %γw, %wins, %Htname, Hterms, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, -, -, -, %Hwname, Hwins, -, -, -, -, #Hcinv, -⟩
+  unfold lcmOwn
+  icases Hlcm with ⟨%γl, %lcm, %Hγl, Hlcma, -, -, -⟩
+  unfold rdOwn
+  icases Hrd with ⟨%γq, %rqm, %Hγq, Hrqa, -, -, -, -, -, -, #Hrci, -⟩
+  -- the views are the arm's (two live arms of one id would hold two term-map authorities)
+  unfold cview
+  icases Hvirt with ⟨%x1, #Hi1, Hvirt⟩
+  icases Hterms with ⟨%x2, #Hi2, Hterms⟩
+  icases Hwins with ⟨%x3, #Hi3, Hwins⟩
+  icases Hlcma with ⟨%x4, #Hi4, Hlcma⟩
+  icases Hrqa with ⟨%x5, #Hi5, Hrqa⟩
+  imod nodeCrashInv_agree E γ id x x1 HC $$ Hnc Hinv Hi1 with ⟨Hnc, %H1⟩
+  imod nodeCrashInv_agree E γ id x x2 HC $$ Hnc Hinv Hi2 with ⟨Hnc, %H2⟩
+  imod nodeCrashInv_agree E γ id x x3 HC $$ Hnc Hinv Hi3 with ⟨Hnc, %H3⟩
+  imod nodeCrashInv_agree E γ id x x4 HC $$ Hnc Hinv Hi4 with ⟨Hnc, %H4⟩
+  imod nodeCrashInv_agree E γ id x x5 HC $$ Hnc Hinv Hi5 with ⟨Hnc, %H5⟩
+  subst H1 H2 H3 H4 H5
+  -- the arm's pieces: the slot moved to the next generation, the views with it
+  imod nodeCrashInv_acc E γ id x iprop(∃ E0 : DurMaps, ghostVar x.v (1 : Qp).half E0 ∗
+      ghostVar x.g (1 : Qp).half (g + 1) ∗ slotFree γ id (g + 1)) HC
+      $$ Hnc Hinv [Hvirt Hgv] with ⟨Hnc, %E0, Hvirt, Hgv, Hfree⟩
+  · iintro Hcl
+    unfold crashLeft slotLive
+    icases Hcl with ⟨%γs', %V1, %g1, %Hs', Hxv, Hsv, Hxg, ⟨%γs'', %Hs'', Hl1⟩, Ht, Hw, Hl, Hq⟩
+    rw [Hsname] at Hs'; cases Hs'
+    rw [Hsname] at Hs''; cases Hs''
+    icases ghostVar_agree _ _ _ _ _ $$ Hvirt Hxv with %HV1
+    icases ghostVar_agree _ _ _ _ _ $$ Hgv Hxg with %Hg1
+    subst HV1 Hg1
+    imod slot_bump (E \ ↑(crashN γ id x)) γ id γs V g Hsname
+        (fun p hp => crashNs_diff_sub E γ id x p (slotN_diff_crash E γ id HsE p hp)) $$ Hslot Hsv Hl1
+      with ⟨%E0, Hsv, Hl1, Hfree⟩
+    imod ghostVar_update_halves E0 x.v _ _ $$ Hvirt Hxv with ⟨Hvirt, Hxv⟩
+    imod ghostVar_update_halves (g + 1) x.g _ _ $$ Hgv Hxg with ⟨Hgv, Hxg⟩
+    imodintro
+    isplitl [Hxv Hsv Hxg Hl1 Ht Hw Hl Hq]
+    · iexists γs, E0, g + 1
+      isplitr; · ipureintro; exact Hsname
+      isplitl [Hxv]; · iexact Hxv
+      isplitl [Hsv]; · iexact Hsv
+      isplitl [Hxg]; · iexact Hxg
+      isplitl [Hl1]; · iexists γs; iframe Hl1; ipureintro; exact Hsname
+      iframe Ht Hw Hl Hq
+    iexists E0
+    isplitl [Hvirt]; · iexact Hvirt
+    isplitl [Hgv]; · iexact Hgv
+    unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hsname
+  imodintro
+  iframe Hnc
+  unfold raftArmed
+  iexists E0, g + 1, terms, wins, lcm, rqm
   isplitr; · ipureintro; exact Hidnz
-  isplitl [Hgen]
-  · unfold slotLive; iexists γs; iframe Hgen; ipureintro; exact Hsname
-  isplitl [Hfree]
-  · unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hsname
-  isplitl [Hterms]
-  · iexists γm, terms; iframe Hterms Htfrags; ipureintro; exact Htname
-  isplitl [Hwins]
-  · iexists γw, wins; iframe Hwins Hwfrags; ipureintro; exact Hwname
-  isplitl [Hlcma]
-  · iexists γl, lcm; iframe Hlcma Hlcmf; ipureintro; exact Hγl
-  · iexists γq, rqm; iframe Hrqa Hrqf; ipureintro; exact Hγq
+  iframe Hvirt Hgv Hterms Hwins Hlcma Hrqa Hfree Hinv Hslot Hcinv Hrci
+
+variable [CrashGS GF] in
+/-- **Arming a vacant slot** (2026-11-21, `nodeVacant_arm`): its six timeless pieces go into a fresh
+arm's crash invariant, the node keeping their views (the armed vacancy) and the crash token. -/
+theorem raft_arm (E : CoPset) (γ : RaftNames) (id : w64) :
+    ⊢ raftIdSlot (GF := GF) γ id ={E}=∗ ∃ x, raftArmed γ id x ∗ raftCrashTok γ id x := by
+  iintro Hslot
+  unfold raftIdSlot
+  icases Hslot with ⟨%γs, %V, %g, %Hγs, %Hnz, Hvirt, Hlive, Hfree, #Hsinv, #Hcinv, #Hrci,
+    ⟨%γm, %terms, %Htm, Hterms, #Htf⟩, ⟨%γw, %wins, %Hwn, Hwins, #Hwf⟩,
+    ⟨%γl, %lcm, %Hln, Hlcm, #Hlf⟩, ⟨%γq, %rqm, %Hqn, Hrqm, #Hqf⟩⟩
+  imod ghostVar_alloc (GF := GF) V with ⟨%xv, Hxv⟩
+  imod ghostVar_alloc (GF := GF) g with ⟨%xg, Hxg⟩
+  imod ghostVar_alloc (GF := GF) terms with ⟨%xt, Hxt⟩
+  imod ghostVar_alloc (GF := GF) wins with ⟨%xw, Hxw⟩
+  imod ghostVar_alloc (GF := GF) lcm with ⟨%xl, Hxl⟩
+  imod ghostVar_alloc (GF := GF) rqm with ⟨%xq, Hxq⟩
+  imod dghostVar_alloc (GF := GF) () with ⟨%xk, Htok⟩
+  icases (ghostVar_split_half xv 1 V).1 $$ Hxv with ⟨Hxv, Hxv'⟩
+  icases (ghostVar_split_half xg 1 g).1 $$ Hxg with ⟨Hxg, Hxg'⟩
+  icases (ghostVar_split_half xt 1 terms).1 $$ Hxt with ⟨Hxt, Hxt'⟩
+  icases (ghostVar_split_half xw 1 wins).1 $$ Hxw with ⟨Hxw, Hxw'⟩
+  icases (ghostVar_split_half xl 1 lcm).1 $$ Hxl with ⟨Hxl, Hxl'⟩
+  icases (ghostVar_split_half xq 1 rqm).1 $$ Hxq with ⟨Hxq, Hxq'⟩
+  imod inv_alloc (crashN γ id ⟨xv, xg, xt, xw, xl, xq, xk⟩) E
+      iprop(crashLeft γ id ⟨xv, xg, xt, xw, xl, xq, xk⟩ ∨
+        (crashed ∗ dghostVar (⟨xv, xg, xt, xw, xl, xq, xk⟩ : CrashNames).tok (DFrac.own 1) ()))
+    $$ [Hxv' Hvirt Hxg' Hlive Hxt' Hterms Hxw' Hwins Hxl' Hlcm Hxq' Hrqm] with #Hinv
+  · inext
+    ileft
+    unfold crashLeft leadPiece
+    iexists γs, V, g
+    isplitr; · ipureintro; exact Hγs
+    isplitl [Hxv']; · iexact Hxv'
+    isplitl [Hvirt]; · iexact Hvirt
+    isplitl [Hxg']; · iexact Hxg'
+    isplitl [Hlive]; · iexact Hlive
+    isplitl [Hxt' Hterms]; · iexists terms, γm; iframe Hxt' Hterms Htf; ipureintro; exact Htm
+    isplitl [Hxw' Hwins]; · iexists wins, γw; iframe Hxw' Hwins Hwf; ipureintro; exact Hwn
+    isplitl [Hxl' Hlcm]; · iexists lcm, γl; iframe Hxl' Hlcm Hlf; ipureintro; exact Hln
+    iexists rqm, γq; iframe Hxq' Hrqm Hqf; ipureintro; exact Hqn
+  imodintro
+  iexists ⟨xv, xg, xt, xw, xl, xq, xk⟩
+  isplitl [Hxv Hxg Hxt Hxw Hxl Hxq Hfree]
+  · unfold raftArmed
+    iexists V, g, terms, wins, lcm, rqm
+    isplitr; · ipureintro; exact Hnz
+    iframe Hxv Hxg Hxt Hxw Hxl Hxq Hfree Hsinv Hcinv Hrci
+    unfold nodeCrashInv; iexact Hinv
+  unfold raftCrashTok
+  iframe Htok Hsinv Hcinv Hrci
+  isplitr; · unfold nodeCrashInv; iexact Hinv
+  ipureintro; exact Hnz
+
+variable [CrashGS GF] in
+/-- **A crash** (2026-11-21, `nodeCrash`): the dead generation's `crashed` and the arm's token take
+the pieces out of the arm's crash invariant (which keeps `crashed` and the token) and give the
+vacant slot back, at the next generation (`slot_bump`, as a stop). -/
+theorem raft_crash (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashNames) :
+    ↑(raftN γ) ⊆ E →
+    ⊢ crashed -∗ raftCrashTok (GF := GF) γ id x ={E}=∗ raftIdSlot γ id := by
+  intro HE
+  have HsE : (↑(slotN γ id) : CoPset) ⊆ E := fun p hp => HE p (slotN_raftN γ id p hp)
+  have HC : (↑(crashN γ id x) : CoPset) ⊆ E :=
+    fun p hp => HE p (crashNs_raftN γ id p (crashN_sub γ id x p hp))
+  iintro #Hc Htok
+  unfold raftCrashTok
+  icases Htok with ⟨Htok, #Hinv, #Hslot, #Hcinv, #Hrci, %Hnz⟩
+  unfold nodeCrashInv
+  imod inv_acc (E := E) HC $$ Hinv with ⟨Hi, Hclose⟩
+  icases Hi with (>Hcl | ⟨-, >Htok'⟩)
+  rotate_left
+  · iexfalso
+    ihave %Hv := dghostVar_valid_2 x.tok () (DFrac.own 1) () (DFrac.own 1) $$ Htok Htok'
+    exact absurd Hv.1 (dfrac_own_one_op_invalid _)
+  imod Hclose $$ [Htok] with -
+  · inext; iright; iframe Hc Htok
+  unfold crashLeft slotLive leadPiece
+  icases Hcl with ⟨%γs, %V, %g, %Hs, -, Hsv, -, ⟨%γs', %Hs', Hl1⟩,
+    ⟨%terms, %γm, %Htm, -, Hterms, #Htf⟩, ⟨%wins, %γw, %Hwn, -, Hwins, #Hwf⟩,
+    ⟨%lcm, %γl, %Hln, -, Hlcm, #Hlf⟩, ⟨%rqm, %γq, %Hqn, -, Hrqm, #Hqf⟩⟩
+  rw [Hs] at Hs'; cases Hs'
+  imod slot_bump E γ id γs V g Hs HsE $$ Hslot Hsv Hl1 with ⟨%E0, Hsv, Hl1, Hfree⟩
+  imodintro
+  unfold raftIdSlot
+  iexists γs, E0, g + 1
+  isplitr; · ipureintro; exact Hs
+  isplitr; · ipureintro; exact Hnz
+  isplitl [Hsv]; · iexact Hsv
+  isplitl [Hl1]; · unfold slotLive; iexists γs; iframe Hl1; ipureintro; exact Hs
+  isplitl [Hfree]; · unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hs
+  iframe Hslot Hcinv Hrci
+  isplitl [Hterms]; · iexists γm, terms; iframe Hterms Htf; ipureintro; exact Htm
+  isplitl [Hwins]; · iexists γw, wins; iframe Hwins Hwf; ipureintro; exact Hwn
+  isplitl [Hlcm]; · iexists γl, lcm; iframe Hlcm Hlf; ipureintro; exact Hln
+  iexists γq, rqm; iframe Hrqm Hqf; ipureintro; exact Hqn
+
+variable [CrashGS GF] in
+/-- **A crash that enters the pending batch** (2026-11-22, `readyCrashEnter`): the dead generation's
+`crashed` and the arm's token, with a share of the generation's view (at the batch's generation `g`)
+and the batch cut in it, enter the batch (as `raft_enter`, the generation checked against the slot's
+`slotLive` in the arm's crash invariant, which the token keeps live), then give the vacant slot back
+(`raft_crash`). A client whose storage kept the batch's state after the crash restarts from it. -/
+theorem raft_crash_enter (E : CoPset) (γ : RaftNames) (id : w64) (S : RaftState) (x : CrashNames)
+    (q : Qp) (g : Nat) (S' : RaftState) (W : DurMaps) :
+    ↑(raftN γ) ⊆ E →
+    (S'.wcommit = S'.commit ∨ (S'.wcommit = S.wcommit ∧ S'.base = S.base ∧ S'.ents = S.ents)) →
+    ⊢ crashed -∗ raftCrashTok (GF := GF) γ id x -∗ ownDurGhost γ id S -∗ genView γ id x q g -∗
+      pendBatch γ id g S' W ={E}=∗ ownDurGhost γ id S' ∗ raftIdSlot γ id := by
+  intro HE HwS
+  have HC : (↑(crashN γ id x) : CoPset) ⊆ E :=
+    fun p hp => HE p (crashNs_raftN γ id p (crashN_sub γ id x p hp))
+  -- the slot's and the log's namespaces are outside the crash invariant's
+  have Hdisj : ∀ {s : String}, s ≠ "crash" → ∀ p, p ∈ (↑(raftN γ .@ s) : CoPset) →
+      p ∉ (↑(crashN γ id x) : CoPset) := by
+    intro s hs p hp h
+    have h1 := nclose_subseteq (raftN γ .@ "crash") id p (crashN_sub γ id x p h)
+    exact ndot_ne_disjoint (raftN γ) hs p ⟨hp, h1⟩
+  have HsE : (↑(slotN γ id) : CoPset) ⊆ E \ ↑(crashN γ id x) := by
+    intro p hp
+    rw [Iris.Std.LawfulSet.mem_diff]
+    exact ⟨HE p (slotN_raftN γ id p hp),
+      Hdisj (show "slot" ≠ "crash" by decide) p (nclose_subseteq (raftN γ .@ "slot") id p hp)⟩
+  have HlE : (↑(raftLogN γ) : CoPset) ⊆ (E \ ↑(crashN γ id x)) \ ↑(slotN γ id) := by
+    intro p hp
+    rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
+    refine ⟨⟨raftLogN_of HE p hp, Hdisj (show "log" ≠ "crash" by decide) p hp⟩, fun h => ?_⟩
+    have h1 := nclose_subseteq (raftN γ .@ "slot") id p h
+    exact ndot_ne_disjoint (raftN γ) (show "log" ≠ "slot" by decide) p ⟨hp, h1⟩
+  iintro #Hc Htok Hdur Hgv Hpend
+  unfold raftCrashTok
+  icases Htok with ⟨Htok, #Hinv, #Hslot, #Hcinv, #Hrci, %Hnz⟩
+  ihave #Hinv0 := Hinv
+  iunfold nodeCrashInv at Hinv0
+  imod inv_acc (E := E) HC $$ Hinv0 with ⟨Hi, Hclose⟩
+  icases Hi with (>Hcl | ⟨-, >Htok'⟩)
+  rotate_left
+  · iexfalso
+    ihave %Hv := dghostVar_valid_2 x.tok () (DFrac.own 1) () (DFrac.own 1) $$ Htok Htok'
+    exact absurd Hv.1 (dfrac_own_one_op_invalid _)
+  iunfold crashLeft at Hcl
+  icases Hcl with ⟨%γs, %V, %g1, %Hs, Hxv, Hsv, Hxg, Hl1, Hlt, Hlw, Hll, Hlq⟩
+  unfold genView
+  icases Hgv with ⟨-, Hgv⟩
+  icases ghostVar_agree _ _ _ _ _ $$ Hgv Hxg with %Hg1
+  subst Hg1
+  -- enter, the generation checked against the slot's (`slotLive`, from the crash invariant)
+  imod raft_enter_core (E \ ↑(crashN γ id x)) γ id S g S' W (slotLive γ id 1 g) HsE HlE
+      (fun γs' g0 Hγs' => by
+        unfold slotLive
+        iintro ⟨%γs'', %Hs'', Hl⟩ Hg0
+        rw [Hγs'] at Hs''; cases Hs''
+        icases ghostVar_agree _ _ _ _ _ $$ Hl Hg0 with %Hgg
+        imodintro
+        iframe Hg0
+        isplitl [Hl]
+        · iexists γs'; iframe Hl; ipureintro; exact Hγs'
+        ipureintro; exact Hgg) HwS
+    $$ Hl1 Hdur Hpend with ⟨Hl1, Hdur, -, -⟩
+  imod Hclose $$ [Hxv Hsv Hxg Hl1 Hlt Hlw Hll Hlq] with -
+  · inext; ileft
+    iunfold crashLeft
+    iexists γs, V, g
+    isplitr; · ipureintro; exact Hs
+    iframe Hxv Hsv Hxg Hl1 Hlt Hlw Hll Hlq
+  imod raft_crash E γ id x HE $$ Hc [Htok] with Hslot'
+  · unfold raftCrashTok
+    iframe Htok Hslot Hcinv Hrci
+    isplitr; · iexact Hinv
+    ipureintro; exact Hnz
+  imodintro
+  iframe Hdur Hslot'
 
 end enter
 

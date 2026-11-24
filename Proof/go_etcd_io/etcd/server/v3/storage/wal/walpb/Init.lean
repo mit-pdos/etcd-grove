@@ -4,7 +4,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.wal.walpb`
 
 Its fact (`walpbInit`, `PkgInit.lean`): `ErrCRCMismatch` holds for good an error whose `Error()`
 returns (`errOk`) and on which `errors.Is` returns for every pointer target (`errIsTerm`: an `*errorString`
-leaf, `errIsTerm_errorString`). Its initializer stores that error (a translated `errors.New` call, record.go;
+leaf, `errIsTerm_errorString`), an `*errorString` whose field holds its message (2026-11-22, `WalDecEnvSupply`'s
+proof: it differs from `io.EOF`). Its initializer stores that error (a translated `errors.New` call, record.go;
 Perennial's `errors.wp_New_errorString`), initializes its imports and runs the untranslated
 initializers of its protobuf descriptors and its `init` function, which the trust-boundary axioms
 `opaqueInitsOk` and `initFuncsOk` say run without panicking.
@@ -37,36 +38,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.server.v3.storage.wal.walpb
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.wal.walpb`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([file_record_proto_msgTypes.init,
-        file_record_proto_goTypes.init,
-        file_record_proto_depIdxs.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.wal.walpb`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.server.v3.storage.wal.walpb
-end opaqueInits
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -102,12 +73,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrCRCMismatch))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xC ⟨#ECc, #EC⟩
   try wp_auto
-  wp_apply (opaqueInitsOk file_record_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_record_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_record_proto_depIdxs.init (by mem_tac))
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
   ipersist HErrCRCMismatch
   ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ Hd1
   iframe Hown
@@ -120,8 +91,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   unfold EtcdGrove.walpb.walpbInit
   iexists _
   iframe HErrCRCMismatch TC
-  iapply EtcdGrove.errorString_errOk
-  iexact EC
+  isplitl
+  · iapply EtcdGrove.errorString_errOk
+    iexact EC
+  iexists xC
+  iframe ECc
+  ipureintro
+  rfl
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

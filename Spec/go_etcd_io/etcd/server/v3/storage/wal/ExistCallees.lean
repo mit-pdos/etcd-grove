@@ -2,12 +2,14 @@
 The callee specs `wal.Exist`'s proof takes as hypotheses (W12 of `notes/wal-fsext-plan.md`, the W7-W12
 log). `fileutil.ReadDir.specAbsentIs` and `specChildIs` are proved (2026-11-14,
 `Proof/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`: `ReadDir.wp_specAbsentIs`,
-`ReadDir.wp_specChildIs`, from `ReadDir.wp_core`) given `errors.IsPathErrnoNotExist.spec`, which is not.
+`ReadDir.wp_specChildIs`, from `ReadDir.wp_core`) given `errors.IsPathErrnoNotExist.spec`, proved since
+2026-11-22 (`Proof/errors/IsPathErrnoNotExist.lean`), which the Link passes.
 
 * **`errIsNotExist err b`**: `errors.Is(err, os.ErrNotExist)` returns `b` (persistent; for any value of
   the `os.ErrNotExist` variable). What `Exist` asks of `ReadDir`'s errors.
 * **`fileutil.ReadDir.specAbsentIs`**: `ReadDir.specAbsent` (proved, no option) with `Exist`'s option
-  slice, its error answering `errors.Is` with some boolean. The first part is `ReadDir.wp_proofAbsent`
+  slice, its error answering `errors.Is` with some boolean, `true` when the file system does not fail on
+  `d/b` (`FsNoErrAt`; since 2026-11-23, claim #34: `ReadDir.specAbsentErr`'s `ENOENT`). The first part is `ReadDir.wp_proofAbsent`
   with `applyOpts` over a slice (as `ReadDir.wp_proof`); the second needs `errors.Is` of a `*PathError`
   of an errno against a pointer error (Perennial's `errors.Is.spec`, with the error tree of the part's
   `os` errors, which no spec gives yet: `notes/perennial-changes.md`, as `errors.IsErrno.spec`).
@@ -20,14 +22,15 @@ log). `fileutil.ReadDir.specAbsentIs` and `specChildIs` are proved (2026-11-14,
   (`Proof/os/NsChildS.lean`: `os.Open.wp_dirChildS`, `os.File.Readdirnames.wp_dirChildS`, over
   the extension's `wp_osOpenDirChildS`/`wp_osDirReadNextChildS`; errors `os.errnoPathErr err e`,
   `e ≠ ENOENT`), `ReadDir`'s loops (`ReadDir.wp_core`) and the names' bound (`Readdirnames`' model
-  assumes Go's `growslice` limit, under `2^44` names, pending the user's review) are proved; left:
-  `errors.IsPathErrnoNotExist.spec` below.
+  assumes Go's `growslice` limit, under `2^44` names, pending the user's review) are proved, and so is
+  `errors.IsPathErrnoNotExist.spec` (`Spec/errors/IsPathErrnoNotExist.lean`, since 2026-11-22).
 * **`errors.IsPathErrnoNotExist.spec`**: `errors.Is(err, os.ErrNotExist)` of a `*PathError` of a nonzero
   errno `e` answers `e = ENOENT`. True in Go (`errors.Is` unwraps the `*PathError` to the `Errno`, whose
   `Is` compares the target with `oserror.ErrNotExist`); its proof needs the error tree of the part's `os`
   errors (Perennial's `errors.Is.spec` with `syscall.Errno.Is`, `notes/perennial-changes.md`, as
   `errors.IsErrno.spec`) and `os`'s package fact to say `os.ErrNotExist` is `oserror.ErrNotExist`, distinct
-  from `ErrPermission`, `ErrExist` and `errors.ErrUnsupported` (it says only "some error"). Not proved.
+  from `ErrPermission`, `ErrExist` and `errors.ErrUnsupported` (it says only "some error"). Proved
+  2026-11-22 (`Proof/errors/IsPathErrnoNotExist.lean`).
 Lean-first.
 -/
 module
@@ -35,6 +38,8 @@ module
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir
 public import Proof.os.NsChildS
 public import Proof.os.PkgInit
+public import Spec.errors.IsPathErrnoNotExist
+public import Proof.os.OpenAbsentNE
 
 @[expose] public section
 
@@ -45,30 +50,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI
 open Fs
-
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **`errors.Is(err, os.ErrNotExist)` returns `b`** (persistent). -/
-def errIsNotExist (err : GoInterface) (b : Bool) : IProp GF :=
-  iprop(□ ∀ (t : GoInterface) (Φ : val → IProp GF),
-    typedPointsto (globalAddr os.ErrNotExist) t DFrac.discard -∗ ▷ Φ #b -∗
-      WP (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #t)) {{ Φ }})
-
-instance errIsNotExist_persistent (err : GoInterface) (b : Bool) :
-    Persistent (errIsNotExist (GF := GF) err b) := by
-  unfold errIsNotExist; infer_instance
-
-/-- See the file header. -/
-abbrev errors.IsPathErrnoNotExist.spec : Prop :=
-  ∀ (err : GoInterface) (e : w64), e ≠ 0 →
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗ os.errnoPathErr (GF := GF) err e -∗
-      errIsNotExist (GF := GF) err (decide (e = Fs.ENOENT))
-
-end defs
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
@@ -88,7 +69,8 @@ abbrev fileutil.ReadDir.specAbsentIs : Prop :=
       sl ↦*{dqs} gs ∗ [∗list] i ↦ g ∈ gs, fileutil.withExtFn (GF := GF) g (es.getD i "") }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir)) (Val #(child d b))) (Val #sl))
   {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
-      osNames j N dqn h ∗ sl ↦*{dqs} gs ∗ ⌜err ≠ interface.nil⌝ ∗ ∃ bn : Bool, errIsNotExist err bn }}
+      osNames j N dqn h ∗ sl ↦*{dqs} gs ∗ ⌜err ≠ interface.nil⌝ ∗
+      ∃ bn : Bool, errIsNotExist err bn ∗ ⌜FsNoErrAt (child d b) → bn = true⌝ }}
 
 /-- See the file header. -/
 abbrev fileutil.ReadDir.specChildIs : Prop :=

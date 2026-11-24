@@ -97,6 +97,7 @@ concurrentReadTx__UnsafeRange: @
 readTx__RLock: @
 readTx__RUnlock: @
 readTx__UnsafeRange: @
+readTx__UnsafeForEach: @
 batchTxBuffered__LockInsideApply: @
 batchTxBuffered__LockOutsideApply: @
 batchTxBuffered__UnsafeSeqPut: @
@@ -196,7 +197,9 @@ pbutil_MustUnmarshalMessage:
 # then); the membership backend's three writers and reader are the trust boundary (their
 # contracts over the rest model, storage/schema/membershipBackend__*.lean).
 schema_membershipBackend__MustSaveMemberToBackend:
-schema_membershipBackend__MustDeleteMemberFromBackend:
+# (prove-ps2-members, 2026-11-22) the member delete, proved from its body over the backend's specs
+schema_BackendMemberKey: types_ID__String_ptr
+schema_membershipBackend__MustDeleteMemberFromBackend: schema_BackendMemberKey backend__BatchTx batchTxBuffered__LockInsideApply batchTxBuffered__UnsafeDelete batchTxBuffered__UnsafePut batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
 schema_membershipBackend__MustReadMembersFromBackend:
 EtcdServer__applyConfChange: EtcdServer__Logger EtcdServer__MemberID RaftCluster__ValidateConfigurationChange RaftCluster__AddMember RaftCluster__RemoveMember schema_membershipBackend__MustSaveMemberToBackend schema_membershipBackend__MustDeleteMemberFromBackend schema_membershipBackend__MustReadMembersFromBackend storage_BackendHooks__SetConfState consistentIndex__ConsistentApplyingIndex rafthttp_Transport__RemovePeer raftpb_ConfChange__GetType raftpb_ConfChange__GetNodeId json_Unmarshal zap_Logger__Error zap_Bool zap_Error
 # The apply thread's small callees, with bodies (proved): the server's leader test and
@@ -212,9 +215,14 @@ EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
-# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8): `restore` is
-# the trust boundary (names-only).
-AlarmStore__restore:
+# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8); (prove-ps2-v3alarm,
+# 2026-11-24) `restore` with its body (the trust boundary until then), over schema's alarm backend, with
+# its bodies, over the backend's specs (the read through `readTx`: the idle-read law, backend/IdleRead.lean)
+schema_alarmBackend__CreateAlarmBucket: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+schema_alarmBackend__unsafeGetAllAlarms: readTx__UnsafeForEach schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+schema_alarmBackend__GetAllAlarms: backend__ReadTx readTx__RLock readTx__RUnlock schema_alarmBackend__unsafeGetAllAlarms
+schema_alarmBackend__ForceCommit: backend__ForceCommit
+AlarmStore__restore: schema_alarmBackend__CreateAlarmBucket schema_alarmBackend__GetAllAlarms schema_alarmBackend__ForceCommit
 AlarmStore__Recover: AlarmStore__restore
 # (the trust boundary, continued)
 RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
@@ -223,7 +231,7 @@ errors_IsStatusErr:
 go_humanize_Bytes:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Uint64:
@@ -261,7 +269,8 @@ IsEmptySnap: @
 # (premise-fixes-4, 2026-11-10) raft's `SetLogger`, `newRaftNode`'s callee (until then a contract)
 SetLogger: @
 zap_Duration:
-zap_Logger__Fatal:
+zap_Time:
+zap_Logger__Fatal: pool_Pool__Get os_Exit
 # (2026-10-31, #3) the raft loop's snapshot `Ready`: `CloneSnapshot`, `ApplySnapshot` (raft's; `Append` through
 # NodeApiLink's `srvApi_wp_MemAppend`)
 proto_CloneSnapshot: @
@@ -311,14 +320,14 @@ etcdserver_isConnectedToQuorumSince: numConnectedSince quorum
 config_ServerConfig__ReqTimeout:
 membership_RaftCluster__ID:
 proto_MarshalIRR:
-# Two more trust-boundary axioms of the request path (unit 2, 2026-10-12): a context's
-# `Value` at `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at
-# `&cancelCtxKey`), and `errors.Is` of a context's error against `context.Canceled` /
-# `DeadlineExceeded` (no error tree for a context's `Err`; `DeadlineExceeded` is not a pointer).
+# A trust-boundary axiom of the request path (unit 2, 2026-10-12): a context's `Value` at
+# `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at `&cancelCtxKey`).
+# `errors.Is` of a context's error against `context.Canceled` / `DeadlineExceeded` was another until
+# errors-is-axioms (2026-11-22): now proved over Perennial's `errors.Is` at comparable targets.
 # And (unit 3a) a done context's `Err()` is `Canceled` or `DeadlineExceeded` (Go's contract of
 # `Context.Err`; Perennial's `isContext` says only "a typed error").
 context_ValueStartTime:
-errors_IsCtxErr:
+errors_IsCtxErr: =_root_.Perennial.errors.wp_Is
 context_ErrDone:
 # (reused from the Links that define them: mvcc's span, the apply package's `WithValue`)
 trace_SpanFromContext:
@@ -364,8 +373,17 @@ EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
 # auth-mediation M2 (2026-11-20): the other member operations, over the names-only callees taken as
 # contracts (`MemberContracts.lean`), and `json.Marshal`'s trust-boundary specs
-json_MarshalMember:
-json_MarshalConfigChangeContext:
+# (#24 J2, 2026-11-23) proved over the encoding/json model's `Marshal` (its per-type dispatch) and
+# membership's generated `JSONModelMarshal` methods (jsongen, `json_model_gen.go`), over jsoncodec's
+# proved encoders (`Net/Proof/models_lab/Results.lean`)
+membership_jenc_S_string: =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp
+membership_jenc_Member: membership_jenc_S_string =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp =_root_.Perennial.models_lab.jsoncodec.AppendUint.wp =_root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+membership_jenc_ConfigChangeContext: membership_jenc_S_string =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp =_root_.Perennial.models_lab.jsoncodec.AppendUint.wp =_root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+Member__JSONModelMarshal: membership_jenc_Member
+Member__JSONModelMarshalPtr: membership_jenc_Member
+ConfigChangeContext__JSONModelMarshal: membership_jenc_ConfigChangeContext
+json_MarshalMember: =_root_.Perennial.encoding.json.Marshal.wp Member__JSONModelMarshal
+json_MarshalConfigChangeContext: =_root_.Perennial.encoding.json.Marshal.wp ConfigChangeContext__JSONModelMarshal
 EtcdServer__AddMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
 EtcdServer__UpdateMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
 EtcdServer__promoteMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalConfigChangeContext
@@ -386,7 +404,7 @@ EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeas
 lease_lessor__Renew: lease_lessor__isPrimary lease_Lease__Remaining lease_Lease__refresh lease_LeaseExpiredNotifier__RegisterOrUpdate
 EtcdServer__raftStatus:
 EtcdServer__isActive: raftNode__getLatestTickTs
-EtcdServer__ensureLeadership:
+EtcdServer__ensureLeadership: EtcdServer__Logger EtcdServer__isActive raftNode__getLatestTickTs zap_Time zap_Logger__Debug config_ServerConfig__ReqTimeout EtcdServer__raftStatus EtcdServer__MemberID zap_Error zap_Uint64 zap_Logger__Warn
 EtcdServer__waitAppliedIndex: EtcdServer__getCommittedIndex
 EtcdServer__waitLeader: EtcdServer__Leader membership_RaftCluster__Member
 leasehttp_RenewHTTP:
@@ -527,14 +545,18 @@ EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdSer
 # The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
 # committed index's and the leader's setters (with bodies), the raft storage snapshot's
 # metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
-# trust boundary (`axiom … .wp_proof`): v2stats' `BecomeLeader`. (`revokeExpiredLeases`, the expired
+# stats' `BecomeLeader` (with its body since 2026-11-21). (`revokeExpiredLeases`, the expired
 # leases' receive, is unreachable since D19n, 2026-10-18.) Its shutdown (R2c-4, one spec: a stop
 # request on `stop`): the scheduler's `Stop`, `raftNode.stop` (its one spec), `Cleanup` and the
 # image's reads and write (`stop_cleanup_image`).
 SnapshotMetadata__GetTerm: @
 EtcdServer__setCommittedIndex:
 EtcdServer__setLead:
-v2stats_ServerStats__BecomeLeader:
+# v2stats (prove-ps2-v2stats, 2026-11-21): the stats' unlocked half and the rate queue's `Insert`,
+# which `BecomeLeader`, `SendAppendReq` and `RecvAppendReq` call under the stats' mutex.
+v2stats_statsQueue__Insert:
+v2stats_ServerStats__becomeLeader: =_root_.Perennial.time.wp_Now
+v2stats_ServerStats__BecomeLeader: v2stats_ServerStats__becomeLeader
 schedule_NewFIFOScheduler:
 schedule_job__Do:
 schedule_NewJob: schedule_job__Do
@@ -553,13 +575,20 @@ zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 strconv_FormatUint:
 types_ID__String: strconv_FormatUint
 types_ID__String_ptr: types_ID__String
-Version__String:
-version_Cluster:
+Version__String: =_root_.Perennial.bytes.Buffer.wp_Write =_root_.Perennial.bytes.Buffer.wp_String =_root_.Perennial.fmt.wp_Fprintf
+# (prove-ps2-client, 2026-11-22) `version.Cluster` proved over semver's `NewVersion`
+version_Cluster: v3_NewVersion v3_Version__Major v3_Version__Minor =_root_.Perennial.fmt.wp_Sprintf =_root_.Perennial.strings.wp_Split
 prometheus_GaugeVec__With:
-EtcdServer__adjustTicks:
-EtcdServer__publishV3:
+etcdserver_tickToDur:
+EtcdServer__adjustTicks: EtcdServer__Logger RaftCluster__Members EtcdServer__MemberID types_ID__String zap_String zap_Int etcdserver_tickToDur zap_Logger__Info raftNode__advanceTicks =_root_.Perennial.time.wp_After
+# (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42) the member's publication over its body
+EtcdServer__publishV3: EtcdServer__MemberID EtcdServer__Logger EtcdServer__raftRequest types_ID__String membership_RaftCluster__ID zap_String zap_Duration zap_Error zap_Logger__Info zap_Logger__Warn =_root_.Perennial.fmt.wp_Sprintf =_root_.Perennial.strings.wp_Join
 EtcdServer__purgeFile: EtcdServer__Logger
-monitorFileDescriptor:
+# (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42) the file descriptor monitor over its body: etcd's
+# `runtime.FDUsage`/`FDLimit` over their trusted models (TrustedCode/go_etcd_io/etcd/pkg/v3/runtime.lean)
+runtime_FDUsage:
+runtime_FDLimit:
+monitorFileDescriptor: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop runtime_FDUsage runtime_FDLimit zap_Logger__Warn zap_Error zap_Uint64
 EtcdServer__monitorClusterVersions:
 EtcdServer__monitorStorageVersion:
 EtcdServer__monitorKVHash:
@@ -571,7 +600,8 @@ EtcdServer__start: EtcdServer__Logger zap_Logger__Info zap_String zap_Uint64 wai
 EtcdServer__Start: EtcdServer__start EtcdServer__GoAttach EtcdServer__Logger EtcdServer__adjustTicks EtcdServer__publishV3 config_ServerConfig__ReqTimeout EtcdServer__purgeFile monitorFileDescriptor EtcdServer__monitorClusterVersions EtcdServer__monitorStorageVersion read_Read__LinearizableReadLoop EtcdServer__monitorKVHash EtcdServer__monitorCompactHash EtcdServer__monitorDowngrade
 #
 # Unit P1b (2026-10-14): the request path's leaf functions proved (traceutil, the cluster's
-# members, the transport queries; `time.Time.IsZero` and `LogWithStepThreshold` are axioms).
+# members, the transport queries; `time.Time.IsZero` is an axiom; `LogWithStepThreshold` was one until
+# traceutil-log, 2026-11-23).
 Member__Clone:
 # (prove-srvloops, 2026-11-21) the leader lookup of the server's `waitLeader`
 membership_RaftCluster__Member: Member__Clone
@@ -586,7 +616,12 @@ traceutil_TODO:
 traceutil_Trace__IsEmpty:
 traceutil_newTrace:
 traceutil_Trace__updateFieldIfExist:
-traceutil_Trace__LogWithStepThreshold:
+traceutil_Field__format:
+traceutil_writeFields: traceutil_Field__format
+zap_Int32:
+rand_Int31:
+traceutil_Trace__logInfo: traceutil_writeFields rand_Int31 zap_Int32 zap_String zap_Duration zap_Time zap_Strings zap_Int
+traceutil_Trace__LogWithStepThreshold: traceutil_Trace__logInfo zap_Logger__Info
 #
 # Unit P2 (2026-10-14): the auth store's request side (server/v3/auth, proved over `auth.authInv`,
 # InvAuth.lean); adt's bytes-affine intervals are linked in adt's Link.lean (`@`). The trust
@@ -689,7 +724,7 @@ bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRa
 # `NewServer`, `restoreAlarms` and `NewUberApplier` with their bodies (their proofs unit N1's);
 # the trust boundary (`axiom … .wp_proof`): the names-only callees whose contracts only say they
 # return (the stats, the cluster's `String`/`SetVersionChangedNotifier`,
-# `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, mvcc's
+# `PeerDialTimeout`, `newCorruptionChecker`, mvcc's
 # `store.HashStorage`, `math.Ceil`; schema's auth and alarm backends' constructors proved from
 # their bodies since unit N4, 2026-10-17); and the constructors' contracts, axioms true of
 # the Go code (unit N1: `auth.NewTokenProvider`, proved since the auth plan's E2g, 2026-10-25, over
@@ -699,7 +734,7 @@ bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRa
 # `NewServer.spec` (D13b). raft's node methods (for the wrapper's composition, `NodeStart.lean`),
 # mvcc's `New` and `watchableStore.Close` and the backend's `SetTxPostLockInsideApplyHook` are
 # linked in their packages' Links (`@`).
-v2stats_NewServerStats:
+v2stats_NewServerStats: =_root_.Perennial.time.wp_Now
 # `NewLeaderStats` translated and proved (2026-10-22), over zap's `NewNop` (mvcc's `@`).
 zap_NewNop: @
 v2stats_NewLeaderStats: zap_NewNop
@@ -708,7 +743,9 @@ membership_RaftCluster__SetVersionChangedNotifier:
 # `URLs.StringSlice` translated and proved (prove-ps2-misc, 2026-11-21), over `url.URL.String`'s spec.
 types_URLs__StringSlice: =http.URLStringAny_ok
 config_ServerConfig__PeerDialTimeout:
-addFeatureGateMetrics:
+# (featuregate-4, 2026-11-23) `addFeatureGateMetrics` translated and proved, over featuregate's
+# `GetAll`/`Enabled` (through `isFeatureGate`) and `GaugeVec.With`
+addFeatureGateMetrics: prometheus_GaugeVec__With
 newCorruptionChecker:
 schema_NewAuthBackend:
 schema_NewAlarmBackend:
@@ -716,7 +753,23 @@ schema_NewAlarmBackend:
 schema_NewMembershipBackend:
 mvcc_store__HashStorage:
 math_Ceil:
-lease_NewLessor:
+# (prove-ps2-newlessor5, 2026-11-21) `NewLessor` proved over the real code: `newLessor` (the lessor's
+# ghost state, `le.mu`, the backend's contract `lessorApplyOk_real`) and its expiry loop; the loop's
+# expiry payload is `Lease.expired`'s trust boundary (an axiom, `Lease__expired.lean`).
+lease_NewLessor: lease_newLessor
+lease_newLessor: lease_newLeaseExpiredNotifier lease_lessor__initAndRecover lease_lessor__runLoop backend__BatchTx batchTxBuffered__LockInsideApply batchTxBuffered__UnsafePut batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+lease_lessor__runLoop: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop lease_lessor__revokeExpiredLeases lease_lessor__checkpointScheduledLeases
+lease_lessor__revokeExpiredLeases: lease_lessor__isPrimary lease_lessor__findExpiredLeases
+lease_lessor__findExpiredLeases: lease_lessor__expireExists lease_Lease__expired
+lease_Lease__expired:
+lease_lessor__expireExists: lease_LeaseExpiredNotifier__Len lease_LeaseExpiredNotifier__Peek lease_LeaseExpiredNotifier__Unregister lease_LeaseExpiredNotifier__RegisterOrUpdate
+lease_LeaseExpiredNotifier__Len:
+lease_LeaseExpiredNotifier__Peek: lease_LeaseExpiredNotifier__Len
+lease_LeaseExpiredNotifier__Unregister: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push lease_LeaseQueue__Pop heap_Pop
+lease_LeaseQueue__Pop:
+heap_Pop: heap_down
+lease_lessor__checkpointScheduledLeases: lease_lessor__isPrimary lease_lessor__findDueScheduledCheckpoints
+lease_lessor__findDueScheduledCheckpoints:
 # (the auth plan's E2g, 2026-10-25) the token provider's constructor proved: the options'
 # decomposition, the simple and no-op providers' constructors; the JWT provider's an axiom (`crypto`,
 # `golang-jwt`: its spec's docstring)
@@ -761,8 +814,8 @@ v3compactor_Revision__Stop:
 v3compactor_Revision__Pause:
 v3compactor_Revision__Resume:
 v3alarm_NewAlarmStore:
-# (D22 receiver epochs, S8c, 2026-10-24) the cluster's `SetBackend`, an axiom true of the Go code
-# (its spec's docstring). (The lease-expiry plan's S1, 2026-11-04) `applySnapshot`'s lessor
+# (D22 receiver epochs, S8c, 2026-10-24) the cluster's `SetBackend` (an axiom until 2026-11-22, below).
+# (The lease-expiry plan's S1, 2026-11-04) `applySnapshot`'s lessor
 # `Recover`, an axiom until then, proved from its body over `initAndRecover`; the trust boundary:
 # schema's `MustUnsafeGetAllLeases` (`UnsafeForEach` over the batch transaction and
 # `proto.Unmarshal`, a contract over the locked transaction's state); `UnsafeCreateLeaseBucket`
@@ -773,7 +826,9 @@ lease_lessor__initAndRecover: backend__BatchTx batchTxBuffered__LockOutsideApply
 lease_lessor__Recover: lease_lessor__initAndRecover
 # (R2b-3c part 2a) the lessor's `Stop`, an axiom true of the Go code (its spec's docstring).
 lease_lessor__Stop:
-membership_RaftCluster__SetBackend:
+# (prove-ps2-members, 2026-11-22) the cluster's `SetBackend`, proved from its body (an axiom until then)
+schema_membershipBackend__MustCreateBackendBuckets: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+membership_RaftCluster__SetBackend: schema_membershipBackend__MustCreateBackendBuckets
 # (D22 receiver epochs, S8d, W6, 2026-10-25) `applySnapshot`'s cluster `Recover`, an axiom true of
 # the Go code over an image good for the cluster (its spec's docstring).
 membership_RaftCluster__Recover:
@@ -782,19 +837,21 @@ apply_NewUberApplier: @
 # `Process` and the reports with their bodies, the node API's methods (`NodeApiLink.lean`, `=`),
 # the cluster's `IsIDRemoved` with its body; the trust boundary (D21h (A)): the stats'
 # `RecvAppendReq` and `proto.Size` of a raft message.
-v2stats_ServerStats__RecvAppendReq:
+v2stats_ServerStats__RecvAppendReq: =_root_.Perennial.time.wp_Now v2stats_statsQueue__Insert
 proto_SizeMessage:
 RaftCluster__IsIDRemoved:
 EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
 EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
 # (D43 M4, 2026-10-26) the cluster's writer of a removal (`RemoveMember`, with its body; the
-# backend's delete a triple its caller gives); the trust boundary: its metric update
-# (`updateMembershipMetric`, a prometheus gauge).
-RaftCluster__updateMembershipMetric:
+# backend's delete a triple its caller gives); its metric update (`updateMembershipMetric`, a
+# prometheus gauge; until 2026-11-22 the trust boundary, now with its body, prove-ps2-metrics, over the
+# gauge's proved `Set`).
+prometheus_gauge__Set:
+RaftCluster__updateMembershipMetric: types_ID__String_ptr prometheus_GaugeVec__WithLabelValues prometheus_gauge__Set
 RaftCluster__RemoveMember: RaftCluster__updateMembershipMetric types_ID__String_ptr zap_Logger__Info zap_Logger__Warn zap_String zap_Strings zap_Bool
 # (D43 M5b, 2026-10-26) the cluster's writer of an addition (`AddMember`, with its body; the
-# backend's save a triple its caller gives); the trust boundary: its learner metric
-# (`setIsLearnerMetric`, a prometheus gauge).
+# backend's save a triple its caller gives); its learner metric (`setIsLearnerMetric`, a
+# prometheus gauge; until 2026-11-22 the trust boundary, now with its body: prove-ps2-metrics).
 setIsLearnerMetric:
 RaftCluster__AddMember: RaftCluster__updateMembershipMetric setIsLearnerMetric types_ID__String_ptr zap_Logger__Info zap_String zap_Strings zap_Bool
 # (D43 M4, 2026-10-26) the validation of a conf change (`ValidateConfigurationChange`, with its
@@ -809,6 +866,8 @@ RaftCluster__ValidateConfigurationChange: json_Unmarshal raftpb_ConfChange__GetN
 # condition, `rcLockInvG`, the fork's: no panic for a removed local member)
 RaftCluster__IsLocalMemberLearner:
 RaftCluster__IsMemberExist:
+# (prove-ps2-bootstage1, 2026-11-23, #34 stage 1) the cluster's version, under the lock's version slot
+RaftCluster__Version: v3_MustParse Version__String
 EtcdServer__IsLearner: RaftCluster__IsLocalMemberLearner
 EtcdServer__IsMemberExist: RaftCluster__IsMemberExist
 EtcdServer__ReportUnreachable:
@@ -836,10 +895,10 @@ bootstrappedServer__Close: bootstrappedStorage__Close
 bootstrappedWAL__MemoryStorage: =srvApi_wp_NewMemoryStorage MemoryStorage__ApplySnapshot =srvApi_wp_MemSetHardState =srvApi_wp_MemAppend
 # (the import tiers, 2026-11-18) the node's start over raft's linked results, a hypothesis of the
 # proof since (`NodeStartLaws.lean`): `=`, `NodeStartLinked.lean`'s law
-etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Stop =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider =mvcc.api.mvccApi_New_wp_proof =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccImage_fresh_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccStorageFor_rest_law_holds newCorruptionChecker =mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer rafthttp_peer__stop rafthttp_remote__stop =mvcc.api.mvccApi_watchableStore_Close_wp_api schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_MemInitialState =srvApi_wp_MemLastIndex =srvApi_wp_MemFirstIndex =srvApi_wp_MemTerm =srvApi_wp_MemEntries =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete batchTxBuffered__UnsafePut EtcdServer__Compact lease_lessor__Revoke AlarmStore__Get bootstrappedServer__Close =raftNode_of_StartNode_law_holds
+etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Stop =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider =mvcc.api.mvccApi_New_wp_proof =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccImage_fresh_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccStorageFor_rest_law_holds newCorruptionChecker =mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID RaftCluster__Version rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer rafthttp_peer__stop rafthttp_remote__stop =mvcc.api.mvccApi_watchableStore_Close_wp_api schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_MemInitialState =srvApi_wp_MemLastIndex =srvApi_wp_MemFirstIndex =srvApi_wp_MemTerm =srvApi_wp_MemEntries =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete batchTxBuffered__UnsafePut EtcdServer__Compact lease_lessor__Revoke AlarmStore__Get bootstrappedServer__Close =raftNode_of_StartNode_law_holds
 # (restart S6 B2, 2026-11-14) `NewServer.specR`, the restart (`NewServer.wp_proofR`,
 # `Proof/.../NewServerR.lean`): `NewServer`'s callees less the compaction mode's four
-etcdserver_NewServer+R: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Stop =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider =mvcc.api.mvccApi_New_wp_proof =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccImage_fresh_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccStorageFor_rest_law_holds newCorruptionChecker =mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer rafthttp_peer__stop rafthttp_remote__stop =mvcc.api.mvccApi_watchableStore_Close_wp_api schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_MemInitialState =srvApi_wp_MemLastIndex =srvApi_wp_MemFirstIndex =srvApi_wp_MemTerm =srvApi_wp_MemEntries =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete lease_lessor__Revoke AlarmStore__Get bootstrappedServer__Close
+etcdserver_NewServer+R: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Stop =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider =mvcc.api.mvccApi_New_wp_proof =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccImage_fresh_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccStorageFor_rest_law_holds newCorruptionChecker =mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID RaftCluster__Version rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer rafthttp_peer__stop rafthttp_remote__stop =mvcc.api.mvccApi_watchableStore_Close_wp_api schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_MemInitialState =srvApi_wp_MemLastIndex =srvApi_wp_MemFirstIndex =srvApi_wp_MemTerm =srvApi_wp_MemEntries =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete lease_lessor__Revoke AlarmStore__Get bootstrappedServer__Close
 # (D22 S-f, 2026-10-19) opening a received database snapshot (server/storage/backend.go,
 # storage/InvOpen.lean): `OpenSnapshotBackend` with its body; the trust boundary: `OpenBackend`
 # (its goroutine can panic: `dbOpensOk`), the snapshotter's `DBFilePath`, `os.Rename` and the
@@ -847,7 +906,23 @@ etcdserver_NewServer+R: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger_
 fmt_Errorf: @
 snap_Snapshotter__DBFilePath:
 os_Rename:
-config_ServerConfig__BackendPath:
+# (bkarea, 2026-11-22) `BackendPath` proved over `datadir` (translated with its bodies) and
+# `filepath.Join` (the part's translation, proved; the WAL's Link links it in its own namespace)
+filepathlite_lazybuf__index:
+filepathlite_lazybuf__append:
+filepathlite_lazybuf__string:
+filepathlite_IsPathSeparator:
+filepathlite_volumeNameLen:
+filepathlite_postClean:
+filepathlite_FromSlash:
+filepathlite_Clean: filepathlite_lazybuf__index filepathlite_lazybuf__append filepathlite_lazybuf__string filepathlite_IsPathSeparator filepathlite_volumeNameLen filepathlite_postClean filepathlite_FromSlash
+filepath_Clean: filepathlite_Clean
+filepath_join: filepath_Clean
+filepath_Join: filepath_join
+datadir_ToMemberDir: filepath_Join
+datadir_ToSnapDir: filepath_Join datadir_ToMemberDir
+datadir_ToBackendFileName: filepath_Join datadir_ToSnapDir
+config_ServerConfig__BackendPath: datadir_ToBackendFileName
 storage_OpenBackend:
 storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
 # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
@@ -883,7 +958,10 @@ EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__St
 # `=` callees are terms (the HTTP boundary's axioms, `Proof/net/http/Axioms.lean`, Perennial's
 # linked results of `time`, `sync`, `context`, `strings`, and `Lemmas.lean`'s facts)
 rafthttp_NewRoundTripper: transport_NewTimeoutTransport
-rafthttp_Transport__ActiveSince:
+rafthttp_Transport__ActiveSince: rafthttp_peer__activeSince
+rafthttp_Transport__ActivePeers: rafthttp_peer__activeSince
+rafthttp_peer__activeSince: rafthttp_peerStatus__activeSince
+rafthttp_peerStatus__activeSince:
 rafthttp_Transport__AddPeer: types_NewURLs v2stats_LeaderStats__Follower rafthttp_startPeer rafthttp_addPeerToProber types_ID__String types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
 # (D22 receiver epochs, S8d, 2026-10-25) `applySnapshot`'s transport reset over `trLive`; proved in
 # the membership track's M5a (2026-10-26, a `sorry` on purpose until then), with `RemovePeer`
@@ -897,7 +975,7 @@ rafthttp_Transport__Handler: rafthttp_newPipelineHandler rafthttp_newStreamHandl
 rafthttp_Transport__MendPeer: rafthttp_peer__Resume rafthttp_remote__Resume
 rafthttp_Transport__Send: rafthttp_peer__send rafthttp_remote__send rafthttp_isMsgApp v2stats_ServerStats__SendAppendReq proto_SizeMessage raftpb_Message__GetTo Message__GetType raftpb_MessageType__String types_ID__String types_ID__String_ptr zap_Logger__Debug zap_String
 rafthttp_Transport__SendSnapshot: rafthttp_peer__sendSnap snap_Message__CloseWithError snap_Message__fields raftpb_Message__GetTo
-rafthttp_Transport__Start: rafthttp_newStreamRoundTripper rafthttp_NewRoundTripper probing_NewProber rate_Every rafthttp_Transport__Send rafthttp_peer__stop rafthttp_remote__stop rafthttp_Transport__SendSnapshot rafthttp_Transport__ActiveSince
+rafthttp_Transport__Start: rafthttp_newStreamRoundTripper rafthttp_NewRoundTripper probing_NewProber rate_Every rafthttp_Transport__Send rafthttp_peer__stop rafthttp_remote__stop rafthttp_Transport__SendSnapshot rafthttp_Transport__ActiveSince rafthttp_Transport__ActivePeers
 rafthttp_addPeerToProber:
 rafthttp_addRemoteFromRequest: =http.HeaderGetPtr_ok types_IDFromString =_root_.Perennial.strings.wp_Split
 rafthttp_checkClusterCompatibilityFromHeader: =http.HeaderGetPtr_ok rafthttp_serverVersion rafthttp_minClusterVersion rafthttp_checkVersionCompatibility Version__String types_ID__String_ptr zap_Logger__Warn zap_String zap_Error
@@ -915,7 +993,7 @@ rafthttp_messageDecoder__decode: rafthttp_messageDecoder__decodeLimit
 rafthttp_messageDecoder__decodeLimit: binary_ReadUint64 proto_UnmarshalPb
 rafthttp_messageEncoder__encode: proto_SizePb binary_WriteUint64 pbutil_MustMarshalMessage
 # (2026-10-24, rafthttp stage 7d) the snapshot sender
-rafthttp_createSnapBody: snap_Message__fields rafthttp_messageEncoder__encode =_root_.Perennial.EtcdGrove.bytes.Buffer.Write.wp_proof io_MultiReader
+rafthttp_createSnapBody: snap_Message__fields rafthttp_messageEncoder__encode =_root_.Perennial.EtcdGrove.bytes.Buffer.Write.wp_linked io_MultiReader
 rafthttp_snapshotSender__post: rafthttp_checkPostResponse =http.WithContext_ok =http.ReadAll_any_ok =http.respReadAny_of_ok httputil_GracefulClose =_root_.Perennial.time.wp_AfterFunc context_WithCancelBackground =_root_.Perennial.context.wp_Background
 rafthttp_snapshotSender__send: rafthttp_snapshotSender__post rafthttp_createSnapBody rafthttp_createPostRequest rafthttp_urlPicker__pick rafthttp_urlPicker__unreachable rafthttp_peerStatus__activate rafthttp_peerStatus__deactivate snap_Message__fields snap_Message__CloseWithError raftpb_Message__GetTo SnapshotMetadata__GetIndex types_ID__String go_humanize_Bytes zap_Logger__Info zap_Logger__Warn zap_String zap_Uint64 zap_Error prometheus_CounterVec__WithLabelValues prometheus_GaugeVec__WithLabelValues prometheus_HistogramVec__WithLabelValues errors_Is =rafthttp.netErrNotRemoved_ok =_root_.Perennial.time.wp_Now =_root_.Perennial.time.wp_Since time_Duration__Seconds
 rafthttp_peer__sendSnap: rafthttp_snapshotSender__send
@@ -985,7 +1063,7 @@ types_NewURLs:
 # (D43 M5a, 2026-10-26) translated with its body (an axiom until then)
 v2stats_LeaderStats__Follower:
 probing_NewHandler:
-v2stats_ServerStats__SendAppendReq:
+v2stats_ServerStats__SendAppendReq: v2stats_ServerStats__becomeLeader =_root_.Perennial.time.wp_Now v2stats_statsQueue__Insert
 # (Q9 of notes/trace-validation-plan.md, 2026-11-09) proved over its trusted model (an axiom until
 # then), whose fallback is `strconv.Itoa`'s (the trust boundary)
 raftpb_MessageType__String: strconv_Itoa
@@ -1000,8 +1078,18 @@ fmt_ErrorfPlain:
 semver_v3_New: Version__String
 v3_Version__Major:
 v3_Version__Minor:
-v3_MustParse:
-v3_Version__LessThan:
+# (prove-ps2-client, 2026-11-22) `MustParse` proved over `NewVersion` (the trust boundary)
+v3_MustParse: v3_NewVersion
+v3_NewVersion:
+# (prove-ps2-semver, 2026-11-22) `LessThan` proved over the real code (back to the trust boundary
+# 2026-11-23, prove-ps2-version; proved again, prove-ps2-bootstage1)
+v3_Version__Patch:
+v3_Version__Prerelease:
+v3_compareSegment:
+v3_comparePrePart: =_root_.Perennial.strconv.wp_ParseUint
+v3_comparePrerelease: =_root_.Perennial.strings.wp_Split v3_comparePrePart
+v3_Version__Compare: v3_Version__Major v3_Version__Minor v3_Version__Patch v3_Version__Prerelease v3_compareSegment v3_comparePrerelease
+v3_Version__LessThan: v3_Version__Compare
 binary_ReadUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_Uint64
 proto_UnmarshalPb:
 proto_SizePb: @
@@ -1017,7 +1105,7 @@ raftpb_Message__GetLogTerm: @
 raftpb_Message__GetCommit: @
 proto_MarshalAppendPb:
 binary_WriteUint8:
-v2stats_FollowerStats__Succ:
+v2stats_FollowerStats__Succ: =_root_.Perennial.math.wp_Sqrt
 prometheus_GaugeVec__WithLabelValues:
 prometheus_CounterVec__WithLabelValues:
 fmt_SprintfArgs:
@@ -1031,17 +1119,26 @@ v2stats_FollowerStats__Fail:
 context_WithCancelBackground:
 rate_NewLimiter:
 path_Dir: path_Split path_Clean
-path_Base: bytealg_LastIndexByteString
+path_Base: =_root_.Perennial.internal.bytealg.wp_LastIndexByteString
 path_Join: path_Clean
 httputil_GracefulClose:
 transport_IsClosedConnError: strings_Contains
 strings_Contains:
 transport_NewTimeoutTransport:
-rate_Limiter__Wait:
+# x/time/rate's `Wait` (rate-wait, 2026-11-23: proved over the real code, until then the trust
+# boundary): `WaitN`, `wait`, the token bucket (`reserveN`) and the reservation's `Cancel`
+rate_Limit__tokensFromDuration: time_Duration__Seconds_ptr
+rate_Limiter__advance: =_root_.Perennial.time.Time.wp_Before =_root_.Perennial.time.Time.wp_Sub rate_Limit__tokensFromDuration
+rate_Limit__durationFromTokens:
+rate_Limiter__reserveN: =_root_.Perennial.time.Time.wp_Add rate_Limiter__advance rate_Limit__durationFromTokens
+rate_Reservation__CancelAt: =_root_.Perennial.time.Time.wp_Before =_root_.Perennial.time.Time.wp_Sub =_root_.Perennial.time.Time.wp_Add =_root_.Perennial.time.Time.wp_Equal rate_Limiter__advance rate_Limit__tokensFromDuration rate_Limit__durationFromTokens
+rate_Reservation__Cancel: =_root_.Perennial.time.wp_Now rate_Reservation__CancelAt
+rate_Limiter__wait: =_root_.Perennial.time.Time.wp_Sub rate_Limiter__reserveN rate_Reservation__Cancel
+rate_Limiter__WaitN: =_root_.Perennial.time.wp_Now rate_Limiter__wait
+rate_Limiter__Wait: rate_Limiter__WaitN
 proto_MarshalPb:
-path_Split: bytealg_LastIndexByteString
+path_Split: =_root_.Perennial.internal.bytealg.wp_LastIndexByteString
 path_Clean: path_lazybuf__index path_lazybuf__append path_lazybuf__string
-bytealg_LastIndexByteString:
 path_lazybuf__index:
 path_lazybuf__append:
 path_lazybuf__string:
@@ -1049,3 +1146,9 @@ path_lazybuf__string:
 # auth store's `WithRoot` its inner goroutines call
 auth_authStore__WithRoot:
 EtcdServer__revokeExpiredLeases: EtcdServer__GoAttach EtcdServer__Logger EtcdServer__ensureLeadership EtcdServer__MemberID EtcdServer__LeaseRevoke auth_authStore__WithRoot zap_Uint64 zap_String zap_Error zap_Logger__Warn
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:
+pool_Pool__Get:
+os_Exit: syscall_Exit
+syscall_Exit:

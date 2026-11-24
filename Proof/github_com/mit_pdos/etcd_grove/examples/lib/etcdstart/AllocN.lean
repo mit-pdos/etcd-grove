@@ -84,6 +84,17 @@ theorem netHttp_reserveL (γn : NetNames GF) (As : List GoString) (hd0 : γn.dir
   iintro !> %i %h %Hm
   iapply Hats $$ %h %(hhost i h Hm.2)
 
+end alloc
+
+section allocG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **Each member's names chosen before its `NewServer`, as functions of its id** (probe B): its
 store's names, its certificate and revision maps and its storage registry. -/
 theorem newServerNames_allocL (ps : List w64) (hnd : ps.Nodup) :
@@ -115,6 +126,17 @@ theorem newServerNames_allocL (ps : List w64) (hnd : ps.Nodup) :
     iapply (BigSepL.bigSepL_mono (fun {k x} hk => by
       have hx : x ≠ p := fun e => hp (e ▸ List.mem_of_getElem? hk)
       simp only [if_neg hx]; exact BI.entails_refl)) $$ Hs
+
+end allocG1
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
 
 /-- **The claimers' facts of a list of members** (probe C1): at a member's prefix, its store's. -/
 def ΦsOf (ps : List w64) (idx : w64 → srvApi.KVSNames) : w64 → w64 → List w8 → GName → IProp GF :=
@@ -156,14 +178,173 @@ def memberGOk (γ : SrvRaft) (γk : KVNames) (g : MemberG GF) : Prop :=
   (∃ r, g.γ = { γ with reg := r }) ∧ g.ρ.rd.kv.st = γk.st ∧ g.ρ.rd.kv.c0 = γk.c0 ∧
     g.ρ.rd.kv.ch0 = γk.ch0 ∧ g.ρ.rd.kv.log0 = γk.log0 ∧ kvSame g.ρ.rd.kv γk
 
-/-- **Every member's `memberBoot`, from the cluster's allocation** (probe C2, its ghost names
-chosen): `memberBoot_of` folded over any list `L` of the members' ids. -/
-theorem memberBoots_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
-    (issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
+end alloc
+
+section allocG
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+/-- **The cluster's persistent facts a member's boot takes** (D7, `notes/etcd-dist-plan.md`: what the
+deployment's start gives every member; `memberBoot_of`'s persistent arguments; heap-free): the server's raft
+log invariant, the request ids' claims, the first claim's record, the proposals' mint, the read contexts
+and the KV invariant, at the cluster's raft names `γ` and KV names `γk`. -/
+def clusterFacts (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs gen : GName) : IProp GF :=
+  iprop(srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
+    idClusterInv issued cnt wn fs gen srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
+    srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
+    kvInv ⟨γ, [], W64 0⟩ γk)
+
+instance clusterFacts_persistent (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs gen : GName) :
+    Persistent (clusterFacts (GF := GF) γ γk issued cnt wn fs gen) := by
+  unfold clusterFacts; infer_instance
+
+/-- **Member `id`'s slice of the cluster's allocation** (D7: what the deployment's start gives member
+`id` alone; heap-free): its prefix's claims entry and key fact (at its store's index `x`), its node's
+boot token but `proto.Marshal`'s contract (`nodeBootG`, at the bootstrap log `bl`), durable state and
+vacancy, its snapshot directory, its wait slot, its store's fresh names `γs`, its certificate and
+revisions' maps and its storage registry, all empty, and its prefix's names (`idPfxTok`). Its machine
+adds `bootMarshal` and its prefix's facts' invariant (`memberBoot_of_slice`). -/
+def memberSlice (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (bl : List EntryM)
+    (cnt wn fs gen : GName) (x : GName) (γs : srvApi.KVSNames) (cok rev reg : GName) (id : w64) :
+    IProp GF :=
+  iprop(((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
+      idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗
+      (nodeBootG γ.cl srvClusterN ps ctxs id bl ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
+      ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit)) ∗
+    idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) ∗
+    (srvApi.newServerStoreFreshA (GF := GF) γs ∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      ghostMapAuth rev 1 (∅ : GMap w64 Unit) ∗ ghostMapAuth reg 1 (∅ : GMap Loc MemStorNamesRec)) ∗
+    idPfxTok gen (idPfxOf (W16 (uint.Z id))))
+
+/-- **The cluster's part of the allocation, for a cluster of any size, over the global ghost state**
+(D7, `notes/etcd-dist-plan.md`: what the deployment's start allocates once; no heap): each member's
+store names, certificate and revisions' maps and storage registry (`newServerNames_allocL`), then the
+cluster's resources (`srvClusterBoot_allocG`), returned as the cluster's facts, each member's slice
+(over the members' ids `ids`, in their order) and, in the lease mode `none`, the client's `etcdKV`. -/
+theorem clusterAllocN (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid0 : id0 ∈ ids)
+    (ctxs : List (List w8)) (boot : List LogEntry) (Hbc : BootCore ps ctxs boot)
+    (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
+    (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart ids)
+    (cmp : Bool := false) (cret : Nat := 0) :
+    ⊢ |={⊤}=> ∃ (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs gen : GName)
+        (idx : w64 → srvApi.KVSNames) (cok rev reg : w64 → GName),
+      ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
+        γ.boot = LogEntry.toEntries boot 0 ∧
+        γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
+        γk.ids.issued = issued ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧ γk.ids.gen = gen ∧
+        γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lm = lm ∧ kvPfxOk γk ∧ ¬ clusterNoSnap γ.cl ∧
+        (∀ id ∈ ids, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps)⌝ ∗
+      clusterFacts (GF := GF) γ γk issued cnt wn fs gen ∗
+      ([∗list] id ∈ ids, memberSlice (GF := GF) γ ps ctxs (LogEntry.toEntries boot 0) cnt wn fs gen
+        (xsOf ids idx (idPfxOf (W16 (uint.Z id)))) (idx id) (cok id) (rev id) (reg id) id) ∗
+      (if decide (lm ≠ .none) then iprop(True) else
+        etcdKV γk (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0)))) := by
+  obtain ⟨Hpnd, -, -⟩ := idPfxsOf_ok ps Hbc.lowNodup Hbc.lowNz
+  have Hpsnd : ps.Nodup := by
+    unfold idPfxsOf at Hpnd
+    exact List.Pairwise.of_map _ (fun a b h e => h (by rw [e])) Hpnd
+  have Hidnd : ids.Nodup := hperm.nodup_iff.1 Hpsnd
+  have Hpsne : ps ≠ [] := fun h => by rw [h] at hperm; exact absurd (hperm.symm.subset hid0) (by simp)
+  have Hnz : W64 0 ∉ ps := fun h => Hbc.lowNz _ h (by decide)
+  istart
+  imod (newServerNames_allocL (GF := GF) ids Hidnd) with ⟨%idx, %cok, %rev, %reg, Hns⟩
+  imod (srvClusterBoot_allocG (GF := GF) ps ctxs boot (xsOf ids idx) (reg id0) Hrb Hrb2 Hbc Hpsnd
+      Hpsne Hnz cmp cret lm (idPfxOf (W16 (uint.Z id0))) (idPfxsOf ids)
+      (gpsOk_of_apart lm ids id0 hid0 hap))
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm,
+      #Hrc, Hms, Hwns, Htoks⟩
+  obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+  have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
+  have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklg ▸ h))
+  ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms
+  ihave Hwns := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
+  ihave Htoks := (BigSepL.bigSepL_perm hperm).1 $$ Htoks
+  imodintro
+  iexists γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg
+  isimp only [KVNames.lg, hklg, hboot] at Hetcd
+  iframe Hetcd
+  isplitr
+  · ipureintro
+    exact ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, HnoSnap,
+      fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid⟩
+  isplitr
+  · iunfold clusterFacts
+    iframe #
+  iunfold memberSlice
+  iapply BigSepL.bigSepL_sep_eqv.2
+  isplitl [Hms]
+  · iexact Hms
+  iapply BigSepL.bigSepL_sep_eqv.2
+  isplitl [Hwns]
+  · iexact Hwns
+  iapply BigSepL.bigSepL_sep_eqv.2
+  isplitl [Hns]
+  · iexact Hns
+  iexact Htoks
+
+end allocG
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- **A member's `memberBoot` from the cluster's facts and its slice** (D7: a member's boot, on its own
+machine; `memberBoot_of` over `clusterFacts` and `memberSlice`): with `proto.Marshal`'s contract at its
+heap (`nodeBoot_of_G`), its prefix's facts' invariant allocated here (`idPfxInv_alloc`). -/
+theorem memberBoot_of_slice (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (bl : List EntryM)
+    (reg : GName) (issued cnt wn fs gen : GName) (γk : KVNames)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev : GName) (x : GName)
+    (Hx : x = γs.slog)
+    (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
+    (Hgen : γk.ids.gen = gen) (Hc0 : γk.c0 = W64 0)
+    (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
+    (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
+    (Hklg : γk.lm = lm) (hpfx : lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps)
+    (hpo : kvPfxOk γk)
+    (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) γs.slog)
+    (Hns : ¬ clusterNoSnap γ.cl) :
+    ⊢ bootMarshal ps ctxs bl -∗ clusterFacts γ γk issued cnt wn fs gen -∗
+      memberSlice γ ps ctxs bl cnt wn fs gen x γs cok rev reg id ={⊤}=∗
+      ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
+        ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗
+        memberBoot { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd false) cmp) Φs id cmp
+          lm := by
+  letI := srvAnyStor (GF := GF)
+  iintro #Hm #Hf Hs
+  iunfold clusterFacts at Hf
+  icases Hf with ⟨#Hsrl, #Hcl, #H0, #Hpm, #Hrc, #Hkv⟩
+  iunfold memberSlice at Hs
+  icases Hs with ⟨⟨Hp, Hkf, ⟨Hnb, Hrs⟩, Hsd⟩, Hw, ⟨Hi, Hc, Hr, Hg⟩, Ht⟩
+  imod (idPfxInv_alloc gen (idPfxOf (W16 (uint.Z id))) ⊤) $$ Ht with #Hpi
+  ihave Hnb' : nodeBoot γ.cl srvClusterN ps ctxs id $$ [Hnb]
+  · iapply (nodeBoot_of_G γ.cl srvClusterN ps ctxs id bl)
+    iframe Hnb Hm
+  iapply (memberBoot_of γ ps ctxs reg issued cnt wn fs gen γk Φs id γm γs cok rev x Hx Hiss Hwn Hfs Hgen
+    Hc0 Hch Hlog Hvs cmp Hkc lm hrun Hklg hpfx hpo HΦ Hns) $$ Hsrl Hcl H0 Hpm Hrc Hkv [Hp Hkf Hnb' Hrs Hsd]
+    Hw Hg Hi Hc Hr Hpi
+  iframe Hp Hkf Hnb' Hrs Hsd
+
+/-- **Every member's `memberBoot`, from the cluster's facts and the members' slices** (probe C2, its
+ghost names chosen; D7: `memberBoot_of_slice` folded over any list `L` of the members' ids, what a single
+process does for all its members). -/
+theorem memberBoots_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (bl : List EntryM)
+    (issued cnt wn fs gen : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (γm : mvcc.api.MvccName) (idx : w64 → srvApi.KVSNames) (cok rev reg : w64 → GName)
     (xs : w64 → GName)
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
-    (Hc0 : γk.c0 = W64 0)
+    (Hgen : γk.ids.gen = gen) (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
     (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp)
     (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
@@ -173,45 +354,28 @@ theorem memberBoots_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8))
     (hpfx : ∀ id ∈ L, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps)
     (HΦ : ∀ id ∈ L, Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) (idx id).slog)
     (Hx : ∀ id ∈ L, xs (idPfxOf (W16 (uint.Z id))) = (idx id).slog) :
-    ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
-      idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
-      srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
-      kvInv ⟨γ, [], W64 0⟩ γk -∗
-      ([∗list] id ∈ L, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
-          idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16 (uint.Z id)))) ∗
-          (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
-            nodeVacant γ.cl id) ∗
-          ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) -∗
-      ([∗list] id ∈ L, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)) -∗
-      ([∗list] id ∈ L, srvApi.newServerStoreFreshA (GF := GF) (idx id) ∗
-        ghostMapAuth (cok id) 1 (∅ : GMap w64 mvcc.Log) ∗
-        ghostMapAuth (rev id) 1 (∅ : GMap w64 Unit) ∗
-        ghostMapAuth (reg id) 1 (∅ : GMap Loc MemStorNamesRec)) ==∗
+    ⊢ bootMarshal ps ctxs bl -∗ clusterFacts γ γk issued cnt wn fs gen -∗
+      ([∗list] id ∈ L, memberSlice γ ps ctxs bl cnt wn fs gen (xs (idPfxOf (W16 (uint.Z id)))) (idx id)
+        (cok id) (rev id) (reg id) id) ={⊤}=∗
       ∃ gs : List (MemberG GF), ⌜gs.map (·.id) = L ∧ ∀ g ∈ gs, memberGOk γ γk g⌝ ∗
         [∗list] g ∈ gs, memberBoot g.γ ctxs g.ρ g.E Φs g.id cmp lm := by
   induction L with
   | nil =>
-    iintro #_ #_ #_ #_ #_ #_ _ _ _
+    iintro #_ #_ _
     imodintro
     iexists []
     isplitr
     · ipureintro; exact ⟨rfl, fun g h => by simp at h⟩
     iempintro
   | cons q L ih =>
-    iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv Hms Hws Hns
-    ihave Hms := BigSepL.bigSepL_cons.1 $$ Hms
-    ihave Hws := BigSepL.bigSepL_cons.1 $$ Hws
-    ihave Hns := BigSepL.bigSepL_cons.1 $$ Hns
-    icases Hms with ⟨Hm, Hms⟩
-    icases Hws with ⟨Hw, Hws⟩
-    icases Hns with ⟨⟨Hi, Hc, Hr, Hg⟩, Hns⟩
-    imod (memberBoot_of γ ps ctxs (reg q) issued cnt wn fs γk Φs q γm (idx q) (cok q) (rev q)
-        (xs (idPfxOf (W16 (uint.Z q)))) (Hx q (by simp)) Hiss Hwn Hfs Hc0 Hch Hlog Hvs cmp Hkc lm
-        hrun Hklg (hpfx q (by simp)) hpo (HΦ q (by simp)) Hnsn)
-      $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm Hw Hg Hi Hc Hr with ⟨%ρ, %Hρ, Hb⟩
+    iintro #Hm #Hf Hss
+    ihave Hss := BigSepL.bigSepL_cons.1 $$ Hss
+    icases Hss with ⟨Hs, Hss⟩
+    imod (memberBoot_of_slice γ ps ctxs bl (reg q) issued cnt wn fs gen γk Φs q γm (idx q) (cok q) (rev q)
+        (xs (idPfxOf (W16 (uint.Z q)))) (Hx q (by simp)) Hiss Hwn Hfs Hgen Hc0 Hch Hlog Hvs cmp Hkc lm
+        hrun Hklg (hpfx q (by simp)) hpo (HΦ q (by simp)) Hnsn) $$ Hm Hf Hs with ⟨%ρ, %Hρ, Hb⟩
     imod (ih (fun id h => hpfx id (List.mem_cons_of_mem _ h)) (fun id h => HΦ id (List.mem_cons_of_mem _ h))
-        (fun id h => Hx id (List.mem_cons_of_mem _ h)))
-      $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hws Hns with ⟨%gs, %Hgs, Hbs⟩
+        (fun id h => Hx id (List.mem_cons_of_mem _ h))) $$ Hm Hf Hss with ⟨%gs, %Hgs, Hbs⟩
     imodintro
     iexists ⟨q, { γ with reg := reg q }, ρ, env₀ γm (idx q) (rev q) (srvApi.kvNx ρ.rd false) cmp⟩ :: gs
     isplitr
@@ -263,35 +427,21 @@ theorem allocN (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : 
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV γk (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0)))) := by
   obtain ⟨Hpnd, -, -⟩ := idPfxsOf_ok ps Hbc.lowNodup Hbc.lowNz
-  have Hpsnd : ps.Nodup := by
-    unfold idPfxsOf at Hpnd
-    exact List.Pairwise.of_map _ (fun a b h e => h (by rw [e])) Hpnd
-  have Hidnd : ids.Nodup := hperm.nodup_iff.1 Hpsnd
   have Hipnd : (idPfxsOf ids).Nodup := (hperm.map _).nodup_iff.1 Hpnd
-  have Hpsne : ps ≠ [] := fun h => by rw [h] at hperm; exact absurd (hperm.symm.subset hid0) (by simp)
-  have Hnz : W64 0 ∉ ps := fun h => Hbc.lowNz _ h (by decide)
   iintro #Hmarsh Hss
   -- each start bundle's HTTP protocol, apart
   ihave Hss := BigSepL.bigSepL_mono (fun {k m} _ => memberStartRes_split (GF := GF) m.1 m.2.1 m.2.2) $$ Hss
   ihave Hss := BigSepL.bigSepL_sep_eqv.1 $$ Hss
   icases Hss with ⟨Hfs, Hws⟩
-  imod (newServerNames_allocL (GF := GF) ids Hidnd) with ⟨%idx, %cok, %rev, %reg, Hns⟩
   have γm : mvcc.api.MvccName := Classical.choice hne.1
-  imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot (xsOf ids idx) (reg id0) Hrb Hrb2 Hbc Hpsnd
-      Hpsne Hnz cmp cret lm (idPfxOf (W16 (uint.Z id0))) (idPfxsOf ids)
-      (gpsOk_of_apart lm ids id0 hid0 hap)) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
-      Hwns⟩
-  obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
-  have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
-  have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklg ▸ h))
-  ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms
-  ihave Hwns := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
-  imod (memberBoots_of γ ps ctxs issued cnt wn fs γk (ΦsOf ids idx) γm idx cok rev reg (xsOf ids idx)
-      hiss hwn hfs hc0 hch hlog hvs cmp hkc lm hrun hklg hpo HnoSnap ids
-      (fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid)
+  -- (D7) the cluster's part, then each member's
+  imod (clusterAllocN (GF := GF) ids ps hperm id0 hid0 ctxs boot Hbc Hrb Hrb2 lm hap cmp cret)
+    with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
+  obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, HnoSnap, hgps⟩ := Hγ
+  imod (memberBoots_of γ ps ctxs (LogEntry.toEntries boot 0) issued cnt wn fs gen γk (ΦsOf ids idx) γm idx
+      cok rev reg (xsOf ids idx) hiss hwn hfs hgen hc0 hch hlog hvs cmp hkc lm hrun hklg hpo HnoSnap ids hgps
       (fun id hid => ΦsOf_at ids idx Hipnd id hid) (fun id hid => xsOf_at ids idx Hipnd id hid))
-    $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hwns Hns with ⟨%gs, %Hgs, Hbs⟩
+    $$ Hmarsh Hf Hsl with ⟨%gs, %Hgs, Hbs⟩
   -- the raft network, each peer address reserved for the raft protocol
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #Hreg⟩
   have Hd0' : γn.dir 0 = [] := by rw [Hγn.2]; exact Hd0
@@ -304,7 +454,6 @@ theorem allocN (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : 
   · iapply BigSepL.bigSepL_mono (fun {k m} _ => forall_elim γn) $$ Hws
   imodintro
   iexists γ, γk, ΦsOf ids idx, γn, gs
-  isimp only [KVNames.lg, hklg, hboot] at Hetcd
   iframe Hbs Hfr Hetcd
   isplitr
   · ipureintro

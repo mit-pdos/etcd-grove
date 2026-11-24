@@ -50,6 +50,9 @@ theorem fdatasync.wp_proofW (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     fdatasync.specW (GF := GF) (hG := hG) := by
   intro db f fd p i m dqf dq
   wp_start as ⟨#Hos, Hf, Hfo, Hfd, Hm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   wp_auto
   wp_apply hFd f fd p.path dq $$ [Hfo] as Hfo
   · rw [← fileOwn_eq]; iexact Hfo
@@ -74,7 +77,7 @@ theorem fdatasync.wp_proofW (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
       · ipureintro
         refine ⟨?_, he.2.2⟩
         simp only [errnoErr, he.1, ↓reduceIte]; exact fun h => nomatch h
-      · iapply hErr e he.1
+      · iapply hErr e he.1 $$ Hsys
 
 end spec
 

@@ -24,7 +24,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [StorageModel GF] [AllG GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [StorageModel GF]
 
 /-- See the file header. -/
 abbrev Replica.applyOp.spec : Prop :=

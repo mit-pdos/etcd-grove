@@ -1,4 +1,3 @@
 # Each axiom that returns holding an RWMutex reader slot, and the axiom that gives it back
 # (etc/reader-slot-check.py): the holder's pre consumes a token; the closer releases the holder's locks (its Go
 # function) and its post returns a token.
-backend.backend.Snapshot     backend.snapshot.Close

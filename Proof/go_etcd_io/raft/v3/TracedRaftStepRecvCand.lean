@@ -552,15 +552,17 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
     isplitr
     · -- the receive line
       iintro ⟨Hgh, Hc, Htok⟩
-      iapply hookGateOpt_fupd_recv
+      iapply hookGateOpt_nc_recv
+      iintro Hnc
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
       iunfold ownStepGhost at Hgh
       icases Hgh with ⟨Hg, Hr⟩
       imod ownRaftGhost_hbFacts γ id (toPState s) (absMsg .heartbeat m ents ctx) rfl hto'
         (by show m.Term' = s.term; exact hterm) (by show proleRole s.role ≠ .leader; rw [hrole]; nofun)
-        hs0.1 hwB $$ Hm Hg with ⟨Hg, %Hbc, #HL, #Hcert⟩
+        hs0.1 hwB $$ Hnc Hm Hg with ⟨Hnc, Hg, %Hbc, #HL, #Hcert⟩
       imodintro
+      iframe Hnc
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
       have hnb : (absMsg .heartbeat m ents).NumsBelow traceNumBound := (hok .heartbeat hmty hreT htrd).1
       have hc1 : 1 ≤ uint.Z (toPState s).commit := by

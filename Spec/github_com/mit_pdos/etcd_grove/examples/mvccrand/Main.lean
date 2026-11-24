@@ -30,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)],
+  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)],
   backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       backend.fileHolds go!"mvccrand.db" ∅ ∗

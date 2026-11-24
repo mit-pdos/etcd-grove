@@ -8,7 +8,7 @@ Lean-first; untrusted.
 module
 
 public import Proof.os.RemoveAllParts
-public import Proof.os.RemoveAllExt
+public import Proof.os.RemoveAllNE
 
 @[expose] public section
 
@@ -63,7 +63,8 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq d
         osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.unlinkLoop) (Val #(child p c)))
     {{ (e : w64), RET #e; osPathS R p dq J ∗ osCallPerm (callKey R p) qc ∗
-        ∃ hc', osNames J (.only [c]) dqn hc' ∗ ⌜LeafOk c hc hc'⌝ }} := by
+        ∃ hc', osNames J (.only [c]) dqn hc' ∗
+          ⌜LeafOk c hc hc' ∧ (FsNoErrAt (child p c) → hc'.cur !! c = none)⌝ }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   have hcN' : (NameSet.only [c]).Mem c := by simp [NameSet.Mem]
   ihave Hst : (∃ hc', osNames J (.only [c]) dqn hc' ∗ ⌜LeafOk c hc hc'⌝ : IProp GF)
@@ -91,7 +92,7 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq d
     wp_auto
     iapply HΦ
     iframe
-    ipureintro; exact hsub
+    ipureintro; exact ⟨hsub, fun _ => hcur⟩
   · obtain ⟨i, rfl⟩ : ∃ i, n = .file i := by
       cases n with
       | file i => exact ⟨i, rfl⟩
@@ -101,21 +102,24 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq d
       rcases hw with h | h
       · exact h
       · rw [hfile] at h; cases h
-    wp_apply +noauto wp_osUnlinkS R p c J i dq hc' t s0 qc hcN hcur hs CoPset.subseteq_top
-      CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e Hperm Hp Hres
+    wp_apply +noauto wp_osUnlinkSW R p c J i dq hc' t s0 qc hcN hcur hs CoPset.subseteq_top
+      CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %hw Hperm Hp Hres
     unfold osNamesAfter
-    ihave Hst : (∃ hc'', osNames J (.only [c]) (DFrac.own 1) hc'' ∗ ⌜LeafOk c hc hc''⌝ :
-        IProp GF) $$ [Hres]
-    · icases Hres with (⟨-, Hn⟩ | ⟨%x, -, Hn⟩)
-      · iexists hc'; iframe; ipureintro; exact hsub
+    ihave Hst : (∃ hc'', osNames J (.only [c]) (DFrac.own 1) hc'' ∗
+        ⌜LeafOk c hc hc'' ∧ (FsNoErrAt (child p c) → hc''.cur !! c = none)⌝ : IProp GF) $$ [Hres]
+    · icases Hres with (⟨%he, Hn⟩ | ⟨%x, -, Hn⟩)
+      · iexists hc'; iframe; ipureintro; exact ⟨hsub, fun hne => absurd (hw hne) he⟩
       · iexists _; iframe; ipureintro
-        refine ⟨EntsSub.restrictN_delete hsub.1, fun h => ?_⟩
-        rw [hfile] at h; cases h
+        refine ⟨⟨EntsSub.restrictN_delete hsub.1, fun h => ?_⟩, fun _ => ?_⟩
+        · rw [hfile] at h; cases h
+        · simp [NamesH.log, restrictN_lookup _ _ _ (show (NameSet.only [c]).Mem c by simp [NameSet.Mem])]
     wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       wp_auto
-      iapply IH $$ Hperm Hp Hst HΦ
+      icases Hst with ⟨%hc2, Hn, %hlw⟩
+      iapply IH $$ Hperm Hp [Hn] HΦ
+      iexists hc2; iframe; ipureintro; exact hlw.1
     rw [decide_eq_false he4]
     wp_auto
     iapply HΦ
@@ -233,16 +237,22 @@ theorem os.model.wp_rmdirLoop_none (p c : GoString) (R : Roots) (J : Ino) (dq dq
 theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn : DFrac)
     (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J'))
     (hw : dqn = DFrac.own 1 ∨ hc.cur !! c = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
         osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (App (Val os.model.removeAllFrom) (Val #p)) (Val #c))
     {{ (pe : Loc), RET #pe; osPathS R p dq J ∗ osCallPerm (callKey R p) qc ∗ os.peOk pe ∗
-        ∃ hc', osNames J (.only [c]) dqn hc' ∗ ⌜LeafOk c hc hc'⌝ }} := by
+        ∃ hc', osNames J (.only [c]) dqn hc' ∗
+          ⌜LeafOk c hc hc' ∧ (FsNoErrAt (child p c) → hc'.cur !! c = none)⌝ }} := by
+
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   rw [show p ++ [47#8] ++ c = child p c by simp [child, slashB]]
   wp_apply os.model.wp_unlinkLoop_leaf p c R J dq dqn hc qc hcN hcf hw $$ [Hp Hn Hperm]
-    as %e ⟨Hp, Hperm, %hc', Hn, %hsub⟩
+    as %e ⟨Hp, Hperm, %hc', Hn, %hsubw⟩
   · iframe; iframe #
+  have hsub := hsubw.1
   have hcf' : ∀ J', hc'.cur !! c ≠ some (.dir J') := fun J' h => hcf J' (hsub.1 c _ h)
   by_cases he0 : e = W64 0
   · rw [decide_eq_true he0]
@@ -251,7 +261,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
     iframe
     isplitr
     · iapply os.peOk_null
-    ipureintro; exact hsub
+    ipureintro; exact hsubw
   rw [decide_eq_false he0]
   wp_auto
   by_cases he2 : e = W64 2
@@ -261,7 +271,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
     iframe
     isplitr
     · iapply os.peOk_null
-    ipureintro; exact hsub
+    ipureintro; exact hsubw
   rw [decide_eq_false he2]
   wp_auto
   by_cases hcls : ¬ (e = W64 21 ∨ e = W64 1 ∨ e = W64 13)
@@ -273,10 +283,10 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
     wp_auto
     simp only [decide_eq_false h13, Bool.not_false]
     wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errno _ _ e he0 as %pe Hpe
+    wp_apply os.model.wp_pathErrorPtr_errno _ _ e he0 $$ Hsys as %pe Hpe
     iapply HΦ
     iframe
-    ipureintro; exact hsub
+    ipureintro; exact hsubw
   rw [Classical.not_not] at hcls
   have he0' := he0
   clear he0 he2
@@ -295,20 +305,20 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
         iframe
         isplitr
         · iapply os.peOk_null
-        ipureintro; exact hsub
+        ipureintro; exact hsubw
       rw [decide_eq_false he'2]
       try wp_auto
       by_cases he'20 : e' = W64 20
       · rw [decide_eq_true he'20]
         try wp_auto
-        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' as %pe Hpe
+        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' $$ Hsys as %pe Hpe
         try wp_auto
         iapply HΦ
         iframe
-        ipureintro; exact hsub
+        ipureintro; exact hsubw
       rw [decide_eq_false he'20]
       try wp_auto
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he' as %pe Hpe
+      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he' $$ Hsys as %pe Hpe
       try wp_auto
       wp_apply os.model.wp_rmdirLoop_none p c R J dq dqn hc' qc hcN hcf'
         $$ [Hp Hn Hperm] as %e4 ⟨%he4, Hp, Hn, Hperm⟩
@@ -323,31 +333,31 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
         iframe
         isplitr
         · iapply os.peOk_null
-        ipureintro; exact hsub
+        ipureintro; exact hsubw
       rw [decide_eq_false he42]
       try wp_auto
       by_cases hpn : pe = null
       · simp only [decide_eq_true hpn, Bool.not_true]
         try wp_auto
-        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he4 as %pe' Hpe'
+        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he4 $$ Hsys as %pe' Hpe'
         iapply HΦ
         iframe
-        ipureintro; exact hsub
+        ipureintro; exact hsubw
       · simp only [decide_eq_false hpn, Bool.not_false]
         try wp_auto
         iapply HΦ
         iframe
-        ipureintro; exact hsub
+        ipureintro; exact hsubw
     · simp only [decide_eq_true (show e' = W64 0 from he'), Bool.not_true]
       try wp_auto
       wp_apply wp_osFdKind fd (DFrac.own 1) _ CoPset.subseteq_top $$ Hos Hfd as Hfd
       wp_apply wp_osClose fd _ CoPset.subseteq_top $$ [Hfd] as %ec -
       · iframe; iframe #; iapply lockToks_unlocked <;> rfl
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' as %pe Hpe
+      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' $$ Hsys as %pe Hpe
       try wp_auto
       iapply HΦ
       iframe
-      ipureintro; exact hsub
+      ipureintro; exact hsubw
 
 end proof
 

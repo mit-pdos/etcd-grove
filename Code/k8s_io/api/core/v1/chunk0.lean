@@ -2534,1265 +2534,10 @@ opaque LabelMetadataName [GooseExts] [GoGlobalContext] : val
 
 opaque TaintNodeOutOfService [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.ErrInvalidLengthGenerated"
-
-opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.ErrIntOverflowGenerated"
-
-opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.ErrUnexpectedEndOfGroupGenerated"
-
-opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.SchemeGroupVersion"
 
 opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.SchemeBuilder"
-
-opaque SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.AddToScheme"
-
-opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_AWSElasticBlockStoreVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_AWSElasticBlockStoreVolumeSource"
-
-opaque map_AWSElasticBlockStoreVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Affinity [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Affinity"
-
-opaque map_Affinity.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_AppArmorProfile [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_AppArmorProfile"
-
-opaque map_AppArmorProfile.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_AttachedVolume [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_AttachedVolume"
-
-opaque map_AttachedVolume.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_AvoidPods [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_AvoidPods"
-
-opaque map_AvoidPods.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_AzureDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_AzureDiskVolumeSource"
-
-opaque map_AzureDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_AzureFilePersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_AzureFilePersistentVolumeSource"
-
-opaque map_AzureFilePersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_AzureFileVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_AzureFileVolumeSource"
-
-opaque map_AzureFileVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Binding [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Binding"
-
-opaque map_Binding.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_CSIPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_CSIPersistentVolumeSource"
-
-opaque map_CSIPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_CSIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_CSIVolumeSource"
-
-opaque map_CSIVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Capabilities [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Capabilities"
-
-opaque map_Capabilities.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_CephFSPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_CephFSPersistentVolumeSource"
-
-opaque map_CephFSPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_CephFSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_CephFSVolumeSource"
-
-opaque map_CephFSVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_CinderPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_CinderPersistentVolumeSource"
-
-opaque map_CinderPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_CinderVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_CinderVolumeSource"
-
-opaque map_CinderVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ClientIPConfig [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ClientIPConfig"
-
-opaque map_ClientIPConfig.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ClusterTrustBundleProjection [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ClusterTrustBundleProjection"
-
-opaque map_ClusterTrustBundleProjection.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ComponentCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ComponentCondition"
-
-opaque map_ComponentCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ComponentStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ComponentStatus"
-
-opaque map_ComponentStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ComponentStatusList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ComponentStatusList"
-
-opaque map_ComponentStatusList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ConfigMap [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ConfigMap"
-
-opaque map_ConfigMap.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ConfigMapEnvSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ConfigMapEnvSource"
-
-opaque map_ConfigMapEnvSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ConfigMapKeySelector [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ConfigMapKeySelector"
-
-opaque map_ConfigMapKeySelector.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ConfigMapList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ConfigMapList"
-
-opaque map_ConfigMapList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ConfigMapNodeConfigSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ConfigMapNodeConfigSource"
-
-opaque map_ConfigMapNodeConfigSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ConfigMapProjection [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ConfigMapProjection"
-
-opaque map_ConfigMapProjection.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ConfigMapVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ConfigMapVolumeSource"
-
-opaque map_ConfigMapVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Container [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Container"
-
-opaque map_Container.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerExtendedResourceRequest [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerExtendedResourceRequest"
-
-opaque map_ContainerExtendedResourceRequest.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerImage [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerImage"
-
-opaque map_ContainerImage.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerPort [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerPort"
-
-opaque map_ContainerPort.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerResizePolicy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerResizePolicy"
-
-opaque map_ContainerResizePolicy.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerRestartRule [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerRestartRule"
-
-opaque map_ContainerRestartRule.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerRestartRuleOnExitCodes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerRestartRuleOnExitCodes"
-
-opaque map_ContainerRestartRuleOnExitCodes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerState [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerState"
-
-opaque map_ContainerState.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerStateRunning [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerStateRunning"
-
-opaque map_ContainerStateRunning.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerStateTerminated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerStateTerminated"
-
-opaque map_ContainerStateTerminated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerStateWaiting [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerStateWaiting"
-
-opaque map_ContainerStateWaiting.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerStatus"
-
-opaque map_ContainerStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ContainerUser [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ContainerUser"
-
-opaque map_ContainerUser.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DaemonEndpoint [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_DaemonEndpoint"
-
-opaque map_DaemonEndpoint.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DownwardAPIProjection [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_DownwardAPIProjection"
-
-opaque map_DownwardAPIProjection.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DownwardAPIVolumeFile [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_DownwardAPIVolumeFile"
-
-opaque map_DownwardAPIVolumeFile.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DownwardAPIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_DownwardAPIVolumeSource"
-
-opaque map_DownwardAPIVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EmptyDirVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EmptyDirVolumeSource"
-
-opaque map_EmptyDirVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EndpointAddress [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EndpointAddress"
-
-opaque map_EndpointAddress.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EndpointPort [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EndpointPort"
-
-opaque map_EndpointPort.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EndpointSubset [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EndpointSubset"
-
-opaque map_EndpointSubset.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Endpoints [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Endpoints"
-
-opaque map_Endpoints.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EndpointsList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EndpointsList"
-
-opaque map_EndpointsList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EnvFromSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EnvFromSource"
-
-opaque map_EnvFromSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EnvVar [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EnvVar"
-
-opaque map_EnvVar.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EnvVarSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EnvVarSource"
-
-opaque map_EnvVarSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EphemeralContainer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EphemeralContainer"
-
-opaque map_EphemeralContainer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EphemeralContainerCommon [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EphemeralContainerCommon"
-
-opaque map_EphemeralContainerCommon.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EphemeralVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EphemeralVolumeSource"
-
-opaque map_EphemeralVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Event [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Event"
-
-opaque map_Event.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EventList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EventList"
-
-opaque map_EventList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EventSeries [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EventSeries"
-
-opaque map_EventSeries.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EventSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EventSource"
-
-opaque map_EventSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_EvictionResponder [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_EvictionResponder"
-
-opaque map_EvictionResponder.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ExecAction [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ExecAction"
-
-opaque map_ExecAction.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_FCVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_FCVolumeSource"
-
-opaque map_FCVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_FileKeySelector [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_FileKeySelector"
-
-opaque map_FileKeySelector.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_FlexPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_FlexPersistentVolumeSource"
-
-opaque map_FlexPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_FlexVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_FlexVolumeSource"
-
-opaque map_FlexVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_FlockerVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_FlockerVolumeSource"
-
-opaque map_FlockerVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_GCEPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_GCEPersistentDiskVolumeSource"
-
-opaque map_GCEPersistentDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_GRPCAction [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_GRPCAction"
-
-opaque map_GRPCAction.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_GitRepoVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_GitRepoVolumeSource"
-
-opaque map_GitRepoVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_GlusterfsPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_GlusterfsPersistentVolumeSource"
-
-opaque map_GlusterfsPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_GlusterfsVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_GlusterfsVolumeSource"
-
-opaque map_GlusterfsVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_HTTPGetAction [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_HTTPGetAction"
-
-opaque map_HTTPGetAction.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_HTTPHeader [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_HTTPHeader"
-
-opaque map_HTTPHeader.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_HostAlias [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_HostAlias"
-
-opaque map_HostAlias.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_HostIP [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_HostIP"
-
-opaque map_HostIP.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_HostPathVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_HostPathVolumeSource"
-
-opaque map_HostPathVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ISCSIPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ISCSIPersistentVolumeSource"
-
-opaque map_ISCSIPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ISCSIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ISCSIVolumeSource"
-
-opaque map_ISCSIVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ImageVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ImageVolumeSource"
-
-opaque map_ImageVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ImageVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ImageVolumeStatus"
-
-opaque map_ImageVolumeStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_KeyToPath [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_KeyToPath"
-
-opaque map_KeyToPath.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Lifecycle [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Lifecycle"
-
-opaque map_Lifecycle.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LifecycleHandler [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LifecycleHandler"
-
-opaque map_LifecycleHandler.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LimitRange [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LimitRange"
-
-opaque map_LimitRange.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LimitRangeItem [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LimitRangeItem"
-
-opaque map_LimitRangeItem.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LimitRangeList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LimitRangeList"
-
-opaque map_LimitRangeList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LimitRangeSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LimitRangeSpec"
-
-opaque map_LimitRangeSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LinuxContainerUser [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LinuxContainerUser"
-
-opaque map_LinuxContainerUser.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LoadBalancerIngress [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LoadBalancerIngress"
-
-opaque map_LoadBalancerIngress.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LoadBalancerStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LoadBalancerStatus"
-
-opaque map_LoadBalancerStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LocalObjectReference [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LocalObjectReference"
-
-opaque map_LocalObjectReference.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LocalVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_LocalVolumeSource"
-
-opaque map_LocalVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ModifyVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ModifyVolumeStatus"
-
-opaque map_ModifyVolumeStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NFSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NFSVolumeSource"
-
-opaque map_NFSVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Namespace [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Namespace"
-
-opaque map_Namespace.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NamespaceCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NamespaceCondition"
-
-opaque map_NamespaceCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NamespaceList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NamespaceList"
-
-opaque map_NamespaceList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NamespaceSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NamespaceSpec"
-
-opaque map_NamespaceSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NamespaceStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NamespaceStatus"
-
-opaque map_NamespaceStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Node [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Node"
-
-opaque map_Node.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeAddress [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeAddress"
-
-opaque map_NodeAddress.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeAffinity"
-
-opaque map_NodeAffinity.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeAllocatableMappedResources [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeAllocatableMappedResources"
-
-opaque map_NodeAllocatableMappedResources.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeAllocatableOverheadResources [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeAllocatableOverheadResources"
-
-opaque map_NodeAllocatableOverheadResources.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeAllocatableResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeAllocatableResourceClaimStatus"
-
-opaque map_NodeAllocatableResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeCondition"
-
-opaque map_NodeCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeConfigSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeConfigSource"
-
-opaque map_NodeConfigSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeConfigStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeConfigStatus"
-
-opaque map_NodeConfigStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeDaemonEndpoints [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeDaemonEndpoints"
-
-opaque map_NodeDaemonEndpoints.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeFeatures [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeFeatures"
-
-opaque map_NodeFeatures.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeList"
-
-opaque map_NodeList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodePodPreemptionPolicy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodePodPreemptionPolicy"
-
-opaque map_NodePodPreemptionPolicy.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeProxyOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeProxyOptions"
-
-opaque map_NodeProxyOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeRuntimeHandler [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeRuntimeHandler"
-
-opaque map_NodeRuntimeHandler.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeRuntimeHandlerFeatures [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeRuntimeHandlerFeatures"
-
-opaque map_NodeRuntimeHandlerFeatures.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeSelector [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeSelector"
-
-opaque map_NodeSelector.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeSelectorRequirement"
-
-opaque map_NodeSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeSelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeSelectorTerm"
-
-opaque map_NodeSelectorTerm.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeSpec"
-
-opaque map_NodeSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeStatus"
-
-opaque map_NodeStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeSwapStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeSwapStatus"
-
-opaque map_NodeSwapStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_NodeSystemInfo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_NodeSystemInfo"
-
-opaque map_NodeSystemInfo.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ObjectFieldSelector [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ObjectFieldSelector"
-
-opaque map_ObjectFieldSelector.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ObjectReference [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ObjectReference"
-
-opaque map_ObjectReference.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolume [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolume"
-
-opaque map_PersistentVolume.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeClaim [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeClaim"
-
-opaque map_PersistentVolumeClaim.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeClaimCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeClaimCondition"
-
-opaque map_PersistentVolumeClaimCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeClaimList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeClaimList"
-
-opaque map_PersistentVolumeClaimList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeClaimSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeClaimSpec"
-
-opaque map_PersistentVolumeClaimSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeClaimStatus"
-
-opaque map_PersistentVolumeClaimStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeClaimTemplate [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeClaimTemplate"
-
-opaque map_PersistentVolumeClaimTemplate.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeClaimVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeClaimVolumeSource"
-
-opaque map_PersistentVolumeClaimVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeList"
-
-opaque map_PersistentVolumeList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeSource"
-
-opaque map_PersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeSpec"
-
-opaque map_PersistentVolumeSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PersistentVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PersistentVolumeStatus"
-
-opaque map_PersistentVolumeStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PhotonPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PhotonPersistentDiskVolumeSource"
-
-opaque map_PhotonPersistentDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Pod [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Pod"
-
-opaque map_Pod.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodAffinity [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodAffinity"
-
-opaque map_PodAffinity.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodAffinityTerm [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodAffinityTerm"
-
-opaque map_PodAffinityTerm.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodAntiAffinity [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodAntiAffinity"
-
-opaque map_PodAntiAffinity.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodAttachOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodAttachOptions"
-
-opaque map_PodAttachOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodCertificateProjection [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodCertificateProjection"
-
-opaque map_PodCertificateProjection.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodCondition"
-
-opaque map_PodCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodDNSConfig [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodDNSConfig"
-
-opaque map_PodDNSConfig.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodDNSConfigOption [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodDNSConfigOption"
-
-opaque map_PodDNSConfigOption.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodExecOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodExecOptions"
-
-opaque map_PodExecOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodExtendedResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodExtendedResourceClaimStatus"
-
-opaque map_PodExtendedResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodIP [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodIP"
-
-opaque map_PodIP.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodList"
-
-opaque map_PodList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodLogOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodLogOptions"
-
-opaque map_PodLogOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodOS [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodOS"
-
-opaque map_PodOS.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodPortForwardOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodPortForwardOptions"
-
-opaque map_PodPortForwardOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodProxyOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodProxyOptions"
-
-opaque map_PodProxyOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodReadinessGate [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodReadinessGate"
-
-opaque map_PodReadinessGate.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodResourceClaim [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodResourceClaim"
-
-opaque map_PodResourceClaim.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodResourceClaimStatus"
-
-opaque map_PodResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodSchedulingGate [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodSchedulingGate"
-
-opaque map_PodSchedulingGate.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodSchedulingGroup [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodSchedulingGroup"
-
-opaque map_PodSchedulingGroup.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodSecurityContext [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodSecurityContext"
-
-opaque map_PodSecurityContext.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodSignature [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodSignature"
-
-opaque map_PodSignature.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodSpec"
-
-opaque map_PodSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodStatus"
-
-opaque map_PodStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodTemplate [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodTemplate"
-
-opaque map_PodTemplate.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodTemplateList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodTemplateList"
-
-opaque map_PodTemplateList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodTemplateSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodTemplateSpec"
-
-opaque map_PodTemplateSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PodVolumeHealth [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PodVolumeHealth"
-
-opaque map_PodVolumeHealth.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PortStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PortStatus"
-
-opaque map_PortStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PortworxVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PortworxVolumeSource"
-
-opaque map_PortworxVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Preconditions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Preconditions"
-
-opaque map_Preconditions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PreferAvoidPodsEntry [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PreferAvoidPodsEntry"
-
-opaque map_PreferAvoidPodsEntry.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PreferredSchedulingTerm [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_PreferredSchedulingTerm"
-
-opaque map_PreferredSchedulingTerm.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Probe [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Probe"
-
-opaque map_Probe.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ProbeHandler [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ProbeHandler"
-
-opaque map_ProbeHandler.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ProjectedVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ProjectedVolumeSource"
-
-opaque map_ProjectedVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_QuobyteVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_QuobyteVolumeSource"
-
-opaque map_QuobyteVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_RBDPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_RBDPersistentVolumeSource"
-
-opaque map_RBDPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_RBDVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_RBDVolumeSource"
-
-opaque map_RBDVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_RangeAllocation [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_RangeAllocation"
-
-opaque map_RangeAllocation.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicationController [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ReplicationController"
-
-opaque map_ReplicationController.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicationControllerCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ReplicationControllerCondition"
-
-opaque map_ReplicationControllerCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicationControllerList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ReplicationControllerList"
-
-opaque map_ReplicationControllerList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicationControllerSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ReplicationControllerSpec"
-
-opaque map_ReplicationControllerSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ReplicationControllerStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ReplicationControllerStatus"
-
-opaque map_ReplicationControllerStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ResourceClaim [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ResourceClaim"
-
-opaque map_ResourceClaim.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ResourceFieldSelector [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ResourceFieldSelector"
-
-opaque map_ResourceFieldSelector.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ResourceHealth [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ResourceHealth"
-
-opaque map_ResourceHealth.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ResourceQuota [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ResourceQuota"
-
-opaque map_ResourceQuota.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ResourceQuotaList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ResourceQuotaList"
-
-opaque map_ResourceQuotaList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ResourceQuotaSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ResourceQuotaSpec"
-
-opaque map_ResourceQuotaSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ResourceQuotaStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ResourceQuotaStatus"
-
-opaque map_ResourceQuotaStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ResourceRequirements [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ResourceRequirements"
-
-opaque map_ResourceRequirements.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ResourceStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ResourceStatus"
-
-opaque map_ResourceStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SELinuxOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SELinuxOptions"
-
-opaque map_SELinuxOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ScaleIOPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ScaleIOPersistentVolumeSource"
-
-opaque map_ScaleIOPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ScaleIOVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ScaleIOVolumeSource"
-
-opaque map_ScaleIOVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ScopeSelector [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ScopeSelector"
-
-opaque map_ScopeSelector.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ScopedResourceSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ScopedResourceSelectorRequirement"
-
-opaque map_ScopedResourceSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SeccompProfile [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SeccompProfile"
-
-opaque map_SeccompProfile.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Secret [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Secret"
-
-opaque map_Secret.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SecretEnvSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SecretEnvSource"
-
-opaque map_SecretEnvSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SecretKeySelector [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SecretKeySelector"
-
-opaque map_SecretKeySelector.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SecretList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SecretList"
-
-opaque map_SecretList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SecretProjection [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SecretProjection"
-
-opaque map_SecretProjection.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SecretReference [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SecretReference"
-
-opaque map_SecretReference.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SecretVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SecretVolumeSource"
-
-opaque map_SecretVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SecurityContext [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SecurityContext"
-
-opaque map_SecurityContext.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SerializedReference [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SerializedReference"
-
-opaque map_SerializedReference.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Service [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Service"
-
-opaque map_Service.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ServiceAccount [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ServiceAccount"
-
-opaque map_ServiceAccount.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ServiceAccountList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ServiceAccountList"
-
-opaque map_ServiceAccountList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ServiceAccountTokenProjection [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ServiceAccountTokenProjection"
-
-opaque map_ServiceAccountTokenProjection.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ServiceList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ServiceList"
-
-opaque map_ServiceList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ServicePort [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ServicePort"
-
-opaque map_ServicePort.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ServiceProxyOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ServiceProxyOptions"
-
-opaque map_ServiceProxyOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ServiceSpec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ServiceSpec"
-
-opaque map_ServiceSpec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ServiceStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_ServiceStatus"
-
-opaque map_ServiceStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SessionAffinityConfig [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SessionAffinityConfig"
-
-opaque map_SessionAffinityConfig.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_SleepAction [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_SleepAction"
-
-opaque map_SleepAction.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StorageOSPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_StorageOSPersistentVolumeSource"
-
-opaque map_StorageOSPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StorageOSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_StorageOSVolumeSource"
-
-opaque map_StorageOSVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Sysctl [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Sysctl"
-
-opaque map_Sysctl.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TCPSocketAction [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_TCPSocketAction"
-
-opaque map_TCPSocketAction.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Taint [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Taint"
-
-opaque map_Taint.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Toleration [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Toleration"
-
-opaque map_Toleration.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TopologySelectorLabelRequirement [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_TopologySelectorLabelRequirement"
-
-opaque map_TopologySelectorLabelRequirement.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TopologySelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_TopologySelectorTerm"
-
-opaque map_TopologySelectorTerm.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TopologySpreadConstraint [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_TopologySpreadConstraint"
-
-opaque map_TopologySpreadConstraint.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TypedLocalObjectReference [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_TypedLocalObjectReference"
-
-opaque map_TypedLocalObjectReference.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TypedObjectReference [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_TypedObjectReference"
-
-opaque map_TypedObjectReference.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Volume [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_Volume"
-
-opaque map_Volume.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeDevice [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeDevice"
-
-opaque map_VolumeDevice.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeHealthCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeHealthCondition"
-
-opaque map_VolumeHealthCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeHealthStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeHealthStatus"
-
-opaque map_VolumeHealthStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeMount [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeMount"
-
-opaque map_VolumeMount.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeMountStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeMountStatus"
-
-opaque map_VolumeMountStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeNodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeNodeAffinity"
-
-opaque map_VolumeNodeAffinity.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeProjection [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeProjection"
-
-opaque map_VolumeProjection.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeResourceRequirements [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeResourceRequirements"
-
-opaque map_VolumeResourceRequirements.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeSource"
-
-opaque map_VolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VolumeStatus"
-
-opaque map_VolumeStatus.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_VsphereVirtualDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_VsphereVirtualDiskVolumeSource"
-
-opaque map_VsphereVirtualDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_WeightedPodAffinityTerm [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_WeightedPodAffinityTerm"
-
-opaque map_WeightedPodAffinityTerm.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_WindowsSecurityContextOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/api/core/v1.map_WindowsSecurityContextOptions"
-
-opaque map_WindowsSecurityContextOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.encodeVarintGenerated"
@@ -11460,10 +10205,1273 @@ noncomputable def WindowsSecurityContextOptions.DeepCopyInto.impl [GooseExts] [G
   (App (Val (GoInstruction (GoStore WindowsSecurityContextOptions.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WindowsSecurityContextOptions.ty)))) (Var "out")) (Var "$r0")))))))))
   (Val #()))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `ErrInvalidLengthGenerated` (`var ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrIntOverflowGenerated` (`var ErrIntOverflowGenerated = fmt.Errorf("proto: integer overflow")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrUnexpectedEndOfGroupGenerated` (`var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf("proto: unexpected end of group")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `SchemeBuilder` (`var // We only register manually written functions here. The registration of the // generated functions takes place in t … [sha256:4d2af51b22f0253a]`): Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewSchemeBuilder` allocates a slice of the given functions (it calls none). So it
+terminates, cannot panic and has no effect beyond its variable.
+- `AddToScheme` (`var AddToScheme = SchemeBuilder.AddToScheme`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@types.go:5663` (`var _ = Container(EphemeralContainerCommon{})`): A conversion check: `EphemeralContainerCommon{}` converted to `Container`. No call, no panic, no
+effect.
+- `map_AWSElasticBlockStoreVolumeSource` (`var map_AWSElasticBlockStoreVolumeSource = map[string]string{ "": "Represents a Persistent Disk resource in AWS.\n\nAn A … [sha256:933474bd44794896]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Affinity` (`var map_Affinity = map[string]string{ "": "Affinity is a group of affinity scheduling rules.", "nodeAffinity": "nodeAffi … [sha256:991adbe141d58326]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_AppArmorProfile` (`var map_AppArmorProfile = map[string]string{ "": "AppArmorProfile defines a pod or container's AppArmor settings.", "typ … [sha256:df0547fe71a36058]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_AttachedVolume` (`var map_AttachedVolume = map[string]string{ "": "AttachedVolume describes a volume attached to a node", "name": "name of … [sha256:2e5d8f86d4d25ced]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_AvoidPods` (`var map_AvoidPods = map[string]string{ "": "AvoidPods describes pods that should avoid this node. This is the value for  … [sha256:fa50d769b44d1222]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_AzureDiskVolumeSource` (`var map_AzureDiskVolumeSource = map[string]string{ "": "AzureDisk represents an Azure Data Disk mount on the host and bi … [sha256:2e1f8e82f347d60a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_AzureFilePersistentVolumeSource` (`var map_AzureFilePersistentVolumeSource = map[string]string{ "": "AzureFile represents an Azure File Service mount on th … [sha256:0031d558761eb531]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_AzureFileVolumeSource` (`var map_AzureFileVolumeSource = map[string]string{ "": "AzureFile represents an Azure File Service mount on the host and … [sha256:4a85b258686a1581]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Binding` (`var map_Binding = map[string]string{ "": "Binding ties one object to another; for example, a pod is bound to a node by a … [sha256:91b2b1dcfaf9fa2e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_CSIPersistentVolumeSource` (`var map_CSIPersistentVolumeSource = map[string]string{ "": "Represents storage that is managed by an external CSI volume … [sha256:e482982798181f26]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_CSIVolumeSource` (`var map_CSIVolumeSource = map[string]string{ "": "Represents a source location of a volume to mount, managed by an exter … [sha256:571dc9663c93f99f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Capabilities` (`var map_Capabilities = map[string]string{ "": "Adds and removes POSIX capabilities from running containers.", "add": "ad … [sha256:b1d00d68483e0b72]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_CephFSPersistentVolumeSource` (`var map_CephFSPersistentVolumeSource = map[string]string{ "": "Represents a Ceph Filesystem mount that lasts the lifetim … [sha256:15aa9c361c2b74ee]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_CephFSVolumeSource` (`var map_CephFSVolumeSource = map[string]string{ "": "Represents a Ceph Filesystem mount that lasts the lifetime of a pod … [sha256:c81d24b0f0d59c56]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_CinderPersistentVolumeSource` (`var map_CinderPersistentVolumeSource = map[string]string{ "": "Represents a cinder volume resource in Openstack. A Cinde … [sha256:ebed3bb160c9da63]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_CinderVolumeSource` (`var map_CinderVolumeSource = map[string]string{ "": "Represents a cinder volume resource in Openstack. A Cinder volume m … [sha256:054108a569e9dcf6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ClientIPConfig` (`var map_ClientIPConfig = map[string]string{ "": "ClientIPConfig represents the configurations of Client IP based session … [sha256:acc12211f6f8a19a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ClusterTrustBundleProjection` (`var map_ClusterTrustBundleProjection = map[string]string{ "": "ClusterTrustBundleProjection describes how to select a se … [sha256:afe98695ddec0397]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ComponentCondition` (`var map_ComponentCondition = map[string]string{ "": "Information about the condition of a component.", "type": "type of  … [sha256:b85231fa1a1db335]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ComponentStatus` (`var map_ComponentStatus = map[string]string{ "": "ComponentStatus (and ComponentStatusList) holds the cluster validation … [sha256:c0acfe3ca1e26bc6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ComponentStatusList` (`var map_ComponentStatusList = map[string]string{ "": "Status of all the conditions for the component as a list of Compon … [sha256:a86cd08b6a9d877e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ConfigMap` (`var map_ConfigMap = map[string]string{ "": "ConfigMap holds configuration data for pods to consume.", "metadata": "metad … [sha256:d693118e80f93607]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ConfigMapEnvSource` (`var map_ConfigMapEnvSource = map[string]string{ "": "ConfigMapEnvSource selects a ConfigMap to populate the environment  … [sha256:8afabde0add82fc4]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ConfigMapKeySelector` (`var map_ConfigMapKeySelector = map[string]string{ "": "Selects a key from a ConfigMap.", "key": "key is the key to selec … [sha256:c718c5935b8fd207]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ConfigMapList` (`var map_ConfigMapList = map[string]string{ "": "ConfigMapList is a resource containing a list of ConfigMap objects.", "m … [sha256:c149f3d1867b4c30]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ConfigMapNodeConfigSource` (`var map_ConfigMapNodeConfigSource = map[string]string{ "": "ConfigMapNodeConfigSource contains the information to refere … [sha256:1dab0c5a722f3568]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ConfigMapProjection` (`var map_ConfigMapProjection = map[string]string{ "": "Adapts a ConfigMap into a projected volume.\n\nThe contents of the … [sha256:486eb2074b4a6a04]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ConfigMapVolumeSource` (`var map_ConfigMapVolumeSource = map[string]string{ "": "Adapts a ConfigMap into a volume.\n\nThe contents of the target  … [sha256:41751ea0e034a661]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Container` (`var map_Container = map[string]string{ "": "A single application container that you want to run within a pod.", "name":  … [sha256:616826a9e9f38520]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerExtendedResourceRequest` (`var map_ContainerExtendedResourceRequest = map[string]string{ "": "ContainerExtendedResourceRequest has the mapping of c … [sha256:53067133f1abc416]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerImage` (`var map_ContainerImage = map[string]string{ "": "Describe a container image", "names": "names by which this image is kno … [sha256:fa902de6ff2dbf9e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerPort` (`var map_ContainerPort = map[string]string{ "": "ContainerPort represents a network port in a single container.", "name": … [sha256:a1fa4ffed2dbc729]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerResizePolicy` (`var map_ContainerResizePolicy = map[string]string{ "": "ContainerResizePolicy represents resource resize policy for the  … [sha256:a43f63012bd2efcd]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerRestartRule` (`var map_ContainerRestartRule = map[string]string{ "": "ContainerRestartRule describes how a container exit is handled.", … [sha256:aabbafc682ed4936]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerRestartRuleOnExitCodes` (`var map_ContainerRestartRuleOnExitCodes = map[string]string{ "": "ContainerRestartRuleOnExitCodes describes the conditio … [sha256:f15afb3a689f2d57]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerState` (`var map_ContainerState = map[string]string{ "": "ContainerState holds a possible state of container. Only one of its mem … [sha256:a4b06eadd5a8ddbf]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerStateRunning` (`var map_ContainerStateRunning = map[string]string{ "": "ContainerStateRunning is a running state of a container.", "star … [sha256:63a3c7d61aacd5d2]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerStateTerminated` (`var map_ContainerStateTerminated = map[string]string{ "": "ContainerStateTerminated is a terminated state of a container … [sha256:c7052ab0e3437562]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerStateWaiting` (`var map_ContainerStateWaiting = map[string]string{ "": "ContainerStateWaiting is a waiting state of a container.", "reas … [sha256:af0be103357b66ae]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerStatus` (`var map_ContainerStatus = map[string]string{ "": "ContainerStatus contains details for the current status of this contai … [sha256:bf118fd2dc2bde7d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ContainerUser` (`var map_ContainerUser = map[string]string{ "": "ContainerUser represents user identity information", "linux": "linux hol … [sha256:8c4d8d4ea2a6da16]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DaemonEndpoint` (`var map_DaemonEndpoint = map[string]string{ "": "DaemonEndpoint contains information about a single Daemon endpoint.", " … [sha256:91d88fcde42ee56e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DownwardAPIProjection` (`var map_DownwardAPIProjection = map[string]string{ "": "Represents downward API info for projecting into a projected vol … [sha256:76da83089d59f6fe]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DownwardAPIVolumeFile` (`var map_DownwardAPIVolumeFile = map[string]string{ "": "DownwardAPIVolumeFile represents information to create the file  … [sha256:bce1c154c84d30a0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DownwardAPIVolumeSource` (`var map_DownwardAPIVolumeSource = map[string]string{ "": "DownwardAPIVolumeSource represents a volume containing downwar … [sha256:81c11de8c97793ab]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EmptyDirVolumeSource` (`var map_EmptyDirVolumeSource = map[string]string{ "": "Represents an empty directory for a pod. Empty directory volumes  … [sha256:9a621a2a64cff1ad]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EndpointAddress` (`var map_EndpointAddress = map[string]string{ "": "EndpointAddress is a tuple that describes single IP address.", "ip": " … [sha256:691e5192997623b8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EndpointPort` (`var map_EndpointPort = map[string]string{ "": "EndpointPort is a tuple that describes a single port.", "name": "The name … [sha256:e9a0f9430d5e6d99]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EndpointSubset` (`var map_EndpointSubset = map[string]string{ "": "EndpointSubset is a group of addresses with a common set of ports. The  … [sha256:e28d15f9f8d29b54]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Endpoints` (`var map_Endpoints = map[string]string{ "": "Endpoints is a collection of endpoints that implement the actual service. Ex … [sha256:dc9c8590ddc9de01]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EndpointsList` (`var map_EndpointsList = map[string]string{ "": "EndpointsList is a list of endpoints.", "metadata": "Standard list metad … [sha256:0999b16a7ff7e73c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EnvFromSource` (`var map_EnvFromSource = map[string]string{ "": "EnvFromSource represents the source of a set of ConfigMaps or Secrets",  … [sha256:1a380d5a25458fdc]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EnvVar` (`var map_EnvVar = map[string]string{ "": "EnvVar represents an environment variable present in a Container.", "name": "na … [sha256:d06db882ba6b97d2]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EnvVarSource` (`var map_EnvVarSource = map[string]string{ "": "EnvVarSource represents a source for the value of an EnvVar.", "fieldRef" … [sha256:5e237c665e4b8ce8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EphemeralContainer` (`var map_EphemeralContainer = map[string]string{ "": "An EphemeralContainer is a temporary container that you may add to  … [sha256:4e88c68f4067bdaa]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EphemeralContainerCommon` (`var map_EphemeralContainerCommon = map[string]string{ "": "EphemeralContainerCommon is a copy of all fields in Container … [sha256:c13be5a7785e2ba1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EphemeralVolumeSource` (`var map_EphemeralVolumeSource = map[string]string{ "": "Represents an ephemeral volume that is handled by a normal stora … [sha256:dbb97bba741c6f4f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Event` (`var map_Event = map[string]string{ "": "Event is a report of an event somewhere in the cluster. Events have a limited re … [sha256:7903675984bfd665]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EventList` (`var map_EventList = map[string]string{ "": "EventList is a list of events.", "metadata": "Standard list metadata. More i … [sha256:99db8e0dd5a1ee79]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EventSeries` (`var map_EventSeries = map[string]string{ "": "EventSeries contain information on series of events, i.e. thing that was/i … [sha256:f9e7afc0fc6c2fe6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EventSource` (`var map_EventSource = map[string]string{ "": "EventSource contains information for an event.", "component": "component f … [sha256:c13ce7fd3fc846fb]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_EvictionResponder` (`var map_EvictionResponder = map[string]string{ "": "EvictionResponder allows you to specify the responder reacting to an … [sha256:0115719a7ba6e32f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ExecAction` (`var map_ExecAction = map[string]string{ "": "ExecAction describes a \"run in container\" action.", "command": "command i … [sha256:b653b9b346ad4b9b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_FCVolumeSource` (`var map_FCVolumeSource = map[string]string{ "": "Represents a Fibre Channel volume. Fibre Channel volumes can only be mo … [sha256:fed204b9ea83128e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_FileKeySelector` (`var map_FileKeySelector = map[string]string{ "": "FileKeySelector selects a key of the env file.", "volumeName": "volume … [sha256:2a5d90788e869a25]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_FlexPersistentVolumeSource` (`var map_FlexPersistentVolumeSource = map[string]string{ "": "FlexPersistentVolumeSource represents a generic persistent  … [sha256:65e7bd59868f3975]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_FlexVolumeSource` (`var map_FlexVolumeSource = map[string]string{ "": "FlexVolume represents a generic volume resource that is provisioned/a … [sha256:c08d8c62ea2f06bd]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_FlockerVolumeSource` (`var map_FlockerVolumeSource = map[string]string{ "": "Represents a Flocker volume mounted by the Flocker agent. One and  … [sha256:56d61a2260e01e9d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_GCEPersistentDiskVolumeSource` (`var map_GCEPersistentDiskVolumeSource = map[string]string{ "": "Represents a Persistent Disk resource in Google Compute  … [sha256:655f59d002e571ed]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_GRPCAction` (`var map_GRPCAction = map[string]string{ "": "GRPCAction specifies an action involving a GRPC service.", "port": "port is … [sha256:c2dbb404027bc42f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_GitRepoVolumeSource` (`var map_GitRepoVolumeSource = map[string]string{ "": "Represents a volume that is populated with the contents of a git r … [sha256:9d6e74cece9a43d6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_GlusterfsPersistentVolumeSource` (`var map_GlusterfsPersistentVolumeSource = map[string]string{ "": "Represents a Glusterfs mount that lasts the lifetime o … [sha256:03967c0c90fe6c5a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_GlusterfsVolumeSource` (`var map_GlusterfsVolumeSource = map[string]string{ "": "Represents a Glusterfs mount that lasts the lifetime of a pod. G … [sha256:cf89ff9618e9bd95]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_HTTPGetAction` (`var map_HTTPGetAction = map[string]string{ "": "HTTPGetAction describes an action based on HTTP Get requests.", "path":  … [sha256:47f46903b4c195b3]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_HTTPHeader` (`var map_HTTPHeader = map[string]string{ "": "HTTPHeader describes a custom header to be used in HTTP probes", "name": "n … [sha256:dd87212fc262a7f4]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_HostAlias` (`var map_HostAlias = map[string]string{ "": "HostAlias holds the mapping between IP and hostnames that will be injected a … [sha256:5017e74f22627d92]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_HostIP` (`var map_HostIP = map[string]string{ "": "HostIP represents a single IP address allocated to the host.", "ip": "ip is the … [sha256:b549312ba3a2b89e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_HostPathVolumeSource` (`var map_HostPathVolumeSource = map[string]string{ "": "Represents a host path mapped into a pod. Host path volumes do no … [sha256:a18cf02e2a304077]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ISCSIPersistentVolumeSource` (`var map_ISCSIPersistentVolumeSource = map[string]string{ "": "ISCSIPersistentVolumeSource represents an ISCSI disk. ISCS … [sha256:9ae4e4b18f7626f7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ISCSIVolumeSource` (`var map_ISCSIVolumeSource = map[string]string{ "": "Represents an ISCSI disk. ISCSI volumes can only be mounted as read/ … [sha256:125ce477fb47da5b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ImageVolumeSource` (`var map_ImageVolumeSource = map[string]string{ "": "ImageVolumeSource represents a image volume resource.", "reference": … [sha256:935944682b7a3eb7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ImageVolumeStatus` (`var map_ImageVolumeStatus = map[string]string{ "": "ImageVolumeStatus represents the image-based volume status.", "image … [sha256:5367b209c2f94b16]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_KeyToPath` (`var map_KeyToPath = map[string]string{ "": "Maps a string key to a path within a volume.", "key": "key is the key to pro … [sha256:4cb803f42ad2fdf2]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Lifecycle` (`var map_Lifecycle = map[string]string{ "": "Lifecycle describes actions that the management system should take in respon … [sha256:08a3303cb0c46589]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LifecycleHandler` (`var map_LifecycleHandler = map[string]string{ "": "LifecycleHandler defines a specific action that should be taken in a  … [sha256:da7b1c39dacbb48e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LimitRange` (`var map_LimitRange = map[string]string{ "": "LimitRange sets resource usage limits for each kind of resource in a Namesp … [sha256:dc5777b7d973be4b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LimitRangeItem` (`var map_LimitRangeItem = map[string]string{ "": "LimitRangeItem defines a min/max usage limit for any resource that matc … [sha256:78a46815c104b066]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LimitRangeList` (`var map_LimitRangeList = map[string]string{ "": "LimitRangeList is a list of LimitRange items.", "metadata": "Standard l … [sha256:202b5c68c7c10781]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LimitRangeSpec` (`var map_LimitRangeSpec = map[string]string{ "": "LimitRangeSpec defines a min/max usage limit for resources that match o … [sha256:f99dad65e7d69f6d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LinuxContainerUser` (`var map_LinuxContainerUser = map[string]string{ "": "LinuxContainerUser represents user identity information in Linux co … [sha256:8ad0a21b98c687d1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LoadBalancerIngress` (`var map_LoadBalancerIngress = map[string]string{ "": "LoadBalancerIngress represents the status of a load-balancer ingre … [sha256:f749b9290db38ad6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LoadBalancerStatus` (`var map_LoadBalancerStatus = map[string]string{ "": "LoadBalancerStatus represents the status of a load-balancer.", "ing … [sha256:379e2f3bb9ff287f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LocalObjectReference` (`var map_LocalObjectReference = map[string]string{ "": "LocalObjectReference contains enough information to let you locat … [sha256:41a384f7ad7ca2f1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LocalVolumeSource` (`var map_LocalVolumeSource = map[string]string{ "": "Local represents directly-attached storage with node affinity", "pat … [sha256:091850ae8d63439b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ModifyVolumeStatus` (`var map_ModifyVolumeStatus = map[string]string{ "": "ModifyVolumeStatus represents the status object of ControllerModify … [sha256:13be84740c7b84bf]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NFSVolumeSource` (`var map_NFSVolumeSource = map[string]string{ "": "Represents an NFS mount that lasts the lifetime of a pod. NFS volumes  … [sha256:1fcc3bd36c80a0a6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Namespace` (`var map_Namespace = map[string]string{ "": "Namespace provides a scope for Names. Use of multiple namespaces is optional … [sha256:d923040f7f1b54b0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NamespaceCondition` (`var map_NamespaceCondition = map[string]string{ "": "NamespaceCondition contains details about state of namespace.", "ty … [sha256:fda3c4b874103443]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NamespaceList` (`var map_NamespaceList = map[string]string{ "": "NamespaceList is a list of Namespaces.", "metadata": "Standard list meta … [sha256:fd1f06d6a686eb8c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NamespaceSpec` (`var map_NamespaceSpec = map[string]string{ "": "NamespaceSpec describes the attributes on a Namespace.", "finalizers": " … [sha256:cf7cdb65ae402da6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NamespaceStatus` (`var map_NamespaceStatus = map[string]string{ "": "NamespaceStatus is information about the current status of a Namespace … [sha256:dda5c1dcce218e39]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Node` (`var map_Node = map[string]string{ "": "Node is a worker node in Kubernetes. Each node will have a unique identifier in t … [sha256:00e57b9cfe58ad90]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeAddress` (`var map_NodeAddress = map[string]string{ "": "NodeAddress contains information for the node's address.", "type": "type i … [sha256:b89c624fc8807d93]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeAffinity` (`var map_NodeAffinity = map[string]string{ "": "Node affinity is a group of node affinity scheduling rules.", "requiredDu … [sha256:adf770b5d83fc915]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeAllocatableMappedResources` (`var map_NodeAllocatableMappedResources = map[string]string{ "": "NodeAllocatableMappedResources describes mapped node al … [sha256:1dcbe82ab523d913]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeAllocatableOverheadResources` (`var map_NodeAllocatableOverheadResources = map[string]string{ "": "NodeAllocatableOverheadResources describes auxiliary  … [sha256:50298b54aada4dd3]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeAllocatableResourceClaimStatus` (`var map_NodeAllocatableResourceClaimStatus = map[string]string{ "": "NodeAllocatableResourceClaimStatus describes the st … [sha256:6fc29637a5c5194a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeCondition` (`var map_NodeCondition = map[string]string{ "": "NodeCondition contains condition information for a node.", "type": "type … [sha256:7ebe0b49fa718b52]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeConfigSource` (`var map_NodeConfigSource = map[string]string{ "": "NodeConfigSource specifies a source of node configuration. Exactly on … [sha256:2ee06231e74726e7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeConfigStatus` (`var map_NodeConfigStatus = map[string]string{ "": "NodeConfigStatus describes the status of the config assigned by Node. … [sha256:b2dc91ee7bc514b3]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeDaemonEndpoints` (`var map_NodeDaemonEndpoints = map[string]string{ "": "NodeDaemonEndpoints lists ports opened by daemons running on the N … [sha256:7bbabe33d721c8c8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeFeatures` (`var map_NodeFeatures = map[string]string{ "": "NodeFeatures describes the set of features implemented by the CRI impleme … [sha256:bb71d8241ef7c007]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeList` (`var map_NodeList = map[string]string{ "": "NodeList is the whole list of all Nodes which have been registered with maste … [sha256:60c042b15605c808]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodePodPreemptionPolicy` (`var map_NodePodPreemptionPolicy = map[string]string{ "": "NodePodPreemptionPolicy defines the node-level policies govern … [sha256:9542a5240184b292]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeProxyOptions` (`var map_NodeProxyOptions = map[string]string{ "": "NodeProxyOptions is the query options to a Node's proxy call.", "path … [sha256:8662da75f5bb3c49]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeRuntimeHandler` (`var map_NodeRuntimeHandler = map[string]string{ "": "NodeRuntimeHandler is a set of runtime handler information.", "name … [sha256:f574058e5d167ee4]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeRuntimeHandlerFeatures` (`var map_NodeRuntimeHandlerFeatures = map[string]string{ "": "NodeRuntimeHandlerFeatures is a set of features implemented … [sha256:d03a88d9ad87c3f1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeSelector` (`var map_NodeSelector = map[string]string{ "": "A node selector represents the union of the results of one or more label  … [sha256:9b40c4b6fec37ccb]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeSelectorRequirement` (`var map_NodeSelectorRequirement = map[string]string{ "": "A node selector requirement is a selector that contains values … [sha256:9f1f3db4d576dd00]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeSelectorTerm` (`var map_NodeSelectorTerm = map[string]string{ "": "A null or empty node selector term matches no objects. The requiremen … [sha256:749886b7ed706048]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeSpec` (`var map_NodeSpec = map[string]string{ "": "NodeSpec describes the attributes that a node is created with.", "podCIDR": " … [sha256:5c51214970e1d4c8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeStatus` (`var map_NodeStatus = map[string]string{ "": "NodeStatus is information about the current status of a node.", "capacity": … [sha256:018e57b8aa7b6e6f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeSwapStatus` (`var map_NodeSwapStatus = map[string]string{ "": "NodeSwapStatus represents swap memory information.", "capacity": "capac … [sha256:a9ffa421a2aaee14]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_NodeSystemInfo` (`var map_NodeSystemInfo = map[string]string{ "": "NodeSystemInfo is a set of ids/uuids to uniquely identify the node.", " … [sha256:d66a02dbbf20a2fb]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ObjectFieldSelector` (`var map_ObjectFieldSelector = map[string]string{ "": "ObjectFieldSelector selects an APIVersioned field of an object.",  … [sha256:3ad25f5771e84f1f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ObjectReference` (`var map_ObjectReference = map[string]string{ "": "ObjectReference contains enough information to let you inspect or modi … [sha256:d45da5fe9bd3cf7e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolume` (`var map_PersistentVolume = map[string]string{ "": "PersistentVolume (PV) is a storage resource provisioned by an adminis … [sha256:4b5daf1688969c54]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeClaim` (`var map_PersistentVolumeClaim = map[string]string{ "": "PersistentVolumeClaim is a user's request for and claim to a per … [sha256:f8765c171db49a57]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeClaimCondition` (`var map_PersistentVolumeClaimCondition = map[string]string{ "": "PersistentVolumeClaimCondition contains details about s … [sha256:7e71b743b96fb24e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeClaimList` (`var map_PersistentVolumeClaimList = map[string]string{ "": "PersistentVolumeClaimList is a list of PersistentVolumeClaim … [sha256:1ce11227f6c7e87f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeClaimSpec` (`var map_PersistentVolumeClaimSpec = map[string]string{ "": "PersistentVolumeClaimSpec describes the common attributes of … [sha256:4f04def977a4a277]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeClaimStatus` (`var map_PersistentVolumeClaimStatus = map[string]string{ "": "PersistentVolumeClaimStatus is the current status of a per … [sha256:2114609333ff1953]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeClaimTemplate` (`var map_PersistentVolumeClaimTemplate = map[string]string{ "": "PersistentVolumeClaimTemplate is used to produce Persist … [sha256:7e599fb7da571472]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeClaimVolumeSource` (`var map_PersistentVolumeClaimVolumeSource = map[string]string{ "": "PersistentVolumeClaimVolumeSource references the use … [sha256:d580fff6aab234e3]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeList` (`var map_PersistentVolumeList = map[string]string{ "": "PersistentVolumeList is a list of PersistentVolume items.", "meta … [sha256:59f0d0b1eead1e41]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeSource` (`var map_PersistentVolumeSource = map[string]string{ "": "PersistentVolumeSource is similar to VolumeSource but meant for … [sha256:7614966c2ed07602]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeSpec` (`var map_PersistentVolumeSpec = map[string]string{ "": "PersistentVolumeSpec is the specification of a persistent volume. … [sha256:9d710011a4ded1d0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PersistentVolumeStatus` (`var map_PersistentVolumeStatus = map[string]string{ "": "PersistentVolumeStatus is the current status of a persistent vo … [sha256:4a44c4a179d6011d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PhotonPersistentDiskVolumeSource` (`var map_PhotonPersistentDiskVolumeSource = map[string]string{ "": "Represents a Photon Controller persistent disk resour … [sha256:28d8ce7ab9f96be9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Pod` (`var map_Pod = map[string]string{ "": "Pod is a collection of containers that can run on a host. This resource is created … [sha256:9b25deb1685959ea]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodAffinity` (`var map_PodAffinity = map[string]string{ "": "Pod affinity is a group of inter pod affinity scheduling rules.", "require … [sha256:b2c326a8d51312b4]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodAffinityTerm` (`var map_PodAffinityTerm = map[string]string{ "": "Defines a set of pods (namely those matching the labelSelector relativ … [sha256:7a4848b7fc150a42]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodAntiAffinity` (`var map_PodAntiAffinity = map[string]string{ "": "Pod anti affinity is a group of inter pod anti affinity scheduling rul … [sha256:638726609c5ca1b5]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodAttachOptions` (`var map_PodAttachOptions = map[string]string{ "": "PodAttachOptions is the query options to a Pod's remote attach call." … [sha256:02035be2b8ff19ce]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodCertificateProjection` (`var map_PodCertificateProjection = map[string]string{ "": "PodCertificateProjection provides a private key and X.509 cer … [sha256:c7cef1af848df228]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodCondition` (`var map_PodCondition = map[string]string{ "": "PodCondition contains details for the current condition of this pod.", "t … [sha256:dd72ec14bc7a68ce]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodDNSConfig` (`var map_PodDNSConfig = map[string]string{ "": "PodDNSConfig defines the DNS parameters of a pod in addition to those gen … [sha256:a52ba67279c50951]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodDNSConfigOption` (`var map_PodDNSConfigOption = map[string]string{ "": "PodDNSConfigOption defines DNS resolver options of a pod.", "name": … [sha256:9fb39c1954cf5f2f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodExecOptions` (`var map_PodExecOptions = map[string]string{ "": "PodExecOptions is the query options to a Pod's remote exec call.", "std … [sha256:f4e9737efc994658]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodExtendedResourceClaimStatus` (`var map_PodExtendedResourceClaimStatus = map[string]string{ "": "PodExtendedResourceClaimStatus is stored in the PodStat … [sha256:c70d3c2554c38b75]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodIP` (`var map_PodIP = map[string]string{ "": "PodIP represents a single IP address allocated to the pod.", "ip": "ip is the IP … [sha256:fb0101bbf0389cd1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodList` (`var map_PodList = map[string]string{ "": "PodList is a list of Pods.", "metadata": "Standard list metadata. More info: h … [sha256:4d7a6bfd882525a4]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodLogOptions` (`var map_PodLogOptions = map[string]string{ "": "PodLogOptions is the query options for a Pod's logs REST call.", "contai … [sha256:f35f26c2867efb90]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodOS` (`var map_PodOS = map[string]string{ "": "PodOS defines the OS parameters of a pod.", "name": "name is the name of the ope … [sha256:acc90835ec4018aa]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodPortForwardOptions` (`var map_PodPortForwardOptions = map[string]string{ "": "PodPortForwardOptions is the query options to a Pod's port forwa … [sha256:dcf804e87d46a636]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodProxyOptions` (`var map_PodProxyOptions = map[string]string{ "": "PodProxyOptions is the query options to a Pod's proxy call.", "path":  … [sha256:3d5c76c04d22ce73]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodReadinessGate` (`var map_PodReadinessGate = map[string]string{ "": "PodReadinessGate contains the reference to a pod condition", "conditi … [sha256:951400c99238c7e3]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodResourceClaim` (`var map_PodResourceClaim = map[string]string{ "": "PodResourceClaim references exactly one ResourceClaim, either directl … [sha256:b49c6a617360af29]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodResourceClaimStatus` (`var map_PodResourceClaimStatus = map[string]string{ "": "PodResourceClaimStatus is stored in the PodStatus for each PodR … [sha256:2ab93e6368dc7d6e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodSchedulingGate` (`var map_PodSchedulingGate = map[string]string{ "": "PodSchedulingGate is associated to a Pod to guard its scheduling.",  … [sha256:deececdfe4675478]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodSchedulingGroup` (`var map_PodSchedulingGroup = map[string]string{ "": "PodSchedulingGroup identifies the runtime scheduling group instance … [sha256:c10099975435234e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodSecurityContext` (`var map_PodSecurityContext = map[string]string{ "": "PodSecurityContext holds pod-level security attributes and common c … [sha256:a757c09aa4f36080]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodSignature` (`var map_PodSignature = map[string]string{ "": "Describes the class of pods that should avoid this node. Exactly one fiel … [sha256:0b5eb046628c5ca5]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodSpec` (`var map_PodSpec = map[string]string{ "": "PodSpec is a description of a pod.", "volumes": "volumes is the list of volume … [sha256:742952e7c92c258e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodStatus` (`var map_PodStatus = map[string]string{ "": "PodStatus represents information about the status of a pod. Status may trail … [sha256:8b7de2cabaa5fec4]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodTemplate` (`var map_PodTemplate = map[string]string{ "": "PodTemplate describes a template for creating copies of a predefined pod." … [sha256:aa5e7c150b645d42]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodTemplateList` (`var map_PodTemplateList = map[string]string{ "": "PodTemplateList is a list of PodTemplates.", "metadata": "Standard lis … [sha256:4091ce35be7dfed0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodTemplateSpec` (`var map_PodTemplateSpec = map[string]string{ "": "PodTemplateSpec describes the data a pod should have when created from … [sha256:5265c50ae701603c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PodVolumeHealth` (`var map_PodVolumeHealth = map[string]string{ "": "PodVolumeHealth contains health information for a volume used by a pod … [sha256:188041d865006343]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PortStatus` (`var map_PortStatus = map[string]string{ "": "PortStatus represents the error condition of a service port", "port": "port … [sha256:49b63060ebb783c1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PortworxVolumeSource` (`var map_PortworxVolumeSource = map[string]string{ "": "PortworxVolumeSource represents a Portworx volume resource.", "vo … [sha256:962ef1aa93fe0388]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Preconditions` (`var map_Preconditions = map[string]string{ "": "Preconditions must be fulfilled before an operation (update, delete, etc … [sha256:5308bfeaa84b1963]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PreferAvoidPodsEntry` (`var map_PreferAvoidPodsEntry = map[string]string{ "": "Describes a class of pods that should avoid this node.", "podSign … [sha256:d8db69fe24ebfbcc]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PreferredSchedulingTerm` (`var map_PreferredSchedulingTerm = map[string]string{ "": "An empty preferred scheduling term matches all objects with im … [sha256:abd51a1b1ae376aa]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Probe` (`var map_Probe = map[string]string{ "": "Probe describes a health check to be performed against a container to determine  … [sha256:06410743f9a7b9db]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ProbeHandler` (`var map_ProbeHandler = map[string]string{ "": "ProbeHandler defines a specific action that should be taken in a probe. O … [sha256:df59f29b6f7605d9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ProjectedVolumeSource` (`var map_ProjectedVolumeSource = map[string]string{ "": "Represents a projected volume source", "sources": "sources is th … [sha256:39b7ad1095d22568]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_QuobyteVolumeSource` (`var map_QuobyteVolumeSource = map[string]string{ "": "Represents a Quobyte mount that lasts the lifetime of a pod. Quoby … [sha256:13e863249d7666f8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_RBDPersistentVolumeSource` (`var map_RBDPersistentVolumeSource = map[string]string{ "": "Represents a Rados Block Device mount that lasts the lifetim … [sha256:1d8d34890235a445]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_RBDVolumeSource` (`var map_RBDVolumeSource = map[string]string{ "": "Represents a Rados Block Device mount that lasts the lifetime of a pod … [sha256:8bfcf8137ad0e03b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_RangeAllocation` (`var map_RangeAllocation = map[string]string{ "": "RangeAllocation is not a public type.", "metadata": "metadata is the s … [sha256:02814418d3779209]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicationController` (`var map_ReplicationController = map[string]string{ "": "ReplicationController represents the configuration of a replicat … [sha256:768b3c4e0c528075]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicationControllerCondition` (`var map_ReplicationControllerCondition = map[string]string{ "": "ReplicationControllerCondition describes the state of a … [sha256:ca03f66d43f8815b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicationControllerList` (`var map_ReplicationControllerList = map[string]string{ "": "ReplicationControllerList is a collection of replication con … [sha256:6d22b362518a7d3a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicationControllerSpec` (`var map_ReplicationControllerSpec = map[string]string{ "": "ReplicationControllerSpec is the specification of a replicat … [sha256:8f6c4f6ea6b80d0d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ReplicationControllerStatus` (`var map_ReplicationControllerStatus = map[string]string{ "": "ReplicationControllerStatus represents the current status  … [sha256:29702c8be3fd8758]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ResourceClaim` (`var map_ResourceClaim = map[string]string{ "": "ResourceClaim references one entry in PodSpec.ResourceClaims.", "name":  … [sha256:fea3fe2dea8ee052]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ResourceFieldSelector` (`var map_ResourceFieldSelector = map[string]string{ "": "ResourceFieldSelector represents container resources (cpu, memor … [sha256:4d47b7bdb504c0d7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ResourceHealth` (`var map_ResourceHealth = map[string]string{ "": "ResourceHealth represents the health of a resource. It has the latest d … [sha256:37c7e956739fb303]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ResourceQuota` (`var map_ResourceQuota = map[string]string{ "": "ResourceQuota sets aggregate quota restrictions enforced per namespace", … [sha256:c93e8e285a9a5432]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ResourceQuotaList` (`var map_ResourceQuotaList = map[string]string{ "": "ResourceQuotaList is a list of ResourceQuota items.", "metadata": "S … [sha256:e8f6f02e61206ee4]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ResourceQuotaSpec` (`var map_ResourceQuotaSpec = map[string]string{ "": "ResourceQuotaSpec defines the desired hard limits to enforce for Quo … [sha256:4cda197e62e05f5b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ResourceQuotaStatus` (`var map_ResourceQuotaStatus = map[string]string{ "": "ResourceQuotaStatus defines the enforced hard limits and observed  … [sha256:f4428def63b2dd55]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ResourceRequirements` (`var map_ResourceRequirements = map[string]string{ "": "ResourceRequirements describes the compute resource requirements. … [sha256:61b6c9f4e322d6a7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ResourceStatus` (`var map_ResourceStatus = map[string]string{ "": "ResourceStatus represents the status of a single resource allocated to  … [sha256:f083e7361286ec5a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SELinuxOptions` (`var map_SELinuxOptions = map[string]string{ "": "SELinuxOptions are the labels to be applied to the container", "user":  … [sha256:ff2fb92b7e97417e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ScaleIOPersistentVolumeSource` (`var map_ScaleIOPersistentVolumeSource = map[string]string{ "": "ScaleIOPersistentVolumeSource represents a persistent Sc … [sha256:5f0dba1fb7ed70e8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ScaleIOVolumeSource` (`var map_ScaleIOVolumeSource = map[string]string{ "": "ScaleIOVolumeSource represents a persistent ScaleIO volume", "gate … [sha256:7355843586753e4d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ScopeSelector` (`var map_ScopeSelector = map[string]string{ "": "A scope selector represents the AND of the selectors represented by the  … [sha256:2f01e827d99ced5e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ScopedResourceSelectorRequirement` (`var map_ScopedResourceSelectorRequirement = map[string]string{ "": "A scoped-resource selector requirement is a selector … [sha256:7d8370d30cf16e65]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SeccompProfile` (`var map_SeccompProfile = map[string]string{ "": "SeccompProfile defines a pod/container's seccomp profile settings. Only … [sha256:a50a145f6c54a3e2]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Secret` (`var map_Secret = map[string]string{ "": "Secret holds secret data of a certain type. The total bytes of the values in th … [sha256:bb6b7196223e6e91]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SecretEnvSource` (`var map_SecretEnvSource = map[string]string{ "": "SecretEnvSource selects a Secret to populate the environment variables … [sha256:9bd58c715a1c5bc6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SecretKeySelector` (`var map_SecretKeySelector = map[string]string{ "": "SecretKeySelector selects a key of a Secret.", "key": "key is the ke … [sha256:6a482acef17d93ba]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SecretList` (`var map_SecretList = map[string]string{ "": "SecretList is a list of Secret.", "metadata": "Standard list metadata. More … [sha256:8836a0714a70dbab]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SecretProjection` (`var map_SecretProjection = map[string]string{ "": "Adapts a secret into a projected volume.\n\nThe contents of the targe … [sha256:45f55f482b03edef]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SecretReference` (`var map_SecretReference = map[string]string{ "": "SecretReference represents a Secret Reference. It has enough informati … [sha256:040e37a3cefe30fd]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SecretVolumeSource` (`var map_SecretVolumeSource = map[string]string{ "": "Adapts a Secret into a volume.\n\nThe contents of the target Secret … [sha256:57b16ebce2d12d84]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SecurityContext` (`var map_SecurityContext = map[string]string{ "": "SecurityContext holds security configuration that will be applied to a … [sha256:176a7ca4d56dfcec]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SerializedReference` (`var map_SerializedReference = map[string]string{ "": "SerializedReference is a reference to serialized object.", "refere … [sha256:6b61240a90ea15ea]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Service` (`var map_Service = map[string]string{ "": "Service is a named abstraction of software service (for example, mysql) consis … [sha256:5047367563b5e2a9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ServiceAccount` (`var map_ServiceAccount = map[string]string{ "": "ServiceAccount binds together: * a name, understood by users, and perha … [sha256:685d71d08686c105]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ServiceAccountList` (`var map_ServiceAccountList = map[string]string{ "": "ServiceAccountList is a list of ServiceAccount objects", "metadata" … [sha256:1c803fe6efe710fc]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ServiceAccountTokenProjection` (`var map_ServiceAccountTokenProjection = map[string]string{ "": "ServiceAccountTokenProjection represents a projected ser … [sha256:6ecfb163bd665a31]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ServiceList` (`var map_ServiceList = map[string]string{ "": "ServiceList holds a list of services.", "metadata": "Standard list metadat … [sha256:cc87ed0dc23f2ba9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ServicePort` (`var map_ServicePort = map[string]string{ "": "ServicePort contains information on service's port.", "name": "name is the … [sha256:8974c9abca79400d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ServiceProxyOptions` (`var map_ServiceProxyOptions = map[string]string{ "": "ServiceProxyOptions is the query options to a Service's proxy call … [sha256:71f4f07d137d82da]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ServiceSpec` (`var map_ServiceSpec = map[string]string{ "": "ServiceSpec describes the attributes that a user creates on a service.", " … [sha256:5e6d580ce7b1533c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ServiceStatus` (`var map_ServiceStatus = map[string]string{ "": "ServiceStatus represents the current status of a service.", "loadBalance … [sha256:70038d8b89e59bf1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SessionAffinityConfig` (`var map_SessionAffinityConfig = map[string]string{ "": "SessionAffinityConfig represents the configurations of session a … [sha256:a1b97df7af873f29]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_SleepAction` (`var map_SleepAction = map[string]string{ "": "SleepAction describes a \"sleep\" action.", "seconds": "seconds is the num … [sha256:ad41328e6e121ff7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StorageOSPersistentVolumeSource` (`var map_StorageOSPersistentVolumeSource = map[string]string{ "": "Represents a StorageOS persistent volume resource.", " … [sha256:675e65e2c6ead2a9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StorageOSVolumeSource` (`var map_StorageOSVolumeSource = map[string]string{ "": "Represents a StorageOS persistent volume resource.", "volumeName … [sha256:cad99c7bee231854]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Sysctl` (`var map_Sysctl = map[string]string{ "": "Sysctl defines a kernel parameter to be set", "name": "name of a property to se … [sha256:1355badcab1b6b21]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TCPSocketAction` (`var map_TCPSocketAction = map[string]string{ "": "TCPSocketAction describes an action based on opening a socket", "port" … [sha256:6fe905679f876ff1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Taint` (`var map_Taint = map[string]string{ "": "The node this Taint is attached to has the \"effect\" on any pod that does not t … [sha256:5b1f99e9f7d7f6d6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Toleration` (`var map_Toleration = map[string]string{ "": "The pod this Toleration is attached to tolerates any taint that matches the … [sha256:ed53ca92eb4b6ac1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TopologySelectorLabelRequirement` (`var map_TopologySelectorLabelRequirement = map[string]string{ "": "A topology selector requirement is a selector that ma … [sha256:d9376589eda9bf3d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TopologySelectorTerm` (`var map_TopologySelectorTerm = map[string]string{ "": "A topology selector term represents the result of label queries.  … [sha256:101c9deb0b165af7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TopologySpreadConstraint` (`var map_TopologySpreadConstraint = map[string]string{ "": "TopologySpreadConstraint specifies how to spread matching pod … [sha256:13a0df65e0f194f2]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TypedLocalObjectReference` (`var map_TypedLocalObjectReference = map[string]string{ "": "TypedLocalObjectReference contains enough information to let … [sha256:c51b7d286160adc4]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TypedObjectReference` (`var map_TypedObjectReference = map[string]string{ "": "TypedObjectReference contains enough information to let you locat … [sha256:5fda43aa614435ec]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Volume` (`var map_Volume = map[string]string{ "": "Volume represents a named volume in a pod that may be accessed by any container … [sha256:9d326d6906d0ed49]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeDevice` (`var map_VolumeDevice = map[string]string{ "": "volumeDevice describes a mapping of a raw block device within a container … [sha256:7b95757520b0f1f7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeHealthCondition` (`var map_VolumeHealthCondition = map[string]string{ "": "VolumeHealthCondition represents an adverse health condition rep … [sha256:6204993dd89fac5e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeHealthStatus` (`var map_VolumeHealthStatus = map[string]string{ "": "VolumeHealthStatus contains health information for a volume reporte … [sha256:452e0a780ad840bf]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeMount` (`var map_VolumeMount = map[string]string{ "": "VolumeMount describes a mounting of a Volume within a container.", "name": … [sha256:c2d952c33a65fd48]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeMountStatus` (`var map_VolumeMountStatus = map[string]string{ "": "VolumeMountStatus shows status of volume mounts.", "name": "name cor … [sha256:317b7acdde8f3570]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeNodeAffinity` (`var map_VolumeNodeAffinity = map[string]string{ "": "VolumeNodeAffinity defines constraints that limit what nodes this v … [sha256:661ad4d55971f373]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeProjection` (`var map_VolumeProjection = map[string]string{ "": "Projection that may be projected along with other supported volume ty … [sha256:4fc2522e636aa3ab]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeResourceRequirements` (`var map_VolumeResourceRequirements = map[string]string{ "": "VolumeResourceRequirements describes the storage resource r … [sha256:2a0279f54eb757cd]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeSource` (`var map_VolumeSource = map[string]string{ "": "Represents the source of a volume to mount. Only one of its members may b … [sha256:b8bb19ae055f3086]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VolumeStatus` (`var map_VolumeStatus = map[string]string{ "": "VolumeStatus represents the status of a mounted volume. At most one of it … [sha256:517239e4ae7b52b0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_VsphereVirtualDiskVolumeSource` (`var map_VsphereVirtualDiskVolumeSource = map[string]string{ "": "Represents a vSphere volume resource.", "volumePath": " … [sha256:bb62624577cc8b33]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_WeightedPodAffinityTerm` (`var map_WeightedPodAffinityTerm = map[string]string{ "": "The weights of all of the matched WeightedPodAffinityTerm fiel … [sha256:ea6727b8e6322954]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_WindowsSecurityContextOptions` (`var map_WindowsSecurityContextOptions = map[string]string{ "": "WindowsSecurityContextOptions contain Windows-specific o … [sha256:9c1bfba5d9b12a51]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/api/core/v1.ErrInvalidLengthGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrInvalidLengthGenerated = fmt.Errorf(\"proto: negative length found during unmarshaling\")"⟩,
+  ⟨"k8s.io/api/core/v1.ErrIntOverflowGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrIntOverflowGenerated = fmt.Errorf(\"proto: integer overflow\")"⟩,
+  ⟨"k8s.io/api/core/v1.ErrUnexpectedEndOfGroupGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf(\"proto: unexpected end of group\")"⟩,
+  ⟨"k8s.io/api/core/v1.SchemeBuilder", "Its initializer calls, besides literals of constants and other variables' values:\n`runtime.NewSchemeBuilder` allocates a slice of the given functions (it calls none). So it\nterminates, cannot panic and has no effect beyond its variable.", "var // We only register manually written functions here. The registration of the // generated functions takes place in t … [sha256:4d2af51b22f0253a]"⟩,
+  ⟨"k8s.io/api/core/v1.AddToScheme", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var AddToScheme = SchemeBuilder.AddToScheme"⟩,
+  ⟨"k8s.io/api/core/v1._@types.go:5663", "A conversion check: `EphemeralContainerCommon{}` converted to `Container`. No call, no panic, no\neffect.", "var _ = Container(EphemeralContainerCommon{})"⟩,
+  ⟨"k8s.io/api/core/v1.map_AWSElasticBlockStoreVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_AWSElasticBlockStoreVolumeSource = map[string]string{ \"\": \"Represents a Persistent Disk resource in AWS.\\n\\nAn A … [sha256:933474bd44794896]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Affinity", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Affinity = map[string]string{ \"\": \"Affinity is a group of affinity scheduling rules.\", \"nodeAffinity\": \"nodeAffi … [sha256:991adbe141d58326]"⟩,
+  ⟨"k8s.io/api/core/v1.map_AppArmorProfile", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_AppArmorProfile = map[string]string{ \"\": \"AppArmorProfile defines a pod or container's AppArmor settings.\", \"typ … [sha256:df0547fe71a36058]"⟩,
+  ⟨"k8s.io/api/core/v1.map_AttachedVolume", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_AttachedVolume = map[string]string{ \"\": \"AttachedVolume describes a volume attached to a node\", \"name\": \"name of … [sha256:2e5d8f86d4d25ced]"⟩,
+  ⟨"k8s.io/api/core/v1.map_AvoidPods", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_AvoidPods = map[string]string{ \"\": \"AvoidPods describes pods that should avoid this node. This is the value for  … [sha256:fa50d769b44d1222]"⟩,
+  ⟨"k8s.io/api/core/v1.map_AzureDiskVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_AzureDiskVolumeSource = map[string]string{ \"\": \"AzureDisk represents an Azure Data Disk mount on the host and bi … [sha256:2e1f8e82f347d60a]"⟩,
+  ⟨"k8s.io/api/core/v1.map_AzureFilePersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_AzureFilePersistentVolumeSource = map[string]string{ \"\": \"AzureFile represents an Azure File Service mount on th … [sha256:0031d558761eb531]"⟩,
+  ⟨"k8s.io/api/core/v1.map_AzureFileVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_AzureFileVolumeSource = map[string]string{ \"\": \"AzureFile represents an Azure File Service mount on the host and … [sha256:4a85b258686a1581]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Binding", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Binding = map[string]string{ \"\": \"Binding ties one object to another; for example, a pod is bound to a node by a … [sha256:91b2b1dcfaf9fa2e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_CSIPersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_CSIPersistentVolumeSource = map[string]string{ \"\": \"Represents storage that is managed by an external CSI volume … [sha256:e482982798181f26]"⟩,
+  ⟨"k8s.io/api/core/v1.map_CSIVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_CSIVolumeSource = map[string]string{ \"\": \"Represents a source location of a volume to mount, managed by an exter … [sha256:571dc9663c93f99f]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Capabilities", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Capabilities = map[string]string{ \"\": \"Adds and removes POSIX capabilities from running containers.\", \"add\": \"ad … [sha256:b1d00d68483e0b72]"⟩,
+  ⟨"k8s.io/api/core/v1.map_CephFSPersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_CephFSPersistentVolumeSource = map[string]string{ \"\": \"Represents a Ceph Filesystem mount that lasts the lifetim … [sha256:15aa9c361c2b74ee]"⟩,
+  ⟨"k8s.io/api/core/v1.map_CephFSVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_CephFSVolumeSource = map[string]string{ \"\": \"Represents a Ceph Filesystem mount that lasts the lifetime of a pod … [sha256:c81d24b0f0d59c56]"⟩,
+  ⟨"k8s.io/api/core/v1.map_CinderPersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_CinderPersistentVolumeSource = map[string]string{ \"\": \"Represents a cinder volume resource in Openstack. A Cinde … [sha256:ebed3bb160c9da63]"⟩,
+  ⟨"k8s.io/api/core/v1.map_CinderVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_CinderVolumeSource = map[string]string{ \"\": \"Represents a cinder volume resource in Openstack. A Cinder volume m … [sha256:054108a569e9dcf6]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ClientIPConfig", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ClientIPConfig = map[string]string{ \"\": \"ClientIPConfig represents the configurations of Client IP based session … [sha256:acc12211f6f8a19a]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ClusterTrustBundleProjection", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ClusterTrustBundleProjection = map[string]string{ \"\": \"ClusterTrustBundleProjection describes how to select a se … [sha256:afe98695ddec0397]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ComponentCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ComponentCondition = map[string]string{ \"\": \"Information about the condition of a component.\", \"type\": \"type of  … [sha256:b85231fa1a1db335]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ComponentStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ComponentStatus = map[string]string{ \"\": \"ComponentStatus (and ComponentStatusList) holds the cluster validation … [sha256:c0acfe3ca1e26bc6]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ComponentStatusList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ComponentStatusList = map[string]string{ \"\": \"Status of all the conditions for the component as a list of Compon … [sha256:a86cd08b6a9d877e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ConfigMap", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ConfigMap = map[string]string{ \"\": \"ConfigMap holds configuration data for pods to consume.\", \"metadata\": \"metad … [sha256:d693118e80f93607]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ConfigMapEnvSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ConfigMapEnvSource = map[string]string{ \"\": \"ConfigMapEnvSource selects a ConfigMap to populate the environment  … [sha256:8afabde0add82fc4]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ConfigMapKeySelector", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ConfigMapKeySelector = map[string]string{ \"\": \"Selects a key from a ConfigMap.\", \"key\": \"key is the key to selec … [sha256:c718c5935b8fd207]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ConfigMapList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ConfigMapList = map[string]string{ \"\": \"ConfigMapList is a resource containing a list of ConfigMap objects.\", \"m … [sha256:c149f3d1867b4c30]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ConfigMapNodeConfigSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ConfigMapNodeConfigSource = map[string]string{ \"\": \"ConfigMapNodeConfigSource contains the information to refere … [sha256:1dab0c5a722f3568]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ConfigMapProjection", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ConfigMapProjection = map[string]string{ \"\": \"Adapts a ConfigMap into a projected volume.\\n\\nThe contents of the … [sha256:486eb2074b4a6a04]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ConfigMapVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ConfigMapVolumeSource = map[string]string{ \"\": \"Adapts a ConfigMap into a volume.\\n\\nThe contents of the target  … [sha256:41751ea0e034a661]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Container", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Container = map[string]string{ \"\": \"A single application container that you want to run within a pod.\", \"name\":  … [sha256:616826a9e9f38520]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerExtendedResourceRequest", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerExtendedResourceRequest = map[string]string{ \"\": \"ContainerExtendedResourceRequest has the mapping of c … [sha256:53067133f1abc416]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerImage", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerImage = map[string]string{ \"\": \"Describe a container image\", \"names\": \"names by which this image is kno … [sha256:fa902de6ff2dbf9e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerPort", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerPort = map[string]string{ \"\": \"ContainerPort represents a network port in a single container.\", \"name\": … [sha256:a1fa4ffed2dbc729]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerResizePolicy", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerResizePolicy = map[string]string{ \"\": \"ContainerResizePolicy represents resource resize policy for the  … [sha256:a43f63012bd2efcd]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerRestartRule", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerRestartRule = map[string]string{ \"\": \"ContainerRestartRule describes how a container exit is handled.\", … [sha256:aabbafc682ed4936]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerRestartRuleOnExitCodes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerRestartRuleOnExitCodes = map[string]string{ \"\": \"ContainerRestartRuleOnExitCodes describes the conditio … [sha256:f15afb3a689f2d57]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerState", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerState = map[string]string{ \"\": \"ContainerState holds a possible state of container. Only one of its mem … [sha256:a4b06eadd5a8ddbf]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerStateRunning", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerStateRunning = map[string]string{ \"\": \"ContainerStateRunning is a running state of a container.\", \"star … [sha256:63a3c7d61aacd5d2]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerStateTerminated", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerStateTerminated = map[string]string{ \"\": \"ContainerStateTerminated is a terminated state of a container … [sha256:c7052ab0e3437562]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerStateWaiting", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerStateWaiting = map[string]string{ \"\": \"ContainerStateWaiting is a waiting state of a container.\", \"reas … [sha256:af0be103357b66ae]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerStatus = map[string]string{ \"\": \"ContainerStatus contains details for the current status of this contai … [sha256:bf118fd2dc2bde7d]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ContainerUser", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ContainerUser = map[string]string{ \"\": \"ContainerUser represents user identity information\", \"linux\": \"linux hol … [sha256:8c4d8d4ea2a6da16]"⟩,
+  ⟨"k8s.io/api/core/v1.map_DaemonEndpoint", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DaemonEndpoint = map[string]string{ \"\": \"DaemonEndpoint contains information about a single Daemon endpoint.\", \" … [sha256:91d88fcde42ee56e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_DownwardAPIProjection", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DownwardAPIProjection = map[string]string{ \"\": \"Represents downward API info for projecting into a projected vol … [sha256:76da83089d59f6fe]"⟩,
+  ⟨"k8s.io/api/core/v1.map_DownwardAPIVolumeFile", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DownwardAPIVolumeFile = map[string]string{ \"\": \"DownwardAPIVolumeFile represents information to create the file  … [sha256:bce1c154c84d30a0]"⟩,
+  ⟨"k8s.io/api/core/v1.map_DownwardAPIVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DownwardAPIVolumeSource = map[string]string{ \"\": \"DownwardAPIVolumeSource represents a volume containing downwar … [sha256:81c11de8c97793ab]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EmptyDirVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EmptyDirVolumeSource = map[string]string{ \"\": \"Represents an empty directory for a pod. Empty directory volumes  … [sha256:9a621a2a64cff1ad]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EndpointAddress", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EndpointAddress = map[string]string{ \"\": \"EndpointAddress is a tuple that describes single IP address.\", \"ip\": \" … [sha256:691e5192997623b8]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EndpointPort", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EndpointPort = map[string]string{ \"\": \"EndpointPort is a tuple that describes a single port.\", \"name\": \"The name … [sha256:e9a0f9430d5e6d99]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EndpointSubset", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EndpointSubset = map[string]string{ \"\": \"EndpointSubset is a group of addresses with a common set of ports. The  … [sha256:e28d15f9f8d29b54]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Endpoints", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Endpoints = map[string]string{ \"\": \"Endpoints is a collection of endpoints that implement the actual service. Ex … [sha256:dc9c8590ddc9de01]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EndpointsList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EndpointsList = map[string]string{ \"\": \"EndpointsList is a list of endpoints.\", \"metadata\": \"Standard list metad … [sha256:0999b16a7ff7e73c]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EnvFromSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EnvFromSource = map[string]string{ \"\": \"EnvFromSource represents the source of a set of ConfigMaps or Secrets\",  … [sha256:1a380d5a25458fdc]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EnvVar", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EnvVar = map[string]string{ \"\": \"EnvVar represents an environment variable present in a Container.\", \"name\": \"na … [sha256:d06db882ba6b97d2]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EnvVarSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EnvVarSource = map[string]string{ \"\": \"EnvVarSource represents a source for the value of an EnvVar.\", \"fieldRef\" … [sha256:5e237c665e4b8ce8]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EphemeralContainer", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EphemeralContainer = map[string]string{ \"\": \"An EphemeralContainer is a temporary container that you may add to  … [sha256:4e88c68f4067bdaa]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EphemeralContainerCommon", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EphemeralContainerCommon = map[string]string{ \"\": \"EphemeralContainerCommon is a copy of all fields in Container … [sha256:c13be5a7785e2ba1]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EphemeralVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EphemeralVolumeSource = map[string]string{ \"\": \"Represents an ephemeral volume that is handled by a normal stora … [sha256:dbb97bba741c6f4f]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Event", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Event = map[string]string{ \"\": \"Event is a report of an event somewhere in the cluster. Events have a limited re … [sha256:7903675984bfd665]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EventList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EventList = map[string]string{ \"\": \"EventList is a list of events.\", \"metadata\": \"Standard list metadata. More i … [sha256:99db8e0dd5a1ee79]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EventSeries", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EventSeries = map[string]string{ \"\": \"EventSeries contain information on series of events, i.e. thing that was/i … [sha256:f9e7afc0fc6c2fe6]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EventSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EventSource = map[string]string{ \"\": \"EventSource contains information for an event.\", \"component\": \"component f … [sha256:c13ce7fd3fc846fb]"⟩,
+  ⟨"k8s.io/api/core/v1.map_EvictionResponder", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_EvictionResponder = map[string]string{ \"\": \"EvictionResponder allows you to specify the responder reacting to an … [sha256:0115719a7ba6e32f]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ExecAction", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ExecAction = map[string]string{ \"\": \"ExecAction describes a \\\"run in container\\\" action.\", \"command\": \"command i … [sha256:b653b9b346ad4b9b]"⟩,
+  ⟨"k8s.io/api/core/v1.map_FCVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_FCVolumeSource = map[string]string{ \"\": \"Represents a Fibre Channel volume. Fibre Channel volumes can only be mo … [sha256:fed204b9ea83128e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_FileKeySelector", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_FileKeySelector = map[string]string{ \"\": \"FileKeySelector selects a key of the env file.\", \"volumeName\": \"volume … [sha256:2a5d90788e869a25]"⟩,
+  ⟨"k8s.io/api/core/v1.map_FlexPersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_FlexPersistentVolumeSource = map[string]string{ \"\": \"FlexPersistentVolumeSource represents a generic persistent  … [sha256:65e7bd59868f3975]"⟩,
+  ⟨"k8s.io/api/core/v1.map_FlexVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_FlexVolumeSource = map[string]string{ \"\": \"FlexVolume represents a generic volume resource that is provisioned/a … [sha256:c08d8c62ea2f06bd]"⟩,
+  ⟨"k8s.io/api/core/v1.map_FlockerVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_FlockerVolumeSource = map[string]string{ \"\": \"Represents a Flocker volume mounted by the Flocker agent. One and  … [sha256:56d61a2260e01e9d]"⟩,
+  ⟨"k8s.io/api/core/v1.map_GCEPersistentDiskVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_GCEPersistentDiskVolumeSource = map[string]string{ \"\": \"Represents a Persistent Disk resource in Google Compute  … [sha256:655f59d002e571ed]"⟩,
+  ⟨"k8s.io/api/core/v1.map_GRPCAction", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_GRPCAction = map[string]string{ \"\": \"GRPCAction specifies an action involving a GRPC service.\", \"port\": \"port is … [sha256:c2dbb404027bc42f]"⟩,
+  ⟨"k8s.io/api/core/v1.map_GitRepoVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_GitRepoVolumeSource = map[string]string{ \"\": \"Represents a volume that is populated with the contents of a git r … [sha256:9d6e74cece9a43d6]"⟩,
+  ⟨"k8s.io/api/core/v1.map_GlusterfsPersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_GlusterfsPersistentVolumeSource = map[string]string{ \"\": \"Represents a Glusterfs mount that lasts the lifetime o … [sha256:03967c0c90fe6c5a]"⟩,
+  ⟨"k8s.io/api/core/v1.map_GlusterfsVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_GlusterfsVolumeSource = map[string]string{ \"\": \"Represents a Glusterfs mount that lasts the lifetime of a pod. G … [sha256:cf89ff9618e9bd95]"⟩,
+  ⟨"k8s.io/api/core/v1.map_HTTPGetAction", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_HTTPGetAction = map[string]string{ \"\": \"HTTPGetAction describes an action based on HTTP Get requests.\", \"path\":  … [sha256:47f46903b4c195b3]"⟩,
+  ⟨"k8s.io/api/core/v1.map_HTTPHeader", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_HTTPHeader = map[string]string{ \"\": \"HTTPHeader describes a custom header to be used in HTTP probes\", \"name\": \"n … [sha256:dd87212fc262a7f4]"⟩,
+  ⟨"k8s.io/api/core/v1.map_HostAlias", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_HostAlias = map[string]string{ \"\": \"HostAlias holds the mapping between IP and hostnames that will be injected a … [sha256:5017e74f22627d92]"⟩,
+  ⟨"k8s.io/api/core/v1.map_HostIP", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_HostIP = map[string]string{ \"\": \"HostIP represents a single IP address allocated to the host.\", \"ip\": \"ip is the … [sha256:b549312ba3a2b89e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_HostPathVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_HostPathVolumeSource = map[string]string{ \"\": \"Represents a host path mapped into a pod. Host path volumes do no … [sha256:a18cf02e2a304077]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ISCSIPersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ISCSIPersistentVolumeSource = map[string]string{ \"\": \"ISCSIPersistentVolumeSource represents an ISCSI disk. ISCS … [sha256:9ae4e4b18f7626f7]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ISCSIVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ISCSIVolumeSource = map[string]string{ \"\": \"Represents an ISCSI disk. ISCSI volumes can only be mounted as read/ … [sha256:125ce477fb47da5b]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ImageVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ImageVolumeSource = map[string]string{ \"\": \"ImageVolumeSource represents a image volume resource.\", \"reference\": … [sha256:935944682b7a3eb7]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ImageVolumeStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ImageVolumeStatus = map[string]string{ \"\": \"ImageVolumeStatus represents the image-based volume status.\", \"image … [sha256:5367b209c2f94b16]"⟩,
+  ⟨"k8s.io/api/core/v1.map_KeyToPath", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_KeyToPath = map[string]string{ \"\": \"Maps a string key to a path within a volume.\", \"key\": \"key is the key to pro … [sha256:4cb803f42ad2fdf2]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Lifecycle", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Lifecycle = map[string]string{ \"\": \"Lifecycle describes actions that the management system should take in respon … [sha256:08a3303cb0c46589]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LifecycleHandler", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LifecycleHandler = map[string]string{ \"\": \"LifecycleHandler defines a specific action that should be taken in a  … [sha256:da7b1c39dacbb48e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LimitRange", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LimitRange = map[string]string{ \"\": \"LimitRange sets resource usage limits for each kind of resource in a Namesp … [sha256:dc5777b7d973be4b]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LimitRangeItem", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LimitRangeItem = map[string]string{ \"\": \"LimitRangeItem defines a min/max usage limit for any resource that matc … [sha256:78a46815c104b066]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LimitRangeList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LimitRangeList = map[string]string{ \"\": \"LimitRangeList is a list of LimitRange items.\", \"metadata\": \"Standard l … [sha256:202b5c68c7c10781]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LimitRangeSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LimitRangeSpec = map[string]string{ \"\": \"LimitRangeSpec defines a min/max usage limit for resources that match o … [sha256:f99dad65e7d69f6d]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LinuxContainerUser", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LinuxContainerUser = map[string]string{ \"\": \"LinuxContainerUser represents user identity information in Linux co … [sha256:8ad0a21b98c687d1]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LoadBalancerIngress", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LoadBalancerIngress = map[string]string{ \"\": \"LoadBalancerIngress represents the status of a load-balancer ingre … [sha256:f749b9290db38ad6]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LoadBalancerStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LoadBalancerStatus = map[string]string{ \"\": \"LoadBalancerStatus represents the status of a load-balancer.\", \"ing … [sha256:379e2f3bb9ff287f]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LocalObjectReference", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LocalObjectReference = map[string]string{ \"\": \"LocalObjectReference contains enough information to let you locat … [sha256:41a384f7ad7ca2f1]"⟩,
+  ⟨"k8s.io/api/core/v1.map_LocalVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LocalVolumeSource = map[string]string{ \"\": \"Local represents directly-attached storage with node affinity\", \"pat … [sha256:091850ae8d63439b]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ModifyVolumeStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ModifyVolumeStatus = map[string]string{ \"\": \"ModifyVolumeStatus represents the status object of ControllerModify … [sha256:13be84740c7b84bf]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NFSVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NFSVolumeSource = map[string]string{ \"\": \"Represents an NFS mount that lasts the lifetime of a pod. NFS volumes  … [sha256:1fcc3bd36c80a0a6]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Namespace", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Namespace = map[string]string{ \"\": \"Namespace provides a scope for Names. Use of multiple namespaces is optional … [sha256:d923040f7f1b54b0]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NamespaceCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NamespaceCondition = map[string]string{ \"\": \"NamespaceCondition contains details about state of namespace.\", \"ty … [sha256:fda3c4b874103443]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NamespaceList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NamespaceList = map[string]string{ \"\": \"NamespaceList is a list of Namespaces.\", \"metadata\": \"Standard list meta … [sha256:fd1f06d6a686eb8c]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NamespaceSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NamespaceSpec = map[string]string{ \"\": \"NamespaceSpec describes the attributes on a Namespace.\", \"finalizers\": \" … [sha256:cf7cdb65ae402da6]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NamespaceStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NamespaceStatus = map[string]string{ \"\": \"NamespaceStatus is information about the current status of a Namespace … [sha256:dda5c1dcce218e39]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Node", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Node = map[string]string{ \"\": \"Node is a worker node in Kubernetes. Each node will have a unique identifier in t … [sha256:00e57b9cfe58ad90]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeAddress", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeAddress = map[string]string{ \"\": \"NodeAddress contains information for the node's address.\", \"type\": \"type i … [sha256:b89c624fc8807d93]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeAffinity", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeAffinity = map[string]string{ \"\": \"Node affinity is a group of node affinity scheduling rules.\", \"requiredDu … [sha256:adf770b5d83fc915]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeAllocatableMappedResources", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeAllocatableMappedResources = map[string]string{ \"\": \"NodeAllocatableMappedResources describes mapped node al … [sha256:1dcbe82ab523d913]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeAllocatableOverheadResources", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeAllocatableOverheadResources = map[string]string{ \"\": \"NodeAllocatableOverheadResources describes auxiliary  … [sha256:50298b54aada4dd3]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeAllocatableResourceClaimStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeAllocatableResourceClaimStatus = map[string]string{ \"\": \"NodeAllocatableResourceClaimStatus describes the st … [sha256:6fc29637a5c5194a]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeCondition = map[string]string{ \"\": \"NodeCondition contains condition information for a node.\", \"type\": \"type … [sha256:7ebe0b49fa718b52]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeConfigSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeConfigSource = map[string]string{ \"\": \"NodeConfigSource specifies a source of node configuration. Exactly on … [sha256:2ee06231e74726e7]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeConfigStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeConfigStatus = map[string]string{ \"\": \"NodeConfigStatus describes the status of the config assigned by Node. … [sha256:b2dc91ee7bc514b3]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeDaemonEndpoints", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeDaemonEndpoints = map[string]string{ \"\": \"NodeDaemonEndpoints lists ports opened by daemons running on the N … [sha256:7bbabe33d721c8c8]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeFeatures", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeFeatures = map[string]string{ \"\": \"NodeFeatures describes the set of features implemented by the CRI impleme … [sha256:bb71d8241ef7c007]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeList = map[string]string{ \"\": \"NodeList is the whole list of all Nodes which have been registered with maste … [sha256:60c042b15605c808]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodePodPreemptionPolicy", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodePodPreemptionPolicy = map[string]string{ \"\": \"NodePodPreemptionPolicy defines the node-level policies govern … [sha256:9542a5240184b292]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeProxyOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeProxyOptions = map[string]string{ \"\": \"NodeProxyOptions is the query options to a Node's proxy call.\", \"path … [sha256:8662da75f5bb3c49]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeRuntimeHandler", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeRuntimeHandler = map[string]string{ \"\": \"NodeRuntimeHandler is a set of runtime handler information.\", \"name … [sha256:f574058e5d167ee4]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeRuntimeHandlerFeatures", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeRuntimeHandlerFeatures = map[string]string{ \"\": \"NodeRuntimeHandlerFeatures is a set of features implemented … [sha256:d03a88d9ad87c3f1]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeSelector", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeSelector = map[string]string{ \"\": \"A node selector represents the union of the results of one or more label  … [sha256:9b40c4b6fec37ccb]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeSelectorRequirement", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeSelectorRequirement = map[string]string{ \"\": \"A node selector requirement is a selector that contains values … [sha256:9f1f3db4d576dd00]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeSelectorTerm", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeSelectorTerm = map[string]string{ \"\": \"A null or empty node selector term matches no objects. The requiremen … [sha256:749886b7ed706048]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeSpec = map[string]string{ \"\": \"NodeSpec describes the attributes that a node is created with.\", \"podCIDR\": \" … [sha256:5c51214970e1d4c8]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeStatus = map[string]string{ \"\": \"NodeStatus is information about the current status of a node.\", \"capacity\": … [sha256:018e57b8aa7b6e6f]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeSwapStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeSwapStatus = map[string]string{ \"\": \"NodeSwapStatus represents swap memory information.\", \"capacity\": \"capac … [sha256:a9ffa421a2aaee14]"⟩,
+  ⟨"k8s.io/api/core/v1.map_NodeSystemInfo", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_NodeSystemInfo = map[string]string{ \"\": \"NodeSystemInfo is a set of ids/uuids to uniquely identify the node.\", \" … [sha256:d66a02dbbf20a2fb]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ObjectFieldSelector", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ObjectFieldSelector = map[string]string{ \"\": \"ObjectFieldSelector selects an APIVersioned field of an object.\",  … [sha256:3ad25f5771e84f1f]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ObjectReference", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ObjectReference = map[string]string{ \"\": \"ObjectReference contains enough information to let you inspect or modi … [sha256:d45da5fe9bd3cf7e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolume", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolume = map[string]string{ \"\": \"PersistentVolume (PV) is a storage resource provisioned by an adminis … [sha256:4b5daf1688969c54]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeClaim", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeClaim = map[string]string{ \"\": \"PersistentVolumeClaim is a user's request for and claim to a per … [sha256:f8765c171db49a57]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeClaimCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeClaimCondition = map[string]string{ \"\": \"PersistentVolumeClaimCondition contains details about s … [sha256:7e71b743b96fb24e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeClaimList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeClaimList = map[string]string{ \"\": \"PersistentVolumeClaimList is a list of PersistentVolumeClaim … [sha256:1ce11227f6c7e87f]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeClaimSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeClaimSpec = map[string]string{ \"\": \"PersistentVolumeClaimSpec describes the common attributes of … [sha256:4f04def977a4a277]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeClaimStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeClaimStatus = map[string]string{ \"\": \"PersistentVolumeClaimStatus is the current status of a per … [sha256:2114609333ff1953]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeClaimTemplate", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeClaimTemplate = map[string]string{ \"\": \"PersistentVolumeClaimTemplate is used to produce Persist … [sha256:7e599fb7da571472]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeClaimVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeClaimVolumeSource = map[string]string{ \"\": \"PersistentVolumeClaimVolumeSource references the use … [sha256:d580fff6aab234e3]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeList = map[string]string{ \"\": \"PersistentVolumeList is a list of PersistentVolume items.\", \"meta … [sha256:59f0d0b1eead1e41]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeSource = map[string]string{ \"\": \"PersistentVolumeSource is similar to VolumeSource but meant for … [sha256:7614966c2ed07602]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeSpec = map[string]string{ \"\": \"PersistentVolumeSpec is the specification of a persistent volume. … [sha256:9d710011a4ded1d0]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PersistentVolumeStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PersistentVolumeStatus = map[string]string{ \"\": \"PersistentVolumeStatus is the current status of a persistent vo … [sha256:4a44c4a179d6011d]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PhotonPersistentDiskVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PhotonPersistentDiskVolumeSource = map[string]string{ \"\": \"Represents a Photon Controller persistent disk resour … [sha256:28d8ce7ab9f96be9]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Pod", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Pod = map[string]string{ \"\": \"Pod is a collection of containers that can run on a host. This resource is created … [sha256:9b25deb1685959ea]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodAffinity", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodAffinity = map[string]string{ \"\": \"Pod affinity is a group of inter pod affinity scheduling rules.\", \"require … [sha256:b2c326a8d51312b4]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodAffinityTerm", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodAffinityTerm = map[string]string{ \"\": \"Defines a set of pods (namely those matching the labelSelector relativ … [sha256:7a4848b7fc150a42]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodAntiAffinity", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodAntiAffinity = map[string]string{ \"\": \"Pod anti affinity is a group of inter pod anti affinity scheduling rul … [sha256:638726609c5ca1b5]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodAttachOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodAttachOptions = map[string]string{ \"\": \"PodAttachOptions is the query options to a Pod's remote attach call.\" … [sha256:02035be2b8ff19ce]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodCertificateProjection", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodCertificateProjection = map[string]string{ \"\": \"PodCertificateProjection provides a private key and X.509 cer … [sha256:c7cef1af848df228]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodCondition = map[string]string{ \"\": \"PodCondition contains details for the current condition of this pod.\", \"t … [sha256:dd72ec14bc7a68ce]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodDNSConfig", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodDNSConfig = map[string]string{ \"\": \"PodDNSConfig defines the DNS parameters of a pod in addition to those gen … [sha256:a52ba67279c50951]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodDNSConfigOption", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodDNSConfigOption = map[string]string{ \"\": \"PodDNSConfigOption defines DNS resolver options of a pod.\", \"name\": … [sha256:9fb39c1954cf5f2f]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodExecOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodExecOptions = map[string]string{ \"\": \"PodExecOptions is the query options to a Pod's remote exec call.\", \"std … [sha256:f4e9737efc994658]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodExtendedResourceClaimStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodExtendedResourceClaimStatus = map[string]string{ \"\": \"PodExtendedResourceClaimStatus is stored in the PodStat … [sha256:c70d3c2554c38b75]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodIP", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodIP = map[string]string{ \"\": \"PodIP represents a single IP address allocated to the pod.\", \"ip\": \"ip is the IP … [sha256:fb0101bbf0389cd1]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodList = map[string]string{ \"\": \"PodList is a list of Pods.\", \"metadata\": \"Standard list metadata. More info: h … [sha256:4d7a6bfd882525a4]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodLogOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodLogOptions = map[string]string{ \"\": \"PodLogOptions is the query options for a Pod's logs REST call.\", \"contai … [sha256:f35f26c2867efb90]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodOS", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodOS = map[string]string{ \"\": \"PodOS defines the OS parameters of a pod.\", \"name\": \"name is the name of the ope … [sha256:acc90835ec4018aa]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodPortForwardOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodPortForwardOptions = map[string]string{ \"\": \"PodPortForwardOptions is the query options to a Pod's port forwa … [sha256:dcf804e87d46a636]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodProxyOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodProxyOptions = map[string]string{ \"\": \"PodProxyOptions is the query options to a Pod's proxy call.\", \"path\":  … [sha256:3d5c76c04d22ce73]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodReadinessGate", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodReadinessGate = map[string]string{ \"\": \"PodReadinessGate contains the reference to a pod condition\", \"conditi … [sha256:951400c99238c7e3]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodResourceClaim", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodResourceClaim = map[string]string{ \"\": \"PodResourceClaim references exactly one ResourceClaim, either directl … [sha256:b49c6a617360af29]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodResourceClaimStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodResourceClaimStatus = map[string]string{ \"\": \"PodResourceClaimStatus is stored in the PodStatus for each PodR … [sha256:2ab93e6368dc7d6e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodSchedulingGate", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodSchedulingGate = map[string]string{ \"\": \"PodSchedulingGate is associated to a Pod to guard its scheduling.\",  … [sha256:deececdfe4675478]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodSchedulingGroup", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodSchedulingGroup = map[string]string{ \"\": \"PodSchedulingGroup identifies the runtime scheduling group instance … [sha256:c10099975435234e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodSecurityContext", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodSecurityContext = map[string]string{ \"\": \"PodSecurityContext holds pod-level security attributes and common c … [sha256:a757c09aa4f36080]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodSignature", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodSignature = map[string]string{ \"\": \"Describes the class of pods that should avoid this node. Exactly one fiel … [sha256:0b5eb046628c5ca5]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodSpec = map[string]string{ \"\": \"PodSpec is a description of a pod.\", \"volumes\": \"volumes is the list of volume … [sha256:742952e7c92c258e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodStatus = map[string]string{ \"\": \"PodStatus represents information about the status of a pod. Status may trail … [sha256:8b7de2cabaa5fec4]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodTemplate", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodTemplate = map[string]string{ \"\": \"PodTemplate describes a template for creating copies of a predefined pod.\" … [sha256:aa5e7c150b645d42]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodTemplateList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodTemplateList = map[string]string{ \"\": \"PodTemplateList is a list of PodTemplates.\", \"metadata\": \"Standard lis … [sha256:4091ce35be7dfed0]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodTemplateSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodTemplateSpec = map[string]string{ \"\": \"PodTemplateSpec describes the data a pod should have when created from … [sha256:5265c50ae701603c]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PodVolumeHealth", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PodVolumeHealth = map[string]string{ \"\": \"PodVolumeHealth contains health information for a volume used by a pod … [sha256:188041d865006343]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PortStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PortStatus = map[string]string{ \"\": \"PortStatus represents the error condition of a service port\", \"port\": \"port … [sha256:49b63060ebb783c1]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PortworxVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PortworxVolumeSource = map[string]string{ \"\": \"PortworxVolumeSource represents a Portworx volume resource.\", \"vo … [sha256:962ef1aa93fe0388]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Preconditions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Preconditions = map[string]string{ \"\": \"Preconditions must be fulfilled before an operation (update, delete, etc … [sha256:5308bfeaa84b1963]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PreferAvoidPodsEntry", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PreferAvoidPodsEntry = map[string]string{ \"\": \"Describes a class of pods that should avoid this node.\", \"podSign … [sha256:d8db69fe24ebfbcc]"⟩,
+  ⟨"k8s.io/api/core/v1.map_PreferredSchedulingTerm", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PreferredSchedulingTerm = map[string]string{ \"\": \"An empty preferred scheduling term matches all objects with im … [sha256:abd51a1b1ae376aa]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Probe", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Probe = map[string]string{ \"\": \"Probe describes a health check to be performed against a container to determine  … [sha256:06410743f9a7b9db]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ProbeHandler", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ProbeHandler = map[string]string{ \"\": \"ProbeHandler defines a specific action that should be taken in a probe. O … [sha256:df59f29b6f7605d9]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ProjectedVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ProjectedVolumeSource = map[string]string{ \"\": \"Represents a projected volume source\", \"sources\": \"sources is th … [sha256:39b7ad1095d22568]"⟩,
+  ⟨"k8s.io/api/core/v1.map_QuobyteVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_QuobyteVolumeSource = map[string]string{ \"\": \"Represents a Quobyte mount that lasts the lifetime of a pod. Quoby … [sha256:13e863249d7666f8]"⟩,
+  ⟨"k8s.io/api/core/v1.map_RBDPersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_RBDPersistentVolumeSource = map[string]string{ \"\": \"Represents a Rados Block Device mount that lasts the lifetim … [sha256:1d8d34890235a445]"⟩,
+  ⟨"k8s.io/api/core/v1.map_RBDVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_RBDVolumeSource = map[string]string{ \"\": \"Represents a Rados Block Device mount that lasts the lifetime of a pod … [sha256:8bfcf8137ad0e03b]"⟩,
+  ⟨"k8s.io/api/core/v1.map_RangeAllocation", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_RangeAllocation = map[string]string{ \"\": \"RangeAllocation is not a public type.\", \"metadata\": \"metadata is the s … [sha256:02814418d3779209]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ReplicationController", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicationController = map[string]string{ \"\": \"ReplicationController represents the configuration of a replicat … [sha256:768b3c4e0c528075]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ReplicationControllerCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicationControllerCondition = map[string]string{ \"\": \"ReplicationControllerCondition describes the state of a … [sha256:ca03f66d43f8815b]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ReplicationControllerList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicationControllerList = map[string]string{ \"\": \"ReplicationControllerList is a collection of replication con … [sha256:6d22b362518a7d3a]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ReplicationControllerSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicationControllerSpec = map[string]string{ \"\": \"ReplicationControllerSpec is the specification of a replicat … [sha256:8f6c4f6ea6b80d0d]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ReplicationControllerStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ReplicationControllerStatus = map[string]string{ \"\": \"ReplicationControllerStatus represents the current status  … [sha256:29702c8be3fd8758]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ResourceClaim", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ResourceClaim = map[string]string{ \"\": \"ResourceClaim references one entry in PodSpec.ResourceClaims.\", \"name\":  … [sha256:fea3fe2dea8ee052]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ResourceFieldSelector", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ResourceFieldSelector = map[string]string{ \"\": \"ResourceFieldSelector represents container resources (cpu, memor … [sha256:4d47b7bdb504c0d7]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ResourceHealth", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ResourceHealth = map[string]string{ \"\": \"ResourceHealth represents the health of a resource. It has the latest d … [sha256:37c7e956739fb303]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ResourceQuota", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ResourceQuota = map[string]string{ \"\": \"ResourceQuota sets aggregate quota restrictions enforced per namespace\", … [sha256:c93e8e285a9a5432]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ResourceQuotaList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ResourceQuotaList = map[string]string{ \"\": \"ResourceQuotaList is a list of ResourceQuota items.\", \"metadata\": \"S … [sha256:e8f6f02e61206ee4]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ResourceQuotaSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ResourceQuotaSpec = map[string]string{ \"\": \"ResourceQuotaSpec defines the desired hard limits to enforce for Quo … [sha256:4cda197e62e05f5b]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ResourceQuotaStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ResourceQuotaStatus = map[string]string{ \"\": \"ResourceQuotaStatus defines the enforced hard limits and observed  … [sha256:f4428def63b2dd55]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ResourceRequirements", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ResourceRequirements = map[string]string{ \"\": \"ResourceRequirements describes the compute resource requirements. … [sha256:61b6c9f4e322d6a7]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ResourceStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ResourceStatus = map[string]string{ \"\": \"ResourceStatus represents the status of a single resource allocated to  … [sha256:f083e7361286ec5a]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SELinuxOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SELinuxOptions = map[string]string{ \"\": \"SELinuxOptions are the labels to be applied to the container\", \"user\":  … [sha256:ff2fb92b7e97417e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ScaleIOPersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ScaleIOPersistentVolumeSource = map[string]string{ \"\": \"ScaleIOPersistentVolumeSource represents a persistent Sc … [sha256:5f0dba1fb7ed70e8]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ScaleIOVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ScaleIOVolumeSource = map[string]string{ \"\": \"ScaleIOVolumeSource represents a persistent ScaleIO volume\", \"gate … [sha256:7355843586753e4d]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ScopeSelector", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ScopeSelector = map[string]string{ \"\": \"A scope selector represents the AND of the selectors represented by the  … [sha256:2f01e827d99ced5e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ScopedResourceSelectorRequirement", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ScopedResourceSelectorRequirement = map[string]string{ \"\": \"A scoped-resource selector requirement is a selector … [sha256:7d8370d30cf16e65]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SeccompProfile", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SeccompProfile = map[string]string{ \"\": \"SeccompProfile defines a pod/container's seccomp profile settings. Only … [sha256:a50a145f6c54a3e2]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Secret", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Secret = map[string]string{ \"\": \"Secret holds secret data of a certain type. The total bytes of the values in th … [sha256:bb6b7196223e6e91]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SecretEnvSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SecretEnvSource = map[string]string{ \"\": \"SecretEnvSource selects a Secret to populate the environment variables … [sha256:9bd58c715a1c5bc6]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SecretKeySelector", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SecretKeySelector = map[string]string{ \"\": \"SecretKeySelector selects a key of a Secret.\", \"key\": \"key is the ke … [sha256:6a482acef17d93ba]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SecretList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SecretList = map[string]string{ \"\": \"SecretList is a list of Secret.\", \"metadata\": \"Standard list metadata. More … [sha256:8836a0714a70dbab]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SecretProjection", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SecretProjection = map[string]string{ \"\": \"Adapts a secret into a projected volume.\\n\\nThe contents of the targe … [sha256:45f55f482b03edef]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SecretReference", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SecretReference = map[string]string{ \"\": \"SecretReference represents a Secret Reference. It has enough informati … [sha256:040e37a3cefe30fd]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SecretVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SecretVolumeSource = map[string]string{ \"\": \"Adapts a Secret into a volume.\\n\\nThe contents of the target Secret … [sha256:57b16ebce2d12d84]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SecurityContext", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SecurityContext = map[string]string{ \"\": \"SecurityContext holds security configuration that will be applied to a … [sha256:176a7ca4d56dfcec]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SerializedReference", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SerializedReference = map[string]string{ \"\": \"SerializedReference is a reference to serialized object.\", \"refere … [sha256:6b61240a90ea15ea]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Service", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Service = map[string]string{ \"\": \"Service is a named abstraction of software service (for example, mysql) consis … [sha256:5047367563b5e2a9]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ServiceAccount", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ServiceAccount = map[string]string{ \"\": \"ServiceAccount binds together: * a name, understood by users, and perha … [sha256:685d71d08686c105]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ServiceAccountList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ServiceAccountList = map[string]string{ \"\": \"ServiceAccountList is a list of ServiceAccount objects\", \"metadata\" … [sha256:1c803fe6efe710fc]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ServiceAccountTokenProjection", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ServiceAccountTokenProjection = map[string]string{ \"\": \"ServiceAccountTokenProjection represents a projected ser … [sha256:6ecfb163bd665a31]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ServiceList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ServiceList = map[string]string{ \"\": \"ServiceList holds a list of services.\", \"metadata\": \"Standard list metadat … [sha256:cc87ed0dc23f2ba9]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ServicePort", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ServicePort = map[string]string{ \"\": \"ServicePort contains information on service's port.\", \"name\": \"name is the … [sha256:8974c9abca79400d]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ServiceProxyOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ServiceProxyOptions = map[string]string{ \"\": \"ServiceProxyOptions is the query options to a Service's proxy call … [sha256:71f4f07d137d82da]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ServiceSpec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ServiceSpec = map[string]string{ \"\": \"ServiceSpec describes the attributes that a user creates on a service.\", \" … [sha256:5e6d580ce7b1533c]"⟩,
+  ⟨"k8s.io/api/core/v1.map_ServiceStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ServiceStatus = map[string]string{ \"\": \"ServiceStatus represents the current status of a service.\", \"loadBalance … [sha256:70038d8b89e59bf1]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SessionAffinityConfig", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SessionAffinityConfig = map[string]string{ \"\": \"SessionAffinityConfig represents the configurations of session a … [sha256:a1b97df7af873f29]"⟩,
+  ⟨"k8s.io/api/core/v1.map_SleepAction", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_SleepAction = map[string]string{ \"\": \"SleepAction describes a \\\"sleep\\\" action.\", \"seconds\": \"seconds is the num … [sha256:ad41328e6e121ff7]"⟩,
+  ⟨"k8s.io/api/core/v1.map_StorageOSPersistentVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StorageOSPersistentVolumeSource = map[string]string{ \"\": \"Represents a StorageOS persistent volume resource.\", \" … [sha256:675e65e2c6ead2a9]"⟩,
+  ⟨"k8s.io/api/core/v1.map_StorageOSVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StorageOSVolumeSource = map[string]string{ \"\": \"Represents a StorageOS persistent volume resource.\", \"volumeName … [sha256:cad99c7bee231854]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Sysctl", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Sysctl = map[string]string{ \"\": \"Sysctl defines a kernel parameter to be set\", \"name\": \"name of a property to se … [sha256:1355badcab1b6b21]"⟩,
+  ⟨"k8s.io/api/core/v1.map_TCPSocketAction", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TCPSocketAction = map[string]string{ \"\": \"TCPSocketAction describes an action based on opening a socket\", \"port\" … [sha256:6fe905679f876ff1]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Taint", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Taint = map[string]string{ \"\": \"The node this Taint is attached to has the \\\"effect\\\" on any pod that does not t … [sha256:5b1f99e9f7d7f6d6]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Toleration", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Toleration = map[string]string{ \"\": \"The pod this Toleration is attached to tolerates any taint that matches the … [sha256:ed53ca92eb4b6ac1]"⟩,
+  ⟨"k8s.io/api/core/v1.map_TopologySelectorLabelRequirement", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TopologySelectorLabelRequirement = map[string]string{ \"\": \"A topology selector requirement is a selector that ma … [sha256:d9376589eda9bf3d]"⟩,
+  ⟨"k8s.io/api/core/v1.map_TopologySelectorTerm", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TopologySelectorTerm = map[string]string{ \"\": \"A topology selector term represents the result of label queries.  … [sha256:101c9deb0b165af7]"⟩,
+  ⟨"k8s.io/api/core/v1.map_TopologySpreadConstraint", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TopologySpreadConstraint = map[string]string{ \"\": \"TopologySpreadConstraint specifies how to spread matching pod … [sha256:13a0df65e0f194f2]"⟩,
+  ⟨"k8s.io/api/core/v1.map_TypedLocalObjectReference", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TypedLocalObjectReference = map[string]string{ \"\": \"TypedLocalObjectReference contains enough information to let … [sha256:c51b7d286160adc4]"⟩,
+  ⟨"k8s.io/api/core/v1.map_TypedObjectReference", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TypedObjectReference = map[string]string{ \"\": \"TypedObjectReference contains enough information to let you locat … [sha256:5fda43aa614435ec]"⟩,
+  ⟨"k8s.io/api/core/v1.map_Volume", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Volume = map[string]string{ \"\": \"Volume represents a named volume in a pod that may be accessed by any container … [sha256:9d326d6906d0ed49]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeDevice", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeDevice = map[string]string{ \"\": \"volumeDevice describes a mapping of a raw block device within a container … [sha256:7b95757520b0f1f7]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeHealthCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeHealthCondition = map[string]string{ \"\": \"VolumeHealthCondition represents an adverse health condition rep … [sha256:6204993dd89fac5e]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeHealthStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeHealthStatus = map[string]string{ \"\": \"VolumeHealthStatus contains health information for a volume reporte … [sha256:452e0a780ad840bf]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeMount", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeMount = map[string]string{ \"\": \"VolumeMount describes a mounting of a Volume within a container.\", \"name\": … [sha256:c2d952c33a65fd48]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeMountStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeMountStatus = map[string]string{ \"\": \"VolumeMountStatus shows status of volume mounts.\", \"name\": \"name cor … [sha256:317b7acdde8f3570]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeNodeAffinity", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeNodeAffinity = map[string]string{ \"\": \"VolumeNodeAffinity defines constraints that limit what nodes this v … [sha256:661ad4d55971f373]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeProjection", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeProjection = map[string]string{ \"\": \"Projection that may be projected along with other supported volume ty … [sha256:4fc2522e636aa3ab]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeResourceRequirements", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeResourceRequirements = map[string]string{ \"\": \"VolumeResourceRequirements describes the storage resource r … [sha256:2a0279f54eb757cd]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeSource = map[string]string{ \"\": \"Represents the source of a volume to mount. Only one of its members may b … [sha256:b8bb19ae055f3086]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VolumeStatus", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VolumeStatus = map[string]string{ \"\": \"VolumeStatus represents the status of a mounted volume. At most one of it … [sha256:517239e4ae7b52b0]"⟩,
+  ⟨"k8s.io/api/core/v1.map_VsphereVirtualDiskVolumeSource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_VsphereVirtualDiskVolumeSource = map[string]string{ \"\": \"Represents a vSphere volume resource.\", \"volumePath\": \" … [sha256:bb62624577cc8b33]"⟩,
+  ⟨"k8s.io/api/core/v1.map_WeightedPodAffinityTerm", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_WeightedPodAffinityTerm = map[string]string{ \"\": \"The weights of all of the matched WeightedPodAffinityTerm fiel … [sha256:ea6727b8e6322954]"⟩,
+  ⟨"k8s.io/api/core/v1.map_WindowsSecurityContextOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_WindowsSecurityContextOptions = map[string]string{ \"\": \"WindowsSecurityContextOptions contain Windows-specific o … [sha256:9c1bfba5d9b12a51]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.core.v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.api.resource, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.util.intstr]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -11474,764 +11482,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val map_WindowsSecurityContextOptions.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val map_WeightedPodAffinityTerm.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VsphereVirtualDiskVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeResourceRequirements.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeProjection.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeNodeAffinity.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeMountStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeMount.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeHealthStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeHealthCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_VolumeDevice.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Volume.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TypedObjectReference.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TypedLocalObjectReference.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TopologySpreadConstraint.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TopologySelectorTerm.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TopologySelectorLabelRequirement.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Toleration.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Taint.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TCPSocketAction.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Sysctl.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StorageOSVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StorageOSPersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SleepAction.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SessionAffinityConfig.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ServiceStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ServiceSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ServiceProxyOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ServicePort.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ServiceList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ServiceAccountTokenProjection.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ServiceAccountList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ServiceAccount.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Service.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SerializedReference.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SecurityContext.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SecretVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SecretReference.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SecretProjection.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SecretList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SecretKeySelector.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SecretEnvSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Secret.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SeccompProfile.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ScopedResourceSelectorRequirement.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ScopeSelector.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ScaleIOVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ScaleIOPersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_SELinuxOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ResourceStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ResourceRequirements.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ResourceQuotaStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ResourceQuotaSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ResourceQuotaList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ResourceQuota.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ResourceHealth.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ResourceFieldSelector.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ResourceClaim.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicationControllerStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicationControllerSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicationControllerList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicationControllerCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ReplicationController.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_RangeAllocation.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_RBDVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_RBDPersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_QuobyteVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ProjectedVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ProbeHandler.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Probe.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PreferredSchedulingTerm.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PreferAvoidPodsEntry.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Preconditions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PortworxVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PortStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodVolumeHealth.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodTemplateSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodTemplateList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodTemplate.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodSignature.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodSecurityContext.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodSchedulingGroup.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodSchedulingGate.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodResourceClaimStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodResourceClaim.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodReadinessGate.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodProxyOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodPortForwardOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodOS.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodLogOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodIP.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodExtendedResourceClaimStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodExecOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodDNSConfigOption.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodDNSConfig.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodCertificateProjection.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodAttachOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodAntiAffinity.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodAffinityTerm.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PodAffinity.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Pod.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PhotonPersistentDiskVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeClaimVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeClaimTemplate.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeClaimStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeClaimSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeClaimList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeClaimCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolumeClaim.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PersistentVolume.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ObjectReference.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ObjectFieldSelector.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeSystemInfo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeSwapStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeSelectorTerm.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeSelectorRequirement.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeSelector.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeRuntimeHandlerFeatures.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeRuntimeHandler.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeProxyOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodePodPreemptionPolicy.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeFeatures.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeDaemonEndpoints.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeConfigStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeConfigSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeAllocatableResourceClaimStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeAllocatableOverheadResources.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeAllocatableMappedResources.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeAffinity.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NodeAddress.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Node.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NamespaceStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NamespaceSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NamespaceList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NamespaceCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Namespace.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_NFSVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ModifyVolumeStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LocalVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LocalObjectReference.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LoadBalancerStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LoadBalancerIngress.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LinuxContainerUser.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LimitRangeSpec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LimitRangeList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LimitRangeItem.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LimitRange.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LifecycleHandler.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Lifecycle.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_KeyToPath.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ImageVolumeStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ImageVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ISCSIVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ISCSIPersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_HostPathVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_HostIP.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_HostAlias.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_HTTPHeader.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_HTTPGetAction.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_GlusterfsVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_GlusterfsPersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_GitRepoVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_GRPCAction.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_GCEPersistentDiskVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_FlockerVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_FlexVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_FlexPersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_FileKeySelector.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_FCVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ExecAction.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EvictionResponder.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EventSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EventSeries.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EventList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Event.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EphemeralVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EphemeralContainerCommon.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EphemeralContainer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EnvVarSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EnvVar.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EnvFromSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EndpointsList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Endpoints.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EndpointSubset.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EndpointPort.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EndpointAddress.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_EmptyDirVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DownwardAPIVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DownwardAPIVolumeFile.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DownwardAPIProjection.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DaemonEndpoint.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerUser.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerStateWaiting.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerStateTerminated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerStateRunning.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerState.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerRestartRuleOnExitCodes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerRestartRule.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerResizePolicy.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerPort.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerImage.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ContainerExtendedResourceRequest.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Container.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ConfigMapVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ConfigMapProjection.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ConfigMapNodeConfigSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ConfigMapList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ConfigMapKeySelector.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ConfigMapEnvSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ConfigMap.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ComponentStatusList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ComponentStatus.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ComponentCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ClusterTrustBundleProjection.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ClientIPConfig.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_CinderVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_CinderPersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_CephFSVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_CephFSPersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Capabilities.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_CSIVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_CSIPersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Binding.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_AzureFileVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_AzureFilePersistentVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_AzureDiskVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_AvoidPods.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_AttachedVolume.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_AppArmorProfile.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Affinity.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_AWSElasticBlockStoreVolumeSource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val AddToScheme.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val SchemeBuilder.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val SchemeGroupVersion.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrUnexpectedEndOfGroupGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrIntOverflowGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))
+  (App (Val SchemeGroupVersion.init) (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.initialize') (Val #()))))))
   (App (Val doExecute)

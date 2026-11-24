@@ -51,7 +51,7 @@ theorem startMember.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu ps bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48
-    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 HnL Haf Hbuq Hdbo
+    HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   -- the peer address's listen right and raft protocol, out of the fresh bundle (to `net.Listen` and
   -- `http.Serve`); the rest to `NewServer`
@@ -61,7 +61,7 @@ theorem startMember.wp_proof
   iunfold etcdstart.commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Htd⟩
   iunfold etcdstart.memberBootOn at Hmb
-  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
+  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, -⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
@@ -93,6 +93,7 @@ theorem startMember.wp_proof
       (fun h => absurd h (by decide)) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (etcdstart.peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
+      (etcdstart.etcdURLsFit_httpURL peerAddr Hpf) (etcdstart.etcdURLsFit_httpURL client Hcf)
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
@@ -142,7 +143,7 @@ theorem startMember.wp_proof
   -- `net.Listen("tcp", peerAddr)` (`etcdstart.NewMember`'s)
   wp_apply (wp_Listen go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
-  icases Hlis with (⟨%Hlerr, Hlis⟩ | %Hlerr)
+  icases Hlis with (⟨%Hlerr, Hlis, -⟩ | %Hlerr)
   rotate_left
   · cases lerr with
     | nil => exact absurd rfl Hlerr

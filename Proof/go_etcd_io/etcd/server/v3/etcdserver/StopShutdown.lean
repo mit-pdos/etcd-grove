@@ -361,7 +361,7 @@ abbrev stopCleanupImage.spec : Prop :=
         srvStop.cleanupPart C.s C.E ∗ srvStop.censusPart C.s C.E ∗ srvStop.imagePart C.s cfg C.rn ∗
         srvDataDir C.s dd ∗ srvStopReaders C.E ∗
         srvBootApplied C.ρ ∗
-        nodeVacant C.rn.node.cl C.rn.id ∗
+        (∃ x, nodeVacantA C.rn.node.cl C.rn.id x) ∗
         (∃ (S : RaftState) (σ : StorContents), raftState C.rn.node.cl C.rn.id S ∗
           rnWalClosed C.rn (srvRAddr C.s) σ ∗
           ⌜StorageHolds S σ ∧ σ.b ≤ (C.rn.pre ++ A).length ∧
@@ -538,7 +538,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc1, Hlc2⟩
   ihave #Hrf' := Hrf
   iunfold srvRunFieldsAt at Hrf'
-  icases Hrf' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
+  icases Hrf' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
   iunfold srvGoAttachOk at Hgok
   icases Hgok with ⟨%gch, %gc, -, -, -, #Hginv, -⟩
   imod stop_monitorRT C.E C.wt γg d $$ [Hlc1 Hg Hwd] with ⟨Hg, HoM⟩

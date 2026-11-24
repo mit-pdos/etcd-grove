@@ -584,7 +584,7 @@ Stage 3 (2026-11-04) deleted them: their callers instantiate the merged specs (a
 `applyAll`'s matcher and the off premise's laws. -/
 
 /-- The merged `applyAll.specBatch`'s running-token match is `srvRunH` (the auth component's 2c). -/
-theorem srvRunH_applyAll_specBatch (γs : ServerRaftNames) (dv : Option Loc) :
+theorem srvRunH_applyAll_specBatch (γs : ServerRaftNames) (dv : Option NodeH) :
     _root_.Perennial.EtcdGrove.EtcdServer.applyAll.specBatch.match_1 (fun _ => IProp GF) dv
       (fun _ => iprop(True))
       (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) =

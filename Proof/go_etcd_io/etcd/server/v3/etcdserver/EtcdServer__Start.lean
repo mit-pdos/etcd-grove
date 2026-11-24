@@ -66,9 +66,14 @@ theorem EtcdServer.Start.wp_proof
     EtcdServer.Start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   wp_start as ⟨%hC, Hb, Htok, Hlg, Hlgm, Hsv, #Hoff, Hlgd, Hrc⟩
+  -- (rdslot) `monitorDowngrade`'s `lgMu` slot; `adjustTicks`'s transport slot and switch
+  iunfold srvMonitorRes at Hlgd
+  icases Hlgd with ⟨Hlgd, HtrA, #Hie⟩
   obtain ⟨hm, hRB, Hrb, Hai0⟩ := hC
   -- (2026-11-02, the cluster-rows stage) the member id field, a voter: the monitors' permission
   icases isServerBuiltC_mid C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨Hb, #HmidS, %HmidcS⟩
+  -- (prove-ps2-srv) the raft wrapper's contract, for `adjustTicks`
+  icases isServerBuiltC_rn C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨Hb, #HrnS⟩
   wp_auto
   wp_apply hStart s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb]
     as ⟨%γw, #Hreq, #Hrd, #Hlb, Hst, %γp, %γg, #Hwp, #Hreg, Hgo, Hright⟩
@@ -88,7 +93,7 @@ theorem EtcdServer.Start.wp_proof
   icases Hrd' with ⟨%vd, #Hvd⟩
   iunfold srvReadFieldsAtM at Hvd
   icases Hvd with ⟨-, -, -, -, -, -, -, -, -, #Hlgf, #Hlgn, -, -, -, -, -, -, -, -, -, -,
-    #Hstpf, -⟩
+    #Hstpf, #Hstpc, -⟩
   -- (premise-fixes-6) the server's logger a zap logger (the monitors' and `adjustTicks`'s)
   ihave #HlgOk : srvLoggerOk s $$ []
   · iunfold srvLoggerOk; iexists vd.lg; iframe Hlgf Hlgn
@@ -104,30 +109,32 @@ theorem EtcdServer.Start.wp_proof
   iunfold srvGoAttachOk at Hgok'
   icases Hgok' with ⟨%gch, %gc, -, -, -, -, -, -, -, #HrP, -⟩
   -- `func() { s.adjustTicks() }`, with `GoAttach`'s `lgMu` pool and the goroutine's level 1
-  wp_apply wp_GoAttach_tokT hGA s γg _ iprop(True) $$ [Hgr] as Hgr
-  · iframe Hgr
-    isplitr
-    · itrivial
-    iintro !> %Φ' ⟨-, Hrun, Htf⟩ HΦ'
+  wp_apply wp_GoAttach_tokT hGA s γg _ (srvTrReader s) $$ [Hgr HtrA] as Hgr
+  · iframe Hgr HtrA
+    iintro !> %Φ' ⟨HtrA, Hrun, Htf⟩ HΦ'
     icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Htf with ⟨G1, Gt2⟩
     (try wp_auto)
-    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } $$ [G1] as G1
-    · iframe #; iframe G1
+    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } Er γn γg $$ [G1 HtrA] as ⟨G1, -⟩
+    · iframe #; iframe G1 HtrA
     iapply HΦ'
     iframe Hrun
     iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
     iframe
   -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`, with the right to close `readych` (and the `lgMu`
   -- pool and the goroutine's level 1)
-  wp_apply wp_GoAttach_tokT hGA s γg _ (srvReadyCloser s) $$ [Hgr Hrc] as Hgr
+  wp_apply wp_GoAttach_tokT hGA s γg _ (srvReadyCloser s E) $$ [Hgr Hrc] as Hgr
   · iframe Hgr Hrc
     iintro !> %Φ' ⟨Hrc, Hrun, Htf⟩ HΦ'
     icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Htf with ⟨G1, Gt2⟩
     (try wp_auto)
     wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
     · iframe #
-    wp_apply hPub C.isOn s _ E { wait := γw, rd := ρ.rd } $$ [Hrc G1] as G1
-    · iframe #; iframe Hrc G1; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
+    -- (prove-ps2-srvgoroutines, 2026-11-24) with the read view and the request names' credential
+    wp_apply hPub C.isOn s _ E { wait := γw, rd := ρ.rd } γr $$ [Hrc G1] as G1
+    · iframe #; iframe Hrc G1
+      isplitr
+      · ipureintro; rw [apply.AEnv.authOn_eq, hm]; cases C <;> rfl
+      iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
     iapply HΦ'
     iframe Hrun
     iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
@@ -146,7 +153,8 @@ theorem EtcdServer.Start.wp_proof
     · iframe #; iframe Htf
     iapply HΦ'
     iframe
-  -- `func() { monitorFileDescriptor(s.Logger(), s.stopping) }`
+  -- `func() { monitorFileDescriptor(s.Logger(), s.stopping) }` (prove-ps2-srvgoroutines, 2026-11-24: with
+  -- `s.stopping`'s stop channel, the read view's)
   wp_apply wp_GoAttach_tok hGA s γg _ (srvLgReader s) $$ [Hgr Hlgm] as Hgr
   · iframe Hgr Hlgm
     iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'

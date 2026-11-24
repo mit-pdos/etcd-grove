@@ -72,8 +72,9 @@ theorem Model.listItems.wp_proof
   icases Hm with ⟨#Hinit, %il, %rl, %M, #Hp, #HI, #Hit, #HR⟩
   iStructNamed Hp
   wp_auto
+  ihave %HszM := itemsRO_size_map M m.items $$ Hit
   wp_apply (wp_Keys il) as %f #Hf
-  wp_apply Hf $$ %M %DFrac.discard [] [HI] as %s %ks - Hs %Hks
+  wp_apply Hf $$ %M %DFrac.discard [] [HI] %HszM as %s %ks - Hs %Hks
   · iexact HI
   iStructNamed opts
   irename : ("_" ∷ True : IProp GF) => Htriv

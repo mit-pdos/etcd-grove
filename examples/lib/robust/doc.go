@@ -1,7 +1,7 @@
 // Package robust runs a distributed program's robustness test the way the program runs for real,
 // with the environment, not the program, making the faults. The program under test is its own
 // binary, unchanged: no fault injection in its code, no hooks to make interesting executions more
-// likely. The harness owns everything around it:
+// likely. This package makes everything around it:
 //
 //   - Machines (Network, Machine): each a network namespace with its own address, joined by a
 //     router namespace that is the network. Processes are started on a machine (Machine.Start)
@@ -16,12 +16,22 @@
 //     filesystem synced before the restart (SyncFS: the restart the Linux file extension's
 //     "Restarts" assumption allows), or its machine's disk losing power (Disk: an ext4 of its own
 //     on dm-flakey, which loses whatever was not durable).
-//   - Process management: a process that ends without the harness killing it is a failure of
-//     the program (Start's onExit).
+//   - Process management: a process that ends without being killed is a failure of the
+//     program (Start's onExit).
+//   - A deployment's run (Run, run.go): its processes started on their machines, each with its
+//     log; the processes of machines that crash (Restartable, in Groups) killed at random and
+//     restarted on the same directory; the processes of machines that never crash (Client):
+//     those that serve until killed, and orchestrators, each marking its set-up done by a file,
+//     whose end the run waits for; the faults started only once every orchestrator's set-up is
+//     done (RunClients, RunFaults); the run's first failure (Fail, Err, Failed) and what it made
+//     (Stats, NetStats). Config says which faults, how often, and the deadline.
+//   - Small helpers for a deployment's tests (util.go): the network or the local mode
+//     (NewNetworkOrLocal), a test run again where it can make namespaces (RerunTest), Symlink,
+//     Tail. Nothing here is for the machines' programs, which never import this package.
 //
-// What the harness checks (linearizability of the clients' operations, convergence, durability
-// across a whole-cluster crash) is the program's driver's business; the faults are this
-// package's.
+// What a run checks (linearizability of the clients' operations, convergence, durability across
+// a whole-cluster crash) is the program's business (its orchestrators' checks, which panic); the
+// faults are this package's.
 //
 // The faults are the ones the robustness theorems' executions allow (Lean library Robustness,
 // notes/robustness.md): a machine's crash at any step, its restart with the same program, the

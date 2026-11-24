@@ -1,8 +1,11 @@
 # Types and names only (item 5, client construction): `resolver.Builder`, the type of
 # `grpc.WithResolvers`'s parameter, to which `clientv3`'s `dialWithBalancer` converts its
-# `*EtcdManualResolver`.
-translate = ["!*"]
-imports = ["!*"]
+# `*EtcdManualResolver`. (prove-grpc3, 2026-11-21) Importing `serviceconfig` and `attributes`
+# (types only), so that `ClientConn` and `State` are translated: the types of the fields of the
+# manual resolver etcd's resolver embeds (`resolver/manual.toml`); its package variables `m` and
+# `defaultScheme` with their initializers (the package is now in the closure).
+translate = ["!*", "m", "defaultScheme"]
+imports = ["!*", "google.golang.org/grpc/serviceconfig", "google.golang.org/grpc/attributes"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

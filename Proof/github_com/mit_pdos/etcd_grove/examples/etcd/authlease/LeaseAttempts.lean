@@ -84,15 +84,15 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
     (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
-          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ∗
-      □ (∀ id : w64, clientOpAuOn s E ρ conn c (.leaseGrant id ttl) (Q id)) ⊢
-    □ ▷ attemptPre conn c (etcdLeaseGrantSpecOn s E ρ γl) (ttl, W64 0) Φ := by
+          akTokSeen γa who tok -∗ leaseCheckFrom (srvTLSId s) E tok n K -∗ Φ m) ∗
+      □ (∀ id : w64, clientOpAuOn (srvTLSId s) E ρ conn c (.leaseGrant id ttl) (Q id)) ⊢
+    □ ▷ attemptPre conn c (etcdLeaseGrantSpecOn (srvTLSId s) E ρ γl) (ttl, W64 0) Φ := by
   iintro ⟨#Htok, #Hn, #Hno, #Hau⟩
   imodintro
   inext
   unfold attemptPre
   iintro %md %Hmd
-  unfold etcdLeaseGrantSpecOn
+  unfold etcdLeaseGrantSpecOn etcdLeaseGrantSpecOnW
   isplitr
   · iintro !> %_; itrivial
   isplitr
@@ -106,7 +106,7 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
     · simp only [leaseGrantPermitM]
       iintro %id
       ihave Hau1 := Hau $$ %id
-      ihave H := clientOpAuOn_attempt s E ρ conn c md _ (Q id) Hmd $$ Hau1
+      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ (Q id) Hmd $$ Hau1
       iapply kvOpAuOn_leaseGrant $$ H
   iintro %m %_ #_ _ _ #Hck
   ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok
@@ -115,17 +115,17 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
 /-- `Revoke(id)`'s attempts, with the caller's update `Q` and the reply's result. -/
 theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (c : GrpcMd)
     (n : Nat) (id : w64) (Q : KVState → IProp GF) (Φ : LeaseRevokeRespM → IProp GF) :
-    auth.authPubLbM E.authMode n ∗ □ clientOpAuOn s E ρ conn c (.leaseRevoke id) Q ∗
+    auth.authPubLbM E.authMode n ∗ □ clientOpAuOn (srvTLSId s) E ρ conn c (.leaseRevoke id) Q ∗
       □ (∀ (md : GrpcMd) (m : LeaseRevokeRespM), ⌜clientAttemptMd conn c md⌝ -∗
-          v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q -∗
-          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗ Φ m) ⊢
-    □ ▷ attemptPre conn c (etcdLeaseRevokeSpecOn s E ρ) id Φ := by
+          v3rpc.leaseRevokeResT E.authOn (srvTLSId s) E ρ (auth.mdTokenOf md) id Q -∗
+          leaseCheckFrom (srvTLSId s) E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗ Φ m) ⊢
+    □ ▷ attemptPre conn c (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) id Φ := by
   iintro ⟨#Hn, #Hau, #HΦ⟩
   imodintro
   inext
   unfold attemptPre
   iintro %md %Hmd
-  unfold etcdLeaseRevokeSpecOn
+  unfold etcdLeaseRevokeSpecOn etcdLeaseRevokeSpecOnW
   isplitr
   · iintro !> %_; itrivial
   iexists n
@@ -135,7 +135,7 @@ theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc
   · cases hon : E.authOn
     · iapply leaseRevokePermitM_false
     · simp only [leaseRevokePermitM]
-      ihave H := clientOpAuOn_attempt s E ρ conn c md _ Q Hmd $$ Hau
+      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ Q Hmd $$ Hau
       iapply kvOpAuOn_leaseRevoke $$ H
   iintro %m #_ Hres #Hck
   iapply HΦ $$ %md %m %Hmd Hres Hck
@@ -147,15 +147,15 @@ theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
     (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
-          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ∗
-      □ clientOpAuOn s E ρ conn c (.leaseRevoke id) Q ⊢
-    □ ▷ attemptPre conn c (etcdLeaseRevokeSpecOn s E ρ) id Φ := by
+          akTokSeen γa who tok -∗ leaseCheckFrom (srvTLSId s) E tok n K -∗ Φ m) ∗
+      □ clientOpAuOn (srvTLSId s) E ρ conn c (.leaseRevoke id) Q ⊢
+    □ ▷ attemptPre conn c (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) id Φ := by
   iintro ⟨#Htok, #Hn, #Hno, #Hau⟩
   imodintro
   inext
   unfold attemptPre
   iintro %md %Hmd
-  unfold etcdLeaseRevokeSpecOn
+  unfold etcdLeaseRevokeSpecOn etcdLeaseRevokeSpecOnW
   isplitr
   · iintro !> %_; itrivial
   iexists n
@@ -165,7 +165,7 @@ theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   · cases hon : E.authOn
     · iapply leaseRevokePermitM_false
     · simp only [leaseRevokePermitM]
-      ihave H := clientOpAuOn_attempt s E ρ conn c md _ Q Hmd $$ Hau
+      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ Q Hmd $$ Hau
       iapply kvOpAuOn_leaseRevoke $$ H
   iintro %m #_ - #Hck
   ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok
@@ -177,15 +177,15 @@ theorem ttl_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : auth
     (Φ : LeaseTTLRespM → IProp GF) (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (r : LeaseTTLRespM) (tok : Option GoString), akTokSeen γa who tok -∗
-          leaseCheckFrom s E tok n (fun info => if req.2 then
+          leaseCheckFrom (srvTLSId s) E tok n (fun info => if req.2 then
             leaseKeysVerdictFrom E.authMode n info γl m req.1 .read else iprop(True)) -∗ Φ r) ⊢
-    □ ▷ attemptPre conn c (etcdLeaseTTLSpecMd s E γl) req Φ := by
+    □ ▷ attemptPre conn c (etcdLeaseTTLSpecMd (srvTLSId s) (leaseTTLRow s γl) E γl) req Φ := by
   iintro ⟨#Htok, #Hn, #Hm, #HΦ⟩
   imodintro
   inext
   unfold attemptPre
   iintro %md %Hmd
-  unfold etcdLeaseTTLSpecMd
+  unfold etcdLeaseTTLSpecMd etcdLeaseTTLSpecMdW
   isplitr
   · iintro !> %_; itrivial
   iexists n
@@ -202,14 +202,14 @@ theorem ttl_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
     (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
-          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ⊢
-    □ ▷ attemptPre conn c (etcdLeaseTTLSpecMd s E γl) req Φ := by
+          akTokSeen γa who tok -∗ leaseCheckFrom (srvTLSId s) E tok n K -∗ Φ m) ⊢
+    □ ▷ attemptPre conn c (etcdLeaseTTLSpecMd (srvTLSId s) (leaseTTLRow s γl) E γl) req Φ := by
   iintro ⟨#Htok, #Hn, #Hm, #Hno⟩
   imodintro
   inext
   unfold attemptPre
   iintro %md %Hmd
-  unfold etcdLeaseTTLSpecMd
+  unfold etcdLeaseTTLSpecMd etcdLeaseTTLSpecMdW
   isplitr
   · iintro !> %_; itrivial
   iexists n
@@ -227,15 +227,15 @@ theorem leases_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (r : LeaseLeasesRespM) (tok : Option GoString) (i : Nat), ⌜m ≤ i⌝ -∗ akTokSeen γa who tok -∗
           lease.leaseIdsAt γl i r.ids -∗
-          leaseCheckFrom s E tok n (fun info => iprop([∗list] id ∈ r.ids,
+          leaseCheckFrom (srvTLSId s) E tok n (fun info => iprop([∗list] id ∈ r.ids,
             leaseKeysVerdictFrom E.authMode n info γl i id .read)) -∗ Φ r) ⊢
-    □ ▷ attemptPre conn c (etcdLeaseLeasesSpecMd s E γl) () Φ := by
+    □ ▷ attemptPre conn c (etcdLeaseLeasesSpecMd (srvTLSId s) E γl) () Φ := by
   iintro ⟨#Htok, #Hn, #Hm, #HΦ⟩
   imodintro
   inext
   unfold attemptPre
   iintro %md %Hmd
-  unfold etcdLeaseLeasesSpecMd
+  unfold etcdLeaseLeasesSpecMd etcdLeaseLeasesSpecMdW
   isplitr
   · iintro !> %_; itrivial
   iexists n
@@ -252,14 +252,14 @@ theorem leases_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa 
     (hout : c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
-          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ⊢
-    □ ▷ attemptPre conn c (etcdLeaseLeasesSpecMd s E γl) () Φ := by
+          akTokSeen γa who tok -∗ leaseCheckFrom (srvTLSId s) E tok n K -∗ Φ m) ⊢
+    □ ▷ attemptPre conn c (etcdLeaseLeasesSpecMd (srvTLSId s) E γl) () Φ := by
   iintro ⟨#Htok, #Hn, #Hm, #Hno⟩
   imodintro
   inext
   unfold attemptPre
   iintro %md %Hmd
-  unfold etcdLeaseLeasesSpecMd
+  unfold etcdLeaseLeasesSpecMd etcdLeaseLeasesSpecMdW
   isplitr
   · iintro !> %_; itrivial
   iexists n

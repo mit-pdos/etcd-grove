@@ -1,0 +1,2402 @@
+0 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-A=["1" "2"]
+body="" <nil>
+=== 1 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 2 "CONNECT /_goRPC_ HTTP/1.0\n\n"
+CONNECT "/_goRPC_" HTTP/1.0 1.0 host="" url="/_goRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 3 "CONNECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 4 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 5 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 6 "GET"
+error *errors.errorString malformed HTTP request "GET"
+=== 7 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 8 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: clse\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connection=["clse"] Content-Length=["0"]
+body="" <nil>
+=== 9 ""
+error *errors.errorString EOF
+=== 10 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 11 "CONNECTh:1 HTTP/1.1\r\nHost\t: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP request "CONNECTh:1 HTTP/1.1"
+=== 12 "G0ET /a?b=c HTTP/1.1\r\nHost:h\r\nX-A: 1\r\nx\r\n\r\n-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "x"
+=== 13 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection:close\r\nContent-Lengt: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Lengt=["0"]
+body="" <nil>
+=== 14 "PUT http://h/x HTTP/1.1\r\nHost: ot\ther\r\nConnection: close\r\nContent-Len-gth: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Len-Gth=["0"]
+body="" <nil>
+=== 15 "POST /p HTTP/1.0\r\nContent-Leng\x01th: 3\r\nContentType: text/plai"
+error textproto.ProtocolError malformed MIME header line: "Content-Leng\x01th: 3"
+=== 16 "PUT htt:p://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r"
+error textproto.ProtocolError malformed MIME header line: "Content-Length: 0\r"
+=== 17 "CONNECT /_goRPC_ HTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 18 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/pl\rain\r\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: text/pl\rain\r"
+=== 19 "GET / HTTP/.1\r\nHost: h\r\nPragma: no-cac"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 20 "CONNEC /_goRPC_ HTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 21 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a"
+error textproto.ProtocolError malformed MIME header: missing colon: "x-a"
+=== 22 "CON"
+error *errors.errorString malformed HTTP request "CON"
+=== 23 "PUT http://h/x HTTP/1.1\r\nHost: other\nConnetion: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connetion=["close"] Content-Length=["0"]
+body="" <nil>
+=== 24 "POST /p HTTP/1.0\r\nContent-Lenth: 3\r\n\r\n\r\nContent-Type: text/plai\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Content-Lenth=["3"]
+body="" <nil>
+=== 25 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 26 "GET /a?b=c TT"
+error *errors.errorString malformed HTTP version "TT"
+=== 27 "aCONNECT "
+error *errors.errorString malformed HTTP request "aCONNECT "
+=== 28 "GET "
+error *errors.errorString malformed HTTP request "GET "
+=== 29 "CONNECT/"
+error *errors.errorString malformed HTTP request "CONNECT/"
+=== 30 "POST /p HTTP/1.0\r\nContent-Legth: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Content-Legth=["3"] Content-Type=["text/plain"]
+body="" <nil>
+=== 31 "CONNECT/_goRPC_ HTTP/1.0\r\n\n"
+error *errors.errorString malformed HTTP request "CONNECT/_goRPC_ HTTP/1.0"
+=== 32 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: \r\nx-a: 2\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-A=["" "2"]
+body="" <nil>
+=== 33 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-9a: 2\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-9a=["2"] X-A=["1"]
+body="" <nil>
+=== 34 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nCon9tent-Leng-th: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Con9tent-Leng-Th=["0"] Connection=["close"]
+body="" <nil>
+=== 35 "CONNE"
+error *errors.errorString malformed HTTP request "CONNE"
+=== 36 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 37 "GET / HTTP/1.1\r\nHost: h\r\nP"
+error textproto.ProtocolError malformed MIME header: missing colon: "P"
+=== 38 "CONNECT h:1 HTTP/1.1\r\nHst: h:1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+Hst=["h:1"]
+body="" <nil>
+=== 39 "CON"
+error *errors.errorString malformed HTTP request "CON"
+=== 40 "GET /a?b=c HTTP/1.1\r\nHost:h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-A=["1" "2"]
+body="" <nil>
+=== 41 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 42 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nConten-Type: text/pain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Conten-Type=["text/pain"] Content-Length=["3"]
+body="abc" <nil>
+=== 43 "CONNCT /_goRPC_ "
+error *errors.errorString malformed HTTP version ""
+=== 44 "GET / H\x01TTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "H\x01TTP/1.1"
+=== 45 "CONNECT h:1 H\nTP/1.1\r\nHo"
+error *errors.errorString malformed HTTP version "H"
+=== 46 "POST /p HTTP/1.0\r\nConten9t-Length: 3\r\nC:ontent-Ty"
+error *errors.errorString unexpected EOF
+=== 47 "POST /"
+error *errors.errorString malformed HTTP request "POST /"
+=== 48 "PUT http://h/x HTTP/.1\r\nHost: oth(er\r\x01\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 49 "CONNECT /_goRPC_ HTTP/1.\t0\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1.\t0"
+=== 50 "GET / HTTP/.1\r\nHost"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 51 "POST /p HTTP/\x011.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "HTTP/\x011.0"
+=== 52 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Typ0e: txt/plai:n\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Typ0e=["txt/plai:n"]
+body="abc" <nil>
+=== 53 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Le"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Le"
+=== 54 "CONNECT h:1 HTTP/1.1\r\nHost: h:\x011\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host: h:\x011"
+=== 55 "CONNECT h:1 HTTP/1.1\r\nHst: h:1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+Hst=["h:1"]
+body="" <nil>
+=== 56 "PUT http://h/x HTTP/1.1\r\nHost: other"
+error *errors.errorString unexpected EOF
+=== 57 "PST /p HTTP/1\x01.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "HTTP/1\x01.0"
+=== 58 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrst"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 59 "UT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContet-Length: 0\r\n\r\n"
+UT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Contet-Length=["0"]
+body="" <nil>
+=== 60 "CONNECT h:1 H"
+error *errors.errorString malformed HTTP version "H"
+=== 61 "GET /a?b=c HTTP/1.1\r\nH"
+error textproto.ProtocolError malformed MIME header: missing colon: "H"
+=== 62 "-CONNECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+-CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 63 "PUT http://h/x H\r\nTTP/1"
+error *errors.errorString malformed HTTP version "H"
+=== 64 "GET /a?b=c HTTP/1.1\r(\nH"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r("
+=== 65 "POST /p HTTP/1.0\r\nContent-Lngth: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Content-Lngth=["3"] Content-Type=["text/plain"]
+body="" <nil>
+=== 66 "CON\r\n\r\nNECT /_goRPC_ HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "CON"
+=== 67 "GET a?b=c HTTP/1.1\r\nHost: h\r\nX-A: \r\n\x7fx-a: 2\r\n\r\n"
+error *url.Error parse "a?b=c": invalid URI for request
+=== 68 "GET / HTTP/1.1\r\nHos t: h\r\nPragma: \tn-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Hos t=["h"] Pragma=["n-cache"]
+body="" <nil>
+=== 69 "GET /a?b=c HTTP"
+error *errors.errorString malformed HTTP version "HTTP"
+=== 70 "GET é/a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\n"
+error *url.Error parse "é/a?b=c": invalid URI for request
+=== 71 "CaNNECT "
+error *errors.errorString malformed HTTP request "CaNNECT "
+=== 72 "POST /p HTTP/1.0\r\nContent-Length: \r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString invalid empty Content-Length ""
+=== 73 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: closeé\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connection=["closeé"] Content-Length=["0"]
+body="" <nil>
+=== 74 "CONNECT h:1 HTTP/1.1\r\nHost: ha:1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 75 "GET /éa?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+GET "/éa?b=c" HTTP/1.1 1.1 host="h" url="/%C3%A9a?b=c" close=false len=0 te=[]
+X-A=["1" "2"]
+body="" <nil>
+=== 76 "CONNECT /_goRP-"
+error *errors.errorString malformed HTTP request "CONNECT /_goRP-"
+=== 77 "GET / HTP/1.1\r\nHost: h\r\nPragma: nocache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 78 "GET /a?b=c "
+error *errors.errorString malformed HTTP version ""
+=== 79 "GET /a?b=c HTTP/1.1\r\nHost: h\rX-A: 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host: h\rX-A: 1"
+=== 80 "CONNECT \x01h:1\t HTTP/1.1\r\nHost: h:1\r\n\r\n"
+error *url.Error parse "http://\x01h:1\t": net/url: invalid control character in URL
+=== 81 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConn0ection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Conn0ection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 82 "PUT ttp://h/x HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 83 "GET /a?b=c HTTP/11\r\n\nHost: h\r\nX-A 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 84 "CONNEC\r\n\r\nT /_goRPC_ HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "CONNEC"
+=== 85 ""
+error *errors.errorString EOF
+=== 86 "CONNECT h:1 HTTP/.1\r\n\r\nHost:h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 87 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n"
+error *errors.errorString unexpected EOF
+=== 88 "GET /a?b=c"
+error *errors.errorString malformed HTTP request "GET /a?b=c"
+=== 89 "CONNECT :1 HTTP/1.1\r\nHost: h:1\r-\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host: h:1\r-"
+=== 90 "CONN:ECT h:1 HTTP/1.1\r\nHo:st: h:1\r\n\r\n"
+error *errors.errorString invalid method "CONN:ECT"
+=== 91 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r"
+error textproto.ProtocolError malformed MIME header line: "X-A: 2\r"
+=== 92 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConne\nction: close\r\nC9ontent-Length: 0\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conne"
+=== 93 "CONNECT /_goR"
+error *errors.errorString malformed HTTP request "CONNECT /_goR"
+=== 94 "CONNECT h:1 HTTP/1.1\r\n-Hos\x7ft: h:"
+error textproto.ProtocolError malformed MIME header line: "-Hos\x7ft: h:"
+=== 95 "PUT http://h/x H"
+error *errors.errorString malformed HTTP version "H"
+=== 96 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: textplain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["textplain"]
+body="abc" <nil>
+=== 97 "GET /a?b=\nc HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP request "GET /a?b="
+=== 98 "CONNECT /_"
+error *errors.errorString malformed HTTP request "CONNECT /_"
+=== 99 "CONNECT"
+error *errors.errorString malformed HTTP request "CONNECT"
+=== 100 "UT http://h/xa HTTP/1.1\r\nH"
+error textproto.ProtocolError malformed MIME header: missing colon: "H"
+=== 101 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: tet/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["tet/plain"]
+body="abc" <nil>
+=== 102 "CONNECT h:1 HTT"
+error *errors.errorString malformed HTTP version "HTT"
+=== 103 "POST /p HTTP/1.0\r\nContent-L\x7fenth: 3\r\n"
+error textproto.ProtocolError malformed MIME header line: "Content-L\x7fenth: 3"
+=== 104 "CONNECT h:1 HTT\rP/1.1"
+error *errors.errorString malformed HTTP version "HTT\rP/1.1"
+=== 105 "POST\x01 /p HTTP/1.0\r\nCntent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString invalid method "POST\x01"
+=== 106 "CONECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONECT "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 107 "POST /p "
+error *errors.errorString malformed HTTP version ""
+=== 108 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nCon0nection: close\r\nontent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Con0nection=["close"] Ontent-Length=["0"]
+body="" <nil>
+=== 109 "GET /a?b=c HTTP/11\r\nHost: h\x7f\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 110 "GET / HTTP/1.1\r\nHost: h\r\nPra\rgma: no\x7f-cache\r\nA:  sp  \r\nB:\t\r\n\n"
+error textproto.ProtocolError malformed MIME header line: "Pra\rgma: no\x7f-cache"
+=== 111 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-"
+=== 112 "CONNECT h:1 HTTP/1.1\r\nH-st: h:1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+H-St=["h:1"]
+body="" <nil>
+=== 113 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nXA: 1\r\nx-a: 2"
+error *errors.errorString unexpected EOF
+=== 114 "CONNCT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONNCT "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 115 "POST /p HTTP/1.0\r\nContent"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content"
+=== 116 "PUT http://h/x HTTP/1\r\n.1\r\nHost:other\r\nConnection: close\r\nContent-0Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1"
+=== 117 "GET / HTTP/1.1\r\nHot: h\r\nPragma: no-cache\r\nA"
+error textproto.ProtocolError malformed MIME header: missing colon: "A"
+=== 118 "GET /a?b=c HTTP/1.1\r\nHost"
+error textproto.ProtocolError malformed MIME header: missing colon: "Host"
+=== 119 "PUT http://h/x HTTP/1.1\r"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r"
+=== 120 "CO"
+error *errors.errorString malformed HTTP request "CO"
+=== 121 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 122 "C"
+error *errors.errorString malformed HTTP request "C"
+=== 123 "POST /p HTTP/1.0\nContent-Length: \r\nContent-Type: text/plain\r\n\r\n"
+error *errors.errorString invalid empty Content-Length ""
+=== 124 "GET /a?b=c HTTP/19.1\r\nHost: h\nX-A: 1\r\nx-a: 02\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/19.1"
+=== 125 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nCont"
+error textproto.ProtocolError malformed MIME header: missing colon: "Cont"
+=== 126 "POST /p HTTP/1.0\r\nContent-Length: 3\r\n\x01Content-Type: text/plain\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "\x01Content-Type: text/plain"
+=== 127 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\n"
+error *errors.errorString unexpected EOF
+=== 128 "CON\nNEC /_goRPC_ HTTP/1.0a\n\n"
+error *errors.errorString malformed HTTP request "CON"
+=== 129 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: t"
+error *errors.errorString unexpected EOF
+=== 130 "CONECT h:1 HTTP/1.1\r\nHot: h:1\r\n\r\n"
+CONECT "h:1" HTTP/1.1 1.1 host="" url="h:1" close=false len=0 te=[]
+Hot=["h:1"]
+body="" <nil>
+=== 131 "CONNECT /_goRPC_ H\xc3TTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "H\xc3TTP/1.0"
+=== 132 "GET /a?b=c HTTP1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 133 "CONNECT /_goRPC_ HTTP/\x011.0\n\n"
+error *errors.errorString malformed HTTP version "HTTP/\x011.0"
+=== 134 "CONNECT"
+error *errors.errorString malformed HTTP request "CONNECT"
+=== 135 "GET /a?b=c HTTP/1.1\r\nHost: h:\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h:" url="/a?b=c" close=false len=0 te=[]
+X-A=["1" "2"]
+body="" <nil>
+=== 136 "GET /a?=c HTTP/1.1\r\nHost h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Host h"
+=== 137 "CONNéECT h:1 HTTP/1.1\r\nHost"
+error *errors.errorString invalid method "CONNéECT"
+=== 138 "PUT http://h/x HTTP/1.1\r\nHost:"
+error *errors.errorString unexpected EOF
+=== 139 "POST /p HTTP/1.0\r\nContent-Length: 3\r"
+error textproto.ProtocolError malformed MIME header line: "Content-Length: 3\r"
+=== 140 "CONNECT 9/_goRPC_HTT:P/1.0\n\n"
+error *errors.errorString malformed HTTP request "CONNECT 9/_goRPC_HTT:P/1.0"
+=== 141 "G\tE / HT"
+error *errors.errorString invalid method "G\tE"
+=== 142 "GET /a?b=c HTTP/1.1\r\nHos\tt: h\r\nX-A:"
+error textproto.ProtocolError malformed MIME header line: "Hos\tt: h"
+=== 143 "CONNECTé h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString invalid method "CONNECTé"
+=== 144 "CONNECT /_goRPC_ HTT/1.0\n\n"
+error *errors.errorString malformed HTTP version "HTT/1.0"
+=== 145 "POST /p HTTP/1.0\r\nContent-Length: 3(\r\nContent-Type: text/pla\x01in\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: text/pla\x01in"
+=== 146 "OST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+OST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 147 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nCntent-Type: tex\rt/plan\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Cntent-Type: tex\rt/plan"
+=== 148 "C ONNECT /_goRPC_ HTTP/.0"
+error *errors.errorString malformed HTTP version "/_goRPC_ HTTP/.0"
+=== 149 "CONNECT /_goRPC_\r HTTP/1.0\n\n"
+error *url.Error parse "/_goRPC_\r": net/url: invalid control character in URL
+=== 150 "C"
+error *errors.errorString malformed HTTP request "C"
+=== 151 "CONNECT h:1 HTTP/1.1\nHost: h:1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 152 "CONNECT\x7f h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString invalid method "CONNECT\x7f"
+=== 153 "CONNECT h:1 HTP/\r\n1.1\r\nHost:  h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/"
+=== 154 "CONNET /_goRPC_ HTTP/10\n\n"
+error *errors.errorString malformed HTTP version "HTTP/10"
+=== 155 "GET / HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 156 "G\r\n\r\nET /"
+error *errors.errorString malformed HTTP request "G"
+=== 157 "GEéT /a?b= HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString invalid method "GEéT"
+=== 158 "POST /p HTT/1.0\r"
+error *errors.errorString malformed HTTP version "HTT/1.0\r"
+=== 159 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 160 "CO(NN"
+error *errors.errorString malformed HTTP request "CO(NN"
+=== 161 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: calose\r\nContent-Length: 0\r\r\n"
+error textproto.ProtocolError malformed MIME header line: "Content-Length: 0\r"
+=== 162 "CONNECT h:1 H\r\nTTP/1.1\r\nHost: h:1\r\n\r"
+error *errors.errorString malformed HTTP version "H"
+=== 163 "GET/a?b=cHTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a:2\r\n\r\n"
+error *errors.errorString malformed HTTP request "GET/a?b=cHTTP/1.1"
+=== 164 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 165 "PUT htt://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "htt://h/x" HTTP/1.1 1.1 host="h" url="htt://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 166 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: c\rlose\rContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: c\rlose\rContent-Length: 0"
+=== 167 "GET / HTTP/1.1\r\nost: h\r\nPragm"
+error textproto.ProtocolError malformed MIME header: missing colon: "Pragm"
+=== 168 "GET /a?b\x7f=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *url.Error parse "/a?b\x7f=c": net/url: invalid control character in URL
+=== 169 "G"
+error *errors.errorString malformed HTTP request "G"
+=== 170 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConection: close\r\nContent-Legth: 0\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Conection=["close"] Content-Legth=["0"]
+body="" <nil>
+=== 171 "CONNECT /_goRPC_ HTTP/1.0\n\n"
+CONNECT "/_goRPC_" HTTP/1.0 1.0 host="" url="/_goRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 172 "GET /a?b=c HTTP/1.1\r\nHost:( h\r\nX-A 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "X-A 1"
+=== 173 "CONNECT /_gRPC:_ HTTP/1.0\n\n"
+CONNECT "/_gRPC:_" HTTP/1.0 1.0 host="" url="/_gRPC:_" close=true len=0 te=[]
+
+body="" <nil>
+=== 174 "GET /a?b=c9 HTT/"
+error *errors.errorString malformed HTTP version "HTT/"
+=== 175 "CO\x7fNNECT "
+error *errors.errorString malformed HTTP request "CO\x7fNNECT "
+=== 176 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cche\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Pragma=["no-cche"]
+body="" <nil>
+=== 177 "GET /a?b=c HTTP/1.1\r(\nHo"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r("
+=== 178 "CO NNECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n\r\n"
+error *errors.errorString malformed HTTP version "h:1 HTTP/1.1"
+=== 179 "CONNECT /_goRPC_ HTTP/1\x7f.\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1\x7f."
+=== 180 "PUT http://h/x HTTP/11\r\nHost: other\r\nConnection: c\tlose\r\nConte"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 181 "POST /p HTTP/1.0\r\nContent-Le0ngth: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Content-Le0ngth=["3"] Content-Type=["text/plain"]
+body="" <nil>
+=== 182 "GET /a?b=c HTTP1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 183 "GET / HTTP/1.1\r"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r"
+=== 184 "GET / HTTP/1.1\r\nHost: h\r\nPragma: "
+error *errors.errorString unexpected EOF
+=== 185 "PUT http:/h"
+error *errors.errorString malformed HTTP request "PUT http:/h"
+=== 186 "GET / \r\nHTTP/11\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version ""
+=== 187 "PUT http://h/x HTP/1.1\r\nHost: other\r\nConnection close\r\nCotent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 188 "GET "
+error *errors.errorString malformed HTTP request "GET "
+=== 189 "CONNE:CT /_goPC_ HTTP-/1.0\n\n"
+error *errors.errorString invalid method "CONNE:CT"
+=== 190 "GE\rT /a?b=c HTTP/1.1\r\nHost: h\r\n"
+error *errors.errorString invalid method "GE\rT"
+=== 191 "CONNE\x7fCT h:1 HTTP/1.1\r\néHost: h:1\r\n\r\n"
+error *errors.errorString invalid method "CONNE\x7fCT"
+=== 192 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Type"
+=== 193 "CONNE C9T /_go"
+error *errors.errorString malformed HTTP version "/_go"
+=== 194 "CONNECT h:1 HTTP/1.\r\n\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 195 "GET /aa?b=c"
+error *errors.errorString malformed HTTP request "GET /aa?b=c"
+=== 196 "CONNEC /_goRPC_ HTTP/1.0\n\n"
+CONNEC "/_goRPC_" HTTP/1.0 1.0 host="" url="/_goRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 197 "\tCONNECT /_oPC_ HTTP/1.0\n\n"
+error *errors.errorString invalid method "\tCONNECT"
+=== 198 "GET /a?bc HTTP/1.1\r\nHost: h\nX-A: 1\r\nx-a: 2\r\n\r\n"
+GET "/a?bc" HTTP/1.1 1.1 host="h" url="/a?bc" close=false len=0 te=[]
+X-A=["1" "2"]
+body="" <nil>
+=== 199 "PUT http://h/x HTTP/1.1\r\nHost: other\nConnection: close\r\nC"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 200 "GET / HTTP/1.1\r\nHst: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Hst=["h"] Pragma=["no-cache"]
+body="" <nil>
+=== 201 "CON"
+error *errors.errorString malformed HTTP request "CON"
+=== 202 "CONNECT /_goRPC_ HTTP/1.\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 203 "CONNECT/_goRPC_ HTTP/1.0\x01\n\n"
+error *errors.errorString malformed HTTP request "CONNECT/_goRPC_ HTTP/1.0\x01"
+=== 204 "GET / HTTP/1.1\r\nHost: h\r\nPragma: n-ca"
+error *errors.errorString unexpected EOF
+=== 205 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nCon\x7fnection: close\r\nContent-Length: 0\r\n\r\n("
+error textproto.ProtocolError malformed MIME header line: "Con\x7fnection: close"
+=== 206 "POéS"
+error *errors.errorString malformed HTTP request "POéS"
+=== 207 "\x01PUT http://h/x HTTP/.1\r\nHost: ot"
+error *errors.errorString invalid method "\x01PUT"
+=== 208 "GET /a?b=c HTTP/1.1\r\nHost: "
+error *errors.errorString unexpected EOF
+=== 209 "9CON"
+error *errors.errorString malformed HTTP request "9CON"
+=== 210 "PUT http://\nh/x HTTP/1.1\r\nHost:9 other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP request "PUT http://"
+=== 211 "GET /ab="
+error *errors.errorString malformed HTTP request "GET /ab="
+=== 212 "GET /a?b=c HTTP/1.1\r\nHost: h\r"
+error textproto.ProtocolError malformed MIME header line: "Host: h\r"
+=== 213 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-ca\tche\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Pragma=["no-ca\tche"]
+body="" <nil>
+=== 214 ""
+error *errors.errorString EOF
+=== 215 "CONNECT _g"
+error *errors.errorString malformed HTTP request "CONNECT _g"
+=== 216 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 217 "PUT"
+error *errors.errorString malformed HTTP request "PUT"
+=== 218 "PUT http ://h/x HTTP/1.1\r\nHost: other"
+error *errors.errorString malformed HTTP version "://h/x HTTP/1.1"
+=== 219 "POST /p HTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcres"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 220 "CON\r\nNECT /_"
+error *errors.errorString malformed HTTP request "CON"
+=== 221 "UT http://h/x HTTP/1.1\r\nH"
+error textproto.ProtocolError malformed MIME header: missing colon: "H"
+=== 222 "POST /p HTTP/1.é0\r"
+error *errors.errorString malformed HTTP version "HTTP/1.é0\r"
+=== 223 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nC"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 224 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\n"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="" unexpected EOF
+=== 225 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length : 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length =["0"]
+body="" <nil>
+=== 226 "CONNECT 0/_goRP_"
+error *errors.errorString malformed HTTP request "CONNECT 0/_goRP_"
+=== 227 "GE"
+error *errors.errorString malformed HTTP request "GE"
+=== 228 "CONNECT h:1 HTTP/1.1\r\nHost\r: 0h:1\r"
+error textproto.ProtocolError malformed MIME header line: "Host\r: 0h:1\r"
+=== 229 "GET /a?b=c HTTP/1.91\r\nHost"
+error *errors.errorString malformed HTTP version "HTTP/1.91"
+=== 230 "GET /a?b=c HTTP/1.1\r\nHost: h\r\r\n\nX-A: "
+error textproto.ProtocolError malformed MIME header line: "Host: h\r"
+=== 231 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nCnnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Cnnection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 232 "POST /p HTTP/1.0\r\nontent-Length: 3\r\nContent-Type: text/plan\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Content-Type=["text/plan"] Ontent-Length=["3"]
+body="" <nil>
+=== 233 "POST /p HTTP/1.0\r\nContent-Length: \r\nContent-Type: text/plai\r\n\r\nn\r\n\r\nabcrest"
+error *errors.errorString invalid empty Content-Length ""
+=== 234 "GET / HTTP\t/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP\t/1.1"
+=== 235 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-c"
+error *errors.errorString unexpected EOF
+=== 236 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-c\nache\r\nA:  sp  \r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "ache"
+=== 237 "CON"
+error *errors.errorString malformed HTTP request "CON"
+=== 238 "GET"
+error *errors.errorString malformed HTTP request "GET"
+=== 239 "POST /p HTTP/1.0\r\nContentLength: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Content-Type=["text/plain"] Contentlength=["3"]
+body="" <nil>
+=== 240 "POST /\x7fp HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabc\r"
+error *url.Error parse "/\x7fp": net/url: invalid control character in URL
+=== 241 "CONNECT /_goRPC_ HTTP/1.\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 242 "CON"
+error *errors.errorString malformed HTTP request "CON"
+=== 243 "GET / -HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "-HTTP/1.1"
+=== 244 "CONNECT /_goRPC_ HTT"
+error *errors.errorString malformed HTTP version "HTT"
+=== 245 "GET / HTP/1.1\r\nHo"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 246 "GET /a?b=c HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 247 "GET /?b\x01=c HTTP/1.1\r"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r"
+=== 248 "CONNECT /_goRPC_ HTT"
+error *errors.errorString malformed HTTP version "HTT"
+=== 249 "POST /p HTTP/1.0\r\nContent-Length: 3\ré\nContent-Type:"
+error textproto.ProtocolError malformed MIME header line: "Content-Length: 3\ré"
+=== 250 "GET /a?b=c HTTP/1.1\r\nH(o\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "H(o"
+=== 251 "CONNECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r:\n"
+error textproto.ProtocolError malformed MIME header line: "\r:"
+=== 252 "CONNECT /_goR\x7fPC_ HTTP/0\n\n"
+error *errors.errorString malformed HTTP version "HTTP/0"
+=== 253 "POST /p HTTP/1.0\r\nConent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Conent-Length=["3"] Content-Type=["text/plain"]
+body="" <nil>
+=== 254 "PUT htp://h/x HTTP/1.1\r\nost: other\r\nConnection: close\r\nContent-Length: 0\r\r\n"
+error textproto.ProtocolError malformed MIME header line: "Content-Length: 0\r"
+=== 255 "CONNECT h:1 HTTP/1.1\r"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r"
+=== 256 "GET /a?b=c HT-TP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HT-TP/1.1"
+=== 257 "CONNECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 258 "CONNECT h:1 HTTP/1"
+error *errors.errorString malformed HTTP version "HTTP/1"
+=== 259 "POST /-p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/-p" HTTP/1.0 1.0 host="" url="/-p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 260 "éCONNECT "
+error *errors.errorString malformed HTTP request "éCONNECT "
+=== 261 "CONN\r\n\r\nECT /_goRPC_ HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "CONN"
+=== 262 "PUT http://h/x HTTP/1.1\r\nHost: \r\nother\r\nConnection: cl"
+error textproto.ProtocolError malformed MIME header: missing colon: "other"
+=== 263 "PUT http://h/x HTTP/1.1\rHst:  other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\rHst:  other"
+=== 264 "POST /p HTTP/1.:0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "HTTP/1.:0"
+=== 265 "CONNEC  /_goRPC_ HTTP/1.0\n"
+error *errors.errorString malformed HTTP version "/_goRPC_ HTTP/1.0"
+=== 266 "POS /p"
+error *errors.errorString malformed HTTP request "POS /p"
+=== 267 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnect\r\nion: close\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connect"
+=== 268 "GET a?b=c HTTP/11\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 269 "CONNECT h:1 HTTP/1.-1\r\nHost: h:1\r\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1.-1"
+=== 270 "CONNECT /_goRPC_ HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 271 "PUT http://h/x H(TTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "H(TTP/1.1"
+=== 272 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnec\r\ntion: close\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connec"
+=== 273 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Lengh: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Lengh=["0"]
+body="" <nil>
+=== 274 "CONNECT /_goRC_ HTTP/1.0\n\n"
+CONNECT "/_goRC_" HTTP/1.0 1.0 host="" url="/_goRC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 275 "PaOST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n"
+error *errors.errorString unexpected EOF
+=== 276 "CONNECT h:1 HTTP/1.1\r\nHost: h:1"
+error *errors.errorString unexpected EOF
+=== 277 "CONNECT /_"
+error *errors.errorString malformed HTTP request "CONNECT /_"
+=== 278 "GET /a?b=c HTT\rP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT\rP/1.1"
+=== 279 "CONNECT h: HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONNECT "h:" HTTP/1.1 1.1 host="h:" url="//h:" close=false len=0 te=[]
+
+body="" <nil>
+=== 280 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plai\x01n\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: text/plai\x01n"
+=== 281 "CONNECT h:1 HTT"
+error *errors.errorString malformed HTTP version "HTT"
+=== 282 "PUT http://h/x HTTP/1.1\r\r\n\nHos"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r"
+=== 283 "\r\nGET / HTTP/1.1\r\nHost: h\r\nPra"
+error *errors.errorString malformed HTTP request ""
+=== 284 "CONNECT /_goR(\x01PC HTTP/1.0\n\n"
+error *url.Error parse "/_goR(\x01PC": net/url: invalid control character in URL
+=== 285 "GET /a?b=c HTTP/1.1\r\nHost:h\rX-A: 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host:h\rX-A: 1"
+=== 286 "PUT http:/é/h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Lenth: 0\r\n\r\n"
+PUT "http:/é/h/x" HTTP/1.1 1.1 host="other" url="http:/%C3%A9/h/x" close=true len=0 te=[]
+Connection=["close"] Content-Lenth=["0"]
+body="" <nil>
+=== 287 "aPUT "
+error *errors.errorString malformed HTTP request "aPUT "
+=== 288 "GET / HTTP/1.1\r\nHost: h\r\nPragma: 0no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Pragma=["0no-cache"]
+body="" <nil>
+=== 289 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContet-L"
+error textproto.ProtocolError malformed MIME header: missing colon: "Contet-L"
+=== 290 "GET /ab=c "
+error *errors.errorString malformed HTTP version ""
+=== 291 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type:\n text/p9lain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/p9lain"]
+body="abc" <nil>
+=== 292 "PUT http://h/x HTTP/1.1\r\nHost: other\nConne"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conne"
+=== 293 "CONNECT /_goRPC_ "
+error *errors.errorString malformed HTTP version ""
+=== 294 "GET / \r\nHTTP/1.1\r\nH9ost: h\r\nPragma: no-ca"
+error *errors.errorString malformed HTTP version ""
+=== 295 "GET /\x7f HTTP/1.1\r\nHost: h\r\nPrama: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *url.Error parse "/\x7f": net/url: invalid control character in URL
+=== 296 "GET( / H(TTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString invalid method "GET("
+=== 297 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type\x01: text/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Content-Type\x01: text/plain"
+=== 298 "GET /\x01a\x01?b=c HTTP/1.1\r\nHost: "
+error *url.Error parse "/\x01a\x01?b=c": net/url: invalid control character in URL
+=== 299 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nontent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Ontent-Length=["0"]
+body="" <nil>
+=== 300 "POST/p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP request "POST/p HTTP/1.0"
+=== 301 "GET / HTTP/1.1\r\n"
+error *errors.errorString unexpected EOF
+=== 302 "CONNECT h:1 HTTP/1.1\r\nH"
+error textproto.ProtocolError malformed MIME header: missing colon: "H"
+=== 303 "CONNECT /_goRPC_ H\x01"
+error *errors.errorString malformed HTTP version "H\x01"
+=== 304 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConne\x01ction: close\r\nC"
+error textproto.ProtocolError malformed MIME header line: "Conne\x01ction: close"
+=== 305 "GET / HTTP/1.1\r\nHost: h\r\nPragma: o-cach\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Pragma=["o-cach"]
+body="" <nil>
+=== 306 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 307 "POST /p HTTP/1.0\r\nContent-Lenth: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Content-Lenth=["3"] Content-Type=["text/plain"]
+body="" <nil>
+=== 308 "ET /a?b=c HTTP/1.1\r\nHost: h\r\néX-: 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "éX-: 1"
+=== 309 "PUT http://h/x TTP/1.1\r\nHost: othe(r\r\nConnection: clos"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 310 "PUT http://h/x HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 311 "CONNECT /goRPC_ HéTTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "HéTTP/1.0"
+=== 312 "GET / HTTP/1.\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 313 "POST /p éHTTP/1.0\r\nContnt-Length: 3\r\nContent-Type: text/plin\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "éHTTP/1.0"
+=== 314 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\na\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "a"
+=== 315 "GET / HTT\tP/1.1\r\nHost: h\r\nPragma: no-écache\rA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT\tP/1.1"
+=== 316 "PUT http://h/x HTTP/1.1\r\nHo-st: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"] Ho-St=["other"]
+body="" <nil>
+=== 317 "CONNECT /_goR"
+error *errors.errorString malformed HTTP request "CONNECT /_goR"
+=== 318 "GET / HTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 319 ""
+error *errors.errorString EOF
+=== 320 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: c:lose\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connection=["c:lose"] Content-Length=["0"]
+body="" <nil>
+=== 321 "POST / HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: txt/plain\r\n\r\nabcrest"
+POST "/" HTTP/1.0 1.0 host="" url="/" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["txt/plain"]
+body="abc" <nil>
+=== 322 "GET /a?b=c HTTP/1.\r1\rHost: h\r\nX"
+error *errors.errorString malformed HTTP version "HTTP/1.\r1\rHost: h"
+=== 323 "G ET / HTTP/1.1\r\nHost: "
+error *errors.errorString malformed HTTP version "/ HTTP/1.1"
+=== 324 "\r\n\r\nPUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection:close\r\nConten-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP request ""
+=== 325 "POST p HTT"
+error *errors.errorString malformed HTTP version "HTT"
+=== 326 "GET / HTTé/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTé/1.1"
+=== 327 "POST /p HTTP/1.0\r\nContent-Lengt"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Lengt"
+=== 328 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nConte nt-Typ: text/plain\r\n\r\nab"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Conte nt-Typ=["text/plain"] Content-Length=["3"]
+body="ab" unexpected EOF
+=== 329 "GET "
+error *errors.errorString malformed HTTP request "GET "
+=== 330 "POST /p HTTP/1.0\r\n\nContt-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+
+body="" <nil>
+=== 331 "CONNECT"
+error *errors.errorString malformed HTTP request "CONNECT"
+=== 332 "PUT http://h/x HTTP/1.1\r\nHost"
+error textproto.ProtocolError malformed MIME header: missing colon: "Host"
+=== 333 "GET /a?b=c HTTP/1.1\r\nHost h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Host h"
+=== 334 "GET / HTTP/1.1\rHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\rHost: h"
+=== 335 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n"
+error *errors.errorString unexpected EOF
+=== 336 "ONNECT /_goRPC_ "
+error *errors.errorString malformed HTTP version ""
+=== 337 "GET / HTP/1.1\r\nHost: \r\nPragma: no-cache\r\nA:\r\n\r\n  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 338 ""
+error *errors.errorString EOF
+=== 339 "GET / HTTP/1.1\r\nHost: h\r(\nPragma: no-cache\r\nA:  sp  \r\nB:\t\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host: h\r("
+=== 340 "GET / HTTP/1.1\r\nHost:  h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 341 "GE /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\n\nx-a: 2\r\n\r\n"
+GE "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-A=["1"]
+body="" <nil>
+=== 342 "PUT http://h/x HTTP/1.\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 343 "CONNECT h:1 H\r\n\r\nTTP/1"
+error *errors.errorString malformed HTTP version "H"
+=== 344 "CONNECT h\r:1 HTTP/1.1\r\nHost: h\r\n:1\r\n(\r\n"
+error *url.Error parse "http://h\r:1": net/url: invalid control character in URL
+=== 345 "POST /p HTTP/1.0\r\nCotent-Length: 3\r\nContent-Type: te\x01xt/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: te\x01xt/plain"
+=== 346 "PUT http:/\x01/h/xHTTP/1.1\r\nHost: oth"
+error *errors.errorString malformed HTTP request "PUT http:/\x01/h/xHTTP/1.1"
+=== 347 "CONNECT h:1 HTTP/1.1\r\nHost: h\r\n:1\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: ":1"
+=== 348 "CONNECT /:_goRPC_\n HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "CONNECT /:_goRPC_"
+=== 349 "GET /a?b=c HTTP/1.1\r\nHos"
+error textproto.ProtocolError malformed MIME header: missing colon: "Hos"
+=== 350 "PUT http://h/x HTTP/1.1\r\nHost: o"
+error *errors.errorString unexpected EOF
+=== 351 "GET / HTTP/1."
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 352 "PUT http://h/x\t HTTP/1.1\r\nHost: other\r\nCon"
+error *url.Error parse "http://h/x\t": net/url: invalid control character in URL
+=== 353 "CONNECT /_"
+error *errors.errorString malformed HTTP request "CONNECT /_"
+=== 354 "GET /a?b=c HTP"
+error *errors.errorString malformed HTTP version "HTP"
+=== 355 "GET /a?b=c HTT\r\n\r\nP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT"
+=== 356 "0P"
+error *errors.errorString malformed HTTP request "0P"
+=== 357 "CONNECT h:1 \r\nH"
+error *errors.errorString malformed HTTP version ""
+=== 358 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nontent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Ontent-Length=["0"]
+body="" <nil>
+=== 359 "CNN"
+error *errors.errorString malformed HTTP request "CNN"
+=== 360 "CONNECT h:1 HTP/1.1\r\nHost: h:1\r\n\r\n\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 361 "CONN-ECT /_goRP_ HTTP/1.0\n"
+error *errors.errorString unexpected EOF
+=== 362 "GET /a?bc HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: é2\r\n\r\n"
+GET "/a?bc" HTTP/1.1 1.1 host="h" url="/a?bc" close=false len=0 te=[]
+X-A=["1" "é2"]
+body="" <nil>
+=== 363 "PUT http://h/x HTTP/1\r\n.1\r\r\nHost: othe(r\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1"
+=== 364 "CONNEC h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONNEC "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 365 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp\r\n\r\n  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 366 "ONNECT /_goRPC_ HTTP/1.0\n\n"
+ONNECT "/_goRPC_" HTTP/1.0 1.0 host="" url="/_goRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 367 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cche\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Pragma=["no-cche"]
+body="" <nil>
+=== 368 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 369 "CONNECT /_goR"
+error *errors.errorString malformed HTTP request "CONNECT /_goR"
+=== 370 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 371 "POST "
+error *errors.errorString malformed HTTP request "POST "
+=== 372 "CONNECT h:1 HT\r\n\r\nTP/1.1\r\nHost: h:1"
+error *errors.errorString malformed HTTP version "HT"
+=== 373 "GET"
+error *errors.errorString malformed HTTP request "GET"
+=== 374 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: \r2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "X-A: \r2"
+=== 375 "PUT http://h/x H"
+error *errors.errorString malformed HTTP version "H"
+=== 376 "PUT \r\nhtp://h/x HTTP/1.1\r\nHost: other\r\nConnection: c"
+error *errors.errorString malformed HTTP request "PUT "
+=== 377 "POST /p HTTP/1.0\r\nContent-L\nength: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-L"
+=== 378 "CONNECTh:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP request "CONNECTh:1 HTTP/1.1"
+=== 379 "POST /p HTTP/1.0\r\nContent-Legth: 3\r\nConte\nnt-Type: text/plain\r\n\r\nabcr:est"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conte"
+=== 380 "PT ht"
+error *errors.errorString malformed HTTP request "PT ht"
+=== 381 "P0UT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+P0UT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 382 "C\r\n\r\nON"
+error *errors.errorString malformed HTTP request "C"
+=== 383 "POST /p HTTP/1.0\r(\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nab\t\tcrest"
+error *errors.errorString malformed HTTP version "HTTP/1.0\r("
+=== 384 "POST /p H\n\r\nTTP/1.0\r\nContent"
+error *errors.errorString malformed HTTP version "H"
+=== 385 "GET / HTTP/1.1\r\nHost: h\r"
+error textproto.ProtocolError malformed MIME header line: "Host: h\r"
+=== 386 "PUT http://h/x HTTP/1.1\r\nHost:9 other\r\nConnect"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connect"
+=== 387 "GET / HTTP/1.1\r\nHost: h\r\nPrama: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Prama=["no-cache"]
+body="" <nil>
+=== 388 "GE"
+error *errors.errorString malformed HTTP request "GE"
+=== 389 "GET \x7f/a?b=c HTTP/1.1\r\nHost "
+error *url.Error parse "\x7f/a?b=c": net/url: invalid control character in URL
+=== 390 "GET / "
+error *errors.errorString malformed HTTP version ""
+=== 391 "CONN\r\nECTh:1 HT"
+error *errors.errorString malformed HTTP request "CONN"
+=== 392 "POST /p HT\tTP/1.0\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcre"
+error *errors.errorString malformed HTTP version "HT\tTP/1.0"
+=== 393 "PUT http://h/x HTTP/11\r\nHost: other\r\nConnection: clos\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 394 "CONNECT h:1 HTTP/1.1\r\n"
+error *errors.errorString unexpected EOF
+=== 395 "CON\r\nNECT /_goRPC HTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "CON"
+=== 396 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-ype: texét/plain\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 397 "CN"
+error *errors.errorString malformed HTTP request "CN"
+=== 398 "G\rET / HTTP/1.1\r\nH-ost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString invalid method "G\rET"
+=== 399 "CONNECT h: HTT:P/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT:P/1.1"
+=== 400 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\rx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "X-A: 1\rx-a: 2"
+=== 401 "CO\rNN9ECT "
+error *errors.errorString malformed HTTP request "CO\rNN9ECT "
+=== 402 "CONN:ECT h:1 HTTP/1.1\r\n0Host: h:1\r\n\r\n"
+error *errors.errorString invalid method "CONN:ECT"
+=== 403 "POST /p HTTP/ 1.0\r\nContent-Length: 3\r\nContent-Typ: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "HTTP/ 1.0"
+=== 404 "GET /a?b=c HTTP1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 405 "CONNECT h:1 H"
+error *errors.errorString malformed HTTP version "H"
+=== 406 "GET / HTTP/1.1\r\nHos"
+error textproto.ProtocolError malformed MIME header: missing colon: "Hos"
+=== 407 "GE:T / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  p  \r\nB:\t\r\n\r\n"
+error *errors.errorString invalid method "GE:T"
+=== 408 "GET /a?b=c HTTP/1.\x011\r\nHo"
+error *errors.errorString malformed HTTP version "HTTP/1.\x011"
+=== 409 "GET / HTTP/1.1\r"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r"
+=== 410 "CONNECT h:1 HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 411 "GET /a?b=c HTTP/1"
+error *errors.errorString malformed HTTP version "HTTP/1"
+=== 412 "GET / HTTP/1.\r\nHost: h\r\nPragma: no-cache\r"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 413 "GET /a?b=c HTTP/1.1\r\nHost: h\r"
+error textproto.ProtocolError malformed MIME header line: "Host: h\r"
+=== 414 "CONNECT"
+error *errors.errorString malformed HTTP request "CONNECT"
+=== 415 "CONNECT /_goRPC_ HTTP/1.0\n\n0"
+CONNECT "/_goRPC_" HTTP/1.0 1.0 host="" url="/_goRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 416 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-: 1"
+error *errors.errorString unexpected EOF
+=== 417 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnecton: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connecton=["close"] Content-Length=["0"]
+body="" <nil>
+=== 418 "GET / HTTP/1.1\r\nHost: \th\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 419 "GET /HTTP/1.1\r\nHost:h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r"
+error *errors.errorString malformed HTTP request "GET /HTTP/1.1"
+=== 420 "CO"
+error *errors.errorString malformed HTTP request "CO"
+=== 421 "CONNECT /_goRPC_ HT TP/1.0\n\n"
+error *errors.errorString malformed HTTP version "HT TP/1.0"
+=== 422 "CONNECT /\n_goéRPC\r\n_ HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "CONNECT /"
+=== 423 "GET /a?=c HTTP/1.1\r\nHost: h9\r\nX-A: 1\r\nx-a: 2\r\n\r\t\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r\t"
+=== 424 "CONNECT h:1 TTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 425 "CONNECT h:1 HTTP/1.1\r\nHost:h:1\r\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host:h:1\r"
+=== 426 "CONNECT /_goRPC_ HTTP/1(.0\n\n\t"
+error *errors.errorString malformed HTTP version "HTTP/1(.0"
+=== 427 "CONNECT h:1 HTTP/1.1\r\nHot: h:1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+Hot=["h:1"]
+body="" <nil>
+=== 428 "GET / HTTP/1.1\r\nHst: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r"
+error textproto.ProtocolError malformed MIME header line: "B:\t\r"
+=== 429 "CONNECT :1 HTTP/1.1"
+error *errors.errorString unexpected EOF
+=== 430 "CONNCT h:1 HTTP/1.1\rHost: h:1\r\né\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\rHost: h:1"
+=== 431 "\rGET /a?b=c HTTP/1.\r\nHost: "
+error *errors.errorString invalid method "\rGET"
+=== 432 "CONECT /_goRPC_ HTTP/1.0 "
+error *errors.errorString malformed HTTP version "HTTP/1.0 "
+=== 433 "CON"
+error *errors.errorString malformed HTTP request "CON"
+=== 434 "CONNEC\x7fT /_"
+error *errors.errorString malformed HTTP request "CONNEC\x7fT /_"
+=== 435 "\x7fPOST /p HTTP/1.0\r\nContent-Lng"
+error *errors.errorString invalid method "\x7fPOST"
+=== 436 "POST /p "
+error *errors.errorString malformed HTTP version ""
+=== 437 "CONNECT /_goRPC_ HTTP/1.0\n"
+error *errors.errorString unexpected EOF
+=== 438 "GET / HTTP/1.1\r\nHst: h\r\nPragmaé: n-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Pragmaé: n-cache"
+=== 439 "GET /a?b=c HTTP1.1\r\nHost: h\r\nX--A: :1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 440 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/pla"
+error *errors.errorString unexpected EOF
+=== 441 "POST /p HTTP/1.0\r\nContent-ength: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Content-Ength=["3"] Content-Type=["text/plain"]
+body="" <nil>
+=== 442 "CONNET /_goRP"
+error *errors.errorString malformed HTTP request "CONNET /_goRP"
+=== 443 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: \r\nx-a: 2\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-A=["" "2"]
+body="" <nil>
+=== 444 ""
+error *errors.errorString EOF
+=== 445 "GET /a?b=c HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 446 "GET / HTTP/1.1\r\nHost: h\r\nragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Ragma=["no-cache"]
+body="" <nil>
+=== 447 "G"
+error *errors.errorString malformed HTTP request "G"
+=== 448 "POST /p HTTP/1.0\r\nContent-Length:3\r\nContent-Typ"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Typ"
+=== 449 "GET / :HTTP/1.1\r\nH"
+error *errors.errorString malformed HTTP version ":HTTP/1.1"
+=== 450 "GET / HTTP/11\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\n(B\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 451 "PUT http://h/x H"
+error *errors.errorString malformed HTTP version "H"
+=== 452 "GET / HTTP/1"
+error *errors.errorString malformed HTTP version "HTTP/1"
+=== 453 "CONNECT h:1 HTTP1.1\r\nHost: h1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 454 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: "
+error *errors.errorString unexpected EOF
+=== 455 "PUT http://\rh/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *url.Error parse "http://\rh/x": net/url: invalid control character in URL
+=== 456 "GET"
+error *errors.errorString malformed HTTP request "GET"
+=== 457 "CONNET /_goRPC_ HTTP/1.09\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1.09"
+=== 458 "GET  HTTP/1.1\r\n"
+error *url.Error parse "": empty url
+=== 459 "POST /p HTTP/1.0\r\nCotent-Length: 3\r\nContent-Ty"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Ty"
+=== 460 "CONN\tECT /_goRPC_ HTTP/1.0"
+error *errors.errorString invalid method "CONN\tECT"
+=== 461 "GET / HTTP/1.1\r\nHost: h\t\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 462 ""
+error *errors.errorString EOF
+=== 463 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: tet/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["tet/plain"]
+body="abc" <nil>
+=== 464 "CONNECT /_goRPC_ HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 465 "POST /p "
+error *errors.errorString malformed HTTP version ""
+=== 466 ""
+error *errors.errorString EOF
+=== 467 "aCO0NNECT /_goRPC_ HTTP/1.0\n\n"
+aCO0NNECT "/_goRPC_" HTTP/1.0 1.0 host="" url="/_goRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 468 "C"
+error *errors.errorString malformed HTTP request "C"
+=== 469 "CONNECT h:1 HTTP/1.1\r\nHos9t: h:1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+Hos9t=["h:1"]
+body="" <nil>
+=== 470 "C\x01ONNEaCT /_goRPC_ HTTP/1.0\n\n"
+error *errors.errorString invalid method "C\x01ONNEaCT"
+=== 471 "GET / HTTP/1.1\r\nHost9: h\r\nPragma: no-cache\r\nA  sp  \nB:\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "A  sp  "
+=== 472 "CONNECT /_goRPC_ HTTP/1.0\n\n"
+CONNECT "/_goRPC_" HTTP/1.0 1.0 host="" url="/_goRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 473 "PUT http://h/ HTTP/1"
+error *errors.errorString malformed HTTP version "HTTP/1"
+=== 474 "GET\r\n /a?b=c HTT\x01P/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP request "GET"
+=== 475 "G"
+error *errors.errorString malformed HTTP request "G"
+=== 476 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 477 "ONNECT /_goR-PC_ HTTP/1.0\n\n"
+ONNECT "/_goR-PC_" HTTP/1.0 1.0 host="" url="/_goR-PC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 478 "CONECT h:1 HTTP/a1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/a1.1"
+=== 479 "CONNECT /_goRPC_ TTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "TTP/1.0"
+=== 480 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nCo\r\nnnection: close\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 481 "CONNECT /_goRPC_ HTTP/1\x01.0\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1\x01.0"
+=== 482 "CONNECT /_goRPC_ TTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "TTP/1.0"
+=== 483 "GET /a?bc HTTP/10.1\r\nHost: h\r\nXA: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/10.1"
+=== 484 "PUT http://h/x HTP"
+error *errors.errorString malformed HTTP version "HTP"
+=== 485 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Lengt"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Lengt"
+=== 486 "GE"
+error *errors.errorString malformed HTTP request "GE"
+=== 487 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: cl\x01oe\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: cl\x01oe"
+=== 488 "POST /p HTTP/1.0\r\nCon9tent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Con9tent-Length=["3"] Content-Type=["text/plain"]
+body="" <nil>
+=== 489 "PU http://h/x HTTP/1.1\r\nHost: other\r\nCon9nection: close\r\nContent-Length: 0\r\n\r\n"
+PU "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Con9nection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 490 "GET / HTTP/\r\n01.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 491 "CONNECT /"
+error *errors.errorString malformed HTTP request "CONNECT /"
+=== 492 "ET /a?b=c HTTP/1.1\r\nHost: -h\r\nX-A: 1\r\nx-"
+error textproto.ProtocolError malformed MIME header: missing colon: "x-"
+=== 493 "PUT htt"
+error *errors.errorString malformed HTTP request "PUT htt"
+=== 494 "GET / HTTP/1.1\rHost: h\r\nPragma: no-ca"
+error *errors.errorString malformed HTTP version "HTTP/1.1\rHost: h"
+=== 495 "GET /a?bc HTTP/1.1"
+error *errors.errorString unexpected EOF
+=== 496 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: tex/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["tex/plain"]
+body="abc" <nil>
+=== 497 "PUT h\rttp://h/x HTTP/.1\r\nHst: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 498 "GET / HTTP/1.1"
+error *errors.errorString unexpected EOF
+=== 499 "CNNECT /_goRPC_ HTTP/.0\n\n"
+error *errors.errorString malformed HTTP version "HTTP/.0"
+=== 500 "PUT http"
+error *errors.errorString malformed HTTP request "PUT http"
+=== 501 "GET / HTTP\x7f/1.1\r\nHost: h\ra\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r-\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP\x7f/1.1"
+=== 502 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nConten-Len"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conten-Len"
+=== 503 "POSTp HTTP/1.0\r\nContent-Length: 3\r\nContent-Type:  text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP request "POSTp HTTP/1.0"
+=== 504 "CONNECT /_goRP:C_ HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 505 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabc(rest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 506 "POS\tT /p HTP/1.0\r\nContent-Legth: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString invalid method "POS\tT"
+=== 507 "POST /p HTTP/1.0\r\nContent-\rLe"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-\rLe"
+=== 508 "CONNECT h\r\n:1 HTT(P/1.1\r\nHost: h:1\n\r\n"
+error *errors.errorString malformed HTTP request "CONNECT h"
+=== 509 "GE"
+error *errors.errorString malformed HTTP request "GE"
+=== 510 "CONNEC h:1 HTTP1.1\r\nHost: h:1\r\n\r"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 511 "GET / TTP/1.1\r\nHost: h\r\nPragma:a no-cache\r\nA:  sp  \r\nB:\t\r\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 512 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Len"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Len"
+=== 513 "CONNECT h:1 HTTP/1.\r\not: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 514 "PUT http://hx HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContaent-Lengh: 0\r\n\r\n"
+PUT "http://hx" HTTP/1.1 1.1 host="hx" url="http://hx" close=true len=0 te=[]
+Connection=["close"] Contaent-Lengh=["0"]
+body="" <nil>
+=== 515 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA: sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 516 "CONNECT /_goRPC_ TTP/1.0\n"
+error *errors.errorString malformed HTTP version "TTP/1.0"
+=== 517 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: c"
+error *errors.errorString unexpected EOF
+=== 518 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Length 0"
+=== 519 "CONNECTh:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP request "CONNECTh:1 HTTP/1.1"
+=== 520 "PUT http://h(/x HTTP/1.1\r\nHost: other\r\nCo(nn"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co(nn"
+=== 521 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcres:t"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 522 "CONNEC\t"
+error *errors.errorString malformed HTTP request "CONNEC\t"
+=== 523 "PUT http://h/x HTTP/1.1\r\nHost: oter\r\nConnectio\r\nn: close\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connectio"
+=== 524 "PUT http://h/x HTTP/1.1\r\nHosta: other\r\nConnection: lose\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connection=["lose"] Content-Length=["0"] Hosta=["other"]
+body="" <nil>
+=== 525 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnetion: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connetion=["close"] Content-Length=["0"]
+body="" <nil>
+=== 526 "GET / HTT\r\nP/1.1\r\nHost: h\r\nPra gma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT"
+=== 527 "CONNECT h:1 HTTP/1.1\r\nHost(: h:1\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host(: h:1"
+=== 528 "CONNECT h1 "
+error *errors.errorString malformed HTTP version ""
+=== 529 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnecton: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connecton=["close"] Content-Length=["0"]
+body="" <nil>
+=== 530 "CONN0ECT /_goRPC_ HTTP/.0\n\n"
+error *errors.errorString malformed HTTP version "HTTP/.0"
+=== 531 ""
+error *errors.errorString EOF
+=== 532 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\n\tB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp B:"] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 533 "CO"
+error *errors.errorString malformed HTTP request "CO"
+=== 534 "CONNECT /_goRPC_ HTP/10\n\n "
+error *errors.errorString malformed HTTP version "HTP/10"
+=== 535 "GET "
+error *errors.errorString malformed HTTP request "GET "
+=== 536 "CONNECT /_goRPC_ HTéTP/"
+error *errors.errorString malformed HTTP version "HTéTP/"
+=== 537 "PUT ht"
+error *errors.errorString malformed HTTP request "PUT ht"
+=== 538 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cach\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Pragma=["no-cach"]
+body="" <nil>
+=== 539 "CONNECT h:1 HTTP/11\r\nHost:"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 540 "GET /a?b=c HTTP/1(.1\r\nHost: h\r\nX"
+error *errors.errorString malformed HTTP version "HTTP/1(.1"
+=== 541 "CONNECT "
+error *errors.errorString malformed HTTP request "CONNECT "
+=== 542 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: ext/plin\r\n\r\nabcr"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["ext/plin"]
+body="abc" <nil>
+=== 543 "PUT http://h/x HTTP/1.1\r\nHéost: other\r\nConnection: close\r\nContent-Lengh: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Héost: other"
+=== 544 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nConten-Type: text/plai\r\n\r\nbcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Conten-Type=["text/plai"] Content-Length=["3"]
+body="bcr" <nil>
+=== 545 "PUT http://h/x HTTP/1.1\r\nHost: oher\r\nConnection: c-lose\r\nConent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Conent-Length=["0"] Connection=["c-lose"]
+body="" <nil>
+=== 546 "GET / HTTP/1.1\r\nHost: h\r\nPra"
+error textproto.ProtocolError malformed MIME header: missing colon: "Pra"
+=== 547 "CONNE"
+error *errors.errorString malformed HTTP request "CONNE"
+=== 548 "GET /a?b=c HTTP/1.1\r\x01\nHost: h\r\nX-A\r: 1\r\nx"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r\x01"
+=== 549 "CONEC h:1 HTTP/1:.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1:.1"
+=== 550 "GET / HTTP/1.1\r\nHost: h\r(Pragma: no-cache\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host: h\r(Pragma: no-cache"
+=== 551 "GET / HTTP/11\r\nHost"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 552 "CONNECT"
+error *errors.errorString malformed HTTP request "CONNECT"
+=== 553 "PUT http://h/xHTTP/.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP request "PUT http://h/xHTTP/.1"
+=== 554 "PUT http://h/x HTTP/1."
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 555 "GET /a?b=c \rHTTP/1.1\r\nHo\r\nst: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n-"
+error *errors.errorString malformed HTTP version "\rHTTP/1.1"
+=== 556 "POST /p HTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 557 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: txt/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["txt/plain"]
+body="abc" <nil>
+=== 558 "CONNECT h:1 HTTP/1.1-\r\nHost: h:1\r"
+error *errors.errorString malformed HTTP version "HTTP/1.1-"
+=== 559 "CON(NECT "
+error *errors.errorString malformed HTTP request "CON(NECT "
+=== 560 "CONNECT h:1 HTTP/1.1\r\t\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r\t"
+=== 561 "POST /p H TTP/1.0\r\nContent-Length 3\r\n"
+error *errors.errorString malformed HTTP version "H TTP/1.0"
+=== 562 "CO0NNECT /_goRP"
+error *errors.errorString malformed HTTP request "CO0NNECT /_goRP"
+=== 563 "GET /a?b=c HTTP/1.1\r\x7f\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r\x7f"
+=== 564 "CONNECT /_goRC_ HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 565 "CONNECT /_goRPC_ HTT/1.0\n\n"
+error *errors.errorString malformed HTTP version "HTT/1.0"
+=== 566 "POST /p HTTP/1.0\r\nContent-Lengt\nh: 3\r\nontent-Type"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Lengt"
+=== 567 "CONNECT h:1 HTTP/1.1\r\nHost: h:1\r\n"
+error *errors.errorString unexpected EOF
+=== 568 "GET / HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 569 "GET /a?b=c HTT\nP/1.1\r\nHost: h\r\nX-A: 1\r\nx-aé: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT"
+=== 570 "POST /p HTTP/1.0\r\nContent"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content"
+=== 571 "GET /a?b=c HTTP/1.1\r\nHo:st: h\r\nX-A: 1\r\nx-a: 2\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 572 "GET / HTTP/1.1\r\nHost\x7f: h\r\nPrgma: no"
+error textproto.ProtocolError malformed MIME header line: "Host\x7f: h"
+=== 573 ""
+error *errors.errorString EOF
+=== 574 "CONECT h:1 HTTP/1.1\r"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r"
+=== 575 "GET / HTTP/19.1\r\nHost: h"
+error *errors.errorString malformed HTTP version "HTTP/19.1"
+=== 576 ""
+error *errors.errorString EOF
+=== 577 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nC"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 578 "POST /p HTT/1.0\r\nContent-Length: 3\r\nConent-Ty"
+error *errors.errorString malformed HTTP version "HTT/1.0"
+=== 579 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nC\r\nontent-Type: textplain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 580 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text"
+error *errors.errorString unexpected EOF
+=== 581 "POST /p HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 582 "PUT http:/\x01/h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *url.Error parse "http:/\x01/h/x": net/url: invalid control character in URL
+=== 583 "CONNEaCT h:1 éHTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "éHTP/1.1"
+=== 584 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnecti:on: close\r\nContent-Length: 0\n\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connecti=["on: close"] Content-Length=["0"]
+body="" <nil>
+=== 585 "CONNET "
+error *errors.errorString malformed HTTP request "CONNET "
+=== 586 "GET / HTTP/1.1\r\nHos: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Hos=["h"] Pragma=["no-cache"]
+body="" <nil>
+=== 587 "CONNECT /_goR\r\nPC HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "CONNECT /_goR"
+=== 588 "CONNECT: /_goRPC_ HT\x7fTP/1.0\n\n"
+error *errors.errorString invalid method "CONNECT:"
+=== 589 "GET /a?b=cHTT P/1.1\r\nHost: h\r\nX-A: 1\r\nx:-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "P/1.1"
+=== 590 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 591 "PUT http://h/x HTTP/1.1\r\nHost: oth"
+error *errors.errorString unexpected EOF
+=== 592 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plai\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plai"]
+body="abc" <nil>
+=== 593 "GET /a?b=c HTTP/1.1\r\nHost: h\r"
+error textproto.ProtocolError malformed MIME header line: "Host: h\r"
+=== 594 "GET /a?b=c HTTP/1.1\r\nHos: h\r\nX-A: 1\r\nx-: \r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="" url="/a?b=c" close=false len=0 te=[]
+Hos=["h"] X-=[""] X-A=["1"]
+body="" <nil>
+=== 595 "POST /p HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 596 "POST /pHTTP/1.0\r\nContent-Length: 3é\r\nContent-Type0: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP request "POST /pHTTP/1.0"
+=== 597 "GET / HTTP/1"
+error *errors.errorString malformed HTTP version "HTTP/1"
+=== 598 "POST /p HTTP/1.\r\nCon"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 599 "GET /-a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx"
+error textproto.ProtocolError malformed MIME header: missing colon: "x"
+=== 600 "CONNECT /_goRPC_ HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 601 ""
+error *errors.errorString EOF
+=== 602 "GET / "
+error *errors.errorString malformed HTTP version ""
+=== 603 "POST /p HTTP/1.0\r\nContent-Length: 3\r\n9Content-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+9content-Type=["text/plain"] Content-Length=["3"]
+body="abc" <nil>
+=== 604 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\r\n\r\n\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 605 "POS /pa HTTP/1.0\r\nContnt-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POS "/pa" HTTP/1.0 1.0 host="" url="/pa" close=true len=0 te=[]
+Content-Type=["text/plain"] Contnt-Length=["3"]
+body="" <nil>
+=== 606 "CONNECT"
+error *errors.errorString malformed HTTP request "CONNECT"
+=== 607 "C"
+error *errors.errorString malformed HTTP request "C"
+=== 608 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: t\rext/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: t\rext/plain"
+=== 609 "CO"
+error *errors.errorString malformed HTTP request "CO"
+=== 610 "GET / HTTP/1.\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 611 "POST /p HTTP1.0\r\nContent-Length 3\r\nContent-Ty"
+error *errors.errorString malformed HTTP version "HTTP1.0"
+=== 612 "POST /p HTTP/1.0\r\nContent"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content"
+=== 613 "GET /a?b=c HTTP/1.1\ra\nHost:h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\ra"
+=== 614 "GET /a?b-=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+GET "/a?b-=c" HTTP/1.1 1.1 host="h" url="/a?b-=c" close=false len=0 te=[]
+X-A=["1" "2"]
+body="" <nil>
+=== 615 "GET /a?b=c HTTP0/1.1\r-\nHost: h\t\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP0/1.1\r-"
+=== 616 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "B\t"
+=== 617 "CONNECT h:1 HTTP/1.1\t\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\t"
+=== 618 "GET / \r\nHTTP/1.1\r\nHo"
+error *errors.errorString malformed HTTP version ""
+=== 619 "a"
+error *errors.errorString malformed HTTP request "a"
+=== 620 "CONNECT ah:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONNECT "ah:1" HTTP/1.1 1.1 host="ah:1" url="//ah:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 621 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plai\r\n\r\nabc\x7frest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plai"]
+body="abc" <nil>
+=== 622 "GET /a?b=c HTTP/1.1\r\nH\x01oést: h\r\nX-A 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "H\x01oést: h"
+=== 623 "GET /"
+error *errors.errorString malformed HTTP request "GET /"
+=== 624 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nConent-Length: 0\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 625 "CONNEC"
+error *errors.errorString malformed HTTP request "CONNEC"
+=== 626 "CONNCT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONNCT "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 627 "CO\r\n\r\nNNECT \r\nh:1 HTTP/1.1\r\nHos:t: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP request "CO"
+=== 628 "CONNECT h:1 HTT/1.1\r\nHos: h:1-\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT/1.1"
+=== 629 "GET /a?b"
+error *errors.errorString malformed HTTP request "GET /a?b"
+=== 630 "CONNEC\r\n\r\nT /_goRPC_ HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "CONNEC"
+=== 631 "CONN"
+error *errors.errorString malformed HTTP request "CONN"
+=== 632 "CONNECT h:1 HTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 633 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nXA: 1\r\nx-a: 2\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-A=["2"] Xa=["1"]
+body="" <nil>
+=== 634 "GET /a?b=c HTTP/1.1\r\nHost: h9\r\nX-A: 1\r\nx-a: "
+error *errors.errorString unexpected EOF
+=== 635 "PUT http://h/x HTTP/1.1\r\nH"
+error textproto.ProtocolError malformed MIME header: missing colon: "H"
+=== 636 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain"
+error *errors.errorString unexpected EOF
+=== 637 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nC onnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+C onnection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 638 "CONNEC h:1 HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 639 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-9a: 2\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-9a=["2"] X-A=["1"]
+body="" <nil>
+=== 640 "GET / HTTP/1.1\r\nHost: h\r\nPra"
+error textproto.ProtocolError malformed MIME header: missing colon: "Pra"
+=== 641 "PUT ht:tp://h/x H"
+error *errors.errorString malformed HTTP version "H"
+=== 642 "GET /a?b=c HTTP/1.1\r\nHost h\r\nX-: 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Host h"
+=== 643 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnectin: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connectin=["close"] Content-Length=["0"]
+body="" <nil>
+=== 644 "\t"
+error *errors.errorString malformed HTTP request "\t"
+=== 645 "PUT http://h/x HTTP1.1\r\nH"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 646 "GET / HTTP/1.1\r\nHost: h\r\nPr"
+error textproto.ProtocolError malformed MIME header: missing colon: "Pr"
+=== 647 "GET/ HTTP/1.1\r\nHost: h\r\nPrgma: no-cache\r\nA:\r\n\r\n  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP request "GET/ HTTP/1.1"
+=== 648 "PU9"
+error *errors.errorString malformed HTTP request "PU9"
+=== 649 "GET"
+error *errors.errorString malformed HTTP request "GET"
+=== 650 "GET /a?b=c HTTP/1.1\r\nHos: h\r"
+error textproto.ProtocolError malformed MIME header line: "Hos: h\r"
+=== 651 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type-: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type-=["text/plain"]
+body="abc" <nil>
+=== 652 "POST /p HTTP/1.0\r\nContent-Len(gth: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Content-Len(gth: 3"
+=== 653 "CONNECT h:1H"
+error *errors.errorString malformed HTTP request "CONNECT h:1H"
+=== 654 "UT http://h/x HTTP/1.1\r\nHost: other\r\nConection: c"
+error *errors.errorString unexpected EOF
+=== 655 "GET /éa?b=c "
+error *errors.errorString malformed HTTP version ""
+=== 656 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 657 "PUT http://h/x HTTP/1.1\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 658 "CONNECTh:1 "
+error *errors.errorString malformed HTTP request "CONNECTh:1 "
+=== 659 "POST / HTTP/1.0\r\nContent-Length: 3\r\nConte\tnt-Type: text/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Conte\tnt-Type: text/plain"
+=== 660 "POST /p "
+error *errors.errorString malformed HTTP version ""
+=== 661 "CONNECT- \x01/_goRPC_ HTTP"
+error *errors.errorString malformed HTTP version "HTTP"
+=== 662 "PUT http://h/x"
+error *errors.errorString malformed HTTP request "PUT http://h/x"
+=== 663 "CONNEC(T /_goRPC_ HTTP/1.0\n\n"
+error *errors.errorString invalid method "CONNEC(T"
+=== 664 "PUT htp://h/x HTTP/1.1\r\nHost: \rother\r\nConnec tion: close\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host: \rother"
+=== 665 "PUT "
+error *errors.errorString malformed HTTP request "PUT "
+=== 666 "POST /p HTTP/1.\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 667 "GET /a?b="
+error *errors.errorString malformed HTTP request "GET /a?b="
+=== 668 "POéST /p HTTP/1.0\r\nContent-Length: 3\rContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString invalid method "POéST"
+=== 669 "GET / HTTP/1.1\r\nHost: h\r\nPagma: no-cache\r\n:  sp  \r\nB:\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: ":  sp"
+=== 670 "CONNE"
+error *errors.errorString malformed HTTP request "CONNE"
+=== 671 "GET /a?b=c HTTP1.1\rHost: h\r\nX-A:"
+error *errors.errorString malformed HTTP version "HTTP1.1\rHost: h"
+=== 672 "POST /p HTTP/1.0\r\nContent-Length: 3\nContent-Type text/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Type text/plain"
+=== 673 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nCo\nntent-Type: text/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 674 "CONECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONECT "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 675 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: clo"
+error *errors.errorString unexpected EOF
+=== 676 "G ET / H\nTTP/1"
+error *errors.errorString malformed HTTP version "/ H"
+=== 677 "CONNECT /_goRPC_ HTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 678 "CONNECT h:1 HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 679 "CONNECT /_goR\tPC_ HTTP/1.0\n\r\n"
+error *url.Error parse "/_goR\tPC_": net/url: invalid control character in URL
+=== 680 "CONNT /_g"
+error *errors.errorString malformed HTTP request "CONNT /_g"
+=== 681 "PO\x7fST /p HTTP/1.0\r\nContent-Lengt(h: 3\r\nConte"
+error *errors.errorString invalid method "PO\x7fST"
+=== 682 "POST /p éHTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "éHTTP/1.0"
+=== 683 "CONNECT"
+error *errors.errorString malformed HTTP request "CONNECT"
+=== 684 "CONNEC"
+error *errors.errorString malformed HTTP request "CONNEC"
+=== 685 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: tex/pain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["tex/pain"]
+body="abc" <nil>
+=== 686 "POST /p\x01 "
+error *errors.errorString malformed HTTP version ""
+=== 687 "GET / HTTP/1.1\rHost: h\r\nPragma: no-cach\r\nA:  sp "
+error *errors.errorString malformed HTTP version "HTTP/1.1\rHost: h"
+=== 688 "GET /a?b=c HTP/1.1\r\nHost: h\r\nX-A: 1\r\nxa: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 689 "GET( /a?b=c"
+error *errors.errorString malformed HTTP request "GET( /a?b=c"
+=== 690 "PUT http://h/x HTT"
+error *errors.errorString malformed HTTP version "HTT"
+=== 691 "CONNECT h:1\tHTTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP request "CONNECT h:1\tHTTP/1.1"
+=== 692 "CONECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONECT "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 693 "GE / HTTP/1.1\r\nHost: h\r\nPragma: no-cahe\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GE "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Pragma=["no-cahe"]
+body="" <nil>
+=== 694 "PST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n"
+error *errors.errorString unexpected EOF
+=== 695 "GET / "
+error *errors.errorString malformed HTTP version ""
+=== 696 "CONNECT /_goRPC_ HTTP/1 .\r\n0\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1 ."
+=== 697 "CONNECT h:1 HTTP/1.1\r\nHos\x7ft:"
+error textproto.ProtocolError malformed MIME header line: "Hos\x7ft:"
+=== 698 "PUT http://h/x HTTP/1.1\rHst: other\r\nConnectin: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\rHst: other"
+=== 699 "CONNECT h:1 HTTP/11\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 700 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Len"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Len"
+=== 701 "CNNECT /_goRPC_ HTTP/1.:0\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1.:0"
+=== 702 "CONNEC h:1 HTTP/1.1\rHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\rHost: h:1"
+=== 703 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nontent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Ontent-Length=["0"]
+body="" <nil>
+=== 704 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\x7f\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r\x7f"
+=== 705 "PUT http://h/x HTTP/1.1\r\nHost\x7f: other\r\nConnection: cls"
+error textproto.ProtocolError malformed MIME header line: "Host\x7f: other"
+=== 706 "PUT h9ttp://h/x HTTP/1.\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 707 "GET / HTTP/1.1\r"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r"
+=== 708 "PUT http://h/x HTTP/1.1\r\n(Host: other\r\n"
+error textproto.ProtocolError malformed MIME header line: "(Host: other"
+=== 709 "("
+error *errors.errorString malformed HTTP request "("
+=== 710 "CONNECT h:1 HTTP/19.1\r:\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/19.1\r:"
+=== 711 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\r\n\r\n\n bcrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 712 "GET / HTTP/1."
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 713 "GET / HTTP/1.1\r\nHost: h\r\nPragm"
+error textproto.ProtocolError malformed MIME header: missing colon: "Pragm"
+=== 714 "PUT http://h/x HTTP/1.1\r\nost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"] Ost=["other"]
+body="" <nil>
+=== 715 "GET\x01 /a?b=c HTTP/1.1\r\nHost: h\r\nX"
+error *errors.errorString invalid method "GET\x01"
+=== 716 "CONNECT /_g\x01oRPC_  HTT/1.0\n\n"
+error *errors.errorString malformed HTTP version " HTT/1.0"
+=== 717 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-ca"
+error *errors.errorString unexpected EOF
+=== 718 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: cl(os"
+error *errors.errorString unexpected EOF
+=== 719 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: cl"
+error *errors.errorString unexpected EOF
+=== 720 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 29\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-A=["1" "29"]
+body="" <nil>
+=== 721 "PUT http://h/x HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 722 "PUT htt"
+error *errors.errorString malformed HTTP request "PUT htt"
+=== 723 "CONNECT /_goRPC_ HTTP/010\n\n"
+error *errors.errorString malformed HTTP version "HTTP/010"
+=== 724 "CONNECT h:1 HTTP/1.1\r\nHost:0 h:1\r\t\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host:0 h:1\r"
+=== 725 "CONNECT h:1 HTTP/1.1a\r"
+error *errors.errorString malformed HTTP version "HTTP/1.1a\r"
+=== 726 "PUT http:/h/x HTTP/1.1\r\nHost: other\r\nConnection: lose\r\nContent-Length: 0\r\n\x7f\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "\x7f"
+=== 727 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: \r\n\r\nclose\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connection=[""]
+body="" <nil>
+=== 728 "GET /a?b=c HTP/1.(1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.(1"
+=== 729 "CONNECT "
+error *errors.errorString malformed HTTP request "CONNECT "
+=== 730 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nCotent-Typ: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Cotent-Typ=["text/plain"]
+body="abc" <nil>
+=== 731 "GET / HTTP/1.1\r\nHost"
+error textproto.ProtocolError malformed MIME header: missing colon: "Host"
+=== 732 "CNNECT h:1 HTTP/.1(\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.1("
+=== 733 "PUT http://h/x HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 734 "CONNECT h:1 HTTP/1.1\r\n"
+error *errors.errorString unexpected EOF
+=== 735 "GET / HTTP/1.1\r\nHost: h\nPragma: no-cache\r\nA:  sp  \r\nB"
+error textproto.ProtocolError malformed MIME header: missing colon: "B"
+=== 736 "CONECT h:1 HTTP1.1\r\nH"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 737 ""
+error *errors.errorString EOF
+=== 738 "CONNECT h:1 HTTP/1\x01.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1\x01.1"
+=== 739 "CONNECT h:1 "
+error *errors.errorString malformed HTTP version ""
+=== 740 "POST /p HTT/1.0\r\nContent-Length: 3\r"
+error *errors.errorString malformed HTTP version "HTT/1.0"
+=== 741 "CONNECT h:1 HTTP/1.1\r\nHos"
+error textproto.ProtocolError malformed MIME header: missing colon: "Hos"
+=== 742 "POST /p HTTP/\n1.0\r\nContent-Length: 3\r\nContent-"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 743 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nC\r\nonnecation: close\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 744 "\tCONNECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString invalid method "\tCONNECT"
+=== 745 "GT / \r\n\r\nHTTP/1.1"
+error *errors.errorString malformed HTTP version ""
+=== 746 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnectin: close\rContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connectin: close\rContent-Length: 0"
+=== 747 "CON"
+error *errors.errorString malformed HTTP request "CON"
+=== 748 "CONNECT h:1 HTTP/1.1\r\x7f\nHost:"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r\x7f"
+=== 749 "GET /a?b=c9\x7f HTTP/1.\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 750 "POST /p HTTP/1.0\r\nConten\r\nt-Length: :3\r\nConte"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conten"
+=== 751 "GET /a?b=c HTTP/11\r\nHos: h\r\nX-A: 1\r\nx-a: 2\r\n\r(\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 752 "PUT http://h/xHTTP1.1\r\nHost: other\r\nConnection: close\r\nCo"
+error *errors.errorString malformed HTTP request "PUT http://h/xHTTP1.1"
+=== 753 "CONNECT h:1  HTTP1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version " HTTP1.1"
+=== 754 "CONNECT h:1 HTTP/1.1\r\nHost: :1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 755 "POST /p H-TTP/1.0\r\nContent-Length: 3\r\nCon"
+error *errors.errorString malformed HTTP version "H-TTP/1.0"
+=== 756 "\n"
+error *errors.errorString malformed HTTP request ""
+=== 757 "PUT ttp://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "ttp://h/x" HTTP/1.1 1.1 host="h" url="ttp://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 758 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 759 "CON\x7fNECT/_goRPC_ HTTP/1.é0\n\n"
+error *errors.errorString malformed HTTP request "CON\x7fNECT/_goRPC_ HTTP/1.é0"
+=== 760 "CONNECT /_goRPC_ \x7fTTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "\x7fTTP/1.0"
+=== 761 "PUT http://h/x HTTP/1.1\r\nHo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Ho"
+=== 762 "CONNECT h:1 HTTP/1.\r\nHost h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 763 "PUT http://h/x HTTP/11\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 764 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nCo0ntent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Co0ntent-Type=["text/plain"] Content-Length=["3"]
+body="abc" <nil>
+=== 765 "POST é/p HTTP/1.0\r\nConatent-Length: 3\r\nContent-Type: text/plain\r\n\r:\nabcrest"
+error *url.Error parse "é/p": invalid URI for request
+=== 766 "PUT http://h/x HTP/1.1\r\nHost: ot\r\nher\r\nConnection: cose\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 767 "CONNECT /_goR0PC_ \rHTTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "\rHTTP/1.0"
+=== 768 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent -Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content -Length=["0"]
+body="" <nil>
+=== 769 "CNNECT h:1 H"
+error *errors.errorString malformed HTTP version "H"
+=== 770 "POST /p HTTP/1.0\r\nConten-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Conten-Length=["3"] Content-Type=["text/plain"]
+body="" <nil>
+=== 771 "POST /p "
+error *errors.errorString malformed HTTP version ""
+=== 772 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: textplain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["textplain"]
+body="abc" <nil>
+=== 773 "GET / HTTP/1.1\r\nHost: h\r\nPragma no-cache\r\nA  sp  \r\nB:\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Pragma no-cache"
+=== 774 "GE(T / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\n"
+error *errors.errorString invalid method "GE(T"
+=== 775 "CONNECT h:1 HTTP/1.1\rHosét: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\rHosét: h:1"
+=== 776 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Ty"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Ty"
+=== 777 "PUT http://h/x HTTP/1.1\r\nHost:other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 778 "CONECT /_goRP"
+error *errors.errorString malformed HTTP request "CONECT /_goRP"
+=== 779 "POST /p HTP/1.0\r\nContent-Lngth: 3\r\nContent-Type: text/\x01plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 780 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnecation: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connecation=["close"] Content-Length=["0"]
+body="" <nil>
+=== 781 "CONNECT /_goRPC_ 0HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP version "0HTTP/1.0"
+=== 782 "C"
+error *errors.errorString malformed HTTP request "C"
+=== 783 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A\r\n\r\n: 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "X-A"
+=== 784 "ONN"
+error *errors.errorString malformed HTTP request "ONN"
+=== 785 "GET /a?b=c HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 786 "CONNECT h:1: H"
+error *errors.errorString malformed HTTP version "H"
+=== 787 "CONNECT /_goRPC_ HTTP/10\n\n"
+error *errors.errorString malformed HTTP version "HTTP/10"
+=== 788 "POST /p HTTP/1.0\r\nContent-Leng\rth: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Content-Leng\rth: 3"
+=== 789 "PU http://h/x HTP/1.1\r\nHost: other\r\nConn"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 790 "POT /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: te"
+error *errors.errorString unexpected EOF
+=== 791 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cace\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Pragma=["no-cace"]
+body="" <nil>
+=== 792 "PST"
+error *errors.errorString malformed HTTP request "PST"
+=== 793 "CONNECT h:1 \r\n\r\nHTTP/1.1\r\nHost"
+error *errors.errorString malformed HTTP version ""
+=== 794 "GT /a?b=c HTTP.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP.1"
+=== 795 "CONNECT/_goRPC_ HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "CONNECT/_goRPC_ HTTP/1.0"
+=== 796 "CONNET /_goRPC_ HTTP/ 1.0\n\n"
+error *errors.errorString malformed HTTP version "HTTP/ 1.0"
+=== 797 "CONNECT /_go9RPC_ HTTP/10\n\x7f\n"
+error *errors.errorString malformed HTTP version "HTTP/10"
+=== 798 "GET / "
+error *errors.errorString malformed HTTP version ""
+=== 799 "GET /a?b=c HTTP1.1\r\nHo"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 800 "GET / HTTP/1.1\r\nHost: h\r\nPraga: no-c9che\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Praga=["no-c9che"]
+body="" <nil>
+=== 801 "GET / HTTP/1.1\r\nHost: h\r\nPagma: no-cache\r\nA:  sp  \r\nB\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "B\t"
+=== 802 "GETa / HTTP/11\r\nHoést: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 803 "CONNECT h:1 HTT/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT/1.1"
+=== 804 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a:( 2\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-A=["1" "( 2"]
+body="" <nil>
+=== 805 "GET / HTTP/1.1\r\nHost:"
+error *errors.errorString unexpected EOF
+=== 806 "CECT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CECT "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 807 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnect-ion: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connect-Ion=["close"] Content-Length=["0"]
+body="" <nil>
+=== 808 "PUT htatp://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "htatp://h/x" HTTP/1.1 1.1 host="h" url="htatp://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 809 "PUT http://h/x HTTP/11\r\nHost: other\r\nConnecti0on: close\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 810 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:"
+error *errors.errorString unexpected EOF
+=== 811 "G"
+error *errors.errorString malformed HTTP request "G"
+=== 812 "GET / HTTP/1.1\r\nHost: h\r\nPrag\tma: no-cache\r\nA:  sp  \r\n0B:\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Prag\tma: no-cache"
+=== 813 "GET / HTTP1.1\r\nHost: h\r\nPraga: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 814 "PU"
+error *errors.errorString malformed HTTP request "PU"
+=== 815 "CONNECT h:1 HTTP"
+error *errors.errorString malformed HTTP version "HTTP"
+=== 816 ""
+error *errors.errorString EOF
+=== 817 ":"
+error *errors.errorString malformed HTTP request ":"
+=== 818 "POST /p HTTP/1.0\r\nContent\r-Length: 3\r\nContent-Type: text/pl\ta:in\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "Content\r-Length: 3"
+=== 819 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plai\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plai"]
+body="abc" <nil>
+=== 820 "GET /a?b=c HTTP/.1\r\nHost: h\r\n\nX-A: 1\r\nx-a: 2\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 821 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: te-xt/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["te-xt/plain"]
+body="abc" <nil>
+=== 822 "PO"
+error *errors.errorString malformed HTTP request "PO"
+=== 823 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest("
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 824 "\r\nGET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a 2\r\n\r\n"
+error *errors.errorString malformed HTTP request ""
+=== 825 "CONNECT /_goRPC_ HTTP/.90\n\n"
+error *errors.errorString malformed HTTP version "HTTP/.90"
+=== 826 ""
+error *errors.errorString EOF
+=== 827 "CONN"
+error *errors.errorString malformed HTTP request "CONN"
+=== 828 "CONNECT h:1 HTTP/é1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/é1.1"
+=== 829 "POST /p HTTP/1.0\r\nContent-Length:- 3\r\nContent-Type: text/plain\r\n:\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: ":"
+=== 830 "CONNECT /_goRP"
+error *errors.errorString malformed HTTP request "CONNECT /_goRP"
+=== 831 "POST  /p HTTP/1.0\r\nContent0-Length:3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "/p HTTP/1.0"
+=== 832 "0PU"
+error *errors.errorString malformed HTTP request "0PU"
+=== 833 "CONNECT h:1 HTTP/1.1\r\n9Host: h:\r\n\r\n1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+9host=["h:"]
+body="" <nil>
+=== 834 "GET / HTTP/1.\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 835 "GET /9a?b=c HTT"
+error *errors.errorString malformed HTTP version "HTT"
+=== 836 "POST /p HTTP/1.0\r\nContent-Length: \r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString invalid empty Content-Length ""
+=== 837 "GET /a?b=c \x01HTTP/1.1\r"
+error *errors.errorString malformed HTTP version "\x01HTTP/1.1\r"
+=== 838 "CONNECT h:1 HTTP/1.1\r\nHost: h:1\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 839 "CONNEC"
+error *errors.errorString malformed HTTP request "CONNEC"
+=== 840 "G0ET /a?b=c HTTP/1.1\r\nH"
+error textproto.ProtocolError malformed MIME header: missing colon: "H"
+=== 841 "CONNECT"
+error *errors.errorString malformed HTTP request "CONNECT"
+=== 842 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConn"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conn"
+=== 843 "PUT http://h/x HTTP/1."
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 844 "CONN"
+error *errors.errorString malformed HTTP request "CONN"
+=== 845 "GET /a?b=c HT9TP/1.1\r\nHost:"
+error *errors.errorString malformed HTTP version "HT9TP/1.1"
+=== 846 "GET /a?b=c HT"
+error *errors.errorString malformed HTTP version "HT"
+=== 847 "CONNECT /_goRPC"
+error *errors.errorString malformed HTTP request "CONNECT /_goRPC"
+=== 848 "CONN"
+error *errors.errorString malformed HTTP request "CONN"
+=== 849 "PUT http://h/x HTTP/1.1\r\nHost:"
+error *errors.errorString unexpected EOF
+=== 850 "CONEC"
+error *errors.errorString malformed HTTP request "CONEC"
+=== 851 "CONN-EC"
+error *errors.errorString malformed HTTP request "CONN-EC"
+=== 852 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A:"
+error *errors.errorString unexpected EOF
+=== 853 "GET / HTTP/1.1\n\r\nHost: h\r\nPraga: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="" url="/" close=false len=0 te=[]
+
+body="" <nil>
+=== 854 "CONNECT /(_g9o\rRPC_ HTTP/1.0\n\n"
+error *url.Error parse "/(_g9o\rRPC_": net/url: invalid control character in URL
+=== 855 "GET /a?b=c HTTP\x7f/1.1\r\n0Host: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP\x7f/1.1"
+=== 856 "POST /p HTTP-/10.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "HTTP-/10.0"
+=== 857 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache"
+error *errors.errorString unexpected EOF
+=== 858 "CONNECT h:1 HTTP/1.1\r\n\tHost: h:1\r\n\r\n"
+error textproto.ProtocolError malformed MIME header initial line: "\tHost: h:1"
+=== 859 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent-\x01Type: text/plain\r\n\r\nabcr"
+error textproto.ProtocolError malformed MIME header line: "Content-\x01Type: text/plain"
+=== 860 "CONECT /_goRPC_ HTTP/1.0\n\n"
+CONECT "/_goRPC_" HTTP/1.0 1.0 host="" url="/_goRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 861 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cac"
+error *errors.errorString unexpected EOF
+=== 862 "GET / HTTP/1.1\r\r\n\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\r"
+=== 863 "\r\n\r\nCONNECT a/_goPC_ HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request ""
+=== 864 "GET /a?b=c HTTP/.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 865 "POST /p HTTP/1.0\r\nCont\r\n\r\nent-Length: 3\r\nCotent-Type: text/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "Cont"
+=== 866 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \n\r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 867 "PO"
+error *errors.errorString malformed HTTP request "PO"
+=== 868 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Leng\r\nth: 0\r\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Leng"
+=== 869 "CO"
+error *errors.errorString malformed HTTP request "CO"
+=== 870 "GET / HTTP/1.1\r\nHost: h\r\nPragma:no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 871 "CNNECT /_gRPC_ HTTP/1.0\n\n"
+CNNECT "/_gRPC_" HTTP/1.0 1.0 host="" url="/_gRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 872 "GET / HTTP/1.1\r\nHost: h\r\n\r\nPragma: no-cache\r\nA:  asp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+
+body="" <nil>
+=== 873 "GET / HTTP/1.1\r\nHost: h\r\nPr\tagma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Pr\tagma: no-cache"
+=== 874 "CONNECT h:1 HTTP/1.a1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.a1"
+=== 875 "CONNCT h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONNCT "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 876 "P"
+error *errors.errorString malformed HTTP request "P"
+=== 877 "E"
+error *errors.errorString malformed HTTP request "E"
+=== 878 "CONNECT /_goRP"
+error *errors.errorString malformed HTTP request "CONNECT /_goRP"
+=== 879 "GET /a?b=c HTTP/1.1\r\nHost: \x7fh\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host: \x7fh"
+=== 880 "GET /- HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/-" HTTP/1.1 1.1 host="h" url="/-" close=false len=0 te=[]
+A=["sp"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 881 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnecti0on: close\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connecti0on=["close"] Content-Length=["0"]
+body="" <nil>
+=== 882 ""
+error *errors.errorString EOF
+=== 883 "GET"
+error *errors.errorString malformed HTTP request "GET"
+=== 884 "POST /p HTTP/1.0\r\nConten"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conten"
+=== 885 "GET /a?b=c HTTP1.1\r\nHost: h\r\nX-A: 1\r\nx-a 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 886 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-"
+error *errors.errorString unexpected EOF
+=== 887 "CONNECT /_goRPC_ HTTP/1.0\n"
+error *errors.errorString unexpected EOF
+=== 888 "POST /\np HTTP/1.00"
+error *errors.errorString malformed HTTP request "POST /"
+=== 889 "POST /p HTTP/1.0\r\nCotent-Length:"
+error *errors.errorString unexpected EOF
+=== 890 "PU0\x01T "
+error *errors.errorString malformed HTTP request "PU0\x01T "
+=== 891 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nContent9-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content9-Type=["text/plain"]
+body="abc" <nil>
+=== 892 "POST /p HTTP/1.\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 893 "CONNECT h:1 HTTP/1.1\r\nHost: "
+error *errors.errorString unexpected EOF
+=== 894 "CONNECT h:1 HTTP/1.1\r\nHos"
+error textproto.ProtocolError malformed MIME header: missing colon: "Hos"
+=== 895 "POST /p HTTP/1.0\r\nC otent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+C otent-Length=["3"] Content-Type=["text/plain"]
+body="" <nil>
+=== 896 "GET a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *url.Error parse "a?b=c": invalid URI for request
+=== 897 "POST /p HTTP/1.0\r\x01\nContent-Length: 3\r\nConten(t-Typ"
+error *errors.errorString malformed HTTP version "HTTP/1.0\r\x01"
+=== 898 "GET /ab=c HTTP/1.1\r\nHos: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+GET "/ab=c" HTTP/1.1 1.1 host="" url="/ab=c" close=false len=0 te=[]
+Hos=["h"] X-A=["1" "2"]
+body="" <nil>
+=== 899 "GET / HTTP/1.1\r\nHost"
+error textproto.ProtocolError malformed MIME header: missing colon: "Host"
+=== 900 "GET /a?b=c TTP/1.1\r\r\n\nHost: h\r\nX-A: 1\r\nxa: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1\r"
+=== 901 "CO\rNNEéCT h:"
+error *errors.errorString malformed HTTP request "CO\rNNEéCT h:"
+=== 902 "GET / HTTP/1.1\r\nHost: h\r\nPra"
+error textproto.ProtocolError malformed MIME header: missing colon: "Pra"
+=== 903 "C"
+error *errors.errorString malformed HTTP request "C"
+=== 904 "GET / HTTP/1.1\r\nHost: h\rPagma: n9o-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host: h\rPagma: n9o-cache"
+=== 905 "ONNE0CT h:1 HTTP/1.1\r\nHost: h:1\n\r\n"
+ONNE0CT "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 906 "GET"
+error *errors.errorString malformed HTTP request "GET"
+=== 907 "POST /p HTTP/1.0\r\nC\tontent-Length: 3\r\nContent-Type: text/plain\r\t\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header line: "C\tontent-Length: 3"
+=== 908 "PUT htt://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+PUT "htt://h/x" HTTP/1.1 1.1 host="h" url="htt://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 909 "CONNECT h:1 HTTP\x7f/1.1\r\nHost: :1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP\x7f/1.1"
+=== 910 "POST /p HTTP/1.0\r\nContent-Length: 3\r\nConte:nt-T"
+error *errors.errorString unexpected EOF
+=== 911 "CONNECT h:a1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+error *url.Error parse "http://h:a1": invalid port ":a1" after host
+=== 912 "POST /p HTTP/1.0"
+error *errors.errorString unexpected EOF
+=== 913 "CONNECT h:1\x01 HTTP/é1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/é1.1"
+=== 914 "GET / HTTP/1.1\r\nHost: éh\r\nPragma: no-ca"
+error *errors.errorString unexpected EOF
+=== 915 "CONNECT /_gRPC_ HTT"
+error *errors.errorString malformed HTTP version "HTT"
+=== 916 "CONNECT /_goRPéC_ HTTP/1.0\n\n"
+CONNECT "/_goRPéC_" HTTP/1.0 1.0 host="" url="/_goRP%C3%A9C_" close=true len=0 te=[]
+
+body="" <nil>
+=== 917 "GET / HTTP/1.1(\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1("
+=== 918 "GET /a?b=c HTTP/1.1\r\nHost: h\nX-A: 1\r\nx-a: 92\r\n\r\n"
+GET "/a?b=c" HTTP/1.1 1.1 host="h" url="/a?b=c" close=false len=0 te=[]
+X-A=["1" "92"]
+body="" <nil>
+=== 919 "GET /a?b=c HTTP/1."
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 920 "GET / HTTP/1.1\r\nHost: h\r\nPragma no-cache\r\nA: sp  \r\nB:\t\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Pragma no-cache"
+=== 921 "GET /?b=c HTTP/1.1\t\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1\t"
+=== 922 "CONNECT h:1 H\nTTP/1.1\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "H"
+=== 923 "CONN\x7f"
+error *errors.errorString malformed HTTP request "CONN\x7f"
+=== 924 "P"
+error *errors.errorString malformed HTTP request "P"
+=== 925 "GET /a?b=c"
+error *errors.errorString malformed HTTP request "GET /a?b=c"
+=== 926 "CONNECT /_goRPC HTTP/1.0\n\n"
+CONNECT "/_goRPC" HTTP/1.0 1.0 host="" url="/_goRPC" close=true len=0 te=[]
+
+body="" <nil>
+=== 927 "GET /a?b=c TTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 928 "CONNECT /_goRPC_ HTTP/1.0\n"
+error *errors.errorString unexpected EOF
+=== 929 "CONNECT :1 HTTP/"
+error *errors.errorString malformed HTTP version "HTTP/"
+=== 930 "GET /a?b=c HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r"
+error textproto.ProtocolError malformed MIME header line: "X-A: 2\r"
+=== 931 "CONNECT h:1 HTTP/1.1\r\nHost: h\x01:1\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Host: h\x01:1"
+=== 932 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: \tclose\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 933 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 934 "C\r\nONNEC /_goRPC_ HTTP/1.0\n\n"
+error *errors.errorString malformed HTTP request "C"
+=== 935 "CONNECT _goRPC_ HTTP/1.0\n\n"
+CONNECT "_goRPC_" HTTP/1.0 1.0 host="_goRPC_" url="//_goRPC_" close=true len=0 te=[]
+
+body="" <nil>
+=== 936 ""
+error *errors.errorString EOF
+=== 937 "CONNECT h:1 HTTP/1.1\r\n-Host: h:1\r\n\r\n"
+CONNECT "h:1" HTTP/1.1 1.1 host="h:1" url="//h:1" close=false len=0 te=[]
+-Host=["h:1"]
+body="" <nil>
+=== 938 "CO NECT h:1 HTTP/1.1\r\nHost: h:\n1\r\n\r\n"
+error *errors.errorString malformed HTTP version "h:1 HTTP/1.1"
+=== 939 "POST /p HTTP/1.0\r\nContent-L0ength: 3\r\nContent-Type: text/pl"
+error *errors.errorString unexpected EOF
+=== 940 "GET / HTTP/1.1\r\nHost: h\r\nPragma: "
+error *errors.errorString unexpected EOF
+=== 941 "GET \x7f/a?b=c TTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-éa: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 942 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: \t0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Length=["0"]
+body="" <nil>
+=== 943 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: clos"
+error *errors.errorString unexpected EOF
+=== 944 "GET /a?b=cHTTP/1.1\rHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "h"
+=== 945 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Lengt: 0\r\n\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=true len=0 te=[]
+Connection=["close"] Content-Lengt=["0"]
+body="" <nil>
+=== 946 "(POST /p HTTP/1.0\r\nContent"
+error *errors.errorString invalid method "(POST"
+=== 947 "GET /a?b=c HTTP/.1\r\nHos: h\r\nX-A"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 948 "GET / HTTP/1.1\r\nHost: h\r\nPr\x7fgma: no-cache\r\nA:  "
+error textproto.ProtocolError malformed MIME header line: "Pr\x7fgma: no-cache"
+=== 949 "CONNECT /_-goR:PC_ HTT"
+error *errors.errorString malformed HTTP version "HTT"
+=== 950 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-ca-che\r\nA:  sp  \r\nB:\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["sp"] B=[""] Pragma=["no-ca-che"]
+body="" <nil>
+=== 951 "GET / HTTP/1 .1\r\nHost: h\r\nPragma:\x01 no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1 .1"
+=== 952 "CONNECT"
+error *errors.errorString malformed HTTP request "CONNECT"
+=== 953 "GET /a?b=c HTTP/1.1a\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.1a"
+=== 954 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nContent-Length: 0\r\r\n"
+error textproto.ProtocolError malformed MIME header line: "Content-Length: 0\r"
+=== 955 "GET / HTTP/1.1\r\nHost: h\r\nPragma"
+error textproto.ProtocolError malformed MIME header: missing colon: "Pragma"
+=== 956 "GET / HTTP/1.1\r\nHost: h\r\nPragma: n\r\n\r\no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+Pragma=["n"]
+body="" <nil>
+=== 957 "CONN\rECT h:1 HTTP"
+error *errors.errorString invalid method "CONN\rECT"
+=== 958 "GET /a?b=c HTTP(1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP(1.1"
+=== 959 "CONaNECT h:"
+error *errors.errorString malformed HTTP request "CONaNECT h:"
+=== 960 "POST /p HTP/1.0\r\nContent-L"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 961 "CONNET /goRPC_ H"
+error *errors.errorString malformed HTTP version "H"
+=== 962 "GET / HTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 963 "GET /a?b=c HTP/1."
+error *errors.errorString malformed HTTP version "HTP/1."
+=== 964 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnecti on: close\r\nContent-Length: 0\n\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connecti on=["close"] Content-Length=["0"]
+body="" <nil>
+=== 965 "GET / HTTP/1.1\r\no"
+error textproto.ProtocolError malformed MIME header: missing colon: "o"
+=== 966 "CONNEC"
+error *errors.errorString malformed HTTP request "CONNEC"
+=== 967 "GET /a?b=c HTTP/1.1\r\n:Host: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: ":Host: h"
+=== 968 "\x7fGE"
+error *errors.errorString malformed HTTP request "\x7fGE"
+=== 969 "GE "
+error *errors.errorString malformed HTTP request "GE "
+=== 970 "GET( /a?b-=c HTTP/1.1\r\nHost: h\r\nX"
+error *errors.errorString invalid method "GET("
+=== 971 "GET "
+error *errors.errorString malformed HTTP request "GET "
+=== 972 "CONNECT h:1 HTTP/11\r\nHost: h:1\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 973 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConne9ction close\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conne9ction close"
+=== 974 "POST /p HTTP/1.0\r\nontent-Length: 3\r\nCo9ntent-Type: text/plain\r\n\r\nabcres"
+POST "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=0 te=[]
+Co9ntent-Type=["text/plain"] Ontent-Length=["3"]
+body="" <nil>
+=== 975 "CONNECT /_goR"
+error *errors.errorString malformed HTTP request "CONNECT /_goR"
+=== 976 "PUT"
+error *errors.errorString malformed HTTP request "PUT"
+=== 977 "CON"
+error *errors.errorString malformed HTTP request "CON"
+=== 978 "ET /a?b="
+error *errors.errorString malformed HTTP request "ET /a?b="
+=== 979 "PUT http://h/x HTTP/1.1\r\nHost:( other\r\nConnectio\x01n: close\r\nContent-Length: 0\r\n\r"
+error textproto.ProtocolError malformed MIME header line: "Connectio\x01n: close"
+=== 980 "GET /a?b=c HTT/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT/1.1"
+=== 981 "GET /a?bc HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+GET "/a?bc" HTTP/1.1 1.1 host="h" url="/a?bc" close=false len=0 te=[]
+X-A=["1" "2"]
+body="" <nil>
+=== 982 "GET /a?b=c HT\nTP/ 1.1\r\nHost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HT"
+=== 983 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache"
+error *errors.errorString unexpected EOF
+=== 984 "CO"
+error *errors.errorString malformed HTTP request "CO"
+=== 985 "POT /p HTTP/1.0\r\nContent-Length\r\n\r\n: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Length"
+=== 986 "GET / HTTP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  s-p  \r\nB:\t\r\n\r\n"
+GET "/" HTTP/1.1 1.1 host="h" url="/" close=false len=0 te=[]
+A=["s-p"] B=[""] Cache-Control=["no-cache"] Pragma=["no-cache"]
+body="" <nil>
+=== 987 ""
+error *errors.errorString EOF
+=== 988 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nConte\x01nt-Le"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conte\x01nt-Le"
+=== 989 "PUT http://h"
+error *errors.errorString malformed HTTP request "PUT http://h"
+=== 990 ""
+error *errors.errorString EOF
+=== 991 "PUT http://h/x HTTP/1.1\r\néHost: other\r\nConnection: close\r\nC\tontent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "éHost: other"
+=== 992 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: calose\r\nContent-Length: 0\r\n\r\n"
+PUT "http://h/x" HTTP/1.1 1.1 host="h" url="http://h/x" close=false len=0 te=[]
+Connection=["calose"] Content-Length=["0"]
+body="" <nil>
+=== 993 "GET / HT\x01TP/1.1\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HT\x01TP/1.1"
+=== 994 "CONNECT/_goRPC_"
+error *errors.errorString malformed HTTP request "CONNECT/_goRPC_"
+=== 995 "POST /pHTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+error *errors.errorString malformed HTTP request "POST /pHTTP/1.0"
+=== 996 "CONNECT /_go"
+error *errors.errorString malformed HTTP request "CONNECT /_go"
+=== 997 "CONNECT h:1 HTTP/1.1\r\nHost\r\n: h:1\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Host"
+=== 998 "CONNET h:1 HTTP/1.1\r\nHost: h:1\r\n\r\n"
+CONNET "h:1" HTTP/1.1 1.1 host="h:1" url="h:1" close=false len=0 te=[]
+
+body="" <nil>
+=== 999 "PUT http://h/x HTTP/1.1\r\nHost: other\r\nConnection: close\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 1000 "CONNECT /_goRPC_ HTT/1.0\n\n"
+error *errors.errorString malformed HTTP version "HTT/1.0"
+=== 1001 "GET / HTTP/1.\r\nHost: h\r\nPragma: no-cache\r\nA:  sp  \r\nB:\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 1002 "POS /p  HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\x7f\n\r\nabcrest"
+error *errors.errorString malformed HTTP version " HTTP/1.0"
+=== 1003 "GET /a?b=c HTP/1.1\r\nost: h\r\nX-A: 1\r\nx-a: 2\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 1004 "POS /p HTTP/1.0\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nabcrest"
+POS "/p" HTTP/1.0 1.0 host="" url="/p" close=true len=3 te=[]
+Content-Length=["3"] Content-Type=["text/plain"]
+body="abc" <nil>
+=== 1005 "CONNE-CT"
+error *errors.errorString malformed HTTP request "CONNE-CT"

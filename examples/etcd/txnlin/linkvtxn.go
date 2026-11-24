@@ -963,6 +963,18 @@ func call(cli *clientv3.Client, in Input) Output {
 	return callTxn(cli, in)
 }
 
+// Call runs one operation through the client cli, without prophecies: the operation of a client
+// machine of examples/lib/remote (etcd-dist's kv, examples/etcd/dist/kvremote), where the
+// orchestrator's remote.Do makes the prophecy. Its output, Err on an error (an unknown outcome).
+func Call(cli *clientv3.Client, input any) any {
+	return call(cli, input.(Input))
+}
+
+// IsWrite reports whether an operation may write (isWrite): remote's codec retries only the others.
+func IsWrite(in Input) bool {
+	return isWrite(in)
+}
+
 // Apply runs one operation through the client cli, resolving a prophecy with its outcome and,
 // for a read, another with the revision it read at (0 otherwise).
 func Apply(cli *clientv3.Client, input any) any {

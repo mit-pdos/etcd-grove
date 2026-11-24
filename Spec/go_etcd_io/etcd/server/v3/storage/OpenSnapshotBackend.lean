@@ -55,12 +55,17 @@ back. (wal-link, 2026-11-19, option B1; then approved by the user via etcd-grove
 per execution) The snapshotter's directory is the data directory's (`isSnapshotter ss (snapDirOf
 cfg.DataDir)`, `bootOk`'s; until then the opaque `snapDBPath ss` and an equation,
 `notes/snapdir-crossworld.md`): the snapshot's file and the backend's are then names of one
-directory, which `os.Rename` needs. -/
+directory, which `os.Rename` needs. (bkarea, 2026-11-22) For a data directory shorter than `2^60`
+bytes, which `cfg.BackendPath()`'s proof needs (`filepath.Join`'s premise; `applySnapshot`'s callers
+have it from the data directory that fits, `srvSnapRO`). -/
 abbrev storage.OpenSnapshotBackend.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)]
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss sn mp hk : Loc) (dq dq' : DFrac)
     (md : SnapshotMetadataM) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF) (γo : DBNames)
     (R' : IProp GF),
+  -- (bkarea, 2026-11-22) a data directory shorter than `2^60` bytes (`BackendPath`'s, proved:
+  -- `filepath.Join`'s premise)
+  cfg.DataDir'.length < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ snap.isSnapshotter ss (config.snapDirOf cfg.DataDir') ∗
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
       snapHeld (snap.snapDBPath (config.snapDirOf cfg.DataDir') md.Index') D R' ∗ bPath γo (config.backendPathOf cfg.DataDir') ∗

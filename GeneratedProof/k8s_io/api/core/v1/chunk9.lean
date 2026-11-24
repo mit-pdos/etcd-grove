@@ -721,7 +721,7 @@ noncomputable instance PersistentVolumeClaimCondition_access_load_LastProbeTime 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeClaimCondition_access_store_LastProbeTime (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimCondition) (LastProbeTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance PersistentVolumeClaimCondition_access_store_LastProbeTime (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimCondition) (LastProbeTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimCondition go!"LastProbeTime" l) v.LastProbeTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimCondition go!"LastProbeTime" l) LastProbeTime' (DFrac.own 1))
@@ -737,7 +737,7 @@ noncomputable instance PersistentVolumeClaimCondition_access_load_LastTransition
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeClaimCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimCondition) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance PersistentVolumeClaimCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimCondition) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimCondition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimCondition go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))
@@ -1604,7 +1604,7 @@ noncomputable instance HTTPGetAction_access_load_Port (l : Loc) (v : k8s_io.api.
  by
   solve_pointsto_access_struct
 
-noncomputable instance HTTPGetAction_access_store_Port (l : Loc) (v : k8s_io.api.core.v1.HTTPGetAction) (Port' : k8s_io.apimachinery.pkg.util.intstr.IntOrString) :
+noncomputable instance HTTPGetAction_access_store_Port (l : Loc) (v : k8s_io.api.core.v1.HTTPGetAction) (Port' : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.HTTPGetAction go!"Port" l) v.Port' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.HTTPGetAction go!"Port" l) Port' (DFrac.own 1))

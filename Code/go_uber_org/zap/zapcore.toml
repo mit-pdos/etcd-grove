@@ -15,9 +15,25 @@ translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
   "_levelToLowercaseColorString", "_levelToCapitalColorString", "init.0",
   "Level.String", "Level.CapitalString",
   # (prove-initleft, 2026-11-21) what `zap.NewNop` calls (zap's `_globalL = NewNop()`)
-  "NewNopCore", "AddSync"]
+  "NewNopCore", "AddSync",
+  # (zap-z1, 2026-11-23) what `zap.Logger.check` runs (until then the trust boundary): the no-op
+  # core's methods, the level enabler and the system clock. (`CheckedEntry.Write` stays names only:
+  # its `putCheckedEntry` reaches zap's generic `pool.Pool[T].Put`, whose translation passes `x : T` to
+  # `sync.Pool.Put(any)` without converting it to an interface, notes/perennial-changes.md.)
+  "nopCore.Enabled", "nopCore.With", "nopCore.Check", "nopCore.Write", "nopCore.Sync",
+  "Level.Enabled", "systemClock.Now",
+  # (zap-z2, 2026-11-23) `CheckedEntry.Write` (until then the trust boundary; Perennial's goose now
+  # converts zap's generic `pool.Pool[T].Put(x)` argument to `any`), and what `Panic`/`Fatal`'s entry
+  # runs: `After` (a fresh entry from `_cePool`), its terminal hooks (`CheckWriteAction.OnWrite`)
+  "CheckedEntry.Write", "CheckedEntry.After", "CheckedEntry.reset", "getCheckedEntry",
+  "putCheckedEntry", "CheckWriteAction.OnWrite",
+  "WriteThenNoop", "WriteThenGoexit", "WriteThenPanic", "WriteThenFatal"]
 imports = ["!*", "time", "io", "errors", "fmt", "sync", "go.uber.org/zap/internal/pool",
-  "go.uber.org/zap/internal/color"]
+  "go.uber.org/zap/internal/color",
+  # (zap-z2) what `CheckedEntry.Write` and `CheckWriteAction.OnWrite` call: `multierr.Append` (names
+  # only, on the cores' errors: no core here), `runtime.Goexit` (`WriteThenGoexit`), zap's
+  # `internal/exit` (`WriteThenFatal`)
+  "go.uber.org/multierr", "runtime", "go.uber.org/zap/internal/exit"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

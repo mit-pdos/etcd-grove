@@ -159,7 +159,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗
       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
-      lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
+      lease.lessorCfg lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
       lease.lessorInv lp (mvcc.api.mvccLeases E.γ) ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
       srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvClusterAddr s ↦□ cl ∗ membership.isRaftCluster cl ∗ srvKVAddr s ↦□ E.kv ∗
@@ -167,7 +167,7 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
       snapWalkPost s ep sv γ ci E ρ γr d D A A' x ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad Lr recs U reqOf ⊢
     |={⊤}=> srvSnapAppliedG E.authOn s ep sv γ ci E ρ γr d A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl := by
-  iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #Hlinv, #Hlpf, #Half,
+  iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hrcn, #Hlinv, #Hlpf, #Half,
     #HisAl, #Haustf, #Hclf, #Hirc, #Hkvf, #HWP, #HGI, Hw⟩
   subst hLr
   iunfold snapWalkPost at Hw

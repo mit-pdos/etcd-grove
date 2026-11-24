@@ -54,11 +54,11 @@ theorem AuthorizerFunc.ConditionsAwareAuthorize.wp_proof
   wp_apply (wp_ConditionsAwareDecisionFromParts dec r e) $$ [] as %d #Hd
   · iexact He
   iapply HΦ
-  unfold isWFDecision
+  unfold isWFDecisionLe
   iexists _
   iframe Hd
   ipureintro
-  exact Dec.ofWord_WF dec
+  exact ⟨Dec.ofWord_WF dec, by simp [Dec.ofWord_depth]⟩
 
 end proof
 

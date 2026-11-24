@@ -61,12 +61,26 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-! ## `Authenticate`'s messages -/
 
+/-! ### The messages' stored forms (moved here from the `PerType*` files at phase 7 S2's
+interface, 2026-11-24: a `ProtoMsg` holds its `tree`) -/
+
+/-- **The store of an authentication request**: the user's name and password. -/
+def authenticateReqTree (m : GoString × GoString) : VTree :=
+  .strct etcdserverpb.AuthenticateRequest.ty
+    [(go!"Name", go.string), (go!"Password", go.string)] [.leaf #m.1, .leaf #m.2]
+
+/-- **The store of an authentication reply**: its token (its `Header` left `nil`: the model does
+not hold it). -/
+def authenticateRepTree (t : GoString) : VTree :=
+  .strct etcdserverpb.AuthenticateResponse.ty [(go!"Token", go.string)] [.leaf #t]
+
 /-- **A `*pb.AuthenticateRequest`** on the wire: the user's name and password; a decoded copy's
 `Password` the handler's own (`EtcdServer.Authenticate` clears it when it returns, the fix of
 CVE-2021-28235; C1's review, F1). -/
 def pbAuthenticateRequest : ProtoMsg GF where
   ty := etcdserverpb.AuthenticateRequest.ty
   M := GoString × GoString
+  tree := authenticateReqTree
   send inp m := iprop(∃ req : etcdserverpb.AuthenticateRequest, inp ↦ req ∗
     ⌜req.Name' = m.1 ∧ req.Password' = m.2 ∧ req.unknownFields' = slice.nil⌝)
   wireLen m := m.1.length + m.2.length + wireSlack
@@ -83,6 +97,7 @@ def pbAuthenticateRequest : ProtoMsg GF where
 def pbAuthenticateResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthenticateResponse.ty
   M := GoString
+  tree := authenticateRepTree
   send r t := iprop(∃ v : etcdserverpb.AuthenticateResponse, r ↦ v ∗
     ⌜v.Token' = t ∧ v.unknownFields' = slice.nil⌝)
   recv r t := iprop(⌜r ≠ null⌝ ∗
@@ -289,7 +304,7 @@ header): on a connection `conn` to `eps` whose one interceptor `ic` is, with `cl
 eps`, the contract in both modes. -/
 def etcdInterceptorOkG (c : Loc) (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (eps : List GoString),
-    clientReady c conn eps -∗ grpcConn conn eps [ic] [] -∗
+    clientReady c conn eps -∗ grpcConn conn eps [ic] [] anyRes -∗
       etcdInterceptorOk ic ∗ etcdInterceptorOkW ic)
 
 instance etcdInterceptorOkG_persistent (c : Loc) (ic : GoFunc) :
@@ -299,7 +314,7 @@ instance etcdInterceptorOkG_persistent (c : Loc) (ic : GoFunc) :
 /-- **The dial's connection of the client `c`** (persistent; see the file header): `isEtcdConn`,
 its interceptor's contract gated on `clientReady`. -/
 def isEtcdConnG (c conn : Loc) (eps : List GoString) : IProp GF :=
-  iprop(∃ ic : GoFunc, grpcConn conn eps [ic] [] ∗ etcdInterceptorOkG c ic)
+  iprop(∃ ic : GoFunc, grpcConn conn eps [ic] [] anyRes ∗ etcdInterceptorOkG c ic)
 
 instance isEtcdConnG_persistent (c conn : Loc) (eps : List GoString) :
     Persistent (isEtcdConnG (GF := GF) c conn eps) := by

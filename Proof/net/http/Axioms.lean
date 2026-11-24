@@ -3,7 +3,8 @@
 of `Proof/net/http/Boundary.lean` the proofs use, assumed, and the registration of an address's
 protocol. Lean-first. Each is a fact about Go's `net/http`, `io` and `bytes` (read against the
 statement's docstring in `Boundary.lean`); the specs not listed (`respRead_spec`, `HeaderGet_spec`)
-stay statements until a proof uses them. (prove-http3, 2026-11-21) `Header.Set` and `Get`'s
+stay statements until a proof uses them. (prove-http3, 2026-11-21) `ReadFull_stream_ok` is proved
+here over Perennial's `io.ReadFull` and `bodyStreamRead_ok`; `Header.Set` and `Get`'s
 (`HeaderSet_ok`, `HeaderSetPtr_ok`, `HeaderGetPtr_ok`, `HeaderGetOwnPtr_ok`) are theorems of
 `Proof/net/http/Proved.lean`, over net/http's and net/textproto's code.
 
@@ -16,6 +17,7 @@ module
 
 public import Proof.net.http.Boundary
 public import Proof.net.http.Proved
+public import Perennial.Proof.io.Link
 
 @[expose] public section
 
@@ -70,9 +72,6 @@ client's reader yielded, `EOF` only where its stream ended (the file header's ph
 `Boundary.lean`). -/
 axiom bodyStreamRead_ok : bodyStreamRead_spec (GF := GF)
 
-/-- (D42, stage 7e: the snapshot handler's envelope) `io.ReadFull` of a streamed request body
-(`ReadFull_stream_spec`): `Read`s of it (`bodyStreamRead_ok`) until the slice is full or an error. -/
-axiom ReadFull_stream_ok : ReadFull_stream_spec (GF := GF)
 
 /-- `ResponseWriter.WriteHeader` of a final status (`respWriteHeader_spec`). -/
 axiom respWriteHeader_ok (H : HttpNet GF) : respWriteHeader_spec H
@@ -142,6 +141,94 @@ axiom Handle_ok : Handle_spec (GF := GF)
 axiom mux_handlerOk_ok (H : HttpNet GF) : mux_handlerOk_spec H
 
 end axioms
+
+section readFull
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [io_sem : _root_.Perennial.io.Assumptions] [errors_sem : _root_.Perennial.errors.Assumptions]
+
+open Iris.ProofMode
+
+/-- (D42, stage 7e: the snapshot handler's envelope) `io.ReadFull` of a streamed request body
+(`ReadFull_stream_spec`): Perennial's `io.ReadFull` (prove-http3, 2026-11-21; until then an axiom)
+over the body's `Read`s (`bodyStreamRead_ok`), the reader's contract `io.readerOk` with its
+errors' `errStrOk`; `io.ErrUnexpectedEOF` is an `errors.New` error. -/
+theorem ReadFull_stream_ok : ReadFull_stream_spec (GF := GF) := by
+  intro rd Pre Φs r p xs
+  iintro %Φ !> ⟨#Hpkg, Hs, Hp⟩ HΦ
+  unfold bodyStream
+  icases Hs with ⟨Hs, %Hpre⟩
+  cases rd with
+  | nil => exact absurd rfl Hpre.2
+  | ok ri =>
+  ihave Hi := _root_.Perennial.io.isInit_access $$ Hpkg
+  unfold _root_.Perennial.io.isInit
+  iNamed Hi
+  iunfold _root_.Perennial.errors.newVar at HEOF HErrUnexpectedEOF
+  icases HEOF with ⟨%xe, #He, -⟩
+  icases HErrUnexpectedEOF with ⟨%xu, #Hu, #_, #HuM⟩
+  ihave #Hrd : _root_.Perennial.io.readerOk ri (fun _ _ => True)
+      (bodyStream (GoInterface.ok ri) Pre Φs) (fun _ e => errStrOk e) $$ []
+  · unfold _root_.Perennial.io.readerOk
+    iintro !> %r' %p' %xs' %Ψ !> ⟨-, Hs', Hp'⟩ HΨ
+    ihave %Hl0 := ownSlice_len _ _ _ $$ Hp'
+    iapply (bodyStreamRead_ok _ ri Pre Φs r' p' xs' _ rfl) $$ [$Hs' $Hp']
+    · unfold ioEOF; iexact He
+    iintro !> %n %err ⟨%ys, %Hy, Hp', Hs', #Herr, %Hpt⟩
+    ihave %Hl1 := ownSlice_len _ _ _ $$ Hp'
+    iapply HΨ
+    iexists ys
+    iframe Hp' Hs'
+    isplitr
+    · ipureintro
+      refine ⟨Hy.1, ?_⟩
+      have := Hl1.1
+      rw [List.length_append, List.length_drop, ← Hl0.1] at this
+      omega
+    isplitr
+    · unfold _root_.Perennial.io.errAt
+      cases err with
+      | nil => ileft; ipureintro; rfl
+      | ok ei => iright; imodintro; iexact Herr
+    · ipureintro; exact Hpt
+  wp_apply (_root_.Perennial.io.wp_ReadFull ri (fun _ _ => True) (bodyStream (GoInterface.ok ri) Pre Φs)
+      (fun _ e => errStrOk e) r p xs _ _) $$ [Hs Hp]
+    as %n %err ⟨%ys, %Hys, Hp, Hs, #Hres⟩
+  · iframe Hrd He Hu Hp
+    isplitr
+    · ipureintro; intro _ _; trivial
+    unfold bodyStream; iframe Hs; ipureintro; exact Hpre
+  unfold bodyStream
+  icases Hs with ⟨Hs, %Hpre'⟩
+  iapply HΦ
+  iexists ys
+  iframe Hp
+  unfold _root_.Perennial.io.readFullRes
+  icases Hres with (%Hok | ⟨%e, %He', #HE⟩)
+  · iframe Hs
+    isplitr
+    · ipureintro; exact ⟨Hys.1, Hys.2, fun _ => Hok.1, Hpre'.1⟩
+    isplitr
+    · ipureintro; exact Hpre'
+    rw [Hok.2]; iapply errStrOk_nil
+  · have hnn : err ≠ GoInterface.nil := by
+      by_cases h : e = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xe ∧ ys ≠ []
+      · rw [He'.2.2.1 h]; intro h'; cases h'
+      · rw [He'.2.2.2 h]; exact He'.2.1
+    iframe Hs
+    isplitr
+    · ipureintro; exact ⟨Hys.1, Hys.2, fun h => absurd h hnn, Hpre'.1⟩
+    isplitr
+    · ipureintro; exact Hpre'
+    by_cases h : e = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xe ∧ ys ≠ []
+    · rw [He'.2.2.1 h]
+      iapply errorString_errStrOk xu go!"unexpected EOF" $$ HuM
+    · rw [He'.2.2.2 h]
+      iexact HE
+
+end readFull
 
 end http
 end EtcdGrove

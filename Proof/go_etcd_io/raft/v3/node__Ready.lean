@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `node.Ready.spec` from the raw triple (`node`'s names hidden behind the API's). -/
 private theorem node.wp_Ready_impl :
     EtcdGrove.node.Ready.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.Ready.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.isReadyChan
+  unfold EtcdGrove.node.Ready.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode EtcdGrove.isReadyChan
   intro γ N id n
   wp_start as Hnode
   iunfold isNode at Hnode

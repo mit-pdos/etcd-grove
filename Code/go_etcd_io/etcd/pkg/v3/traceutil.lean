@@ -2,7 +2,12 @@
 module
 
 public import Perennial.Code.context
+public import Perennial.Code.fmt
+public import Perennial.Code.math.rand
+public import Perennial.Code.strings
 public import Perennial.Code.time
+public import Code.go_opentelemetry_io.otel.trace
+public import Code.go_opentelemetry_io.otel.trace.noop
 public import Code.go_uber_org.zap
 public import Perennial.Golang.Defn
 
@@ -48,12 +53,11 @@ noncomputable def step.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] step.ty
 
-opaque instrumentationScope [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def instrumentationScope [GooseExts] [GoGlobalContext] : val :=
+  #(go!"go.etcd.io/etcd")
 
 noncomputable def Tracer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.Tracer"
-
-opaque Tracer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.Init"
@@ -72,6 +76,71 @@ noncomputable def Get [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def EnsureTrace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.EnsureTrace"
+
+/-- go: trace.go:50:17 -/
+noncomputable def Field.format.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Field.ty)))) (Var "f"))
+  (Let "$r0" (Let "$a0" (Val #(go!"%s:%v; "))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Field.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Field.ty)))) (Var "f")))))
+  (Let "$sl1" (App (Val (GoInstruction (GoLoad go.any))) (App (Val (GoInstruction (StructFieldRef Field.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Field.ty)))) (Var "f"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: trace.go:54:6 -/
+noncomputable def writeFields.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fields"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fields" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "buf" (App (Val (GoInstruction (GoAlloc _root_.Perennial.strings.Builder.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.strings.Builder.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"String"))) (Var "buf")) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"}"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"WriteString"))) (Var "buf")) (Var "$a0")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (App (App (Val (slice.forRange Field.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (Let "f" (App (Val (GoInstruction (GoAlloc Field.ty))) (Var "$value"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Field.ty) go!"format"))) (Var "f")) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"WriteString"))) (Var "buf")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"{"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.strings.Builder.ty) go!"WriteString"))) (Var "buf")) (Var "$a0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Field.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
 /-- go: trace.go:85:6 -/
 noncomputable def newTrace.impl [GooseExts] [GoGlobalContext] : val :=
@@ -448,6 +517,218 @@ noncomputable def Trace.LogAllStepsIfLong.impl [GooseExts] [GoGlobalContext] : v
   (Val #()))))))
   (Val #()))))
 
+/-- LogWithStepThreshold only dumps step whose duration is longer than step threshold
+
+    go: trace.go:192:17 -/
+noncomputable def Trace.LogWithStepThreshold.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "threshold"
+  (Seq (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Trace.ty)))) (Var "t"))
+  (Let "threshold" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "threshold"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "threshold"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Trace.ty) go!"logInfo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "fs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (Val #())))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (Var "fs"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (Pair (Var "fs") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "msg") (Var "$r0")))))))))))))))
+  (Val #()))))
+
+/-- go: trace.go:199:17 -/
+noncomputable def Trace.logInfo.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "threshold"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Trace.ty)))) (Var "t"))
+  (Let "threshold" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "threshold"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "endTime" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"startTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Sub"))) (Var "endTime")) (Var "$a0")))
+  (Let "totalDuration" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Int31 []))) (Val #())) (Val #()))
+  (Let "traceNum" (App (Val (GoInstruction (GoAlloc go.int32))) (App (Val (GoInstruction (GoZeroVal go.int32))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "steps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"startTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (Let "lastStepTime" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Let "$a0" (Val #(go!"trace_id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int32))) (Var "traceNum"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int32 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v1" (Let "$a0" (Val #(go!"operation"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"operation"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v2" (Let "$a0" (Val #(go!"detail"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"fields"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve writeFields []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v3" (Let "$a0" (Val #(go!"duration"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "totalDuration"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v4" (Let "$a0" (Val #(go!"start"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"startTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Time []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v5" (Let "$a0" (Val #(go!"end"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "endTime"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Time []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v6" (Let "$a0" (Val #(go!"steps"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "steps"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Strings []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v7" (Let "$a0" (Val #(go!"step_count"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "steps"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$v2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$v3"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$v4"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$v5"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$v6"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$v7")))]))))))))))
+  (Let "fs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"trace"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (Var "fs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (Pair (Var "fs") (Var "$r0")))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType step.ty)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad step.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType step.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "tstep" (App (Val (GoInstruction (GoAlloc step.ty))) (App (Val (GoInstruction (GoZeroVal step.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "lastStepTime"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Sub"))) (App (Val (GoInstruction (StructFieldRef step.ty go!"time"))) (Var "tstep"))) (Var "$a0")))
+  (Let "stepDuration" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef step.ty go!"time"))) (Var "tstep")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "lastStepTime") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "stepDuration")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "threshold")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "steps"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"'%v' %s (duration: %v)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef step.ty go!"msg"))) (Var "tstep"))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (App (Val (GoInstruction (StructFieldRef step.ty go!"fields"))) (Var "tstep")))
+  (App (App (Val (GoInstruction (FuncResolve writeFields []))) (Val #())) (Var "$a0"))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "stepDuration")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "steps") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "stepDuration") (Var "$r0")))))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef step.ty go!"isSubTraceStart"))) (Var "tstep"))) (Val #true) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef step.ty go!"isSubTraceEnd"))) (Var "tstep"))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore step.ty))) (Pair (Var "tstep") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType step.ty)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad step.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType step.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "tstep" (App (Val (GoInstruction (GoAlloc step.ty))) (App (Val (GoInstruction (GoZeroVal step.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef step.ty go!"isSubTraceEnd"))) (Var "tstep")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 0)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef step.ty go!"isSubTraceStart"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType step.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (App (Val (GoInstruction (StructFieldRef step.ty go!"fields"))) (Var "tstep")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (App (Val (GoInstruction (StructFieldRef step.ty go!"fields"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType step.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Field.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Field.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef step.ty go!"fields"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType step.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))) (Var "$r0")))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef step.ty go!"isSubTraceStart"))) (Var "tstep")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType step.ty)]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef step.ty go!"isSubTraceEnd"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType step.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (App (Val (GoInstruction (StructFieldRef step.ty go!"fields"))) (Var "tstep")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (App (Val (GoInstruction (StructFieldRef step.ty go!"fields"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType step.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Field.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Field.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef step.ty go!"fields"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType step.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType step.ty)))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"steps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))) (Var "$r0")))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore step.ty))) (Pair (Var "tstep") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "lastStepTime") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "traceNum") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "totalDuration") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "endTime") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (Var "$res1"))))))))
+
 /-- go: trace.go:249:17 -/
 noncomputable def Trace.updateFieldIfExist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
@@ -517,7 +798,7 @@ noncomputable def Trace.enableStep.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.traceutil where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.math.rand, pkg_id.strings, pkg_id.time, pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_opentelemetry_io.otel.trace.noop, pkg_id.go_uber_org.zap]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -528,14 +809,35 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val instrumentationScope))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_opentelemetry_io.otel.trace.noop.TracerProvider.ty go!"Tracer"))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.otel.trace.noop.NewTracerProvider []))) (Val #())) (Val #()))) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val Tracer.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_opentelemetry_io.otel.trace.Tracer.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Tracer))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.math.rand.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_opentelemetry_io.otel.trace.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_opentelemetry_io.otel.trace.noop.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Tracer _root_.Perennial.go_opentelemetry_io.otel.trace.Tracer.ty)) (Val #()))))))))
 
 structure TraceKey [GooseExts] where
   mk ::
@@ -628,6 +930,7 @@ class Field.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Value : ∀ (x : Field) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Field)))
   method_set : go.MethodSetIs Field.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Field.ty) [(go!"go.etcd.io/etcd/pkg/v3/traceutil.format", (some (go.signature.Signature [] false [go.string])))]
+  ptr_format_unfold : MethodUnfold (go.GoType.PointerType Field.ty) go!"format" Field.format.impl
 
 attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.underlying
@@ -637,6 +940,7 @@ attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.set_Value
   Field.TypeAssumptions.method_set
   Field.TypeAssumptions.ptr_method_set
+  Field.TypeAssumptions.ptr_format_unfold
 
 structure Trace [GooseExts] where
   mk ::
@@ -688,13 +992,14 @@ class Trace.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   get_isEmpty : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"isEmpty") #x (Val #(x.isEmpty'))
   set_isEmpty : ∀ (x : Trace) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"isEmpty") (PairV #x #y) (Val #(({ x with isEmpty' := y } : Trace)))
   method_set : go.MethodSetIs Trace.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Trace.ty) [(go!"AddField", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"GetStartTime", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"InsertStep", (some (go.signature.Signature [go.int, _root_.Perennial.time.Time.ty, go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"IsEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"Log", (some (go.signature.Signature [] false []))), (go!"LogAllStepsIfLong", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"LogIfLong", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"LogWithStepThreshold", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"SetStartTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"StartSubTrace", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"Step", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"StepWithFunction", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [])), go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"StopSubTrace", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.disableStep", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.enableStep", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.logInfo", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.uber.org/zap/zapcore.Field" []))]))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.updateFieldIfExist", (some (go.signature.Signature [Field.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Trace.ty) [(go!"AddField", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"GetStartTime", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"InsertStep", (some (go.signature.Signature [go.int, _root_.Perennial.time.Time.ty, go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"IsEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"Log", (some (go.signature.Signature [] false []))), (go!"LogAllStepsIfLong", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"LogIfLong", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"LogWithStepThreshold", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"SetStartTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"StartSubTrace", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"Step", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"StepWithFunction", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [])), go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"StopSubTrace", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.disableStep", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.enableStep", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.logInfo", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.string, (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)]))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.updateFieldIfExist", (some (go.signature.Signature [Field.ty] false [go.bool])))]
   ptr_AddField_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"AddField" Trace.AddField.impl
   ptr_GetStartTime_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"GetStartTime" Trace.GetStartTime.impl
   ptr_InsertStep_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"InsertStep" Trace.InsertStep.impl
   ptr_IsEmpty_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"IsEmpty" Trace.IsEmpty.impl
   ptr_LogAllStepsIfLong_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"LogAllStepsIfLong" Trace.LogAllStepsIfLong.impl
   ptr_LogIfLong_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"LogIfLong" Trace.LogIfLong.impl
+  ptr_LogWithStepThreshold_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"LogWithStepThreshold" Trace.LogWithStepThreshold.impl
   ptr_SetStartTime_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"SetStartTime" Trace.SetStartTime.impl
   ptr_StartSubTrace_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"StartSubTrace" Trace.StartSubTrace.impl
   ptr_Step_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"Step" Trace.Step.impl
@@ -702,6 +1007,7 @@ class Trace.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   ptr_StopSubTrace_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"StopSubTrace" Trace.StopSubTrace.impl
   ptr_disableStep_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"disableStep" Trace.disableStep.impl
   ptr_enableStep_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"enableStep" Trace.enableStep.impl
+  ptr_logInfo_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"logInfo" Trace.logInfo.impl
   ptr_updateFieldIfExist_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"updateFieldIfExist" Trace.updateFieldIfExist.impl
 
 attribute [instance] Trace.TypeAssumptions.type_repr
@@ -728,6 +1034,7 @@ attribute [instance] Trace.TypeAssumptions.type_repr
   Trace.TypeAssumptions.ptr_IsEmpty_unfold
   Trace.TypeAssumptions.ptr_LogAllStepsIfLong_unfold
   Trace.TypeAssumptions.ptr_LogIfLong_unfold
+  Trace.TypeAssumptions.ptr_LogWithStepThreshold_unfold
   Trace.TypeAssumptions.ptr_SetStartTime_unfold
   Trace.TypeAssumptions.ptr_StartSubTrace_unfold
   Trace.TypeAssumptions.ptr_Step_unfold
@@ -735,6 +1042,7 @@ attribute [instance] Trace.TypeAssumptions.type_repr
   Trace.TypeAssumptions.ptr_StopSubTrace_unfold
   Trace.TypeAssumptions.ptr_disableStep_unfold
   Trace.TypeAssumptions.ptr_enableStep_unfold
+  Trace.TypeAssumptions.ptr_logInfo_unfold
   Trace.TypeAssumptions.ptr_updateFieldIfExist_unfold
 
 structure step [GooseExts] where
@@ -802,12 +1110,18 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Field_instance : Field.TypeAssumptions
   Trace_instance : Trace.TypeAssumptions
   step_instance : step.TypeAssumptions
+  writeFields_unfold : FuncUnfold writeFields [] writeFields.impl
   newTrace_unfold : FuncUnfold newTrace [] newTrace.impl
   TODO_unfold : FuncUnfold TODO [] TODO.impl
   Get_unfold : FuncUnfold Get [] Get.impl
   EnsureTrace_unfold : FuncUnfold EnsureTrace [] EnsureTrace.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
+  import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
+  import_trace_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
+  import_noop_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.noop.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
 
 attribute [instance] Assumptions.TraceKey_instance
@@ -815,12 +1129,18 @@ attribute [instance] Assumptions.TraceKey_instance
   Assumptions.Field_instance
   Assumptions.Trace_instance
   Assumptions.step_instance
+  Assumptions.writeFields_unfold
   Assumptions.newTrace_unfold
   Assumptions.TODO_unfold
   Assumptions.Get_unfold
   Assumptions.EnsureTrace_unfold
   Assumptions.import_context_Assumption
+  Assumptions.import_fmt_Assumption
+  Assumptions.import_rand_Assumption
+  Assumptions.import_strings_Assumption
   Assumptions.import_time_Assumption
+  Assumptions.import_trace_Assumption
+  Assumptions.import_noop_Assumption
   Assumptions.import_zap_Assumption
 
 end go_etcd_io.etcd.pkg.v3.traceutil

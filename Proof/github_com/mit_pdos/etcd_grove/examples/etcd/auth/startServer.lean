@@ -50,7 +50,7 @@ theorem startServer.wp_proof
   iunfold etcdstart.commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Htd⟩
   iunfold etcdstart.memberBootOn at Hmb
-  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
+  icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, -⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
@@ -105,6 +105,8 @@ theorem startServer.wp_proof
       (fun h => absurd h (by decide)) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (etcdstart.peerURLsDir_httpURL dir id _ Hdirok Hdir)
+      (etcdstart.etcdURLsFit_httpURL go!"127.0.0.1:23926" (by decide))
+      (etcdstart.etcdURLsFit_httpURL go!"127.0.0.1:23916" (by decide))
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)

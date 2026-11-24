@@ -31,7 +31,7 @@ open Fs WalFs
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [os_fa : os.file.FieldAssumptions]
@@ -52,7 +52,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
   wp_start as ⟨#Hfp, Hcnt, Hc, Hres⟩
   iunfold isFilePipe at Hfp
   icases Hfp with ⟨%lg, #Hlg, #Hdir, #Hsz, #Hfc, #Hec, #Hdc, #Hhsn, #Hspsc, #Hbc, #Hlgok, #Hos,
-    #Hsi, #Hpkg, %hsz⟩
+    #Hsi, ⟨%C, %Mr, %jr, %r, %X, #Hwi, #Hkey⟩, #Hpkg, %hsz⟩
   iunfold pipeRes at Hres
   icases Hres with ⟨Hperm, Hp⟩
   ihave %hclean := osPathS_cleanAbs R dir dq j $$ Hp
@@ -74,12 +74,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
   (try wp_auto)
   wp_apply wp_Join _ [dir, pipeTmp n] _ (by
       have : (pipeTmp n).length = 5 := by unfold pipeTmp; split <;> rfl
-      simp [this]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
+      simp [this, _root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
   rw [join_child hclean (pipeTmp_nameOk n)] at hpth
   subst hpth
   (try wp_auto)
-  wp_apply wp_createTmp wp_create wp_open R dir dq j (pipeTmp n) (pipeTmp_nameOk n)
-    $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hc] as %lf %e ⟨Hp, Hperm, Hr⟩
+  wp_apply wp_createTmp wp_create wp_open C Mr jr r X R dir dq j (pipeTmp n) (pipeTmp_nameOk n)
+    (pipeTmp_mem n) $$ [$Hos $Hpkg $Hsi $Hwi $Hkey $Hp $Hperm $Hc] as %lf %e ⟨Hp, Hperm, Hr⟩
   icases Hr with (⟨%he, %f, %fd, %i, %h, %lo, %lk, #Hlf, Hf, Hoff, Hfd, Hlks, Htr, Hn, %hfi⟩ | ⟨%he, Hc, %hw⟩)
   · subst he
     (try wp_auto)

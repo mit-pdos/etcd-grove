@@ -35,7 +35,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
 variable [durable_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
@@ -76,8 +76,8 @@ theorem Replica.persist.wp_proof
     -- the new durable state, `M`'s, and the phase after the write: a pending batch is entered
     -- here and left `fired` for `run`
     ihave Hstep : iprop(∃ (S' : RaftState) (pz' : KdPhase), ⌜StorageHolds S' (kdContents (some M))⌝ ∗
-        (∀ (E : CoPset), ⌜↑kdRaftN ⊆ E⌝ -∗ raftState γ.r.cluster id S ={E}=∗
-          raftState γ.r.cluster id S' ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
+        (∀ (E : CoPset), ⌜↑kdRaftN ⊆ E⌝ -∗ notCrashedG -∗ raftState γ.r.cluster id S ={E}=∗
+          notCrashedG ∗ raftState γ.r.cluster id S' ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
           kdPhaseInv γ id n ph.ph S' M pz')) $$ [Hph Hrun]
     · cases pz with
       | idle =>
@@ -86,9 +86,9 @@ theorem Replica.persist.wp_proof
         iexists S, KdPhase.idle
         isplitr
         · ipureintro; exact HSM
-        iintro %E %HE HrS
+        iintro %E %HE Hnc HrS
         imodintro
-        iframe HrS Hrun
+        iframe Hnc HrS Hrun
         simp only [kdPhaseInv]
         iframe Hph
         ipureintro; exact HSM
@@ -98,12 +98,15 @@ theorem Replica.persist.wp_proof
         iexists st0'.durable, KdPhase.fired γb0
         isplitr
         · ipureintro; exact Hst0.2
-        iintro %E %HE HrS
+        iintro %E %HE Hnc HrS
         iunfold readyEnter at Henter
+        icases Henter with ⟨Henter, -⟩
+        iunfold readyEnterLive at Henter
         ihave HrS : raftState γ.r.cluster id st0.durable $$ [HrS]
         · rw [Hst0.1]; iexact HrS
-        imod Henter $$ %E %q %HE [$HrS $Hrun] with ⟨HrS, Hrun, Hdrv, #Hmsgs⟩
+        imod Henter $$ %E %q %HE Hnc [$HrS $Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, #Hmsgs⟩
         imodintro
+        iframe Hnc
         iframe HrS Hrun
         simp only [kdPhaseInv]
         iframe Hph
@@ -119,9 +122,9 @@ theorem Replica.persist.wp_proof
         iexists S, KdPhase.fired γb0
         isplitr
         · ipureintro; exact HSM
-        iintro %E %HE HrS
+        iintro %E %HE Hnc HrS
         imodintro
-        iframe HrS Hrun
+        iframe Hnc HrS Hrun
         simp only [kdPhaseInv]
         iframe Hph
         isplitl [HR]
@@ -133,8 +136,10 @@ theorem Replica.persist.wp_proof
     wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
     try wp_auto
     wp_bind (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.Write)) _) _)
-    iapply github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.wp_file_au wp_Write γ.files kdFilesN
+    -- (2026-11-21, the crash invariant) *enter* runs at the write's step, with the token
+    iapply github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.wp_file_au_nc wp_Write γ.files kdFilesN
       _ _ _ $$ Hfiles
+    iintro Hnc
     iunfold kdFileInv at HfInv
     iinv HfInv with HI Hclose
     · exact kdRepN_files id
@@ -144,10 +149,11 @@ theorem Replica.persist.wp_proof
     iunfold kdWriter at Hwr
     ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
     obtain ⟨rfl, -⟩ := Prod.mk.inj Hag
-    imod Hstep $$ %_ %(kdRaftN_sub id) HrS with ⟨HrS, Hrun, Hph⟩
+    imod Hstep $$ %_ %(kdRaftN_sub id) Hnc HrS with ⟨Hnc, HrS, Hrun, Hph⟩
     imod ghostVar_update_halves (S', kdFileVal (some M)) (γ.wr id) _ _ $$ Hwr Hwv with ⟨Hwr, Hwv⟩
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
+    iframe Hnc
     iexists kdFileVal o0
     iframe Hdf
     iintro Hdf
@@ -228,8 +234,8 @@ theorem Replica.persist.wp_proofRun
     ihave Hstep : iprop(∃ S' : RaftState, ⌜StorageHolds S' (kdContents (some M)) ∧ S' = st'.durable⌝ ∗
         ghostVar ph.ph (1 : Qp).half (some γb, st'.durable) ∗
         ghostVar ph.ph (1 : Qp).half (some γb, st'.durable) ∗
-        (∀ (E : CoPset), ⌜↑kdRaftN ⊆ E⌝ -∗ £ 1 -∗ raftState γ.r.cluster id S ={E}=∗
-          raftState γ.r.cluster id S' ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
+        (∀ (E : CoPset), ⌜↑kdRaftN ⊆ E⌝ -∗ notCrashedG -∗ £ 1 -∗ raftState γ.r.cluster id S ={E}=∗
+          notCrashedG ∗ raftState γ.r.cluster id S' ∗ nodeRunning n γ.r.cluster kdRaftN q ∗
           kdBatchRes γ id n st' qs)) $$ [Hph Hclaim Hrun]
     · cases pz with
       | idle =>
@@ -248,11 +254,13 @@ theorem Replica.persist.wp_proofRun
         iframe Hph Hclaim
         isplitr
         · ipureintro; exact ⟨h2 ▸ Hst0.2, rfl⟩
-        iintro %E %HE Hlc HrS
+        iintro %E %HE Hnc Hlc HrS
         iunfold readyEnter at Henter
+        icases Henter with ⟨Henter, -⟩
+        iunfold readyEnterLive at Henter
         ihave HrS : raftState γ.r.cluster id st0.durable $$ [HrS]
         · rw [Hst0.1]; iexact HrS
-        imod Henter $$ %E %q %HE [$HrS $Hrun] with ⟨HrS, Hrun, Hdrv, #Hmsgs⟩
+        imod Henter $$ %E %q %HE Hnc [$HrS $Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, #Hmsgs⟩
         ihave #Heq := saved_prop_agree γb0 DFrac.discard DFrac.discard _ _ $$ Hsv0 HsvC
         ihave HA : ▷ kdBatchRes γ id n st' qs $$ [Hdrv]
         · inext
@@ -265,7 +273,7 @@ theorem Replica.persist.wp_proofRun
         imodintro
         ihave HrS : raftState γ.r.cluster id st'.durable $$ [HrS]
         · rw [← h2]; iexact HrS
-        iframe HrS Hrun HA
+        iframe Hnc HrS Hrun HA
       | fired γb0 =>
         icases Hph with ⟨Hph, ⟨%R, #HsvR, HRR⟩, %HSM⟩
         ihave %Hag := ghostVar_agree ph.ph _ _ _ _ $$ Hph Hclaim
@@ -276,7 +284,7 @@ theorem Replica.persist.wp_proofRun
         iframe Hph Hclaim
         isplitr
         · ipureintro; exact ⟨HSM, rfl⟩
-        iintro %E %HE Hlc HrS
+        iintro %E %HE Hnc Hlc HrS
         ihave #Heq := saved_prop_agree γb0 DFrac.discard DFrac.discard _ _ $$ HsvR HsvC
         ihave HA : ▷ kdBatchRes γ id n st' qs $$ [HRR]
         · inext
@@ -285,7 +293,7 @@ theorem Replica.persist.wp_proofRun
           iapply Hiff $$ HRR
         imod lc_fupd_elim_later $$ Hlc HA with HA
         imodintro
-        iframe HrS Hrun HA
+        iframe Hnc HrS Hrun HA
     icases Hstep with ⟨%S', ⟨%HSM, %HS'⟩, Hph, Hclaim, Hstep⟩
     subst HS'
     try wp_auto
@@ -293,8 +301,9 @@ theorem Replica.persist.wp_proofRun
     wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
     try wp_auto
     wp_bind (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.Write)) _) _)
-    iapply github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.wp_file_au wp_Write γ.files kdFilesN
+    iapply github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.wp_file_au_nc wp_Write γ.files kdFilesN
       _ _ _ $$ Hfiles
+    iintro Hnc
     iunfold kdFileInv at HfInv
     iinv HfInv with HI Hclose
     · exact kdRepN_files id
@@ -304,12 +313,13 @@ theorem Replica.persist.wp_proofRun
     iunfold kdWriter at Hwr
     ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
     obtain ⟨rfl, -⟩ := Prod.mk.inj Hag
-    imod Hstep $$ %_ %(kdRaftN_sub id) Hlc2 HrS with ⟨HrS, Hrun, HA⟩
+    imod Hstep $$ %_ %(kdRaftN_sub id) Hnc Hlc2 HrS with ⟨Hnc, HrS, Hrun, HA⟩
     imod ghostVar_update_halves (st'.durable, kdFileVal (some M)) (γ.wr id) _ _ $$ Hwr Hwv with ⟨Hwr, Hwv⟩
     imod ghostVar_update_halves ((none : Option GName), st'.durable) ph.ph _ _ $$ Hph Hclaim
       with ⟨Hph, Hclaim⟩
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
+    iframe Hnc
     iexists kdFileVal o0
     iframe Hdf
     iintro Hdf

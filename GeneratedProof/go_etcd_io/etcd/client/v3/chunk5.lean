@@ -25,6 +25,7 @@ public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.status
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.math.rand
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
@@ -267,7 +268,7 @@ noncomputable instance watcherStream_access_load_bufWaitStartTime (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance watcherStream_access_store_bufWaitStartTime (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufWaitStartTime' : time.Time) :
+noncomputable instance watcherStream_access_store_bufWaitStartTime (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufWaitStartTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) v.bufWaitStartTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) bufWaitStartTime' (DFrac.own 1))

@@ -26,15 +26,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
 /-- See the file header. -/
 abbrev Replica.snapshot.spec : Prop :=
-  ∀ (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ : RepNames) (q : RSnapReq)
+  ∀ (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st sts : Loc) (ρ : RepNames) (q : RSnapReq)
     (known : w64),
-  {{ isReplicaR γr vs id r n st sts ρ ∗ snapReqOk γr ρ.key ρ.γs q ∗ memSnapLb ρ.γs (uint.nat known) }}
+  {{ isReplicaR γr vs id r n st sts ρ ∗ snapReqOk (GF := GF) γr ρ.key ρ.γs q ∗ memSnapLb ρ.γs (uint.nat known) }}
     (App (App (Val (r @!! go.GoType.PointerType rReplicaTy @!! go!"snapshot")) (Val #q)) (Val #known))
   {{ (known' : w64), RET #known'; memSnapLb ρ.γs (uint.nat known') }}
 

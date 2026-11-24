@@ -123,7 +123,7 @@ theorem Main.wp_proof
       (W64 10000000) lg
       (LogEntry.toEntries boot 0) ctxs (putgetcDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [putgetcDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) hkr Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [putgetcDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) (by decide) (by decide) hkr Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

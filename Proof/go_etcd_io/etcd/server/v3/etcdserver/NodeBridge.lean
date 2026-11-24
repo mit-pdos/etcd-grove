@@ -76,7 +76,7 @@ abbrev rnMemStorReg (γ : RNNames GF) : IProp GF :=
 
 /-- The `raft.Node` interface value holding the `*node` `γ.nl`. -/
 abbrev rnNodeIface (γ : RNNames GF) : GoInterface :=
-  interface.mkOk (go.GoType.PointerType node.ty) #γ.nl
+  interface.mkOk (go.GoType.PointerType node.ty) #γ.nl.loc
 
 /-- **The node's inbound methods** (persistent; D21 M2, 2026-10-19): `Step` of a peer's message
 (the node API's `stepIn`, over a context the node API takes) and the two reports, which
@@ -132,7 +132,11 @@ theorem applyErrIs_of_ctxErr (cd : context.ContextDesc (IProp GF)) (err : GoInte
       icombine Hcv HeD gives %Hce
       cases Hce
       obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
-      iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
+      -- (errors-is-deadline) `DeadlineExceeded`'s value is `deadlineExceededError{}`
+      ihave #PctxD : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+      · iPkgInit
+      ihave %HdeD := deadlineExceeded_deTypedErr _ $$ PctxD HeD
+      iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF HdeD $$ HDm
 
 /-- **The error of a `node` call that hands a message to `run`** (`nodeErr`: `nil`, `ErrStopped`,
 or the context's), as the gRPC layer takes it (`applyErrIs`). -/
@@ -315,7 +319,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames GF)
     icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
     ipureintro; exact H.2
   iunfold raftPropose
-  iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
+  iexists ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩
   isplitr
   · ipureintro; rfl
   isplitr
@@ -371,7 +375,7 @@ theorem raftApplyCC_of_isNode (γ : RNNames GF)
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨#Hisc, #Hpol, -⟩
   iunfold raftApplyCC
-  iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
+  iexists ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩
   isplitr
   · ipureintro; rfl
   iintro !> %c %cm %l %v %k %e %m' %q %Hpre %Φ !> ⟨Hc, Hcfg, #Hdl, Hrun⟩ HΦ
@@ -455,7 +459,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
     icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
     ipureintro; exact H.2
   iunfold isRaftNodeIfc
-  iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
+  iexists ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩
   isplitr
   · ipureintro; rfl
   isplitr
@@ -631,10 +635,12 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
   isplitr
   · -- `Stop`
     iintro !> %Φ !> Hrun HΦ
-    wp_apply wp_Stop γ.nl γ.node.cl srvClusterN γ.id $$ [Hrun] as ⟨#Hst, Hvac⟩
+    wp_apply wp_Stop γ.nl γ.node.cl srvClusterN γ.id $$ [Hrun] as ⟨#Hst, %x, Hvac, -⟩
     · iframe #; iframe Hrun
     iapply HΦ
-    iframe Hst Hvac
+    iframe Hst
+    iexists x
+    iexact Hvac
   isplitr
   rotate_left
   · iexact Hnode0
@@ -692,7 +698,7 @@ theorem rnStepIfc_of_isNode (γ : RNNames GF)
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnStepIfc
-  iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
+  iexists ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩
   isplitr
   · ipureintro; rfl
   isplitr

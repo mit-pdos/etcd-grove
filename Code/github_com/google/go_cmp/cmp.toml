@@ -5,3 +5,67 @@
 # that a call's variadic `[]Option` has a translated type; the rest axiomatized.
 translate = ["!*", "Option", "applicableOption"]
 imports = ["!*"]
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["identsRx"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["anyType", "stringType", "bytesType", "byteType"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["randBool"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`rand.New(rand.NewSource(time.Now().Unix())).Intn(2)` reads the clock and draws from a new private
+source. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["textNil", "textEllipsis"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `textLine` is a
+conversion of a constant. So each terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@path.go:62"]
+reason = """
+An interface check: `StructField{}` converted to `PathStep`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@path.go:63"]
+reason = """
+An interface check: `SliceIndex{}` converted to `PathStep`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@path.go:64"]
+reason = """
+An interface check: `MapIndex{}` converted to `PathStep`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@path.go:65"]
+reason = """
+An interface check: `Indirect{}` converted to `PathStep`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@path.go:66"]
+reason = """
+An interface check: `TypeAssertion{}` converted to `PathStep`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@path.go:67"]
+reason = """
+An interface check: `Transform{}` converted to `PathStep`. No call, no panic, no effect."""
+# --- end of skipped package variables ---

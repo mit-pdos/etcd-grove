@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.apiserver.pkg.storage.value
 
 @[expose] public section
 
@@ -77,31 +78,6 @@ opaque «namespace» [GooseExts] [GoGlobalContext] : val
 
 opaque subsystem [GooseExts] [GoGlobalContext] : val
 
-noncomputable def transformerLatencies [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/value.transformerLatencies"
-
-opaque transformerLatencies.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def transformerOperationsTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/value.transformerOperationsTotal"
-
-opaque transformerOperationsTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def envelopeTransformationCacheMissTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/value.envelopeTransformationCacheMissTotal"
-
-opaque envelopeTransformationCacheMissTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def dataKeyGenerationLatencies [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/value.dataKeyGenerationLatencies"
-
-opaque dataKeyGenerationLatencies.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def dataKeyGenerationFailuresTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/value.dataKeyGenerationFailuresTotal"
-
-opaque dataKeyGenerationFailuresTotal.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.registerMetrics"
 
@@ -138,35 +114,58 @@ noncomputable def getRequestInfoFromContext [GooseExts] [GoGlobalContext] : GoSt
 noncomputable def getResourceFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.getResourceFromContext"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `transformerLatencies` (`var transformerLatencies = metrics.NewHistogramVec( &metrics.HistogramOpts{ Namespace: namespace, Subsystem: subsystem,  … [sha256:c7703245b37c3779]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here); `metrics.ExponentialBuckets` of constants
+(count ≥ 1, start > 0, factor > 1: the cases it panics on are excluded) allocates the bucket bounds.
+So each terminates, cannot panic and has no effect beyond its variable.
+- `transformerOperationsTotal` (`var transformerOperationsTotal = metrics.NewCounterVec( &metrics.CounterOpts{ Namespace: namespace, Subsystem: subsystem … [sha256:63900cb93366457f]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `envelopeTransformationCacheMissTotal` (`var envelopeTransformationCacheMissTotal = metrics.NewCounter( &metrics.CounterOpts{ Namespace: namespace, Subsystem: su … [sha256:03dc68174c7d4079]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `dataKeyGenerationLatencies` (`var dataKeyGenerationLatencies = metrics.NewHistogram( &metrics.HistogramOpts{ Namespace: namespace, Subsystem: subsyste … [sha256:a4a0dfe400099af7]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here); `metrics.ExponentialBuckets` of constants
+(count ≥ 1, start > 0, factor > 1: the cases it panics on are excluded) allocates the bucket bounds.
+So each terminates, cannot panic and has no effect beyond its variable.
+- `dataKeyGenerationFailuresTotal` (`var dataKeyGenerationFailuresTotal = metrics.NewCounter( &metrics.CounterOpts{ Namespace: namespace, Subsystem: subsyste … [sha256:7badb2c7eb9b0b3e]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `_@transformer.go:86` (`var _ Transformer = &prefixTransformers{}`): An interface check: `&prefixTransformers{}` converted to `Transformer`. No call, no panic, no
+effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/storage/value.transformerLatencies", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here); `metrics.ExponentialBuckets` of constants\n(count ≥ 1, start > 0, factor > 1: the cases it panics on are excluded) allocates the bucket bounds.\nSo each terminates, cannot panic and has no effect beyond its variable.", "var transformerLatencies = metrics.NewHistogramVec( &metrics.HistogramOpts{ Namespace: namespace, Subsystem: subsystem,  … [sha256:c7703245b37c3779]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/value.transformerOperationsTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var transformerOperationsTotal = metrics.NewCounterVec( &metrics.CounterOpts{ Namespace: namespace, Subsystem: subsystem … [sha256:63900cb93366457f]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/value.envelopeTransformationCacheMissTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var envelopeTransformationCacheMissTotal = metrics.NewCounter( &metrics.CounterOpts{ Namespace: namespace, Subsystem: su … [sha256:03dc68174c7d4079]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/value.dataKeyGenerationLatencies", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here); `metrics.ExponentialBuckets` of constants\n(count ≥ 1, start > 0, factor > 1: the cases it panics on are excluded) allocates the bucket bounds.\nSo each terminates, cannot panic and has no effect beyond its variable.", "var dataKeyGenerationLatencies = metrics.NewHistogram( &metrics.HistogramOpts{ Namespace: namespace, Subsystem: subsyste … [sha256:a4a0dfe400099af7]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/value.dataKeyGenerationFailuresTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var dataKeyGenerationFailuresTotal = metrics.NewCounter( &metrics.CounterOpts{ Namespace: namespace, Subsystem: subsyste … [sha256:7badb2c7eb9b0b3e]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/value._@transformer.go:86", "An interface check: `&prefixTransformers{}` converted to `Transformer`. No call, no panic, no\neffect.", "var _ Transformer = &prefixTransformers{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.value where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.value)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val dataKeyGenerationFailuresTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val dataKeyGenerationLatencies.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val envelopeTransformationCacheMissTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val transformerOperationsTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val transformerLatencies.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
 opaque gRPCError.nonempty_type : NonemptyType.{0}
 def gRPCError : Type := gRPCError.nonempty_type.type
@@ -378,6 +377,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   DefaultContext_instance : DefaultContext.TypeAssumptions
   PrefixTransformer_instance : PrefixTransformer.TypeAssumptions
   prefixTransformers_instance : prefixTransformers.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.gRPCError_instance
   Assumptions.Context_instance
@@ -388,6 +388,7 @@ attribute [instance] Assumptions.gRPCError_instance
   Assumptions.DefaultContext_instance
   Assumptions.PrefixTransformer_instance
   Assumptions.prefixTransformers_instance
+  Assumptions.«init.0_unfold»
 
 end k8s_io.apiserver.pkg.storage.value
 

@@ -142,7 +142,7 @@ theorem Run.wp_proof
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
       %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -,
-      Hlis, -⟩
+      Hlis, Hleft, -⟩
     obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     -- (per-type stage B3) the gRPC run pools, from the serving stocks
     imod (etcdstart.kvServeStocks_pools srv E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
@@ -150,7 +150,7 @@ theorem Run.wp_proof
     rw [HCA]
     imod (ak_served_kv addr gs q p pa srv lis E { ρ with wait := γw } cid mid C.n
         il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
-      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, -⟩
+      $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, -⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -171,7 +171,7 @@ theorem Run.wp_proof
     imodintro
     iframe HKV HSA HAu HWF Htag
     isplitl [Hserv]
-    · iexists γ; iexact Hserv
+    · iexists _; iexact Hserv
     ipureintro; exact ⟨hRE, hRs⟩
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HSA, #HAu, #HWF, #Htag⟩⟩)
   · cases serr with
@@ -203,7 +203,7 @@ theorem Run.wp_proof
     ihave #H := akHist_setupAu ρ.rd.kv k hk $$ Hhist
     iexact H
   ihave #Hput : isGrpcRpcMd addr go!"/etcdserverpb.KV/Put"
-      (client.etcdPutSpecOn srv E { ρ with wait := γw } cid mid) $$ []
+      (client.etcdPutSpecOn (srvTLSId srv) E { ρ with wait := γw } cid mid) $$ []
   · iunfold akKVOn at HKV
     icases HKV with ⟨#H, -, -, -⟩
     iexact H

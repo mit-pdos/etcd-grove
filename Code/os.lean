@@ -5,6 +5,7 @@ public import Perennial.Code.io
 public import Code.io.fs
 public import Perennial.Code.sync
 public import Code.syscall
+public import Perennial.Code.internal.testlog
 public import Code.internal.poll
 public import Perennial.Code.errors
 public import Perennial.Golang.Defn
@@ -1698,6 +1699,33 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))
 
+/-- Exit causes the current program to exit with the given status code.
+    Conventionally, code zero indicates success, non-zero an error.
+    The program terminates immediately; deferred functions are not run.
+
+    For portability, the status code should be in the range [0, 125].
+
+    go: proc.go:62:6 -/
+noncomputable def Exit.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "code"
+  (Seq (App (Val exceptionDo)
+  (Let "code" (App (Val (GoInstruction (GoAlloc go.int))) (Var "code"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "code"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.syscall.Exit []))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "code"))
+  (App (App (Val (GoInstruction (FuncResolve runtime_beforeExit []))) (Val #())) (Var "$a0")))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "code")) (Val #(W64 0)))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.testlog.PanicOnExit0 []))) (Val #())) (Val #())) (Val #false))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected call to os.Exit(0) during test")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
+
 /-- go: rawconn.go:45:6 -/
 noncomputable def newRawConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "file"
@@ -2125,12 +2153,13 @@ noncomputable def tryLimitedReader.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res2"))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.os where
-  pkgImportedPkgs := [pkg_id.io, pkg_id.io.fs, pkg_id.sync, pkg_id.syscall, pkg_id.internal.poll, pkg_id.errors]
+  pkgImportedPkgs := [pkg_id.io, pkg_id.io.fs, pkg_id.sync, pkg_id.syscall, pkg_id.internal.testlog, pkg_id.internal.poll, pkg_id.errors]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.os)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2283,6 +2312,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.internal.testlog.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.internal.poll.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2743,6 +2774,10 @@ class fileWithoutReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_File : ∀ (x : fileWithoutReadFrom) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutReadFrom.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileWithoutReadFrom)))
   method_set : go.MethodSetIs fileWithoutReadFrom.ty [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileWithoutReadFrom.ty) [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
+  Write_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
 
 attribute [instance] fileWithoutReadFrom.TypeAssumptions.type_repr
   fileWithoutReadFrom.TypeAssumptions.underlying
@@ -2752,6 +2787,8 @@ attribute [instance] fileWithoutReadFrom.TypeAssumptions.type_repr
   fileWithoutReadFrom.TypeAssumptions.set_File
   fileWithoutReadFrom.TypeAssumptions.method_set
   fileWithoutReadFrom.TypeAssumptions.ptr_method_set
+  fileWithoutReadFrom.TypeAssumptions.Write_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Write_unfold
 
 structure noWriteTo [GooseExts] where
   mk ::
@@ -2819,6 +2856,14 @@ class fileWithoutWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_File : ∀ (x : fileWithoutWriteTo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutWriteTo.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileWithoutWriteTo)))
   method_set : go.MethodSetIs fileWithoutWriteTo.ty [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileWithoutWriteTo.ty) [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
+  Read_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  SyscallConn_unfold : MethodUnfold fileWithoutWriteTo.ty go!"SyscallConn" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_SyscallConn_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"SyscallConn" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
 
 attribute [instance] fileWithoutWriteTo.TypeAssumptions.type_repr
   fileWithoutWriteTo.TypeAssumptions.underlying
@@ -2828,6 +2873,10 @@ attribute [instance] fileWithoutWriteTo.TypeAssumptions.type_repr
   fileWithoutWriteTo.TypeAssumptions.set_File
   fileWithoutWriteTo.TypeAssumptions.method_set
   fileWithoutWriteTo.TypeAssumptions.ptr_method_set
+  fileWithoutWriteTo.TypeAssumptions.Read_unfold
+  fileWithoutWriteTo.TypeAssumptions.SyscallConn_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Read_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_SyscallConn_unfold
 
 abbrev dirFS [GooseExts] : Type := GoString
 
@@ -3225,6 +3274,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   splitPath_unfold : FuncUnfold splitPath [] splitPath.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   runtime_args_unfold : FuncUnfold runtime_args [] runtime_args.impl
+  Exit_unfold : FuncUnfold Exit [] Exit.impl
+  runtime_beforeExit_unfold : FuncUnfold runtime_beforeExit [] runtime_beforeExit.impl
   newRawConn_unfold : FuncUnfold newRawConn [] newRawConn.impl
   Stat_unfold : FuncUnfold Stat [] Stat.impl
   Lstat_unfold : FuncUnfold Lstat [] Lstat.impl
@@ -3236,6 +3287,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_fs_Assumption : _root_.Perennial.io.fs.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
+  import_testlog_Assumption : _root_.Perennial.internal.testlog.Assumptions
   import_poll_Assumption : _root_.Perennial.internal.poll.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
 
@@ -3283,6 +3335,8 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.splitPath_unfold
   Assumptions.«init.0_unfold»
   Assumptions.runtime_args_unfold
+  Assumptions.Exit_unfold
+  Assumptions.runtime_beforeExit_unfold
   Assumptions.newRawConn_unfold
   Assumptions.Stat_unfold
   Assumptions.Lstat_unfold
@@ -3294,6 +3348,7 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.import_fs_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_syscall_Assumption
+  Assumptions.import_testlog_Assumption
   Assumptions.import_poll_Assumption
   Assumptions.import_errors_Assumption
 

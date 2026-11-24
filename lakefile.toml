@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net", "KvNet", "Dsverify"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineD
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "5dab16ec22dd9f2974dd2df3216cd0f28d48c344"
+rev = "612f4641b94a5f83608fd900d2e79cba133ea2b9"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -79,6 +79,16 @@ globs = ["PorcupineDag.+"]
 name = "SpecPlan"
 globs = ["SpecPlan.+"]
 
+# kitlibs-check's validation (notes/dsv-kitlibs-check.md, etc/kitlibs-check.py): dsverify challenge statements
+# over an agent-declared `KitLibs` class, generated from paxos's and rabia's statements, with
+# `KitLibs` classes and non-vacuity instances (rabia's equal to its landed premises; `rabiabad`, two
+# fields kitlibs-check must refuse). Not a default target, and nothing imports it: its modules declare
+# the kits' statement names. Under etc/ (etc/kitlibs-check-test/lean/), out of the import tiers' tree.
+[[lean_lib]]
+name = "KitLibsCheckTest"
+srcDir = "etc/kitlibs-check-test/lean"
+globs = ["KitLibsCheckTest.+"]
+
 # bbolt's top-level test (examples/bbolt/bank) and bbolt itself with its bodies (the fork
 # upamanyus/bbolt, branch goose-lean), translated by etc/goose.py's projects bbolt and bbolttest
 # into a parallel tree with the same layout (Bbolt/{Code,GeneratedProof,Spec,Proof}/): the main
@@ -111,11 +121,30 @@ globs = ["Robustness.+"]
 # The net extension's `net` (`GooseLang/Ext/Net`, notes/net-tcp.md) with the programs proved over
 # it (examples/net/), in a parallel tree with the same layout
 # (Net/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; etc/goose.py's project
-# net): the main tree's `net` is names only, with the axioms etcd's server proofs use, so the
-# two declare the same names; nothing outside Net imports it.
+# net). Since the net swap (etcd-dist D2, 2026-11-22) the main tree's `net` is this one (`net=Net`):
+# the main tree imports Net's `net` modules (`Net/{Code,TrustedCode,GeneratedProof,ManualProof}/net`,
+# `Net/{Spec,Proof}/net/`), not the rest of the part (its copies of the main tree's initializers).
 [[lean_lib]]
 name = "Net"
 globs = ["Net.+"]
+
+# kvnet's proof (notes/kvnet-part.md): the networked key-value store (examples/raft/kvnet, etc/goose.py's
+# project kvnet) over raft-noax's raft, the net extension's `net` and the bodied `durable` over fsExt,
+# which the parts RaftNoAx, Net and WalTester each declare under main-tree names, so no other tree can
+# import them together. KvNet/{Code,GeneratedProof}/ are the parts of projects raft-noax, net, durable
+# and etcd (walpb) translated into it and kvnet's own; its copies of those parts' (and the main tree's)
+# modules that its closure needs are written by etc/copy-part.py, its initializers by etc/gen-init.py.
+# Nothing outside KvNet imports it.
+[[lean_lib]]
+name = "KvNet"
+globs = ["KvNet.+"]
+
+# The dsverify kits ported onto the net extension (notes/dsverify-net-port-plan.md, phase 6;
+# notes/dsv-paxos.md): each kit's Go (etc/goose.py's project dsv-<kit>) and proof, over the part
+# Net's `net` and remote, the main tree's lintest and porcupine. Nothing outside Dsverify imports it.
+[[lean_lib]]
+name = "Dsverify"
+globs = ["Dsverify.+"]
 
 # The Lean certification of the TCP conformance checker's witnesses
 # (examples/net/conform/check/README.md, "Certification in Lean"): replays a witness and the run's

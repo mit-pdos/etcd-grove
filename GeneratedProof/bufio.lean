@@ -2,8 +2,10 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.bytes
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Code.bufio
 
@@ -69,7 +71,7 @@ noncomputable instance Reader_access_load_rd (l : Loc) (v : bufio.Reader) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reader_access_store_rd (l : Loc) (v : bufio.Reader) (rd' : io.Reader) :
+noncomputable instance Reader_access_store_rd (l : Loc) (v : bufio.Reader) (rd' : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Reader go!"rd" l) v.rd' (DFrac.own 1))
       (typedPointsto (structFieldRef bufio.Reader go!"rd" l) rd' (DFrac.own 1))
@@ -240,7 +242,7 @@ noncomputable instance Writer_access_load_wr (l : Loc) (v : bufio.Writer) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writer_access_store_wr (l : Loc) (v : bufio.Writer) (wr' : io.Writer) :
+noncomputable instance Writer_access_store_wr (l : Loc) (v : bufio.Writer) (wr' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Writer go!"wr" l) v.wr' (DFrac.own 1))
       (typedPointsto (structFieldRef bufio.Writer go!"wr" l) wr' (DFrac.own 1))
@@ -347,7 +349,7 @@ noncomputable instance Scanner_access_load_r (l : Loc) (v : bufio.Scanner) (dq :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Scanner_access_store_r (l : Loc) (v : bufio.Scanner) (r' : io.Reader) :
+noncomputable instance Scanner_access_store_r (l : Loc) (v : bufio.Scanner) (r' : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef bufio.Scanner go!"r" l) v.r' (DFrac.own 1))
       (typedPointsto (structFieldRef bufio.Scanner go!"r" l) r' (DFrac.own 1))

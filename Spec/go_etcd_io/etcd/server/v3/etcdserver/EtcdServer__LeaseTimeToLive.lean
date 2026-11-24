@@ -78,7 +78,7 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
                 (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
                 lease.leaseAbsentFrom γl m v.ID')) ∗
           authedOutB s E.authMode tok GoInterface.nil ∗
-          leaseCheckFrom s E tok n
+          leaseCheckFrom (srvTLSId s) E tok n
             (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
               else iprop(True))) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
@@ -87,7 +87,7 @@ abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
               errIsTrue err (GoInterface.ok e) -∗
               (leaseTTLRow s γl -∗ lease.leaseAbsentFrom γl m v.ID') ∗
               authedOutB s E.authMode tok GoInterface.nil ∗
-              leaseCheckFrom s E tok n
+              leaseCheckFrom (srvTLSId s) E tok n
                 (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
                   else iprop(True))))) }}
 

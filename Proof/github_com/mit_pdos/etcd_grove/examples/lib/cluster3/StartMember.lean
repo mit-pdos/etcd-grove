@@ -89,7 +89,7 @@ theorem StartMember.wp_proof
     StartMember.spec (GF := GF) (hG := hG) := by
   intro CS cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn cmp lm Hcfg
-    Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HnL Haf Hbuq Hrf Hdbo Hms
+    Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HnL Hpf Hcf Haf Hbuq Hrf Hdbo Hms
     HlP
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
@@ -135,7 +135,7 @@ theorem StartMember.wp_proof
       (GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂ (GMap.insert cfg.Name1' sl₁ ∅)))
       (initURLs3 cfg) (urlsOk cfg peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hpf Hcf
       (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf3 (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf2
         (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf1 etcdstart.utf8Keys_empty))) HnL Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %srv %err Hres
   · iframe; iframe #
@@ -151,7 +151,7 @@ theorem StartMember.wp_proof
   -- `net.Listen("tcp", client)`: the member's client address, before the server starts
   wp_apply (wp_Listen go!"tcp" client) $$ [Hcaddr] as %clis %cerr Hclis
   · iframe; ipureintro; rfl
-  icases Hclis with (⟨%Hcerr, Hclis⟩ | %Hcerr)
+  icases Hclis with (⟨%Hcerr, Hclis, Hcleft⟩ | %Hcerr)
   rotate_left
   · cases cerr with
     | nil => exact absurd rfl Hcerr
@@ -180,7 +180,7 @@ theorem StartMember.wp_proof
     iapply ownSlice_nil
   -- (2026-10-21, D28) the server option: the keepalive policy, neutral
   (try wp_auto)
-  wp_apply wp_KEP as %kv %Hkv
+  wp_apply wp_KEP as %kv #Hkv
   wp_apply wp_slice_literal (V := GoInterface) [kv]
   try (isplitr; (ipureintro; rfl))
   iintro %gslp ⟨Hgsl, -⟩
@@ -196,9 +196,7 @@ theorem StartMember.wp_proof
   · iframe; iframe #
     isplitr
     · ipureintro; rw [HEw]; simp
-    ipureintro; intro v hv
-    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
-    subst hv; exact Hkv
+    iapply BigSepL.bigSepL_nil.2; iempintro
   -- the registrations' old form (`serverRegsOk`, exact since auth-mediation M1)
   replace Hregs := v3rpc.serverRegsOk_sub Hregs
   haveI := Hms
@@ -223,7 +221,7 @@ theorem StartMember.wp_proof
       iframe #
       ipureintro; exact Hregs.2.2.2.1
     ihave Hup : etcdstart.grpcUp srv E { ρ with wait := γw } ρ.rd gs clis client cid mid R
-        $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hclis]
+        $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hclis Hcleft]
     · iunfold etcdstart.grpcUp
       iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs
       iframe; iframe #
@@ -240,11 +238,11 @@ theorem StartMember.wp_proof
         Hrb48 (by omega) Hrf (HlP hlm) rfl lm hm Hms.watch_impl (etcdstart.srvWOf E ρ.rd false) rfl
         Htbr HLv)
       $$ [Hstk Hup HWok]
-      with ⟨⟨%γg, Hserv⟩, Hgo, #Hlr, Hls, ⟨%pw', #Hws'⟩, %HR', #Hstr, %Hnr⟩
+      with ⟨⟨%Svc, Hserv⟩, Hgo, #Hlr, Hls, ⟨%pw', #Hws'⟩, %HR', #Hstr, %Hnr⟩
     · iframe; iframe #
     -- `go gs.Serve(l)`
     wp_apply wp_fork $$ [Hserv]
-    · wp_apply (wp_GServe gs clis γg) $$ [$Hserv] as %serr -
+    · wp_apply (wp_GServe gs clis client Svc) $$ [$Hserv] as %serr -
       ipureintro; exact isPanic_intoVal serr
     (try wp_auto)
     iapply HΦ
@@ -282,8 +280,8 @@ theorem StartMember.wp_proof
   · iframe Hgsn Hclis; iframe #
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
       cid mid C.n il im iu ims is svcs regs sregs Hregs.1 Hrf Hregs.2.2.2.2.2 rfl HLv)
-    $$ [Hgsn Hclis] with ⟨%γg, Hserv, #Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
-  · iframe Hgsn Hclis
+    $$ [Hgsn Hclis Hcleft] with ⟨%γg, Hserv, #Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+  · iframe Hgsn Hclis Hcleft
     iframe Pv3 Psrv Hreq Hrd Hkva Hq Hil Him Hiu Hrp Hrb
     iintro !>
     imodintro
@@ -304,7 +302,7 @@ theorem StartMember.wp_proof
     iframe #
   -- `go gs.Serve(l)`
   wp_apply wp_fork $$ [Hserv]
-  · wp_apply (wp_GServe gs clis γg) $$ [$Hserv] as %serr -
+  · wp_apply (wp_GServe gs clis client _) $$ [$Hserv] as %serr -
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   iapply HΦ

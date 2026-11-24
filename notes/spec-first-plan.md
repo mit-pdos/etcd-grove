@@ -372,7 +372,9 @@ repository and cannot all message each other, so one file says who does what:
 worktree, branch, stage, state, next hard stop, updated). A session adds its row when it starts a
 stage, updates it at each hard stop and landing, and removes it when its worktree goes. The
 coordinator reads it before sequencing landings or starting agents; a session about to touch a hub
-(`etc/spec-hubs.py`) checks it for others on the same hub.
+(`etc/spec-hubs.py`) checks it for others on the same hub. (2026-11-23: who a session is, on every
+machine, is `etc/sessions.txt`, with the GitHub convention of `notes/coordination.md`; this file keeps
+the per-worktree rows on the machine that has it.)
 
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.

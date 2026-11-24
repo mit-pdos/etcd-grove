@@ -71,7 +71,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
-    (hmmap : storage.openMmapOk cfg)
+    (hmmap : storage.openMmapOk cfg) (hdd : cfg.DataDir'.length < 2 ^ 60)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (st : ApplyState) (b : GoInterface)
@@ -104,14 +104,17 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (hGTP : EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hSTP : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
-    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
+    (γp : WTNames) (hrbw : receiptBound GF ≤ 2 ^ 60)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hnt : nt ≤ uint.nat sv.Metadata'.Index' + 1)
     (hNAB : schema.NewAlarmBackend.spec (GF := GF) (hG := hG))
     (hAR : v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG))
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
     (halbi : d.P.has mvcc.alarmBI ∧
-      d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) (hlpw : mvcc.leaseParams d.P)
+      d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI)
+    -- (prove-ps2-members, 2026-11-22) the membership's buckets in the table, for `SetBackend`
+    (hmbP : d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI)
+    (hlpw : mvcc.leaseParams d.P)
     (hNAuB : schema.NewAuthBackend.spec (GF := GF) (hG := hG))
     -- (P6.2, F9) the image's auth facts by the mode (off, `hauthb`), its log `A'`
     (A' : List EntryModel) (hauthI : snapAuthImgM E.authMode γr d.P D A A') (hAA' : A <+: A')
@@ -335,9 +338,11 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     icases Hsrv with ⟨-, -, -, -, -, -, %h⟩
     ipureintro; exact h
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨by unfold backend.rdPoolN at Htb0; omega⟩
+  -- (#30, 2026-11-22) and its receipt bound, `backend.New`'s
+  haveI : ReceiptBoundLe GF (2 ^ 60) := ⟨hrbw⟩
   wp_apply hOSB cfg ss sn smp hk DFrac.discard DFrac.discard sv.Metadata' d.P D
       (fun _ => mvcc.api.mvccW gx') (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
-      (snapOpenK γ π0 d.P) d.γB.db (monoNatAuthOwn γt 1 nt) $$ [Hfile Hpath Hcreate]
+      (snapOpenK γ π0 d.P) d.γB.db (monoNatAuthOwn γt 1 nt) hdd $$ [Hfile Hpath Hcreate]
     as %be %err ⟨-, -, Hres⟩
   · iframe #; iframe Hfile Hpath
     iunfold storage.openPre
@@ -405,7 +410,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases (rdStock_split2 (backend.bOpen (GF := GF) d'.γB backend.rdOpen)).1 $$ HnOs
     with ⟨HnOs, HnOa, HnOm⟩
   -- the write-back tokens: two for the lessor's `Recover`, one for the hook's install, two for the
-  -- alarm store's and the cluster's `Recover`, two for the store; the rest the new backend's stock
+  -- alarm store's and the cluster's `Recover` and (prove-ps2-v3alarm, 2026-11-24: `restore`'s
+  -- `ForceCommit`) one more for the alarm store's, two for the store; the rest the new backend's stock
   ihave Hnwb : ownToks d'.γB.wb ((backend.wbInit - 2) + 2) $$ [Hnwb]
   · rw [show (backend.wbInit - 2) + 2 = backend.wbInit by unfold backend.wbInit; omega]
     iexact Hnwb
@@ -414,7 +420,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases toks_take d'.γB.wb _ 2 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwb2'⟩
   icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hws1⟩
   icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hws2⟩
-  imod srvWTStock_alloc γp.cnt d' (backend.wbInit - 2 - 1 - 2 - 1 - 1) (by unfold backend.wbInit at hrbw ⊢; omega) ⊤ $$ [Hnwb] with #HnS
+  icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwa2⟩
+  imod srvWTStock_alloc γp.cnt d' (backend.wbInit - 2 - 1 - 2 - 1 - 1 - 1) (by unfold backend.wbInit; omega) ⊤ $$ [Hnwb] with #HnS
   · iexact Hnwb
   ihave #HnSup := wbSupply_of_stock E γp d' $$ [$HWP $HnS]
   -- (strict M1) the store's resources over the new backend (`etcdStorage_open.law`), at the
@@ -815,23 +822,32 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   wp_apply hInfo $$ []
   · iexact Hlgz
   (try wp_auto)
-  wp_apply hNAB as %ab ⟨%abl, %Habl, #Hablg, #Hablb⟩
+  wp_apply hNAB as %ab ⟨%abl, %Habl, #Hablg, #Hablb, %Hablnn⟩
   subst Habl
   ihave #Halpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
   · iPkgInit
   icases toks_take d'.γB.wb 2 1 (by omega) $$ Hwb2' with ⟨Hwb2', Hwba⟩
   ihave HnRB := backend.rbOwnIn_part (GF := GF) _ (fun _ => True) _ $$ HnRB
+  -- (prove-ps2-v3alarm, 2026-11-24) the alarm bucket's claim token, apart from the auth buckets'
+  ihave HnTok := backend.rbClaimToks_sub d'.γB d.P (fun _ => True)
+    (fun n => n = go!"alarm" ∨ authBkts n) (fun _ _ => trivial) $$ HnTok
+  icases (backend.rbClaimToks_split d'.γB d.P (· = go!"alarm") authBkts (fun n h1 h2 => by
+      subst h1; simp [authBkts, auth.authBkts] at h2)).1 $$ HnTok with ⟨HnTokA, HnTok⟩
   wp_apply hAR al d.be abl sfv.lg d'.be d'.γB d.P (mvcc.api.mvccW d'.gx)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) (1 : Qp).half
       (fun _ => True) ((backend.rbData d.P D).insert go!"lease" lb) trivial
       (by simp [mvcc.KBReal.P, mvcc.restBuckets]) halbi.1
-    $$ [HoAl HnOh Hwba HnRB HnPl HthT]
-    as %aerr ⟨%Haerr, HnAl, HnOh, HnPl, HthT, HnRB⟩
-  · iframe #; iframe HoAl HnOh HnRB HnPl HthT
+    $$ [HoAl HnOh Hwba Hwa2 HnRB HnPl HthT HnTokA]
+    as %aerr ⟨%Haerr, HnAl, HnOh, HnPl, HthT, HnRB, -⟩
+  · iframe #; iframe HoAl HnOh HnRB HnPl HthT HnTokA
     isplitr
     · ipureintro; exact Hlgnn
+    isplitr
+    · ipureintro; exact Hablnn
     isplitl [Hwba]
     · iunfold backend.wbTok; iexact Hwba
+    isplitl [Hwa2]
+    · iunfold backend.wbTok; iexact Hwa2
     ipureintro
     rw [GMap.lookup_insert_ne _ _ (by decide)]
     exact halarm
@@ -866,7 +882,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · rw [hP']; iframe #; iframe HauR HoAu Hauar HnOh HnPl HthT HnRB HoOh
     iunfold authRdSlots; rw [hP']
     iframe HnRA
-    iapply backend.rbClaimToks_sub d'.γB d.P (fun _ => True) authBkts (fun _ _ => trivial) $$ HnTok
+    iexact HnTok
   ihave HnPl : backend.bkRPool (GF := GF) d'.γB d.P d'.be $$ [HnPl]
   · rw [← hP']; iexact HnPl
   (try wp_auto)
@@ -881,7 +897,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   wp_apply hCSB cl d.be mbl sfv.lg d' (mvcc.api.mvccW d'.gx) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       (srvOpenQ E.authMode) (snapKeepS E.authMode)
       ((((backend.rbData d.P D).insert go!"lease" lb).insert go!"alarm" ∅))
-      (fun n h => snapKeepS_cluster _ n h)
+      (fun n h => snapKeepS_cluster _ n h) (by rw [hP']; exact hmbP.1) (by rw [hP']; exact hmbP.2.1)
+      (by rw [hP']; exact hmbP.2.2)
     $$ [HoCl HnOh Hwbm HnRB] as ⟨HnCl, HnOh, HnRB⟩
   · -- (2026-11-02, the backend-auth-split stage; P6.2) at the kept buckets, given back idle
     ihave HnRB := backend.rbOwnIn_part (GF := GF) _ (snapKeepS E.authMode) _ $$ HnRB

@@ -36,7 +36,7 @@ theorem wal.rcFile_ok (rc : GoInterface) :
     wal.rcFile (GF := GF) rc ⊢ ∃ ii : GoInterfaceOk, ⌜rc = GoInterface.ok ii⌝ ∗ wal.rcFile rc := by
   iintro H
   iunfold wal.rcFile at H
-  icases H with ⟨%f, %fd, %name, %d, Hty, Hf, Hfd⟩
+  icases H with ⟨%f, %fd, %name, %d, Hty, Hf, Hfd, Hlk, %hb⟩
   icases Hty with (%hty | ⟨%lf, %hty, #Hlf⟩)
   · subst hty
     iexists _
@@ -45,8 +45,9 @@ theorem wal.rcFile_ok (rc : GoInterface) :
     iunfold wal.rcFile
     iexists f, fd, name, d
     iframe
-    ileft
-    ipureintro; rfl
+    isplitr
+    · ileft; ipureintro; rfl
+    ipureintro; exact hb
   · subst hty
     iexists _
     isplitr
@@ -54,26 +55,26 @@ theorem wal.rcFile_ok (rc : GoInterface) :
     iunfold wal.rcFile
     iexists f, fd, name, d
     iframe
-    iright
-    iexists lf
-    iframe Hlf
-    ipureintro; rfl
+    isplitr
+    · iright; iexists lf; iframe Hlf; ipureintro; rfl
+    ipureintro; exact hb
 
 /-- `Close` of a `wal.rcFile`, through the interface's method. -/
-theorem wal.wp_rcClose (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) (ii : GoInterfaceOk) :
+theorem wal.wp_rcClose (wp_Close : os.File.Close.specLe (GF := GF) (hG := hG)) (ii : GoInterfaceOk) :
     {{ osInv (GF := GF) ∗ wal.rcFile (GoInterface.ok ii) }}
       (App (Val #(methods ii.ty go!"Close" ii.v)) (Val #()))
-    {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err }} := by
+    {{ (err : GoInterface), RET #err; fmtErrorOkOrNilLe wal.closeMsgMax err }} := by
   iintro %Φ ⟨#Hinv, Hrc⟩ HΦ
   iunfold wal.rcFile at Hrc
-  icases Hrc with ⟨%f, %fd, %name, %d, Hty, Hf, Hfd, Hlks⟩
+  icases Hrc with ⟨%f, %fd, %name, %d, Hty, Hf, Hfd, Hlks, %hb⟩
   ihave Hlt := fdLocks_toks fd d $$ Hlks
   icases Hty with (%hty | ⟨%lf, %hty, #Hlf⟩)
   · unfold interface.mkOk at hty
     cases hty
     wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, -, #Herr⟩
     · iframe; iexact Hinv
-    iapply HΦ $$ Herr
+    iapply HΦ
+    iapply fmtErrorOkOrNilLe_mono hb _ $$ Herr
   · unfold interface.mkOk at hty
     cases hty
     iunfold fileutil.lockedFile at Hlf
@@ -83,10 +84,11 @@ theorem wal.wp_rcClose (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) (ii
     (try wp_auto)
     wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, -, #Herr⟩
     · iframe; iexact Hinv
-    iapply HΦ $$ Herr
+    iapply HΦ
+    iapply fmtErrorOkOrNilLe_mono hb _ $$ Herr
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.closeAll.wp_proof
-    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.specLe (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (wp_Join : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG)) :
@@ -104,12 +106,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.closeAll.wp_proof
       "i" ∷ i_ptr ↦ j ∗ "f" ∷ f_ptr ↦ fv ∗ "stringArr" ∷ stringArr_ptr ↦ wsl ∗
       "Hw" ∷ wsl ↦* ws ∗ "Hwc" ∷ ownSliceCap GoString wsl (DFrac.own 1) ∗
       "Hsl" ∷ sl ↦*{dq} rcs ∗ "Hrcs" ∷ ([∗list] rc ∈ rcs.drop (sint.nat j), wal.rcFile rc) ∗
-      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ rcs.length⌝) $$ [i f stringArr Hw0 Hc0 Hsl Hrcs]
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ rcs.length⌝ ∗
+      "%Hws" ∷ ⌜∀ s ∈ ws, s.length ≤ wal.closeMsgMax⌝) $$ [i f stringArr Hw0 Hc0 Hsl Hrcs]
   · iexists W64 0, _, w0, []
     simp only [named]
     iframe
     ipureintro
-    exact ⟨by decide, by simp⟩
+    exact ⟨⟨by decide, by simp⟩, by simp⟩
   wp_for IH
   obtain ⟨Hj0, Hjl⟩ := Hj
   wp_if_destruct
@@ -144,12 +147,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.closeAll.wp_proof
       simp only [named]
       iframe
       ipureintro
-      exact ⟨by word, by word⟩
+      exact ⟨⟨by word, by word⟩, Hws⟩
     | ok ie =>
       wp_auto
-      unfold fmtErrorOkOrNil fmtErrorOk
+      unfold fmtErrorOkOrNilLe fmtErrorOkLe
       icases Herr with ⟨-, #Hm⟩
-      rw [fmt.stringMethodSpec_unfold]
+      rw [stringMethodSpecLe_unfold]
       wp_apply wp_Error as %fl -
       try wp_auto
       wp_apply wp_slice_literal
@@ -164,7 +167,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.closeAll.wp_proof
       wp_bind (App (Val #(methods ie.ty go!"Error" ie.v)) (Val #()))
       iapply Hm
       inext
-      iintro %s
+      iintro %s %hs
       wp_auto
       wp_apply wp_slice_literal [s]
       isplitr
@@ -178,7 +181,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.closeAll.wp_proof
       simp only [named]
       iframe
       ipureintro
-      exact ⟨by word, by word⟩
+      refine ⟨⟨by word, by word⟩, fun x hx => ?_⟩
+      rcases List.mem_append.1 hx with hx | hx
+      · exact Hws x hx
+      · rw [List.mem_singleton.1 hx]; exact hs
   · try wp_auto
     ihave %Hwl := ownSlice_len _ _ _ $$ Hw
     wp_if_destruct
@@ -188,9 +194,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.closeAll.wp_proof
       ileft
       ipureintro; rfl
     · try wp_auto
-      wp_apply wp_Join $$ [Hw] as Hw
+      wp_apply (_root_.Perennial.strings.Join_owned_bounded_of wp_Join wsl ws go!", " wal.closeMsgMax
+          Hws (by unfold maxAddr strings.joinMax wal.closeMsgMax; decide)) $$ [Hw] as Hw
       · iframe
-      wp_apply _root_.Perennial.errors.wp_New_errorString as %x #He
+      wp_apply _root_.Perennial.errors.wp_New_errorString as %x ⟨#_, #He⟩
       try wp_auto
       iapply HΦ
       iframe

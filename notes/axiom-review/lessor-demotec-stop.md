@@ -6,7 +6,7 @@ Retired: `lease.lessor.Demote.wp_proof`, `lease.lessor.Stop.wp_proof`, `lease.le
 ghost state for `demotec`, and `lessorStopTok` is a definition. Each claim checked against the Go
 code (`server/lease/lessor.go` at the etcd pin).
 
-## `lessorStopTok lp` (LessorBackend.lean)
+## `lessorStopTok lp` (LessorBackend.lean) (superseded: `stopC` is a close-once channel since prove-ps2-renew, below)
 
 `stopC`, `doneC` read-only (`↦□`), each a broadcast channel (Perennial's `ownBroadcastChan`, `Q = True`):
 the token holds `stopC`'s close right (`.Pending`) and `doneC`'s receive side (`.Unknown`).

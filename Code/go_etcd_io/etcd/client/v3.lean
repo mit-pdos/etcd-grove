@@ -134,6 +134,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   isUnavailableErr_unfold : FuncUnfold isUnavailableErr [] isUnavailableErr.impl
   ContextError_unfold : FuncUnfold ContextError [] ContextError.impl
   canceledByCaller_unfold : FuncUnfold canceledByCaller [] canceledByCaller.impl
+  NewCluster_unfold : FuncUnfold NewCluster [] NewCluster.impl
   OpCompact_unfold : FuncUnfold OpCompact [] OpCompact.impl
   Compare_unfold : FuncUnfold Compare [] Compare.impl
   Value_unfold : FuncUnfold Value [] Value.impl
@@ -147,6 +148,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewKV_unfold : FuncUnfold NewKV [] NewKV.impl
   NewLease_unfold : FuncUnfold NewLease [] NewLease.impl
   NewLeaseFromLeaseClient_unfold : FuncUnfold NewLeaseFromLeaseClient [] NewLeaseFromLeaseClient.impl
+  NewMaintenance_unfold : FuncUnfold NewMaintenance [] NewMaintenance.impl
   NewOp_unfold : FuncUnfold NewOp [] NewOp.impl
   OpGet_unfold : FuncUnfold OpGet [] OpGet.impl
   OpDelete_unfold : FuncUnfold OpDelete [] OpDelete.impl
@@ -187,14 +189,20 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   isSafeRetryMutableRPC_unfold : FuncUnfold isSafeRetryMutableRPC [] isSafeRetryMutableRPC.impl
   RetryKVClient_unfold : FuncUnfold RetryKVClient [] RetryKVClient.impl
   RetryLeaseClient_unfold : FuncUnfold RetryLeaseClient [] RetryLeaseClient.impl
+  RetryClusterClient_unfold : FuncUnfold RetryClusterClient [] RetryClusterClient.impl
+  RetryMaintenanceClient_unfold : FuncUnfold RetryMaintenanceClient [] RetryMaintenanceClient.impl
   RetryAuthClient_unfold : FuncUnfold RetryAuthClient [] RetryAuthClient.impl
+  waitRetryBackoff_unfold : FuncUnfold waitRetryBackoff [] waitRetryBackoff.impl
   isSafeRetry_unfold : FuncUnfold isSafeRetry [] isSafeRetry.impl
   isContextError_unfold : FuncUnfold isContextError [] isContextError.impl
+  contextErrToGRPCErr_unfold : FuncUnfold contextErrToGRPCErr [] contextErrToGRPCErr.impl
   withRepeatablePolicy_unfold : FuncUnfold withRepeatablePolicy [] withRepeatablePolicy.impl
   withMax_unfold : FuncUnfold withMax [] withMax.impl
   withBackoff_unfold : FuncUnfold withBackoff [] withBackoff.impl
   reuseOrNewWithCallOptions_unfold : FuncUnfold reuseOrNewWithCallOptions [] reuseOrNewWithCallOptions.impl
   filterCallOptions_unfold : FuncUnfold filterCallOptions [] filterCallOptions.impl
+  backoffLinearWithJitter_unfold : FuncUnfold backoffLinearWithJitter [] backoffLinearWithJitter.impl
+  jitterUp_unfold : FuncUnfold jitterUp [] jitterUp.impl
   ensureWatchHeader_unfold : FuncUnfold ensureWatchHeader [] ensureWatchHeader.impl
   NewWatcher_unfold : FuncUnfold NewWatcher [] NewWatcher.impl
   NewWatchFromWatchClient_unfold : FuncUnfold NewWatchFromWatchClient [] NewWatchFromWatchClient.impl
@@ -224,6 +232,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
+  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
 
 attribute [instance] Assumptions.AuthEnableResponse_instance
@@ -341,6 +350,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.isUnavailableErr_unfold
   Assumptions.ContextError_unfold
   Assumptions.canceledByCaller_unfold
+  Assumptions.NewCluster_unfold
   Assumptions.OpCompact_unfold
   Assumptions.Compare_unfold
   Assumptions.Value_unfold
@@ -354,6 +364,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.NewKV_unfold
   Assumptions.NewLease_unfold
   Assumptions.NewLeaseFromLeaseClient_unfold
+  Assumptions.NewMaintenance_unfold
   Assumptions.NewOp_unfold
   Assumptions.OpGet_unfold
   Assumptions.OpDelete_unfold
@@ -394,14 +405,20 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.isSafeRetryMutableRPC_unfold
   Assumptions.RetryKVClient_unfold
   Assumptions.RetryLeaseClient_unfold
+  Assumptions.RetryClusterClient_unfold
+  Assumptions.RetryMaintenanceClient_unfold
   Assumptions.RetryAuthClient_unfold
+  Assumptions.waitRetryBackoff_unfold
   Assumptions.isSafeRetry_unfold
   Assumptions.isContextError_unfold
+  Assumptions.contextErrToGRPCErr_unfold
   Assumptions.withRepeatablePolicy_unfold
   Assumptions.withMax_unfold
   Assumptions.withBackoff_unfold
   Assumptions.reuseOrNewWithCallOptions_unfold
   Assumptions.filterCallOptions_unfold
+  Assumptions.backoffLinearWithJitter_unfold
+  Assumptions.jitterUp_unfold
   Assumptions.ensureWatchHeader_unfold
   Assumptions.NewWatcher_unfold
   Assumptions.NewWatchFromWatchClient_unfold
@@ -431,6 +448,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.import_metadata_Assumption
   Assumptions.import_io_Assumption
   Assumptions.import_peer_Assumption
+  Assumptions.import_rand_Assumption
   Assumptions.import_mvccpb_Assumption
 
 end go_etcd_io.etcd.client.v3

@@ -56,7 +56,8 @@ theorem Boot.wp_proof
     (wp_choose : rnd.choose.spec (GF := GF) (hG := hG))
     (wp_close : member.close.spec (GF := GF) (hG := hG)) :
     Boot.spec (GF := GF) (hG := hG) := by
-  intro W e γ o od seed nOps hf hpath hr
+  intro W e γ o od seed nOps hf hpath hr hfs
+  have hpfW : PathFits (tWalDir e.area) := hfs.2.2
   obtain ⟨hia, hnm, hca, hdl⟩ := hpath
   wp_start as ⟨Hrun⟩
   iunfold TRun at Hrun
@@ -121,7 +122,7 @@ theorem Boot.wp_proof
   rw [show (e.area ++ go!"/wal" : GoString) = tWalDir e.area from rfl]
   wp_apply (wp_exist W e.R e.jr e.area (tWalDir e.area) go!"wal" 1
       (fun od' => iprop(⌜od' = od1⌝ ∗ tWalOwn γ od1)) hia hnm) $$ [Hpath Hres Hperm Htok Hwo]
-    as %b ⟨Hpath, Hres, Hperm, Htok, %od2, ⟨%hod, Hwo⟩, %hb⟩
+    as %b ⟨Hpath, Hres, Hperm, Htok, %od2, ⟨%hod, Hwo⟩, %hb, -⟩
   · iframe; iframe #
     iapply tInv_dirAu W e γ od1
     iframe; iframe #
@@ -154,7 +155,7 @@ theorem Boot.wp_proof
     intro h; subst h; have h1 := hmpl.1; exact absurd h1 (by rw [show sint.nat slice.nil.len = 0 from rfl]; decide)
   wp_apply (wp_create W lg e.R e.jr e.area (tWalDir e.area) go!"wal" mp go!"m" 1
       (iprop(tOrOwn γ o none ∗ tWalOwn γ (some (walDurFresh go!"m")))) hia hnm hdl hca hmp (by decide)
-      (by decide) walRaftMr_createOk) $$ [Hpath Hres Hperm Htok Ho Hwo]
+      (by decide) walRaftMr_createOk hfs) $$ [Hpath Hres Hperm Htok Ho Hwo]
     as %w %err ⟨Hpath, Hres, Hcr⟩
   · iframe; iframe #
     iapply tInv_createAu W e γ o od2 go!"m" hex hpre.1 hcr
@@ -236,7 +237,7 @@ theorem Boot.wp_proof
   ihave Hperm : tPerm (GF := GF) e 1 $$ [Hperm Hor]
   · iunfold tPerm; rw [hkw]; iframe
   wp_apply (wp_restart W e γ «$r0_ptr» lg null v o cd od2 1 _ _ _ _ _ _ r rv hmn hf
-      ⟨hia, hnm, hca, hdl⟩ hcd hok hcwf)
+      ⟨hia, hnm, hca, hdl⟩ hpfW hcd hok hcwf)
     $$ [Hh Hperm Hpath Hres Htok Hlg Hwd Hop Hw Hov Ht Hv Hc Hb Hl Htm Hr Hrv Hrep Ho Hwo]
     as %ok Hpost
   · iframe; iframe #
@@ -264,7 +265,7 @@ theorem Boot.wp_proof
       ipureintro; exact hsm
     wp_for HI
     wp_if_destruct
-    · wp_apply (wp_step W e γ «$r0_ptr» lg o1 1 hmn hf ⟨hia, hnm, hca, hdl⟩) $$ [Hlive Hlg Hwd Hpath Hres]
+    · wp_apply (wp_step W e γ «$r0_ptr» lg o1 1 hmn hf ⟨hia, hnm, hca, hdl⟩ hpfW) $$ [Hlive Hlg Hwd Hpath Hres]
         as %b Hpost
       · iframe; iframe #
       icases Hpost with ⟨Hpath, Hres, Hlg, Hwd, Hpost⟩

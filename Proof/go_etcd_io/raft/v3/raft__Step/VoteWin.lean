@@ -177,19 +177,20 @@ theorem finish_branch_mid (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id
     (Hresp : RespStep m s s') (Hng1 : s'.gh = s1.gh ∧ s'.logst.storage = s1.logst.storage)
     (Hot1 : OutTrStep s1 s')
     (Hmd : ∀ md', md.StepOut c id m s1 s' md' → md' = md) (Hout : md.StepOut c id m s s' md) :
-    ⊢ ownRaftGhost γ id (toPState s1) md.isDyn -∗ ghostRest γ md c id s1 -∗
+    ⊢ notCrashed -∗ ownRaftGhost γ id (toPState s1) md.isDyn -∗ ghostRest γ md c id s1 -∗
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
       Gq s' -∗ stepPost γ md c r id s m Gq Φ -∗
-      |={⊤}=> Φ #err := by
-  iintro Hghost Hrest Hphys Herr HG HΦ
+      |={⊤}=> notCrashed ∗ Φ #err := by
+  iintro Hnc Hghost Hrest Hphys Herr HG HΦ
   unfold stepPost
   icases HΦ with ⟨Hlc, HΦ⟩
-  imod ghost_step_md0 γ md c id m s1 s' Hstep1 Hdh1 Hng1 Hot1 $$ Hlc Hghost Hrest
-    with ⟨%md', %Hout', Hghost⟩
+  imod ghost_step_md0 γ md c id m s1 s' Hstep1 Hdh1 Hng1 Hot1 $$ Hnc Hlc Hghost Hrest
+    with ⟨Hnc, %md', %Hout', Hghost⟩
   obtain rfl := Hmd md' Hout'
   imodintro
+  iframe Hnc
   iapply HΦ $$ %err %s' %c %md'
   iframe Hphys Hghost Herr HG
   ipureintro

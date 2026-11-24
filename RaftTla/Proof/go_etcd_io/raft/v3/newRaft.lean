@@ -1071,14 +1071,17 @@ theorem newRaft.wp_proof
         "Hstrs" ∷ sl' ↦* strs ∗
         "Hstrs_cap" ∷ ownSliceCap GoString sl' (DFrac.own 1) ∗
         "Hnsl" ∷ nsl ↦* nxs ∗
-        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝) $$ [i n nodesStrs Hnsl]
+        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝ ∗
+        "%Hsb" ∷ ⌜∀ s ∈ strs, s.length ≤ 17⌝) $$ [i n nodesStrs Hnsl]
     · iexists W64 0, _, slice.nil, []
       iframe i n nodesStrs Hnsl
       isplitr
       · iapply ownSlice_nil
       isplitr
       · iapply ownSliceCap_nil
-      ipureintro; constructor <;> word
+      isplitr
+      · ipureintro; constructor <;> word
+      ipureintro; simp
     wp_for IH
     wp_if_destruct
     · ihave %Hnl := ownSlice_len $$ Hnsl
@@ -1091,9 +1094,12 @@ theorem newRaft.wp_proof
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       wp_auto
-      wp_apply wp_fmt_Sprintf $$ [$Hargs] as %str Hargs
-      · ipureintro
-        exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil
+      wp_apply wp_fmt_Sprintf go!"%x" [.dir none _root_.Perennial.fmt.verb_x] _ _ _ _ (by fmt_encode)
+        (by fmt_fits) (.int _ _ _ _ (.uint64 _) .nil) (by fmt_noquote) $$ [$Hargs] as %str ⟨Hargs, %Hstr⟩
+      have Hstrlen : str.length ≤ 17 := by
+        subst Hstr
+        simp [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn]
+        exact fmt.length_hexPad_zero_le _ (by word)
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
       iintro %sl2 ⟨Hsl2, -⟩
@@ -1103,10 +1109,18 @@ theorem newRaft.wp_proof
       iframe
       iexists _, _, _, _
       iframe
-      ipureintro; constructor <;> word
+      isplitr
+      · ipureintro; constructor <;> word
+      ipureintro
+      intro s hs
+      simp only [List.mem_append, List.mem_singleton] at hs
+      rcases hs with hs | rfl
+      · exact Hsb s hs
+      · exact Hstrlen
     -- the log line: `r.id`, `strings.Join(nodesStrs, ",")`, `r.Term`, then
     -- `r.raftLog.committed` and `r.raftLog.applied` through the log
-    wp_apply wp_strings_Join $$ [$Hstrs] as %joined Hstrs
+    wp_apply wp_strings_Join _ _ go!"," 17 Hsb
+      (by unfold maxAddr _root_.Perennial.strings.joinMax; simp) $$ [$Hstrs] as %joined Hstrs
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩
@@ -1327,8 +1341,13 @@ theorem newRaft.wp_proof
           (by rw [Hcm0]; decide) (by rw [Hli0]; decide) Hn0)
       (fun h => by cases h)
       $$ [$Htlf' $Hcap]
+    iapply (wp_ncfupd _ _ rfl)
     iunfold HookGate at Hgate
-    imod Hgate with ⟨%tl0, #Htl0, Hfire⟩
+    unfold ncfupd
+    iintro Hnc
+    imod Hgate $$ Hnc with ⟨Hnc, %tl0, #Htl0, Hfire⟩
+    imodintro
+    iframe Hnc
     wp_apply wp_traceInitState «$r0_ptr» tl0 (some γd) (NodeEvOf (W64 0) cv.ID' s0 (cfgM ∅ ∅)) _
         (ownRaftReadT (cfgM ∅ ∅) «$r0_ptr» cv.ID' s0 tv0) $$ [Hcore H_trk Hcfg0 Hfire]
       as ⟨HR0, Hcap⟩
@@ -1417,8 +1436,13 @@ theorem newRaft.wp_proof
           (by rw [Hcm0]; decide) (by rw [Hli0]; decide) Hn0 Hn0)
       (fun h => by cases h)
       $$ [$Htlf' $Hcap]
+    iapply (wp_ncfupd _ _ rfl)
     iunfold HookGate at Hgate
-    imod Hgate with ⟨%tl1, #Htl1, Hfire⟩
+    unfold ncfupd
+    iintro Hnc
+    imod Hgate $$ Hnc with ⟨Hnc, %tl1, #Htl1, Hfire⟩
+    imodintro
+    iframe Hnc
     wp_apply wp_switchToConfig_wT wp_traceConfChangeEvent wp_ProgressTracker_ConfState (cfgState ∅ ∅).cfg
         «$r0_ptr» cv.ID' s0 lok false tv0 ∅ tv0.Config' tv0.Progress' ∅ pvs Hmi tl1 γd _ rfl rfl
       $$ [$H_trk $Htl1 $Hlgf $Hlg0 $H_isLearner $Hcore $Hvotes $Hnew $Hfire]
@@ -1572,14 +1596,17 @@ theorem newRaft.wp_proof
         "Hstrs" ∷ sl' ↦* strs ∗
         "Hstrs_cap" ∷ ownSliceCap GoString sl' (DFrac.own 1) ∗
         "Hnsl" ∷ nsl ↦* nxs ∗
-        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝) $$ [i n nodesStrs Hnsl]
+        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝ ∗
+        "%Hsb" ∷ ⌜∀ s ∈ strs, s.length ≤ 17⌝) $$ [i n nodesStrs Hnsl]
     · iexists W64 0, _, slice.nil, []
       iframe i n nodesStrs Hnsl
       isplitr
       · iapply ownSlice_nil
       isplitr
       · iapply ownSliceCap_nil
-      ipureintro; constructor <;> word
+      isplitr
+      · ipureintro; constructor <;> word
+      ipureintro; simp
     wp_for IH
     wp_if_destruct
     · ihave %Hnl := ownSlice_len $$ Hnsl
@@ -1592,9 +1619,12 @@ theorem newRaft.wp_proof
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       wp_auto
-      wp_apply wp_fmt_Sprintf $$ [$Hargs] as %str Hargs
-      · ipureintro
-        exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil
+      wp_apply wp_fmt_Sprintf go!"%x" [.dir none _root_.Perennial.fmt.verb_x] _ _ _ _ (by fmt_encode)
+        (by fmt_fits) (.int _ _ _ _ (.uint64 _) .nil) (by fmt_noquote) $$ [$Hargs] as %str ⟨Hargs, %Hstr⟩
+      have Hstrlen : str.length ≤ 17 := by
+        subst Hstr
+        simp [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn]
+        exact fmt.length_hexPad_zero_le _ (by word)
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
       iintro %sl2 ⟨Hsl2, -⟩
@@ -1604,10 +1634,18 @@ theorem newRaft.wp_proof
       iframe
       iexists _, _, _, _
       iframe
-      ipureintro; constructor <;> word
+      isplitr
+      · ipureintro; constructor <;> word
+      ipureintro
+      intro s hs
+      simp only [List.mem_append, List.mem_singleton] at hs
+      rcases hs with hs | rfl
+      · exact Hsb s hs
+      · exact Hstrlen
     -- the log line: `r.id`, `strings.Join(nodesStrs, ",")`, `r.Term`, then
     -- `r.raftLog.committed` and `r.raftLog.applied` through the log
-    wp_apply wp_strings_Join $$ [$Hstrs] as %joined Hstrs
+    wp_apply wp_strings_Join _ _ go!"," 17 Hsb
+      (by unfold maxAddr _root_.Perennial.strings.joinMax; simp) $$ [$Hstrs] as %joined Hstrs
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩

@@ -122,8 +122,13 @@ theorem raft.applyConfChange.spec_proof
   intro c r id s cc ccm dq c' Q Happ0 Hsz Hltz Hcand Hli2 Htrg
   wp_start as H
   iNamed H
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGate at Hgate
-  imod Hgate with ⟨%tl, #Htl, Hfire⟩
+  unfold ncfupd
+  iintro Hnc
+  imod Hgate $$ Hnc with ⟨Hnc, %tl, #Htl, Hfire⟩
+  imodintro
+  iframe Hnc
   -- (stage R8a) the leader's progress bound of the old values, for the new ones (`PrKept`)
   icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
   icases ownRaftPhysCV_reconfigCore c c'.cfg c.voters (c'.cfg.voters ∪ {[id]}) r id s

@@ -10,18 +10,9 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update. (2026-11-20: written by hand from
 # `#print axioms Perennial.EtcdGrove.k8s_authz.k8s_authz_robust`, not yet by --check --update.)
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/(Results|TopLevelRobustness)\.lean$
-axiom Perennial.encoding.json.initFuncsOk
-axiom Perennial.encoding.json.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.runtime.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.util.validation.opaqueInitsOk
-axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
-axiom Perennial.net.http.opaqueInitsOk
 axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.SprintfSlice.wp_proof
 axiom rand.Int63n.wp_proof
-axiom slices.Clone.wp_proof
-axiom slices.Concat.wp_proof
-axiom slices.ContainsFunc.wp_proof
 axiom validation.IsDNS1123Subdomain.wp_proof
 axiom validation.IsDomainPrefixedKey.wp_proof

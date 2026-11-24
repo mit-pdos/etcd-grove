@@ -1,0 +1,119 @@
+pipe, a decoder per event false
+  read 64 -> 62 nil
+ decode 0: nil type 1 data 42 bytes offset 61 buffered 1
+  -> nil events.Request{ID:0x1, ClientID:0xa, Op:"set x 1"}
+  read 63 -> 63 nil
+  read 64 -> 13 nil
+ decode 1: nil type 2 data 56 bytes offset 137 buffered 1
+  -> nil events.Reply{ID:0x1, ClientID:0xa, ViewNum:0x3, Result:"ok"}
+  read 127 -> 127 nil
+  read 128 -> 28 nil
+ decode 2: nil type 3 data 135 bytes offset 292 buffered 1
+  -> nil events.Prepare{ViewNum:0x3, OpNum:0xffffffffffffffff, CommitNum:0x4, Request:events.Request{ID:0x1, ClientID:0xa, Op:"set x 1"}, ReplicaID:0x2}
+  read 255 -> 66 nil
+ decode 3: nil type 4 data 46 bytes offset 358 buffered 1
+  -> nil "46 bytes"
+  read 255 -> 70 nil
+ decode 4: nil type 5 data 50 bytes offset 428 buffered 1
+  -> nil "50 bytes"
+  read 255 -> 53 nil
+ decode 5: nil type 6 data 33 bytes offset 481 buffered 1
+  -> nil "33 bytes"
+  read 255 -> 255 nil
+  read 256 -> 75 nil
+ decode 6: nil type 7 data 310 bytes offset 811 buffered 1
+  -> nil "310 bytes"
+  read 511 -> 95 nil
+ decode 7: nil type 8 data 75 bytes offset 906 buffered 1
+  -> nil "75 bytes"
+  read 511 -> 66 nil
+ decode 8: nil type 9 data 46 bytes offset 972 buffered 1
+  -> nil "46 bytes"
+  read 511 -> 94 nil
+ decode 9: nil type 10 data 73 bytes offset 1066 buffered 1
+  -> nil "NewState 4 3 logs 0"
+  read 1023 -> 23 nil
+ decode 10: nil type 11 data 2 bytes offset 1089 buffered 1
+  -> nil events.Heartbeat{}
+  read 1023 -> 1023 nil
+  read 1024 -> 1024 nil
+  read 2048 -> 2048 nil
+  read 4096 -> 4096 nil
+  read 8192 -> 8192 nil
+  read 16384 -> 10459 nil
+ decode 11: nil type 10 data 26821 bytes offset 27931 buffered 1
+  -> nil "NewState 5 300 logs 300"
+  read 32767 -> 0 EOF
+ decode 12: EOF type 0 data 0 bytes offset 27931 buffered 1
+ again: EOF
+ write 1: nil
+ write 2: nil
+ write 3: nil
+ write 4: nil
+ write 5: nil
+ write 6: nil
+ write 7: nil
+ write 8: nil
+ write 9: nil
+ write 10: nil
+ write 11: nil
+ write 10: nil
+pipe, a decoder per event true
+  read 64 -> 62 nil
+ wire.Decode 0: nil type 1
+  read 64 -> 64 nil
+  read 64 -> 12 nil
+ wire.Decode 1: nil type 2
+  read 64 -> 64 nil
+  read 64 -> 64 nil
+  read 128 -> 27 nil
+ wire.Decode 2: nil type 3
+  read 64 -> 64 nil
+  read 64 -> 2 nil
+ wire.Decode 3: nil type 4
+  read 64 -> 64 nil
+  read 64 -> 6 nil
+ wire.Decode 4: nil type 5
+  read 64 -> 53 nil
+ wire.Decode 5: nil type 6
+  read 64 -> 64 nil
+  read 64 -> 64 nil
+  read 128 -> 128 nil
+  read 256 -> 74 nil
+ wire.Decode 6: nil type 7
+  read 64 -> 64 nil
+  read 64 -> 31 nil
+ wire.Decode 7: nil type 8
+  read 64 -> 64 nil
+  read 64 -> 2 nil
+ wire.Decode 8: nil type 9
+  read 64 -> 64 nil
+  read 64 -> 30 nil
+ wire.Decode 9: nil type 10
+  read 64 -> 23 nil
+ wire.Decode 10: nil type 11
+  read 64 -> 64 nil
+  read 64 -> 64 nil
+  read 128 -> 128 nil
+  read 256 -> 256 nil
+  read 512 -> 512 nil
+  read 1024 -> 1024 nil
+  read 2048 -> 2048 nil
+  read 4096 -> 4096 nil
+  read 8192 -> 8192 nil
+  read 16384 -> 10458 nil
+ wire.Decode 11: nil type 10
+  read 64 -> 0 EOF
+ wire.Decode 12: EOF type 0
+ write 1: nil
+ write 2: nil
+ write 3: nil
+ write 4: nil
+ write 5: nil
+ write 6: nil
+ write 7: nil
+ write 8: nil
+ write 9: nil
+ write 10: nil
+ write 11: nil
+ write 10: nil

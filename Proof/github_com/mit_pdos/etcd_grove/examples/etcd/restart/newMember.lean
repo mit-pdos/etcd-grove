@@ -78,7 +78,7 @@ theorem newMember.wp_proof
   -- `net.Listen("tcp", peerAddr)`
   wp_apply (wp_Listen go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
-  icases Hlis with (⟨%Hlerr, Hlis⟩ | %Hlerr)
+  icases Hlis with (⟨%Hlerr, Hlis, -⟩ | %Hlerr)
   rotate_left
   · cases lerr with
     | nil => exact absurd rfl Hlerr
@@ -153,7 +153,7 @@ theorem restartMember.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     restartMember.spec (GF := GF) (hG := hG) := by
   intro CS N m γS name peerAddr client cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
-    ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Haf Hbuq Hdbo
+    ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, Hrec, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩
   iunfold memberRec at Hrec
   icases Hrec with ⟨%sw, %peer, Hm, #Hpeer, #Hsw⟩
@@ -162,7 +162,7 @@ theorem restartMember.wp_proof
   (try wp_auto)
   -- `build(m.name, m.peer, m.client, cluster, lg)`, on the stopped data directory
   wp_apply (wp_build N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
-      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Haf Hbuq Hdbo)
+      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf Haf Hbuq Hdbo)
     $$ [Htok Hrr] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, #Hdd⟩)

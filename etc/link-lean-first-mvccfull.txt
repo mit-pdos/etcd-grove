@@ -9,7 +9,26 @@
 #
 # (mvccfull's Freeze, 2026-11-10: the side-by-side candidates `api.New.specR` and
 # `lease.NewLessor.specR`, hypotheses here until then, are now `New.spec` and `NewLessor.spec`.)
-lease_NewLessor:
+batchTxBuffered__LockInsideApply: @
+batchTxBuffered__UnsafePut: @
+lease_newLeaseExpiredNotifier:
+# (prove-ps2-newlessor5, 2026-11-21) `NewLessor` proved over the real code: `newLessor` (the lessor's
+# ghost state, `le.mu`, the backend's contract `lessorApplyOk_real`) and its expiry loop; the loop's
+# expiry payload is `Lease.expired`'s trust boundary (an axiom, `Lease__expired.lean`).
+lease_NewLessor: lease_newLessor
+lease_newLessor: lease_newLeaseExpiredNotifier lease_lessor__initAndRecover lease_lessor__runLoop backend__BatchTx batchTxBuffered__LockInsideApply batchTxBuffered__UnsafePut batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+lease_lessor__runLoop: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop lease_lessor__revokeExpiredLeases lease_lessor__checkpointScheduledLeases
+lease_lessor__revokeExpiredLeases: lease_lessor__isPrimary lease_lessor__findExpiredLeases
+lease_lessor__findExpiredLeases: lease_lessor__expireExists lease_Lease__expired
+lease_Lease__expired:
+lease_lessor__expireExists: lease_LeaseExpiredNotifier__Len lease_LeaseExpiredNotifier__Peek lease_LeaseExpiredNotifier__Unregister lease_LeaseExpiredNotifier__RegisterOrUpdate
+lease_LeaseExpiredNotifier__Len:
+lease_LeaseExpiredNotifier__Peek: lease_LeaseExpiredNotifier__Len
+lease_LeaseExpiredNotifier__Unregister: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push lease_LeaseQueue__Pop heap_Pop
+lease_LeaseQueue__Pop:
+heap_Pop: heap_down
+lease_lessor__checkpointScheduledLeases: lease_lessor__isPrimary lease_lessor__findDueScheduledCheckpoints
+lease_lessor__findDueScheduledCheckpoints:
 #
 # The trust boundary and the callees linked elsewhere (as mvccrand's): zap's `NewNop` (an axiom),
 # `context.TODO`, traceutil's `TODO`, the backend's (`@`, the backend's `Link.lean`), Perennial's
@@ -67,7 +86,7 @@ lease_lessor__isPrimary:
 # zap's Debug (over the trust boundary's `Logger.check` and `CheckedEntry.Write`), Int64, Duration,
 # and `time.Duration.Seconds`, as the server's `Link.lean` links them
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Int64:
 zap_Duration:
@@ -152,3 +171,6 @@ stream__recvOne: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_h
 stream__watch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds runner__genKey runner__genEnd choose pick context_TODO check
 walkKeys: 
 watcher__matches: inRange
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

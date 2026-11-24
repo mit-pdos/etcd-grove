@@ -1,0 +1,2462 @@
+0 "HTTP/1.0 200 Connected to Go RPC\n\n"
+"200 Connected to Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 1 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X-A=["1"]
+body="ok" <nil>
+=== 2 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body to eof" <nil>
+=== 3 "HTTP/1.1 204 No Content\r\n\r\n"
+"204 No Content" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 4 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Location=["/x"]
+body="" <nil>
+=== 5 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 6 "HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="rest" <nil>
+=== 7 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=0 te=[] uncompressed=false
+Content-Length=["0"]
+body="" <nil>
+=== 8 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,,keep-alive ,"]
+body="" <nil>
+=== 9 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 10 "HTTP/1.0 200"
+error *errors.errorString unexpected EOF
+=== 11 "HT\tTP/1.1 301 Moved\x7f\r\nLocation: /x\r\nConnect"
+error *errors.errorString malformed HTTP version "HT\tTP/1.1"
+=== 12 ""
+error *errors.errorString unexpected EOF
+=== 13 "HTTP/1.0 200 OK\nConnection: Keep-Alive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="rest" <nil>
+=== 14 "HTTP/1.1 400 Bad R-equest\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad R-equest" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 15 "HTTP/1.1 301 Moved\rLocation: /x\r\nCnnection: close\r\n\r\n"
+"301 Moved\rLocation: /x" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Cnnection=["close"]
+body="" <nil>
+=== 16 "TTP"
+error *errors.errorString malformed HTTP response "TTP"
+=== 17 "HTTP/1.1 200 OK\r\nConnecion: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connecion=["clos"]
+body="" <nil>
+=== 18 "HTT\r\n\r\nP/1.0 200 OK\r\nConectin: Keep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP response "HTT"
+=== 19 "HTTP/1.1 200 OK\r\nContent-Legth: 2\r\nX-A: 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Legth=["2"] X-A=["1"]
+body="okmore" <nil>
+=== 20 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, "
+error *errors.errorString unexpected EOF
+=== 21 "H"
+error *errors.errorString malformed HTTP response "H"
+=== 22 "HTTP/1.1 200 OK\r\nCon\x01nection: foo, \t C"
+error textproto.ProtocolError malformed MIME header line: "Con\x01nection: foo, \t C"
+=== 23 "HTTP/1.1 400 Bd Request\r\nContent-Type:9 text/plain; charse"
+error *errors.errorString unexpected EOF
+=== 24 "(HTTP/1."
+error *errors.errorString malformed HTTP response "(HTTP/1."
+=== 25 "HTTP/1.1 200 OK\r\nContet-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Contet-Length=["2"] X-A=["1"]
+body="okmore" <nil>
+=== 26 "HTTP/1.1301 Mo"
+error *errors.errorString malformed HTTP status code "Mo"
+=== 27 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plai\nn\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "n\r"
+=== 28 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r(\nbody to e"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r("
+=== 29 " H"
+error *errors.errorString malformed HTTP status code "H"
+=== 30 "HTTP/1.1 200 OK\r\nConnection: los\r\nConnection:\x7f close, Close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection:\x7f close, Close"
+=== 31 "HTTP\r\n\r\n/1."
+error *errors.errorString malformed HTTP response "HTTP"
+=== 32 "HTTP/1.1"
+error *errors.errorString malformed HTTP response "HTTP/1.1"
+=== 33 "HTTP/1.0 2:00 OK\r\nConnection: Keep"
+error *errors.errorString malformed HTTP status code "2:00"
+=== 34 "HTTP/1.1 200 OK\r\nContent-Length: \r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString invalid empty Content-Length ""
+=== 35 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConn"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conn"
+=== 36 "HTTP/1.0 200 Conn\tected to Go RPC\n\n"
+"200 Conn\tected to Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 37 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=0 te=[] uncompressed=false
+Content-Length=["0"]
+body="" <nil>
+=== 38 "HTTP/1.1 204 No Con9ent\r\n\r\n"
+"204 No Con9ent" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 39 "HTT/1.1"
+error *errors.errorString malformed HTTP response "HTT/1.1"
+=== 40 "HTTP/1.0 404 Not Found"
+error *errors.errorString unexpected EOF
+=== 41 "HTTP/1.1 200 OK\r\nContent-L"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-L"
+=== 42 "HTTP/1.1 400 Bad equest\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad equest" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 43 "HTTP/1.1"
+error *errors.errorString malformed HTTP response "HTTP/1.1"
+=== 44 ""
+error *errors.errorString unexpected EOF
+=== 45 "HT\x01TP/1.1 200 OK\r\nContent-Length: 92\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP version "HT\x01TP/1.1"
+=== 46 "HTéTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTéTP/1.0"
+=== 47 "H"
+error *errors.errorString malformed HTTP response "H"
+=== 48 "HTTP/1.0 200 O\r\nConnection: kéep-ali\r\nve\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "ve"
+=== 49 "H9TTP/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "H9TTP/1.1"
+=== 50 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Legth: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Legth=["0"]
+body="" <nil>
+=== 51 "HTTP/1.0 200 OK\r\nConnectioa: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connectioa=["kéep-alive"] Connection=["x,,keep-alive ,"]
+body="" <nil>
+=== 52 ""
+error *errors.errorString unexpected EOF
+=== 53 "HTTP/1.0 200 OK\r\nConnectiona: Keep-Al-ive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connectiona=["Keep-Al-ive"]
+body="rest" <nil>
+=== 54 "HTTP/1.1 200 OK\r\nConnection"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connection"
+=== 55 "HTTP/1.1 200 OK\r\nConnectin: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+Connectin=["foo, \t CLOSE \t,bar"] Content-Length=["0"]
+body="" <nil>
+=== 56 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=0 te=[] uncompressed=false
+Content-Length=["0"]
+body="" <nil>
+=== 57 "HTTP/1.1 200 OK\r\nConnectio\rn: foo, \t CLOSE \t,bar\r\nContenté-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connectio\rn: foo, \t CLOSE \t,bar"
+=== 58 "HTTP/1.1 204 No Conte"
+error *errors.errorString unexpected EOF
+=== 59 "TTP/1.0 200 OK\r\nConnectio(n: Keep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "TTP/1.0"
+=== 60 "HTTP/1.1 301 Moved\r\r\nLocation: /x\r\nConnecion: close\r\n\r\n"
+"301 Moved\r" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connecion=["close"] Location=["/x"]
+body="" <nil>
+=== 61 "HTTP/1.1 301 Moved\r\r\nLocain: /x\r\nConnection: close\r\n\r\n"
+"301 Moved\r" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Locain=["/x"]
+body="" <nil>
+=== 62 "HTTP/1.1 200 OK\r\nConn"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conn"
+=== 63 "HTTP/1.0 :200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP status code ":200"
+=== 64 "HTTP/1.0 200 Connect"
+error *errors.errorString unexpected EOF
+=== 65 "TTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, \r\n\r\nClose\r\n\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 66 "HTTP/1.1 400 Bad Reques"
+error *errors.errorString unexpected EOF
+=== 67 "HTTP/1.\r\n1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 68 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,\x01bar\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: foo, \t CLOSE \t,\x01bar"
+=== 69 "HTTP/1.0 404 Not Fo0und\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+"404 Not Fo0und" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body to eof" <nil>
+=== 70 "HTTP/1.1 3(01 Moved\r\nLocation: \r\n/x\r\nConnection: close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "3(01"
+=== 71 "HTTP/1.1 200 OK\r\nContent-Lengtah: 2\r\nX-A: 1\r\n\r\nokmaore"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Lengtah=["2"] X-A=["1"]
+body="okmaore" <nil>
+=== 72 "HTTP/1.0 200 OK\r\nConn:ection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Conn=["ection: kéep-alive"] Connection=["x,,keep-alive ,"]
+body="" <nil>
+=== 73 "HTTP/1.1200 O\x01K\r\nConnec\rtion: clos\r\nConnection: closed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "O\x01K"
+=== 74 "HTTP/1.1 400 Bad Request\r\nContent\r\n\r\n-Type: text/plain; charset=utf-8\r\nConnecti\r\non: close\r\n\r\n400 B\r\n\r\nad Request"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content"
+=== 75 "HTTP/1.0 404 Not Found\r\nContnt-Tye: text/plain\r\n\r\nbody to eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Contnt-Tye=["text/plain"]
+body="body to eof" <nil>
+=== 76 "HTTP/1.0 200 OK\r\nConnection: 9kéep-alive\r\nConnecti"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connecti"
+=== 77 "HTTP/1.0"
+error *errors.errorString malformed HTTP response "HTTP/1.0"
+=== 78 "HTTP/1.1 200 OK\r\nC-onnectéion: foo, \t COSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "C-onnectéion: foo, \t COSE \t,bar"
+=== 79 "HTTP/1.1 00 \r\nO"
+error *errors.errorString malformed HTTP status code "00"
+=== 80 "HTTP/1.0 200 OK\r\nConn"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conn"
+=== 81 "HTTP/"
+error *errors.errorString malformed HTTP response "HTTP/"
+=== 82 "HTTP/1.1 200 OK\r\nConnectin: clo\r\n\r\ns\r\nConne"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connectin=["clo"]
+body="s\r\nConne" <nil>
+=== 83 "HTTP/1.0 20 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 84 "HTTP/1.1204 No Conte"
+error *errors.errorString malformed HTTP status code "No"
+=== 85 "HTTP/1.0 200 -OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+"200 -OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="rest" <nil>
+=== 86 "HTTP/1.1 200 \r\r\n\r\nOK\r\nConne"
+"200 \r" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="OK\r\nConne" <nil>
+=== 87 "HTTP/1.0 200 OK\r\nConnection: Kep-"
+error *errors.errorString unexpected EOF
+=== 88 "HTTP/1.\r0 200 OK\r\nConnection: kéep-ali ve\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.\r0"
+=== 89 "HTTP/1.1 400 Bad equest\r\nContent-Type: text/plain; charset=utf-\r\nConnection:"
+error *errors.errorString unexpected EOF
+=== 90 "HTTP/1.0 404 Not Foun"
+error *errors.errorString unexpected EOF
+=== 91 "HTTP/1."
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 92 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 93 "HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="rest" <nil>
+=== 94 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Length 0"
+=== 95 "HTTP/1.1 200 OK\r\nConnetion: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+Connetion=["foo, \t CLOSE \t,bar"] Content-Length=["0"]
+body="" <nil>
+=== 96 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\néX0-A: 1\r\r\nokmore"
+error textproto.ProtocolError malformed MIME header line: "éX0-A: 1\r"
+=== 97 "HTTP/1.1 200 OK\r"
+error *errors.errorString unexpected EOF
+=== 98 "HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="" <nil>
+=== 99 "HTTP/1.1 204 No Content\r\n9\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "9"
+=== 100 "HTTP/1.0 \r\n\r\n200 "
+error *errors.errorString malformed HTTP status code ""
+=== 101 "HTTP/1.1 200 OK\r\nContent-Length: 2\rX-A:: 1\r\n\r\nokmore"
+error textproto.ProtocolError malformed MIME header line: "Content-Length: 2\rX-A:: 1"
+=== 102 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf8"]
+body="400 Bad Request" <nil>
+=== 103 "HTTP/1.0 200Connected to Go "
+error *errors.errorString malformed HTTP status code "200Connected"
+=== 104 "TTP/1.1 204 No Content\n\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 105 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX9-A: 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X9-A=["1"]
+body="ok" <nil>
+=== 106 "HTTP/1.1 204 o Contnt\r\n\r\n"
+"204 o Contnt" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 107 "HTTP/1.0 20 OK\r\nConnection: kéep-ali0ve\r\nConnection: x,,:keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 108 "HTT/1.1 204No Co"
+error *errors.errorString malformed HTTP status code "204No"
+=== 109 "HTT/1.1 400 Bad Request\r\nContent-ype: text/plain; charset=utf-8\r"
+error *errors.errorString malformed HTTP version "HTT/1.1"
+=== 110 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: clos\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["clos"] Location=["/x"]
+body="" <nil>
+=== 111 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConne"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conne"
+=== 112 "HTTP/1.0 200 OK\n\r\nConnection: Keep-Alive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="Connection: Keep-Alive\r\n\r\nrest" <nil>
+=== 113 "HTTP/1.0200 C"
+error *errors.errorString malformed HTTP status code "C"
+=== 114 "HTTP/1.1 204 No Con\x01teént\r\n\r\n"
+"204 No Con\x01teént" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 115 "H\r\nT TP/"
+error *errors.errorString malformed HTTP response "H"
+=== 116 "HTTP/1.1 200 OK\nConnection: foo, \t CLOSE \t,bar\r\nCont"
+error textproto.ProtocolError malformed MIME header: missing colon: "Cont"
+=== 117 "HTTP/-1.0 200 Connect"
+error *errors.errorString malformed HTTP version "HTTP/-1.0"
+=== 118 "HTTP/1.0 20 Connected to Go RPC\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 119 "HTTP/1.1 -301 Moved\r\nLocation: /x\r\r\nConnection: close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "-301"
+=== 120 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nC\x7fonnection: close\r\n\r\n400 Bad Request"
+error textproto.ProtocolError malformed MIME header line: "C\x7fonnection: close"
+=== 121 "HTTP/1.1 204 NoCont:nt\r\n\r\n"
+"204 NoCont:nt" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 122 "HTTP/1.1 240 No Content\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 123 "HTTP/1. 200 OK\r\nConnection: clos\r\nConnection: clo"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 124 "HTP/1.1 301: Moved\r\n"
+error *errors.errorString malformed HTTP status code "301:"
+=== 125 "HTTP/1.1 00Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+error *errors.errorString malformed HTTP status code "00Bad"
+=== 126 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nCon nection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Con nection=["x,,keep-alive ,"] Connection=["kéep-alive"]
+body="" <nil>
+=== 127 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,kep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,,kep-alive ,"]
+body="" <nil>
+=== 128 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nCont"
+error textproto.ProtocolError malformed MIME header: missing colon: "Cont"
+=== 129 "HTTP/11 2"
+error *errors.errorString malformed HTTP status code "2"
+=== 130 "HTTP/1.1 204 No Content\r9\r\n"
+error *errors.errorString unexpected EOF
+=== 131 "HTTP/1.1 400 Bad Request\r\nContent-Type:"
+error *errors.errorString unexpected EOF
+=== 132 "HTTP/1.1 -2"
+error *errors.errorString malformed HTTP status code "-2"
+=== 133 "HTTP/1.0 404 Not Found\r\nContent-Ty"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Ty"
+=== 134 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n9"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=0 te=[] uncompressed=false
+Content-Length=["0"]
+body="" <nil>
+=== 135 "HTTP/1.1 200 OK\r"
+error *errors.errorString unexpected EOF
+=== 136 "HTTP/1.1 400 Bd Request\r\nContent-Type: text/"
+error *errors.errorString unexpected EOF
+=== 137 "HTTP/1.1 200 OK\r\nCon"
+error textproto.ProtocolError malformed MIME header: missing colon: "Con"
+=== 138 "HTTP/1.0 00 OK\r\nCo"
+error *errors.errorString malformed HTTP status code "00"
+=== 139 ":HTTP/1.1 200 OK\r\nConection: clos\r\nConnecti"
+error *errors.errorString malformed HTTP version ":HTTP/1.1"
+=== 140 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\x01\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r\x01"
+=== 141 "HTTP1.1 301Moved\r\nLocation: /x\r\nConnectio: close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "301Moved"
+=== 142 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/pla\rin; charset=utf-8\r\nConnection: cléose\r\n\r\n400 Bad "
+error textproto.ProtocolError malformed MIME header line: "Content-Type: text/pla\rin; charset=utf-8"
+=== 143 "HTTP/1.1 204 No Con\r\ntent\r\n\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "tent"
+=== 144 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A 1\r\n\r\nok"
+error textproto.ProtocolError malformed MIME header: missing colon: "X-A 1"
+=== 145 "HT\r\n\r\nTP/1.1 301 Moved\r\nLocation:/x\r\nConnecti"
+error *errors.errorString malformed HTTP response "HT"
+=== 146 "HTTP/1.0 404 Not Fo"
+error *errors.errorString unexpected EOF
+=== 147 "TTP/1.0 200 OK"
+error *errors.errorString malformed HTTP version "TTP/1.0"
+=== 148 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A: 1"
+error *errors.errorString unexpected EOF
+=== 149 "HTTP/1.1 20"
+error *errors.errorString malformed HTTP status code "20"
+=== 150 ""
+error *errors.errorString unexpected EOF
+=== 151 "HTT\x7fP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT\x7fP/1.1"
+=== 152 ""
+error *errors.errorString unexpected EOF
+=== 153 "HTTP/1.0 200 "
+error *errors.errorString unexpected EOF
+=== 154 "HTTP/1.1 200 :OK\r\nContent-Leéngth: 2\r\nX-A: 1\r\n\r\nokmore"
+error textproto.ProtocolError malformed MIME header line: "Content-Leéngth: 2"
+=== 155 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnectin: c"
+error *errors.errorString unexpected EOF
+=== 156 "HTTP/1.1 30"
+error *errors.errorString malformed HTTP status code "30"
+=== 157 "HTTP/1.0 200 OK\r\nConnectioan: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connectioan=["kéep-alive"] Connection=["x,,keep-alive ,"]
+body="" <nil>
+=== 158 "HTTP/1.1 24 No Contet\r\n\r\n"
+error *errors.errorString malformed HTTP status code "24"
+=== 159 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, -Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["clos" "closed, -Close"]
+body="" <nil>
+=== 160 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar"
+error *errors.errorString unexpected EOF
+=== 161 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\n\r\n\r\nConnection: x\x7f,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive"]
+body="\r\nConnection: x\x7f,,keep-alive ,\r\n\r\n" <nil>
+=== 162 "TTP/1.1 400 Bad "
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 163 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A: \r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X-A=[""]
+body="ok" <nil>
+=== 164 "HT:TP/1.1 31 Mo"
+error *errors.errorString malformed HTTP status code "31"
+=== 165 "HTTP/1.1 20\t4 o Content \r\n\r\n"
+error *errors.errorString malformed HTTP status code "20\t4"
+=== 166 "HTTP/1.0 404 Not Found\r\nCntent-Type: text/plain\r\n\r\t\nbody to eof"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r\t"
+=== 167 "HTTP/1"
+error *errors.errorString malformed HTTP response "HTTP/1"
+=== 168 "HTTP/1.1 400 BadRequest\r\nContent-Type: text/plai\nn; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+error textproto.ProtocolError malformed MIME header: missing colon: "n; charset=utf-8"
+=== 169 "HTTP/1. 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmor"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 170 "H\r\nTTP/1.1 30 Moved\r\nLocation: /x\r\nConnection\r\n: close\r\n\r\n"
+error *errors.errorString malformed HTTP response "H"
+=== 171 "HTTP/1.1 204 No Conten\r\n\r\n"
+"204 No Conten" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 172 "HTTP/1.0 404 Not Found\r\nCntent-Type: text/plain\r\n\r\nbo"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Cntent-Type=["text/plain"]
+body="bo" <nil>
+=== 173 "HT TP/1.0 200 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "TP/1.0"
+=== 174 "HTTP/1.1 400 Bad Reuest\r\nConte9nt-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Reuest" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Conte9nt-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 175 "HTTP/1.0 404 Not\t Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+"404 Not\t Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body to eof" <nil>
+=== 176 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: cloed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 177 "HTTP/1.0 200 OK\r\nConnectin: Keep-Alive\r\n"
+error *errors.errorString unexpected EOF
+=== 178 "HTTP/1.1 2"
+error *errors.errorString malformed HTTP status code "2"
+=== 179 "HTT/1.1 204 No C\nonten\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT/1.1"
+=== 180 "HTTP/1.1 301 Moved\r\nLocatin: /x\r\nConnection: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Locatin=["/x"]
+body="" <nil>
+=== 181 "HTTP/1.0404 Not Found\r\nContent-Type: tex"
+error *errors.errorString malformed HTTP status code "Not"
+=== 182 "HTTP/1.0 20 onnected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 183 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbod to eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="bod to eof" <nil>
+=== 184 "HTTP\r\n/1.1 200 OK\r\nConnecion: foo, \t CLOSE \t\r,bar\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP response "HTTP"
+=== 185 "HTTP/1.0 404 Not Found\r\nContent-Tye: text/plain\r\n\r\nbody to eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Tye=["text/plain"]
+body="body to eof" <nil>
+=== 186 "HTTP/1.1 200 OK\r\nConnection: fo, \t CLOSE \t,bar\r\nContent-Lngth: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Lngth=["0"]
+body="" <nil>
+=== 187 "HTTP/1.0 200 OK\r\nConnetion: kée(p-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["x,,keep-alive ,"] Connetion=["kée(p-alive"]
+body="" <nil>
+=== 188 "HTTP/1.1 204 N\r\no C"
+error textproto.ProtocolError malformed MIME header: missing colon: "o C"
+=== 189 "H\x01TTP/1.0 200 Connected to Go RP\n\n"
+error *errors.errorString malformed HTTP version "H\x01TTP/1.0"
+=== 190 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Len"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Len"
+=== 191 "HTTP/1.0 200 OK\r\nConnection: Keep-Aliv-e\r\n\r\nr\nest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Aliv-e"]
+body="r\nest" <nil>
+=== 192 "HTP/1.1 200 OK\r\nConne"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 193 "HTTP/1.1 204 o Content\r\n\r\n"
+"204 o Content" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 194 "HTTP/1.1 200 OK\r\nContent-Lengh: 2\r\nX-A: 1\r\n\r\nokmore\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Lengh=["2"] X-A=["1"]
+body="okmore\r\n\r\n" <nil>
+=== 195 "HTTP/1. 200 OK\r\nConnection:"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 196 "HTTP/1.1 204 No Co(ntent\r\n\r\n"
+"204 No Co(ntent" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 197 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 198 "HTTP/1.1 "
+error *errors.errorString malformed HTTP status code ""
+=== 199 "HTTP/1.0 404 Not Found\r\nContent-Type"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Type"
+=== 200 "HTTP/1.0 200 Con"
+error *errors.errorString unexpected EOF
+=== 201 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar"
+error *errors.errorString unexpected EOF
+=== 202 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConection: close\r\n\r\n400 Bad equest"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Conection=["close"] Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad equest" <nil>
+=== 203 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE"
+error *errors.errorString unexpected EOF
+=== 204 "HTTP/1.1 200 OK\t\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK\t" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 205 "HTTP/"
+error *errors.errorString malformed HTTP response "HTTP/"
+=== 206 "HTTP/1.1 400 Bad Re"
+error *errors.errorString unexpected EOF
+=== 207 "HTTP/1.0 404\t Not Found\r\nContent-Type: text/plain\r\n\r"
+error *errors.errorString malformed HTTP status code "404\t"
+=== 208 "HTTP/1.é0 20"
+error *errors.errorString malformed HTTP status code "20"
+=== 209 "HTTP/1.1 200 OK\r\nConnection: clos\r\nonnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["clos"] Onnection=["closed, Close"]
+body="" <nil>
+=== 210 "HTP/1.0 200 OK\r\nConanecti"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 211 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Close\r\n\r-\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r-"
+=== 212 "HTTP/1.1 301 Moved\rocation: /x\r\nConnection: close\r\n"
+error *errors.errorString unexpected EOF
+=== 213 "HTTP/1.0 200 OK\r\nConnection: ké"
+error *errors.errorString unexpected EOF
+=== 214 "HTTP/1.0 200"
+error *errors.errorString unexpected EOF
+=== 215 "HTTP/1. 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r \n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 216 "HTT\x01P/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\x01\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT\x01P/1.1"
+=== 217 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: cose\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 218 "H\x01TTP"
+error *errors.errorString malformed HTTP response "H\x01TTP"
+=== 219 "HTTP/1.0 200 OK\r\nCon"
+error textproto.ProtocolError malformed MIME header: missing colon: "Con"
+=== 220 "HTTP/1.1"
+error *errors.errorString malformed HTTP response "HTTP/1.1"
+=== 221 "HTTP/1.1 301Mved\r\nLocatin: /x\r\nConnection: close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "301Mved"
+=== 222 "HTTP/1.1 200 OK\r\nContentLength: 2\r\nX-A: 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Contentlength=["2"] X-A=["1"]
+body="okmore" <nil>
+=== 223 "HTTP/1.0 2-00 OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP status code "2-00"
+=== 224 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,ke(ep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,,ke(ep-alive ,"]
+body="" <nil>
+=== 225 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A:0 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X-A=["0 1"]
+body="ok" <nil>
+=== 226 "HTTP/1.1 204 Noé Content\r\n-\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "-"
+=== 227 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plai"
+error *errors.errorString unexpected EOF
+=== 228 "HTTP/1.1"
+error *errors.errorString malformed HTTP response "HTTP/1.1"
+=== 229 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 230 "HTTP/1.0 2\r\n00- -Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "2"
+=== 231 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-\r\n\r\n8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-"]
+body="8\r\nConnection: close\r\n\r\n400 Bad Request" <nil>
+=== 232 "H\r\n\r\n"
+error *errors.errorString malformed HTTP response "H"
+=== 233 "HTTP/:1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/:1.1"
+=== 234 "HTTP/1.0 404 Not Found\r\nContent-\rType:text/p"
+error textproto.ProtocolError malformed MIME header line: "Content-\rType:text/p"
+=== 235 "0HTTéP/1.0 200 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP version "0HTTéP/1.0"
+=== 236 "HTTP/1.0 2"
+error *errors.errorString malformed HTTP status code "2"
+=== 237 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Clo"
+error *errors.errorString unexpected EOF
+=== 238 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nC"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 239 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnec"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connec"
+=== 240 "HTTP/.0 200 OK\r\nConnectio"
+error *errors.errorString malformed HTTP version "HTTP/.0"
+=== 241 "H(TTP/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "H(TTP/1.1"
+=== 242 "HTTP/1.0 00 OK\r\nCon\rnection: Keep-Aive\r\n\r\nrest"
+error *errors.errorString malformed HTTP status code "00"
+=== 243 "HTTP/1.1 204 No Cotent\r\n\r\n"
+"204 No Cotent" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 244 "H"
+error *errors.errorString malformed HTTP response "H"
+=== 245 "HTTP/1.1 200 OK\r\nContent-Lengh: 2\r\nX"
+error textproto.ProtocolError malformed MIME header: missing colon: "X"
+=== 246 "HTTP/1.0 20 OK\r\nConnection: Keep-Aliv9e\r\n\r\nrest"
+error *errors.errorString malformed HTTP status code "20"
+=== 247 "HTTP/1.1 200 OK\r\nConnection: f"
+error *errors.errorString unexpected EOF
+=== 248 "HTTP/1.1 200\r \n OK\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "200\r"
+=== 249 "HTTP/1"
+error *errors.errorString malformed HTTP response "HTTP/1"
+=== 250 "HTTP/1.1 200 OK\r\n\r\n\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n" <nil>
+=== 251 "HTTP/1.0 2é00 Connected to\x01 Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "2é00"
+=== 252 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,"
+error *errors.errorString unexpected EOF
+=== 253 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nonnection: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Location=["/x"] Onnection=["close"]
+body="" <nil>
+=== 254 "HTTP/1.1 301 Moved\rLcation: /x\r\nConnection: close\r\n\r\n"
+"301 Moved\rLcation: /x" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 255 "HTTP/1. 200 OK\r\nCo\r\nnnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 256 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,b"
+error *errors.errorString unexpected EOF
+=== 257 "HTTP1.1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 258 "HTTP/1"
+error *errors.errorString malformed HTTP response "HTTP/1"
+=== 259 "HTTP/1. "
+error *errors.errorString malformed HTTP status code ""
+=== 260 "HTTP/1.1 200 OK\r\nConnection: foo, "
+error *errors.errorString unexpected EOF
+=== 261 "\nH"
+error *errors.errorString malformed HTTP response ""
+=== 262 "HTTP/1.0 200 OK\r\nConnection: ké-ep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["ké-ep-alive" "x,,keep-alive ,"]
+body="" <nil>
+=== 263 "HTTP/.0 200 OK\r\nConnection: Keep-Alve\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "HTTP/.0"
+=== 264 "HTTP/1.1301 Moed\r\nLocation: /x\r\nConnecion: close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "Moed"
+=== 265 "HT\tTP/"
+error *errors.errorString malformed HTTP response "HT\tTP/"
+=== 266 "HTTP/1.1- 200 OK\r\nContent-Length: 2\r\nX-A:"
+error *errors.errorString malformed HTTP version "HTTP/1.1-"
+=== 267 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive \r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,,keep-alive"]
+body="" <nil>
+=== 268 "HTTP/1.1 200 OK\r\nCon"
+error textproto.ProtocolError malformed MIME header: missing colon: "Con"
+=== 269 "HTTP/1.1 2000OK\rConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP status code "2000OK\rConnection:"
+=== 270 "HTTP1"
+error *errors.errorString malformed HTTP response "HTTP1"
+=== 271 "HTTP/1"
+error *errors.errorString malformed HTTP response "HTTP/1"
+=== 272 "HTTP/1.1 301 oved\r\nLoca0tion: /x\r\nConnection: close\r\n\r\n"
+"301 oved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Loca0tion=["/x"]
+body="" <nil>
+=== 273 "HTTP/1.0 200 OK\r\nonnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["x,,keep-alive ,"] Onnection=["kéep-alive"]
+body="" <nil>
+=== 274 "HTTP/1.1 204 No Content\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 275 "HTTP.1 204 No"
+error *errors.errorString malformed HTTP version "HTTP.1"
+=== 276 "HTTP/1. 200 OK\r\nConnection: clos\r\nConnection:: closed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 277 "HTTP/1.1 200 OK\r-Content-Length:"
+error *errors.errorString unexpected EOF
+=== 278 "HTTP/1.0 20 0 OK\r\nConnection: kéep-alive\r\nConnectin: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 279 "HTTP/1.a1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length"
+error *errors.errorString malformed HTTP version "HTTP/1.a1"
+=== 280 "HTTP/1.0 2000 OK\r\nConnect\nion: Kep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP status code "2000"
+=== 281 "HTTP/1.1 200 OK\rConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK\rConnection: clos" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 282 "H(TTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP version "H(TTP/1.0"
+=== 283 "HTTP/1.1 301 Move\r\nLoca(tion: /x\r\nCon"
+error textproto.ProtocolError malformed MIME header line: "Loca(tion: /x"
+=== 284 "HTTP/1.0 404é Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP status code "404é"
+=== 285 "HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="" <nil>
+=== 286 "HTT"
+error *errors.errorString malformed HTTP response "HTT"
+=== 287 "HTTP"
+error *errors.errorString malformed HTTP response "HTTP"
+=== 288 "HTT"
+error *errors.errorString malformed HTTP response "HTT"
+=== 289 "HTTP/1.1 200 OK\r\nConnec"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connec"
+=== 290 "HTTP/1.0 4094 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP status code "4094"
+=== 291 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plin; charset=utf-8\r\nConnection: close\r\n\r\n4\t00 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plin; charset=utf-8"]
+body="4\t00 Bad Request" <nil>
+=== 292 "HTTP/1.0 404 Not F"
+error *errors.errorString unexpected EOF
+=== 293 "HTTP/1\r.1 400 Bad Request\r\nContent-Type: text/plain; chars\r\net=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+error *errors.errorString malformed HTTP version "HTTP/1\r.1"
+=== 294 "TTP/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 295 "HTTP/.0\x7f 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-live ,\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.0\x7f"
+=== 296 "HTTP/1.0 404Not Found\r\nContent-Type: text/plain\n\r\nbodyto eof"
+error *errors.errorString malformed HTTP status code "404Not"
+=== 297 "HTTP/1.0 200 Connected to Go \rRPC\n"
+error *errors.errorString unexpected EOF
+=== 298 "HTTP/1.0 200 OK\r\nConnection:a ké\r\n\r\nep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["a ké"]
+body="ep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n" <nil>
+=== 299 "HTTP/11 400 Bad Request\r\nContent-Type: text/plain; ch\narset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 300 "HTTP/1. 404 No Fo und\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 301 "HTTP/1.0 200"
+error *errors.errorString unexpected EOF
+=== 302 "HTTP/1.1 200 OK\r\nConnetion: cos\r\nConn"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conn"
+=== 303 ":("
+error *errors.errorString malformed HTTP response ":("
+=== 304 "HTTP/1\x01.1 301\r\n\r\n Moved\r\nLocation: /x\r"
+error *errors.errorString malformed HTTP version "HTTP/1\x01.1"
+=== 305 "HTTP/1.1 204 NoContent\r\n\r\n"
+"204 NoContent" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 306 "HTTP/1.:1 200 OK\r\nConnection: foo,"
+error *errors.errorString malformed HTTP version "HTTP/1.:1"
+=== 307 "HTTP/1.1 200 OK\r\nConnection: clos\r\nonnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["clos"] Onnection=["closed, Close"]
+body="" <nil>
+=== 308 "HTT"
+error *errors.errorString malformed HTTP response "HTT"
+=== 309 "HTTP/11 301 Moved\r\nLocation: 9/x\r\nC0onnection: close\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 310 "TTP/1.90 200 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP version "TTP/1.90"
+=== 311 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connection"
+=== 312 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody t\ro eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body t\ro eof" <nil>
+=== 313 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plan; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plan; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 314 "HTTP/1.0 200 O\x01K\r\nConnection: kéep-ali9ve\r\nConnection: x,,keep-alive"
+error *errors.errorString unexpected EOF
+=== 315 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnecti\x01on: x,,keep-alive9 ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connecti\x01on: x,,keep-alive9 ,"
+=== 316 "HTTP1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Cl"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 317 " H:"
+error *errors.errorString malformed HTTP status code "H:"
+=== 318 "HTTP/1.1 200 OK\r\nConnection\n: foo, \t CLOSE \t,bar\r\nCotent -Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connection"
+=== 319 "HTTP/1.0 200"
+error *errors.errorString unexpected EOF
+=== 320 "HTTP/1.1 400 Bad Requesét"
+error *errors.errorString unexpected EOF
+=== 321 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-: 1\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X-=["1"]
+body="" unexpected EOF
+=== 322 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 323 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t"
+error *errors.errorString unexpected EOF
+=== 324 "HTTP/1.1 200 OK\r\nContent-Lengt: 2\r\nX-A: 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Lengt=["2"] X-A=["1"]
+body="okmore" <nil>
+=== 325 "HTTP/1.1 400 Bad Re\x7fqust\r\n"
+error *errors.errorString unexpected EOF
+=== 326 "HTTP/1.0 200 OK\r\nConection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Conection=["kéep-alive"] Connection=["x,,keep-alive ,"]
+body="" <nil>
+=== 327 "HTTP/1.1 2"
+error *errors.errorString malformed HTTP status code "2"
+=== 328 "\nHTTP/1.1 301 Movd\r\nLocation: /x\r\nConnction: close\r\n\r\n"
+error *errors.errorString malformed HTTP response ""
+=== 329 "HTTP/1.0 404 Not Fund\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+"404 Not Fund" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body to eof" <nil>
+=== 330 "HTTP/1.0 200 OK\r\nConne"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conne"
+=== 331 "HTTP/1.0 200 Connected"
+error *errors.errorString unexpected EOF
+=== 332 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=uf-8\r"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: text/plain; charset=uf-8\r"
+=== 333 "HTT/"
+error *errors.errorString malformed HTTP response "HTT/"
+=== 334 "HTTP/1. 200 OK\r\nontent-Lenth: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 335 "HTTP/1.1 400 Bad Request\r\nContent-ype: text/plain; charset=utf-8\r\nConnectio"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connectio"
+=== 336 "HTTP/1.0 200 Connected to Go RPC\r\n\n\n"
+"200 Connected to Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="\n" <nil>
+=== 337 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody t\r\no eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body t\r\no eof" <nil>
+=== 338 "H\r\n\r\nTTP/1.0 200 Con\x7fnected to Go RPC\n\n"
+error *errors.errorString malformed HTTP response "H"
+=== 339 "HTTP/1.0 200 Connected\t to Go RP"
+error *errors.errorString unexpected EOF
+=== 340 "HTTP/1.0 200 Conneted to Go RP"
+error *errors.errorString unexpected EOF
+=== 341 "HTTP/1.1 200 OK\r\nConnetion: foo, \t CLOSE \t,b\x01ar\r\nContent-Length-: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connetion: foo, \t CLOSE \t,b\x01ar"
+=== 342 "HTTP/1.1200 OK\r\nConnection: clos\r\nConnectio: closed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "OK"
+=== 343 "HTTP/1.1 200 OK\rontent-Length: 2\r\nX"
+error textproto.ProtocolError malformed MIME header: missing colon: "X"
+=== 344 "HTTP/1.1 301 Moved\r\nLocation: x\r\nConnection: c\r\nlose\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "lose"
+=== 345 "HTTP/1.0 200- Conected to- Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "200-"
+=== 346 "HTTP/1.1 200 OK\rConn"
+error *errors.errorString unexpected EOF
+=== 347 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 348 "HTTP/1.0 200 Connectd toGo R PC\n\n"
+"200 Connectd toGo R PC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 349 "HTTP/1.1 400 Bad Request\r\nCon-tent-Type: text/plain; charset=utf-8\r\nConnection"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connection"
+=== 350 "HTTP/1.1 200"
+error *errors.errorString unexpected EOF
+=== 351 "HTTP/1.0 4"
+error *errors.errorString malformed HTTP status code "4"
+=== 352 "\x01HTTP/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "\x01HTTP/1.1"
+=== 353 "HTTP/1.1 200 OK\r\nContent-Lengt0h: 2\r\nX-A"
+error textproto.ProtocolError malformed MIME header: missing colon: "X-A"
+=== 354 "\r\nHTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokm"
+error *errors.errorString malformed HTTP response ""
+=== 355 "HTTP/1.0 200 OK\r\nonnection: Keep-Alive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Onnection=["Keep-Alive"]
+body="rest" <nil>
+=== 356 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A: \r\n\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X-A=[""]
+body="ok" <nil>
+=== 357 "HTTP/1.0 200 OK\r\nC-onnection: kéep-"
+error *errors.errorString unexpected EOF
+=== 358 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-"
+error textproto.ProtocolError malformed MIME header: missing colon: "X-"
+=== 359 "HTTP/1.1 "
+error *errors.errorString malformed HTTP status code ""
+=== 360 "TTP1.1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP version "TTP1.1"
+=== 361 "HTTP/1("
+error *errors.errorString malformed HTTP response "HTTP/1("
+=== 362 "HTTP/1\r1"
+error *errors.errorString malformed HTTP response "HTTP/1\r1"
+=== 363 "HTTP/1.0 200 Coneted t Go RPC\n\n"
+"200 Coneted t Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 364 "HTTP/1.0 200 OK\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 365 "HTTP/1"
+error *errors.errorString malformed HTTP response "HTTP/1"
+=== 366 "HTTP/1.0 2"
+error *errors.errorString malformed HTTP status code "2"
+=== 367 "HTTP/11( "
+error *errors.errorString malformed HTTP status code ""
+=== 368 "HTTP/a1.1 200 OK\r\n\tConnection: foo, \t CLO\r\n\r\nSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/a1.1"
+=== 369 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nC"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 370 "HTTP/1.0 404 \nNot Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error textproto.ProtocolError malformed MIME header: missing colon: "Not Found"
+=== 371 "HTTP/1.0 "
+error *errors.errorString malformed HTTP status code ""
+=== 372 "\x7fHTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\r\n"
+error *errors.errorString malformed HTTP version "\x7fHTTP/1.0"
+=== 373 "HTTP/1.1 20 OK\r\nConection: clos\r\nConnection: closed, Clo"
+error *errors.errorString malformed HTTP status code "20"
+=== 374 "HTTP/1.1 200 OK\r\nConnection: clos\rConnection: cosed, Close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: clos\rConnection: cosed, Close"
+=== 375 "HT\rTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "HT\rTP/1.0"
+=== 376 "HTTP/1.1 204 No ontent\r\n\r\n"
+"204 No ontent" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 377 "TTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: close\r\n\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 378 "HTTP/1.1 200 OK\r\nConnection:\r clos\r\nConnection: closed, Close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection:\r clos"
+=== 379 "HTTP/1:.1 204 No Con\r\nten:t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1:.1"
+=== 380 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: clse\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["clse"] Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 381 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnec"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connec"
+=== 382 "HTTP/1.0 200 Connected  G"
+error *errors.errorString unexpected EOF
+=== 383 "HTTP/1.0 200 OK\r\nCnnection: kéep-live\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Cnnection=["kéep-live"] Connection=["x,,keep-alive ,"]
+body="" <nil>
+=== 384 "HTTP/1.1 204 No Content\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 385 "HTTP/1.1 204 No Content\r-\n\r\n"
+"204 No Content\r-" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 386 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep\x7f-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: x,,keep\x7f-alive ,"
+=== 387 "HTTP/1\x7f.1 301 Moved\r\nLocation: /x\r\nConnection: close\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1\x7f.1"
+=== 388 ":"
+error *errors.errorString malformed HTTP response ":"
+=== 389 "HTTP/1.1 200 OK\r\nContaent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Contaent-Length=["2"] X-A=["1"]
+body="okmore" <nil>
+=== 390 "HTTP/1.0 200 OK\r\x01\nConnection: Keep-Alive\r\n\r\nrest"
+"200 OK\r\x01" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="rest" <nil>
+=== 391 ""
+error *errors.errorString unexpected EOF
+=== 392 "HTTP/1.1 400 Bad Request\r\nContent-Type:-"
+error *errors.errorString unexpected EOF
+=== 393 "HTTP/1.1 30\r\n\r\n1 Moved\r\nLoc"
+error *errors.errorString malformed HTTP status code "30"
+=== 394 "HTTP/1.1 301 Mved\r\nLocation: /x"
+error *errors.errorString unexpected EOF
+=== 395 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\r\n400 Bad Request"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 396 "HTTP/1.1 200 OK\r\n(Connection: foo, \t CLOSE \t,ba\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "(Connection: foo, \t CLOSE \t,ba"
+=== 397 "HTTP/1.0 200\n OK\r\nCo(nnection: Keep-Alive\r\n\r\nrest"
+error textproto.ProtocolError malformed MIME header initial line: " OK"
+=== 398 "HTTP/1.0 404 Not"
+error *errors.errorString unexpected EOF
+=== 399 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n40\x010 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="40\x010 Bad Request" <nil>
+=== 400 "HTTP/1.1 200 OK\r\nConnection: clos\r\nCon"
+error textproto.ProtocolError malformed MIME header: missing colon: "Con"
+=== 401 "HTTP/1.0 40"
+error *errors.errorString malformed HTTP status code "40"
+=== 402 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nConten"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conten"
+=== 403 "HTT/1.1 200 OK\r\nConnection:foo, \t CLOSE ,bar\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT/1.1"
+=== 404 "HTTP/1.-1 200 OK\r\nConne"
+error *errors.errorString malformed HTTP version "HTTP/1.-1"
+=== 405 "HTTP/1.:1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.:1"
+=== 406 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\n\r\n\r\nContent-Length: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="\r\nContent-Length: 0\r\n\r\n" <nil>
+=== 407 "HTTP/1.0 200OK\nCo"
+error *errors.errorString malformed HTTP status code "200OK"
+=== 408 "HTT P/1.("
+error *errors.errorString malformed HTTP status code "P/1.("
+=== 409 "HTTP1.0 200 OK\r\nConne"
+error *errors.errorString malformed HTTP version "HTTP1.0"
+=== 410 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\n400 Bad Reqest"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Reqest" <nil>
+=== 411 ""
+error *errors.errorString unexpected EOF
+=== 412 "HTTP/1."
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 413 "HTTP/1.1 204 No Conten"
+error *errors.errorString unexpected EOF
+=== 414 "HTTP/1.1 200OK\r\nContent-Length: 2\r\n-A: 1\r\n\r\nokore"
+error *errors.errorString malformed HTTP status code "200OK"
+=== 415 "HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\nres"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="res" <nil>
+=== 416 "HT\tTP/1.0 200 OK\r\nCon\rnection: kéep-aalive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP version "HT\tTP/1.0"
+=== 417 "HTTP/.0 200 OK"
+error *errors.errorString malformed HTTP version "HTTP/.0"
+=== 418 "HTTP/1.1 301 Moved\r\nLocat:ion: /x\r\nConnec:tion: close\r"
+error textproto.ProtocolError malformed MIME header line: "Connec:tion: close\r"
+=== 419 "HTTP/1.1 200 OK\r\nConnection: f\x01oo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: f\x01oo, \t CLOSE \t,bar"
+=== 420 "HTT\x01P/é1.1 400 Bad Request\r\nContent-Type: text"
+error *errors.errorString malformed HTTP version "HTT\x01P/é1.1"
+=== 421 "HTTP/1.0 404 Not Found\r\nContent-Type: text\r\n\r\n/plain\r\n\r\nbody to eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text"]
+body="/plain\r\n\r\nbody to eof" <nil>
+=== 422 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Clse\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["clos" "closed, Clse"]
+body="" <nil>
+=== 423 "HTTP/1.0 404 Not Found\r\nContent-\tType: text/plain\r\n\r\nbody to eof"
+error textproto.ProtocolError malformed MIME header line: "Content-\tType: text/plain"
+=== 424 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to of"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body to of" <nil>
+=== 425 "HTTP/1.0 404 Not"
+error *errors.errorString unexpected EOF
+=== 426 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnec"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connec"
+=== 427 "HTTP/1\x7f.0 200 OK\r\nConnection: Keep-Al:ive\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "HTTP/1\x7f.0"
+=== 428 "H"
+error *errors.errorString malformed HTTP response "H"
+=== 429 "HTTP/1.0 404 Not Found\r\notent-Type: text/plain\r\n\rbody to eof"
+error textproto.ProtocolError malformed MIME header: missing colon: "\rbody to eof"
+=== 430 "HTTP/1.1 204 No Cotent\r\n\r\n"
+"204 No Cotent" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 431 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nCon\r\nnection: x,,keep-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Con"
+=== 432 "HTTP/1.0 404 No"
+error *errors.errorString unexpected EOF
+=== 433 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; char"
+error *errors.errorString unexpected EOF
+=== 434 "HTTP1.1 400 Bad Request\r\nContent-Type:  text/plain;"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 435 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConection"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conection"
+=== 436 "HTTP/1.1 200 OK\r\nCon0nection: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Con0nection=["clos"]
+body="" <nil>
+=== 437 "H"
+error *errors.errorString malformed HTTP response "H"
+=== 438 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nConent-Length: 0\r\n\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Conent-Length=["0"]
+body="" <nil>
+=== 439 "HTTP/1.0 200 OK\r\nConnect\rion: kéep-alive\r\nConnection: x"
+error textproto.ProtocolError malformed MIME header line: "Connect\rion: kéep-alive"
+=== 440 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-"
+=== 441 "HTP/1.0 200 OK\r\nConnection: Kee-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 442 "HTTP/1.0 2"
+error *errors.errorString malformed HTTP status code "2"
+=== 443 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: cose\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["cose"] Location=["/x"]
+body="" <nil>
+=== 444 "HTTP/.1 204 No Con0tent\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 445 "HTTP/1.0 200 OK\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 446 "HTTP/1.1 400 Bad Requ"
+error *errors.errorString unexpected EOF
+=== 447 "HTTP/1.1 200 OK\r\nConnection:\r\n foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=0 te=[] uncompressed=false
+Content-Length=["0"]
+body="" <nil>
+=== 448 "HTTP/1."
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 449 "HTTP/1\n.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP response "HTTP/1"
+=== 450 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to of"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body to of" <nil>
+=== 451 "HTTP/1.0 404 Not\n Found\r\nContent-T"
+error textproto.ProtocolError malformed MIME header initial line: " Found"
+=== 452 ""
+error *errors.errorString unexpected EOF
+=== 453 "HTTP/1.1 204 No \r\n\r\nContent\r\n\r\n"
+"204 No " 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 454 "HTTP/1.0 200"
+error *errors.errorString unexpected EOF
+=== 455 "HTTP/1.0 404 Not Found\r\nConten"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conten"
+=== 456 "HTTP/.0 200 OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "HTTP/.0"
+=== 457 "HTTP/1.1 20 OK\r\nCéontent-L"
+error *errors.errorString malformed HTTP status code "20"
+=== 458 "HTTP/1.\n1 204"
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 459 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset\r\n\r\n=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset"]
+body="=utf-8\r\nConnection: close\r\n\r\n400 Bad Request" <nil>
+=== 460 "HTTPé"
+error *errors.errorString malformed HTTP response "HTTPé"
+=== 461 "HTTP/1.1 204 No "
+error *errors.errorString unexpected EOF
+=== 462 "HTTP/1.0 200 OK\r\n\x7fConnection: Keep-Alive\r\n\r\nreast"
+error textproto.ProtocolError malformed MIME header line: "\x7fConnection: Keep-Alive"
+=== 463 "HTTP/1.1 301 Moved\r\r\n\r\n\nLocation: /x\r\nConnection: close\r\n\r\n"
+"301 Moved\r" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="\nLocation: /x\r\nConnection: close\r\n\r\n" <nil>
+=== 464 "\r\n\r\n"
+error *errors.errorString malformed HTTP response ""
+=== 465 "HTTP/.0 200\t Connect"
+error *errors.errorString malformed HTTP status code "200\t"
+=== 466 "HTTP/1.1 200 OK\r\nConnectio\tn: foo, \t C-LOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connectio\tn: foo, \t C-LOSE \t,bar"
+=== 467 "HTTP"
+error *errors.errorString malformed HTTP response "HTTP"
+=== 468 "HTTP/1.0 200 OK\r\nCone0ction: kéep-alive\r\nConnection: \x7fx,,keep-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: \x7fx,,keep-alive ,"
+=== 469 "HTTP/1.1 204 No Conten t\r(\n\r\n"
+"204 No Conten t\r(" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 470 "HTTP/1:.1 "
+error *errors.errorString malformed HTTP status code ""
+=== 471 "HTTP/1.\n1"
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 472 "HTTP/1.0 "
+error *errors.errorString malformed HTTP status code ""
+=== 473 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Location=["/x"]
+body="" <nil>
+=== 474 "HTTP/1.0 200 Conected to Go RPC\n\n"
+"200 Conected to Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 475 "HT\tTP/1.\x011 204 No Contenté\r\n\r\n"
+error *errors.errorString malformed HTTP version "HT\tTP/1.\x011"
+=== 476 "\x7fHTTP"
+error *errors.errorString malformed HTTP response "\x7fHTTP"
+=== 477 "HTTP1.0 200 OK\r\nCon\nnection: k\xc3"
+error *errors.errorString malformed HTTP version "HTTP1.0"
+=== 478 "HTTP/1.1 301 Moved\r\nLoction: /x\r\nConnectio"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connectio"
+=== 479 "HTTP/1.\r\n\r\n0 200 Conneted to Go RPC\n\n"
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 480 "HTTP/1.1 \x01400 Bad Request\r\nConteént-Type: text/pla\r\n\r\nin; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+error *errors.errorString malformed HTTP status code "\x01400"
+=== 481 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: foo, \t CLOSE \t,bar\r"
+=== 482 "HTT\rP/1.0 2:00 Co"
+error *errors.errorString malformed HTTP status code "2:00"
+=== 483 "HTTP/1.1 200 OK\r\nContent-Lenth: 2\r\nX-A: 1\r\n\r\nokmore:"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Lenth=["2"] X-A=["1"]
+body="okmore:" <nil>
+=== 484 "HTTP/1.0 404 Not Found\r\nContent"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content"
+=== 485 "HTTP/1.1 301 Moved\r\nLocaton:/x\r\nConnection: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Locaton=["/x"]
+body="" <nil>
+=== 486 "HTéTP/1.1 200 O"
+error *errors.errorString malformed HTTP version "HTéTP/1.1"
+=== 487 "HTTP/1.1 204 No Cont\net\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "et"
+=== 488 "HTTP/1.0 200 OK\r\nConnection: kée\r\np-ali"
+error textproto.ProtocolError malformed MIME header: missing colon: "p-ali"
+=== 489 "HTTP/\x7f1.0 44 Not Found\r"
+error *errors.errorString malformed HTTP status code "44"
+=== 490 "HTTP/1.0 200 \tConnected o Go RP"
+error *errors.errorString unexpected EOF
+=== 491 "HTTP/1.0 2000 Connected t\ro Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "2000"
+=== 492 "HTTP/1.0 200 "
+error *errors.errorString unexpected EOF
+=== 493 "HTTP1.1 200 OK\r\nConnection: foo, \t CLOSE \r\n\t,bar\r\nC"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 494 "HTTP/1.1 200 OK\x7f\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK\x7f" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 495 "HTTP/1.1 400 Bad Request\r\nContent"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content"
+=== 496 "H9TTP/1.1 301 Moved\r\nLocation: /x\r\nConne"
+error *errors.errorString malformed HTTP version "H9TTP/1.1"
+=== 497 "HT\tTP/1.1 400 Bad R"
+error *errors.errorString malformed HTTP version "HT\tTP/1.1"
+=== 498 "HTTP/1.1 200OK\r\nContent-Length: 2\r"
+error *errors.errorString malformed HTTP status code "200OK"
+=== 499 " HTTP/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP status code "HTTP/1.1"
+=== 500 "HTTP1.0 404 ot Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTTP1.0"
+=== 501 ""
+error *errors.errorString unexpected EOF
+=== 502 "HTTP/1.1 200 OK\r\nonnection: clos\r-\nCon"
+error textproto.ProtocolError malformed MIME header line: "Onnection: clos\r-"
+=== 503 "HTTP/1.1 200 OK\r\nConnection: clos\r\nCon\rnectin: cl0osed, Close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Con\rnectin: cl0osed, Close"
+=== 504 "HTTP/1.0 200 K\r\nConne"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conne"
+=== 505 "HTTP/1.1 200 OK\r\nConnecti on: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connecti on=["clos"]
+body="" <nil>
+=== 506 "HTT"
+error *errors.errorString malformed HTTP response "HTT"
+=== 507 "HTTP/1.0"
+error *errors.errorString malformed HTTP response "HTTP/1.0"
+=== 508 "HTTP/1.1 301 Moved\r\nL"
+error textproto.ProtocolError malformed MIME header: missing colon: "L"
+=== 509 "H9TTP/"
+error *errors.errorString malformed HTTP response "H9TTP/"
+=== 510 "HTTP/1.1 400 Bad R0equest\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad"
+"400 Bad R0equest" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad" <nil>
+=== 511 "HTP/1. 301 Moved\r\nLocation: /x\r\nConnection: close\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1."
+=== 512 "HT\tTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "HT\tTP/1.0"
+=== 513 "\rHTP/1.0 200 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP version "\rHTP/1.0"
+=== 514 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOE \t,bar\r\nContent-Length: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+Connection=["foo, \t CLOE \t,bar"] Content-Length=["0"]
+body="" <nil>
+=== 515 "HTTP/1.0 200 O(K\r\nConnection: kéep-alve\r\nConn\rection: x,,keep-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Conn\rection: x,,keep-alive ,"
+=== 516 "HTTP/1.1 400 Bad Reques\x01t\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Reques\x01t" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 517 "HTTP/1.0 200 OK\r\nConnectio\nn: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connectio"
+=== 518 "HTTP/1.0 200 OK\r\nConnectioné: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connectioné: kéep-alive"
+=== 519 "HTP/1.0 20 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 520 "HTTP/\t1.0 404 Not Found\nContent-Type: text/plain\r\n\r\nbody"
+error *errors.errorString malformed HTTP version "HTTP/\t1.0"
+=== 521 "HTTP/1.0 20 Connec"
+error *errors.errorString malformed HTTP status code "20"
+=== 522 "HTTP/1.1 200 OK\r\nC"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 523 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: cloe\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["cloe"] Location=["/x"]
+body="" <nil>
+=== 524 "HTTP/1.1 200 OK\r\nCon"
+error textproto.ProtocolError malformed MIME header: missing colon: "Con"
+=== 525 "a"
+error *errors.errorString malformed HTTP response "a"
+=== 526 "HTTP/1.0 \r404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP status code "\r404"
+=== 527 "HTTP/1.0\n 200 OK\r\nConnection: KeepAli\tve\r\n\r\nrest"
+error *errors.errorString malformed HTTP response "HTTP/1.0"
+=== 528 "HTP/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 529 "HTT1.0 200 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP version "HTT1.0"
+=== 530 "HTTP1.1 301 Movedé\r\nLocation: /x\r\nConnecton: close\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 531 "HTTP/1.a0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTTP/1.a0"
+=== 532 "HTTP/1.1 400 Bad Request\r\nContent-Type: te"
+error *errors.errorString unexpected EOF
+=== 533 "HTTP/11 301 Moved\r\nLocat-ion: /x\r\nConnectiaon: close\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 534 "HTTP/1.1 200 OK\r\nConnection: foo,  CLOSE \t,bar\r\nConten\rt-Length: 0 \r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Conten\rt-Length: 0"
+=== 535 "HTTP/1.1 200 O\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+"200 O" 200 HTTP/1.1 1.1 close=true len=0 te=[] uncompressed=false
+Content-Length=["0"]
+body="" <nil>
+=== 536 "0HTTP/1.0 200 Connected to o \nRPC\n\n"
+error *errors.errorString malformed HTTP version "0HTTP/1.0"
+=== 537 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnectio:n"
+error *errors.errorString unexpected EOF
+=== 538 "HTTP/1.1 200 OK\r\nCon\x01tent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error textproto.ProtocolError malformed MIME header line: "Con\x01tent-Length: 2"
+=== 539 "HTTP1.1 200 OK\r\nConnection: clos\r\nConnection: clsed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 540 "HTT:P/.0 200 Connected to o RPC\n\n"
+error *errors.errorString malformed HTTP version "HTT:P/.0"
+=== 541 "HTTP/1.1 200 OK\r\nContent\r-Length: 2\r\nX-A: 1\r\n"
+error textproto.ProtocolError malformed MIME header line: "Content\r-Length: 2"
+=== 542 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: "
+error *errors.errorString unexpected EOF
+=== 543 "HTTP/1.1 400 Bad Request\r\nCntent-Type: text/plain; charset=utf-8\r\nConnection: clos\r\ne\r\n\r\n400 Bad Re"
+error textproto.ProtocolError malformed MIME header: missing colon: "e"
+=== 544 "HTTP/(1.0 404 Not Foéund\r\nContent-Ty\x01pe: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTTP/(1.0"
+=== 545 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody t"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body t" <nil>
+=== 546 "HTTP/1.0 200 OK\r\nConnection: kéep(-alive\r\nConnection: x,,keep-alive ,\r9\n\r\n\x01"
+error textproto.ProtocolError malformed MIME header line: "Connection: x,,keep-alive ,\r9"
+=== 547 "HTTP/1.1 204 No"
+error *errors.errorString unexpected EOF
+=== 548 "HTTP/1.0 404 Not F\r\n\r\noun"
+"404 Not F" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="oun" <nil>
+=== 549 "HTTP/1.1 200 OK\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 550 "HTT\tP/1.1 200 OK\r\nConnection: los\r\nConnection: cl"
+error *errors.errorString malformed HTTP version "HTT\tP/1.1"
+=== 551 "HTTP/1.\r\n\r\n\n0 404 Not Found\r\nContent-Type: text/p\tlain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 552 "HTTP/1.1 200 O\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nkmore"
+"200 O" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X-A=["1"]
+body="km" <nil>
+=== 553 "HTTP/1.0 200 OK\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 554 "T"
+error *errors.errorString malformed HTTP response "T"
+=== 555 "HTTP/.1 204 No( Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 556 "HTTP/1.1 204 No Co(n"
+error *errors.errorString unexpected EOF
+=== 557 "HTTP/1.1 200 OK\r\nConnection: "
+error *errors.errorString unexpected EOF
+=== 558 "HTTP/1.1 301 Moved\r\nLocatio"
+error textproto.ProtocolError malformed MIME header: missing colon: "Locatio"
+=== 559 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: cloed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 560 "HTTP/1.1 301 Moved\r\nL-ocation: /x\r\nConn(ection: close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Conn(ection: close"
+=== 561 "HTTP/1.0 :404 Not Fund\r\nContent-Type: te"
+error *errors.errorString malformed HTTP status code ":404"
+=== 562 "HTTP/1.1 200 OK\r\nConnecétion: foo, \t CLOSE \t,bar\r\nContent\x01-ength: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connecétion: foo, \t CLOSE \t,bar"
+=== 563 "HTTP/1.1 200 OK\r\nCnnection: foo, \t CLOSE \t,bar\r\nConte"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conte"
+=== 564 "HTTP/1.0 200 Connected"
+error *errors.errorString unexpected EOF
+=== 565 "HTTP/1. 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 566 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 567 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/p(lain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/p(lain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 568 "HTTP/1.1 301 Moved\r\nLocaion: /\tx\r\nConnection: close\r\n\t\r\n"
+error *errors.errorString unexpected EOF
+=== 569 "Ha TTP"
+error *errors.errorString malformed HTTP status code "TTP"
+=== 570 "HTTP/1.0 200 Conn\nectd to Go RPC\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "ectd to Go RPC"
+=== 571 "HTTP/1.0 200 OK\r\nConnection: Keep-Alv\re\r\n\r\nrest"
+error textproto.ProtocolError malformed MIME header line: "Connection: Keep-Alv\re"
+=== 572 "HTTP/1.1 20 4 No ontent\r\n\r\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 573 "HTTP\t/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP\t/1.1"
+=== 574 "HTTP/1.1 200 OK\r\nConnection: \x7ffoo, \t CLOSE \t,bar\r\nContent-Le"
+error textproto.ProtocolError malformed MIME header line: "Connection: \x7ffoo, \t CLOSE \t,bar"
+=== 575 "HTTP/1.1 204 No Cntent\r\n\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 576 "HTTP/1.1 400 Bad Request\r\nCo9ntent-Tye: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Ba"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Co9ntent-Tye=["text/plain; charset=utf-8"]
+body="400 Ba" <nil>
+=== 577 "HTTP/1.1 200 OK\r\nConnecion: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connecion=["clos"]
+body="" <nil>
+=== 578 "HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\nr"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="r" <nil>
+=== 579 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-a:live ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,,keep-a:live ,"]
+body="" <nil>
+=== 580 "HTTP\n/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP response "HTTP"
+=== 581 "HTTP/1.0 404"
+error *errors.errorString unexpected EOF
+=== 582 "HTTP/1.1 200 OK\r\nConnection: foo\r\n\r\n, \t CLOSE \t,bar\r\x01\nContent-Length: 0\r\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["foo"]
+body=", \t CLOSE \t,bar\r\x01\nContent-Length: 0\r\r\n" <nil>
+=== 583 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=u\rtf-8\r\nConnection: close\r\n\r\n400 Bad9 Request"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: text/plain; charset=u\rtf-8"
+=== 584 "H"
+error *errors.errorString malformed HTTP response "H"
+=== 585 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\r\nbody to eof"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: text/plain\r"
+=== 586 "HTTP/1.0"
+error *errors.errorString malformed HTTP response "HTTP/1.0"
+=== 587 "HTTP/1.1 400 Bad Request\r\nConte nt-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n40\r\n\r\n0 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Conte nt-Type=["text/plain; charset=utf-8"]
+body="40\r\n\r\n0 Bad Request" <nil>
+=== 588 "HTTP/1.1 200 OK\r\nCon"
+error textproto.ProtocolError malformed MIME header: missing colon: "Con"
+=== 589 "HTTP/91.1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP version "HTTP/91.1"
+=== 590 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nonnection: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Location=["/x"] Onnection=["close"]
+body="" <nil>
+=== 591 "HTTP/1.0 404 No\nté Found\r\nConten-Type: text/plain\r\n\r\nbody to eof"
+error textproto.ProtocolError malformed MIME header: missing colon: "té Found"
+=== 592 "HTT/1.0 200 OK\r\r\nConnection: Keep-Alive\r\n\ra\nrest"
+error *errors.errorString malformed HTTP version "HTT/1.0"
+=== 593 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nonection: x,,ke"
+error *errors.errorString unexpected EOF
+=== 594 "HTTP/1.0 404 NotFound\r\nContent-Type: text"
+error *errors.errorString unexpected EOF
+=== 595 "HTTP/1.0 200 Connected to Go RP\r\nC\n\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 596 "H\r\n\r\nTTP/"
+error *errors.errorString malformed HTTP response "H"
+=== 597 "HTT:P/1.1 301 Moved\r\nLocation: /x\r\nConnection: close\t\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTT:P/1.1"
+=== 598 "HTTP/1.0 200 OK\r\nConnectio"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connectio"
+=== 599 "HT\tP/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "HT\tP/1.1"
+=== 600 "HTTP/1.0 200 OK\r\nConnection: kéepalive\r\nConnection: x,,keep-aliv\r\ne ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "e ,"
+=== 601 "HTTP/1.1 200 OK9\r\n\x7fConnection: "
+error textproto.ProtocolError malformed MIME header line: "\x7fConnection:"
+=== 602 "HTTP/1.0 404 Not Foun\r\nContent-T\r\nype: text/plain\r\n\r\nbody to eof"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-T"
+=== 603 ""
+error *errors.errorString unexpected EOF
+=== 604 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,kee"
+error *errors.errorString unexpected EOF
+=== 605 "HTTP/1.1 200 OK\r\nCon\tnection: clos\r\nConnection: closed, Close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Con\tnection: clos"
+=== 606 "HTT/1.1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP version "HTT/1.1"
+=== 607 "HTTP/1.1 200 OK\r\nConn-ection: foo, \t CLOSE \t,bar\r\nContent-éLenth: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Content-éLenth: 0"
+=== 608 "HTTP/1.1 200 \rOK\r\nContent-Length:"
+error *errors.errorString unexpected EOF
+=== 609 "H-TTP/1.1 200 OK\r\nCo"
+error *errors.errorString malformed HTTP version "H-TTP/1.1"
+=== 610 "HTTP"
+error *errors.errorString malformed HTTP response "HTTP"
+=== 611 "H"
+error *errors.errorString malformed HTTP response "H"
+=== 612 "HTTP/1.0404 Not Found\r\nContent-Type: tex/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP status code "Not"
+=== 613 "HTTP/1.1 200 OK\r\nConnection: clos\r\n"
+error *errors.errorString unexpected EOF
+=== 614 "HTTP/1.1 200 OK\r\nConne"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conne"
+=== 615 "HTT/1.1204 No Co"
+error *errors.errorString malformed HTTP status code "No"
+=== 616 "HTTP/1.1 200 OK\r\nContent-Length: 2\nX-A: 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X-A=["1"]
+body="ok" <nil>
+=== 617 "HTTP/1.1 20"
+error *errors.errorString malformed HTTP status code "20"
+=== 618 "HTTP/1.0 404 Not F"
+error *errors.errorString unexpected EOF
+=== 619 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive"
+error *errors.errorString unexpected EOF
+=== 620 "HTTP/1.1 200 OK\r\nContent"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content"
+=== 621 "HTTP/1.0  200 OK\r\nConnection: kéep-aliv e\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-aliv e" "x,,keep-alive ,"]
+body="" <nil>
+=== 622 "HTTP/1.1 200 OK\rCon\rnection: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK\rCon\rnection: clos" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 623 "HT TP/1.1 200 OK\r"
+error *errors.errorString malformed HTTP status code "TP/1.1"
+=== 624 "HTTP/1.0 200 Conne\x7fcted t "
+error *errors.errorString unexpected EOF
+=== 625 "HTTP/1.1 301 Moved\r\nLocation\r: /x\r\nConnection: close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Location\r: /x"
+=== 626 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection:"
+error *errors.errorString unexpected EOF
+=== 627 "HTTP/1.1( 400 Bad Re"
+error *errors.errorString malformed HTTP version "HTTP/1.1("
+=== 628 "\rHTTP/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "\rHTTP/1.1"
+=== 629 "HTTP/1.0 200 Conne(ced to Go RPC\n\n"
+"200 Conne(ced to Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 630 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-aliv ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,,keep-aliv ,"]
+body="" <nil>
+=== 631 "HTTP/01.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to e\r\n\r\nof"
+error *errors.errorString malformed HTTP version "HTTP/01.0"
+=== 632 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed\t, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 633 "HTTP/1.1 204 No Cont\x7fent\r\n"
+error *errors.errorString unexpected EOF
+=== 634 "HTTP/1.020"
+error *errors.errorString malformed HTTP response "HTTP/1.020"
+=== 635 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: x,,keep-alive ,\r"
+=== 636 "HTTP/11 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/11"
+=== 637 "HTTP/1.1 301 Moved\r\nLocation:( /x\r\nConnection: close\r\né\r"
+error textproto.ProtocolError malformed MIME header: missing colon: "é\r"
+=== 638 "HTTP/1.1 200 OK\r\nCntent-Length: 2\r\nXA: 1\r\na\r\nokmore"
+error textproto.ProtocolError malformed MIME header: missing colon: "a"
+=== 639 "HTTP/1.0 00 OK"
+error *errors.errorString malformed HTTP status code "00"
+=== 640 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnectio:"
+error *errors.errorString unexpected EOF
+=== 641 "HTTP/1.1 301 Move"
+error *errors.errorString unexpected EOF
+=== 642 "HTTP/1.1 20 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP status code "20"
+=== 643 "HTTP/1.0 2"
+error *errors.errorString malformed HTTP status code "2"
+=== 644 "HTTP/1.0 200 OK\r\nConnectio\x7fn: Keep-Alive\r\n\r\nrest"
+error textproto.ProtocolError malformed MIME header line: "Connectio\x7fn: Keep-Alive"
+=== 645 "H"
+error *errors.errorString malformed HTTP response "H"
+=== 646 "HTTP/1.1 200 OK\r\nContent-Lengt: 2\r\nX-A: 1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Lengt=["2"] X-A=["1"]
+body="okmore" <nil>
+=== 647 "HTTP/1.1 20"
+error *errors.errorString malformed HTTP status code "20"
+=== 648 "HTTP/1.1 200 OK"
+error *errors.errorString unexpected EOF
+=== 649 "HTTéP/1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTéP/1.1"
+=== 650 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContentLength: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Contentlength=["0"]
+body="" <nil>
+=== 651 "HTTP/1.\r1 2"
+error *errors.errorString malformed HTTP status code "2"
+=== 652 "HTTP/1.1 200 OK\r\nConnection:9 clos\r\nCo\tnnection: closed, Close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Co\tnnection: closed, Close"
+=== 653 "HTTP/1.1 301 Moved\r\nLocation:"
+error *errors.errorString unexpected EOF
+=== 654 "HTTP/\t1.\r\n\r\n1 20"
+error *errors.errorString malformed HTTP response "HTTP/\t1."
+=== 655 "HTTP/1.1 00 OK\r\nConnetion: clos\r\nConnecti(on: closed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "00"
+=== 656 "HTTP/1.1 400 Bad Request\r\nContent-Type: textlain; char"
+error *errors.errorString unexpected EOF
+=== 657 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,keep-live ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,keep-live ,"]
+body="" <nil>
+=== 658 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nCont\r\n\r\nent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Cont"
+=== 659 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r"
+=== 660 "HTTP/1.0 404 Not Found\r\nContentType: text/plain\r\n\r\nbody to eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Contenttype=["text/plain"]
+body="body to eof" <nil>
+=== 661 "HTTP/\n1.1 204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP response "HTTP/"
+=== 662 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nCon\nnectioné: x,,keep-alive ,"
+error textproto.ProtocolError malformed MIME header: missing colon: "Con"
+=== 663 "HTTP/1.1"
+error *errors.errorString malformed HTTP response "HTTP/1.1"
+=== 664 "HTTP/1.1 \x01204 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP status code "\x01204"
+=== 665 "HTTP/1.1 204 No Conten-t\r\n\r\n"
+"204 No Conten-t" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 666 "HTTP/1.1 200 OK\r\nCao"
+error textproto.ProtocolError malformed MIME header: missing colon: "Cao"
+=== 667 "HTTP/1.1 200 OK\r\nCont:ent-Length: 2\r\nX-A: \r\n\r\nokmor"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Cont=["ent-Length: 2"] X-A=[""]
+body="okmor" <nil>
+=== 668 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE"
+error *errors.errorString unexpected EOF
+=== 669 "HTTP/1.1 301 Moved\r\nLocation: /x\rConnection: cose\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Location: /x\rConnection: cose"
+=== 670 "HTTP/1.1 204 No Cntent\r\n\r\n"
+"204 No Cntent" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 671 "HTTP/1.1 400 Bad Reques\r\nContent-Type: text/plain; charset=utf-8\r\nConection: close\r\n\r\n40 Bad Request"
+"400 Bad Reques" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Conection=["close"] Content-Type=["text/plain; charset=utf-8"]
+body="40 Bad Request" <nil>
+=== 672 "HTTP/1.0 404 Not Found\r\nCo9ntent-Type: text/plain\r\n\r\nbody to eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Co9ntent-Type=["text/plain"]
+body="body to eof" <nil>
+=== 673 "HTTP/1.0 404 Not Found\ra\nContent-Type: tex"
+error *errors.errorString unexpected EOF
+=== 674 "HTTP/1.0 200"
+error *errors.errorString unexpected EOF
+=== 675 "HTTP/1.0 200 Conneced to G RPC\n\n"
+"200 Conneced to G RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 676 "HTTP/1.1 200 OK\r\nConnection: clos\r\nCon\x7fection: closed, Close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Con\x7fection: closed, Close"
+=== 677 "HTTP/1.0 404 Not (Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+"404 Not (Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body to eof" <nil>
+=== 678 "HTTP/1.0 200 OK\r\r\nConnection: kée"
+error *errors.errorString unexpected EOF
+=== 679 "HTTP/1.0 404 Not Found\r\nContent-Type"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Type"
+=== 680 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE"
+error *errors.errorString unexpected EOF
+=== 681 "HTTP/1.1 200 OK\r\nCo\x7fnnection: clos\r\nConnection: closed, Close\r\n\x01\r\n"
+error textproto.ProtocolError malformed MIME header line: "Co\x7fnnection: clos"
+=== 682 "HTTP/1.0 200 OK\r\nConnectio9n: Keep-Alive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connectio9n=["Keep-Alive"]
+body="rest" <nil>
+=== 683 "HTTP/1.1 400 B\x7fad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 B\x7fad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 684 "HTT"
+error *errors.errorString malformed HTTP response "HTT"
+=== 685 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-"
+error *errors.errorString unexpected EOF
+=== 686 "HTTP9/1.1 "
+error *errors.errorString malformed HTTP status code ""
+=== 687 "HTT/1.1 200 OK\r\nCon9nec"
+error *errors.errorString malformed HTTP version "HTT/1.1"
+=== 688 "HTTP/1.1 200 OK\r\nC\tontent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error textproto.ProtocolError malformed MIME header line: "C\tontent-Length: 2"
+=== 689 "HTTP/1.0 404 Not Found\r\nContent-Type: text/pla"
+error *errors.errorString unexpected EOF
+=== 690 "HTTP/1.1 200 OK\r\nConnection: foo \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+Connection=["foo \t CLOSE \t,bar"] Content-Length=["0"]
+body="" <nil>
+=== 691 "HTTP/1.1 200 OK\r\nContent-Length:"
+error *errors.errorString unexpected EOF
+=== 692 "TTP/1.0 20 Connected to G-o RPC\n\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 693 "HTT\x7fP/1.1 204 No Conten"
+error *errors.errorString malformed HTTP version "HTT\x7fP/1.1"
+=== 694 "HTTP/1.1 200 OK\r\nConnec tion: foo, \t "
+error *errors.errorString unexpected EOF
+=== 695 "HTTP/1.0404 Not Found\r\nContent-Type: txt/pain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP status code "Not"
+=== 696 "HTTP/1.1 200 OK\r \nConten-Length: 2\r\nX-A: 1"
+error *errors.errorString unexpected EOF
+=== 697 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 698 "HTTP/1.1 200 OK\r\nConn\r\nection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conn"
+=== 699 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 700 "HTTP/1.00 200 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP version "HTTP/1.00"
+=== 701 "HTTP/1.1 200OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmo\rre"
+error *errors.errorString malformed HTTP status code "200OK"
+=== 702 "HTTP/1.0 200 OK\r\nConnection: kéep-a"
+error *errors.errorString unexpected EOF
+=== 703 "HTTP/1. 200 "
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 704 "HTTP/1.1 20:0 OK\r\nConnection: clos\r\nConnection: clos\x01ed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "20:0"
+=== 705 ""
+error *errors.errorString unexpected EOF
+=== 706 "HTTP/1.1 400 Bad Request\r\nContent-T"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-T"
+=== 707 "HTTP1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 708 "aHTTP/1.0 200 OK\r\nCon\nnect\x7fion: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP version "aHTTP/1.0"
+=== 709 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nb"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="b" <nil>
+=== 710 "HTTP/.1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 711 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; char(set=utf-8\r\nConection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Conection=["close"] Content-Type=["text/plain; char(set=utf-8"]
+body="400 Bad Request" <nil>
+=== 712 "HTTP/1.0 200 OK\r\n(Connection: kéep-alive\r\nConnection: x,,keep-alive,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "(Connection: kéep-alive"
+=== 713 "HTTP/1.1 200 OK\r\n"
+error *errors.errorString unexpected EOF
+=== 714 "HTT P/1.1 301 Moved\r\nLocatio"
+error *errors.errorString malformed HTTP status code "P/1.1"
+=== 715 "HTTP/1\x7f.1204 No"
+error *errors.errorString malformed HTTP status code "No"
+=== 716 "HTTP/1.0 200 OK\r"
+error *errors.errorString unexpected EOF
+=== 717 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 718 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nC\r\nontent-Legt"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 719 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOS\nE \t"
+error textproto.ProtocolError malformed MIME header: missing colon: "E \t"
+=== 720 "HTTP/1.1 20 OK\r\nConnection: clo\r\nConnectio"
+error *errors.errorString malformed HTTP status code "20"
+=== 721 "HTTP/1.1 200 O\r\nConnectio"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connectio"
+=== 722 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnec:tion: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connec=["tion: x,,keep-alive ,"] Connection=["kéep-alive"]
+body="" <nil>
+=== 723 "HTTP/1é.1 204\r\n\r\n No Content\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1é.1"
+=== 724 "HTTP/1.1 200OK\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "200OK"
+=== 725 "HTTP/1.1 301 Moed\r\nLocation: /x\r\nConnecti"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connecti"
+=== 726 "HTTP/1.0 200 Conneted (to Go RPC\n\n"
+"200 Conneted (to Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 727 "HTTP/1."
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 728 "HTTP/1.0 200 OK\r\nConnection: Keep-A"
+error *errors.errorString unexpected EOF
+=== 729 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Len"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Len"
+=== 730 "HTTP/1.0 200 OK\r\nConnection: kéep"
+error *errors.errorString unexpected EOF
+=== 731 "HTTP\x7f/.1 200 OK\r\nConnection: clos\r"
+error *errors.errorString malformed HTTP version "HTTP\x7f/.1"
+=== 732 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nCo\nnnection: x,,keep-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 733 "H"
+error *errors.errorString malformed HTTP response "H"
+=== 734 "aTT"
+error *errors.errorString malformed HTTP response "aTT"
+=== 735 "HTTP/1.1 200 "
+error *errors.errorString unexpected EOF
+=== 736 "HTTP/1.0 200 Connected to GoRPC\n\n"
+"200 Connected to GoRPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 737 "HTTP\r\n/1.1 200 OK\r\nContent--Length: 2\r"
+error *errors.errorString malformed HTTP response "HTTP"
+=== 738 ""
+error *errors.errorString unexpected EOF
+=== 739 "HTTP/1.1 20 No Cont\x7fen"
+error *errors.errorString malformed HTTP status code "20"
+=== 740 "HTTP/10 200 OK\r"
+error *errors.errorString malformed HTTP version "HTTP/10"
+=== 741 ""
+error *errors.errorString unexpected EOF
+=== 742 "HTTP/1.1 200 OK\r\nConnection: cls\r\nConnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 743 "HTTP/1.0 200: OK\r\nConnection:"
+error *errors.errorString malformed HTTP status code "200:"
+=== 744 "HTTP/1.0200 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "Connected"
+=== 745 "HTTP/1"
+error *errors.errorString malformed HTTP response "HTTP/1"
+=== 746 "HTTP/1.0 200 OK\r\nConnecio\r\n\r\nn: Keep-Alive\r\n\r\nrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connecio"
+=== 747 "H-TTP/1.0 200 OK\r\nC-onnection: \r\nKeep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "H-TTP/1.0"
+=== 748 "HTTP/1.1 200 OK\r\nContent-Length "
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Length "
+=== 749 "H0TTP/1.1"
+error *errors.errorString malformed HTTP response "H0TTP/1.1"
+=== 750 "HTTP/1.1 200 OK\r\nontent"
+error textproto.ProtocolError malformed MIME header: missing colon: "ontent"
+=== 751 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Clo0se\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["clos" "closed, Clo0se"]
+body="" <nil>
+=== 752 "HTTP/1.0 404\n Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error textproto.ProtocolError malformed MIME header initial line: " Not Found"
+=== 753 "HTTP/1.1 -301 Moved\r\nLocation: /x\r\nConnection: clo"
+error *errors.errorString malformed HTTP status code "-301"
+=== 754 "HT\nTP/1.01 20"
+error *errors.errorString malformed HTTP response "HT"
+=== 755 "HTTP/.0 200 OK\r\nConection: kéep-alive\r\nConnection x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/.0"
+=== 756 "TTP/1.1 20\r\n4 N"
+error *errors.errorString malformed HTTP status code "20"
+=== 757 "HTTP/1.0 404 Not Foun\r\n"
+error *errors.errorString unexpected EOF
+=== 758 "HTP/1.1 200 OK\r\nConnection: clos\r\nConnection: "
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 759 " HTTaP/1.0"
+error *errors.errorString malformed HTTP status code "HTTaP/1.0"
+=== 760 "HTTP/1.1 204 No C(ontent\r\n"
+error *errors.errorString unexpected EOF
+=== 761 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,ba\nr\r\nContent-Lengthé: 0\x01\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "r"
+=== 762 "HTTP/1.0 404 Nt Fou"
+error *errors.errorString unexpected EOF
+=== 763 "HTTP/1.0 200 OK\r\n\x7fConnection: kéep-aive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "\x7fConnection: kéep-aive"
+=== 764 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbodyto eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="bodyto eof" <nil>
+=== 765 "HT0TP/1.0 200 Connected to G"
+error *errors.errorString malformed HTTP version "HT0TP/1.0"
+=== 766 "HTTP/1.0 200 OK\r\nConnec\ttion: Keep-Alive\ré\n\r\nest"
+error textproto.ProtocolError malformed MIME header line: "Connec\ttion: Keep-Alive\ré"
+=== 767 "HTTP/1. 404 Not Found-\r\nCntent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 768 "HTP/1.1200 OK\r\nC9ontent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP status code "OK"
+=== 769 "HTTP/1.1 200 OK\r\nonte\r\nnt-Length: 2\r\nX-A\t: 1\r\n\r\nokmore"
+error textproto.ProtocolError malformed MIME header: missing colon: "onte"
+=== 770 "HTTP/1.0 200 Cnncted to Go RPC\n\n"
+"200 Cnncted to Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 771 "HTTP/1.1 301 Mo\r\nved\r\nLocatio"
+error textproto.ProtocolError malformed MIME header: missing colon: "ved"
+=== 772 "9HTTP/1.1 301 Moved\r\nLocation: /x\r\nConection: close\r\n\r\n"
+error *errors.errorString malformed HTTP version "9HTTP/1.1"
+=== 773 "HTTP/1.1 200 OK\rConnection"
+error *errors.errorString unexpected EOF
+=== 774 "HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="" <nil>
+=== 775 "HTTP/1.0 404 Nota Found\r\nContent-Type: tex\rt/plain\r\n\r\nbody to ef"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: tex\rt/plain"
+=== 776 "HTTP/1.0 404 Not Found\r\nContent-Type-: teaxt/plain\r\n\r\nbody to eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type-=["teaxt/plain"]
+body="body to eof" <nil>
+=== 777 "HTTP/1.0200 OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP status code "OK"
+=== 778 "HTTP/1.0 404 Not F o"
+error *errors.errorString unexpected EOF
+=== 779 "HTTP/1. 404 Not Found\r\nContent-Type: text/plaain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 780 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nCo\x7fnection: close\r\n\r\n400 Bad Request"
+error textproto.ProtocolError malformed MIME header line: "Co\x7fnection: close"
+=== 781 "HTTP/1. 2090 OK\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "2090"
+=== 782 "HTTP /.\n1 301 Moved\r\nLocation: /x\r\nConnection: close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "/."
+=== 783 "HTTP/1.1 200 OK\r\nConnection: foéo,\t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=0 te=[] uncompressed=false
+Content-Length=["0"]
+body="" <nil>
+=== 784 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Reques"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Reques" <nil>
+=== 785 "HTTP/1.0 200 OK\r\n\x7fConnection: k\xc3\r\xa9ep-alive\r\nConnection: ,,keep-alive ,\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "\x7fConnection: k\xc3\r\xa9ep-alive"
+=== 786 "HTTP1.1 200 "
+error *errors.errorString malformed HTTP version "HTTP1.1"
+=== 787 "HTTP/1.0 200 OK\r\nConnection: Keep-A\tlve\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-A\tlve"]
+body="rest" <nil>
+=== 788 "HTTP/1.0 200 Connected to "
+error *errors.errorString unexpected EOF
+=== 789 ""
+error *errors.errorString unexpected EOF
+=== 790 "HTTP/1.1 400 Ba\td Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Ba\td Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 791 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnectio"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connectio"
+=== 792 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alie ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,,keep-alie ,"]
+body="" <nil>
+=== 793 "TTP/1.1 204 No Cont"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 794 "HTTP(/1. 200( Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "200("
+=== 795 ""
+error *errors.errorString unexpected EOF
+=== 796 "HTTP/1.0 20 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 797 "HTTP/1.1 2aa04 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP status code "2aa04"
+=== 798 "HTTP/1.0\x7f 200 OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "HTTP/1.0\x7f"
+=== 799 "HTP/1.0 200 OK\r\nConnection: k"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 800 "HTTP/1.1 200 \tOK\r\nConnec"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connec"
+=== 801 "HTTP/1.1 200 OK\r\nConnectio: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connectio=["clos"]
+body="" <nil>
+=== 802 "HTTP/1.0 200 OK\r\nConnection: Ke\rep-Alive\r\n\r\nrest"
+error textproto.ProtocolError malformed MIME header line: "Connection: Ke\rep-Alive"
+=== 803 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Clos\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["clos" "closed, Clos"]
+body="" <nil>
+=== 804 "HTTP/1.0 00 OK\r\nConecti"
+error *errors.errorString malformed HTTP status code "00"
+=== 805 "HTTP/1.1 400 Bad Request\r\nCntent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Cntent-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 806 "HTTP/11 2\x7f00 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\n\r\n"
+error *errors.errorString malformed HTTP status code "2\x7f00"
+=== 807 "HTTP/1.1 301 Moved\r\nLo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Lo"
+=== 808 "HTTP/1.1 301 Mve\r\nLocation: /x\r\nConnection close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connection close"
+=== 809 "HTTP/a1.0 200 Co"
+error *errors.errorString malformed HTTP version "HTTP/a1.0"
+=== 810 "HTTP/\r\n\r\n1.0 404 Not Foun"
+error *errors.errorString malformed HTTP response "HTTP/"
+=== 811 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; \rcharset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+error textproto.ProtocolError malformed MIME header line: "Content-Type: text/plain; \rcharset=utf-8"
+=== 812 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnecion: closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connecion=["closed, Close"] Connection=["clos"]
+body="" <nil>
+=== 813 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: close\r\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: close\r"
+=== 814 "HTTP/1.0 2:00 Connected to Go RPC\né"
+error *errors.errorString malformed HTTP status code "2:00"
+=== 815 "HTTP/1.0 200 Connected to Go R"
+error *errors.errorString unexpected EOF
+=== 816 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: close"
+error *errors.errorString unexpected EOF
+=== 817 "TTP/(1.0 200 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP version "TTP/(1.0"
+=== 818 "HTTP/1.1 301 Moved\r\nLoc\r\n\r\nation: /x\r\nConnection: close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Loc"
+=== 819 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eo\x01f"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body to eo\x01f" <nil>
+=== 820 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConne"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conne"
+=== 821 "HTTP/1.1 200 OK\r\nContent-Length: \r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString invalid empty Content-Length ""
+=== 822 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed,\r"
+error textproto.ProtocolError malformed MIME header line: "Connection: closed,\r"
+=== 823 "HTT/1.0 404 N Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTT/1.0"
+=== 824 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection:close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 825 "HTTP/1.1 301 Moved\r\nLocain: /x\r\nConnection: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Locain=["/x"]
+body="" <nil>
+=== 826 "HTTP/1.0 404 Not Found\r\nContent-Ty"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Ty"
+=== 827 "HTTP/1.0 200 OK\r\nConnection: Keep-Alive"
+error *errors.errorString unexpected EOF
+=== 828 "HTTP/1.1"
+error *errors.errorString malformed HTTP response "HTTP/1.1"
+=== 829 "HTTP/1.1 301 Moved\r\nL"
+error textproto.ProtocolError malformed MIME header: missing colon: "L"
+=== 830 "HTTP/1.1 204 No Conte"
+error *errors.errorString unexpected EOF
+=== 831 "HTTP/1. 200 Connec"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 832 "HTTP/1.1 400 "
+error *errors.errorString unexpected EOF
+=== 833 "HTTP/1.1 200\r\n OK\r\nContent-Length: 2\r"
+error textproto.ProtocolError malformed MIME header initial line: " OK"
+=== 834 "HTTP/1.1 400 Bad Request\r\nContent-Type:\r\n\r\n text/plain; charset=utf-8\r"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=[""]
+body=" text/plain; charset=utf-8\r" <nil>
+=== 835 "HTT/é1.0200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP status code "OK"
+=== 836 "HTT"
+error *errors.errorString malformed HTTP response "HTT"
+=== 837 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 838 "HTTP/1.0 200 OK\r\nConnecti\x01on: :Keep-Alive\r\n\r\nrest"
+error textproto.ProtocolError malformed MIME header line: "Connecti\x01on: :Keep-Alive"
+=== 839 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plan; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plan; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 840 "HTTP/1.2"
+error *errors.errorString malformed HTTP response "HTTP/1.2"
+=== 841 "HTTP/1.0 404 Not "
+error *errors.errorString unexpected EOF
+=== 842 "HTP/1.1 24 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP status code "24"
+=== 843 "HTTP/1.0 200 OK\r\nConnection: K-eep-Alive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["K-eep-Alive"]
+body="rest" <nil>
+=== 844 "HTP/1.1 204 "
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 845 "HTP/1.1 200 O"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 846 "Hé"
+error *errors.errorString malformed HTTP response "Hé"
+=== 847 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=0 te=[] uncompressed=false
+Content-Length=["0"]
+body="" <nil>
+=== 848 "HT\rTP/1.0 200 OK\r\nConnection: k\xc3\r\n\xa9ep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+error *errors.errorString malformed HTTP version "HT\rTP/1.0"
+=== 849 "HTTP/1.1 400 Bad Request\r\nContent-Type: \r\n\r\ntext/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Type=[""]
+body="text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request" <nil>
+=== 850 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnecti-on: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connecti-On=["close"] Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 851 "HTTP/1.1 204 No  Content\r\n\r \n"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r "
+=== 852 "HTTP/1.0 40 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP status code "40"
+=== 853 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection:close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Location=["/x"]
+body="" <nil>
+=== 854 "HTTP/1.1 200 OK\r\nConnection: c los\r\nConnection closed, Close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connection closed, Close"
+=== 855 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: clo\x7fse\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: clo\x7fse"
+=== 856 "HTTP"
+error *errors.errorString malformed HTTP response "HTTP"
+=== 857 "HTP/1.0 20 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "20"
+=== 858 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; chars\r\net=utf-8\r\nConnection: close\r\n\r \n400 Bad Request"
+error textproto.ProtocolError malformed MIME header: missing colon: "et=utf-8"
+=== 859 "HTTP/1.1 301 Mo"
+error *errors.errorString unexpected EOF
+=== 860 "HTTP/1.0 200 Connecteéd to Go RPC\n\n"
+"200 Connecteéd to Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 861 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charst=utf-8\r\nConnecion: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connecion=["close"] Content-Type=["text/plain; charst=utf-8"]
+body="400 Bad Request" <nil>
+=== 862 "HT\tTP/"
+error *errors.errorString malformed HTTP response "HT\tTP/"
+=== 863 "HTTP/1.0 200 OK\r\nConnectio n: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connectio n=["kéep-alive"] Connection=["x,,keep-alive ,"]
+body="" <nil>
+=== 864 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Cose\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["clos" "closed, Cose"]
+body="" <nil>
+=== 865 "TP/1.1 20"
+error *errors.errorString malformed HTTP status code "20"
+=== 866 "HTTP/1.1 200 O(K\r\nContent-Length: 2\r\nX-A: 1"
+error *errors.errorString unexpected EOF
+=== 867 "HTTP/1.0 200 OK\r"
+error *errors.errorString unexpected EOF
+=== 868 ""
+error *errors.errorString unexpected EOF
+=== 869 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection:close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Location=["/x"]
+body="" <nil>
+=== 870 "HTTP/1.0 404 Not Found\r\nContent-Type: text\n/plain\r\n\r\nbody to eof"
+error textproto.ProtocolError malformed MIME header: missing colon: "/plain"
+=== 871 "HTT/1.1 301 Moved\r\nLocation: x\r\nConnection: cl"
+error *errors.errorString malformed HTTP version "HTT/1.1"
+=== 872 "HTTP/1.1 204 No Content\r\n"
+error *errors.errorString unexpected EOF
+=== 873 "HTTP/1.\r\n1 200 OK\r\nConnection:"
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 874 ""
+error *errors.errorString unexpected EOF
+=== 875 "HTTP/1.0 404 Not F"
+error *errors.errorString unexpected EOF
+=== 876 "HTTP/1.1"
+error *errors.errorString malformed HTTP response "HTTP/1.1"
+=== 877 "HTTP/1.1 200 OK\r\nContet-Le\x01ngth: 2\r\nX-A:"
+error textproto.ProtocolError malformed MIME header line: "Contet-Le\x01ngth: 2"
+=== 878 "HTTP/1.1 200 OK\r\nConten\r\n\r\nt-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conten"
+=== 879 "HTP/1.0 404 Not Foun"
+error *errors.errorString malformed HTTP version "HTP/1.0"
+=== 880 "HTTP/-1.1 4009 Bad Request\r\nContent-Type: text/"
+error *errors.errorString malformed HTTP status code "4009"
+=== 881 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keep-alive ,\r\n\r \n"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r "
+=== 882 ":HTTP/1.0 200a Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "200a"
+=== 883 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnect"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connect"
+=== 884 "HTTP/1. 200 OK\r\nC\r\n\r\nonnection: foo, \t CLOS(E \t,bar\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 885 "HTTP/1.1 2\n00 "
+error *errors.errorString malformed HTTP status code "2"
+=== 886 "HTTP/1.0 200 OK\r\nConnection"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connection"
+=== 887 "HTTP/1.0 200 OK\r\nConnection:Keep-Alive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Keep-Alive"]
+body="rest" <nil>
+=== 888 "HTTP/10 200 Co"
+error *errors.errorString malformed HTTP version "HTTP/10"
+=== 889 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Close"
+error *errors.errorString unexpected EOF
+=== 890 "HTTP/1.1 200 OK\r\t\nContent-Length: 2\r\nX-A: 1\r\n\r9\nokmre"
+error textproto.ProtocolError malformed MIME header: missing colon: "\r9"
+=== 891 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/pl"
+error *errors.errorString unexpected EOF
+=== 892 "TTP/1.1 200 OK\r\nConnection: foo, \t  CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP version "TTP/1.1"
+=== 893 "HTTP/1.1 200 OK\r\nConnection: clos\r\nCo\r\nnnection: closed"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 894 "HTTP/1.1 20"
+error *errors.errorString malformed HTTP status code "20"
+=== 895 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nCon:necti\ron: c"
+error textproto.ProtocolError malformed MIME header line: "Con:necti\ron: c"
+=== 896 "HTTP/1.0"
+error *errors.errorString malformed HTTP response "HTTP/1.0"
+=== 897 ""
+error *errors.errorString unexpected EOF
+=== 898 "HTTP/1.1 40 "
+error *errors.errorString malformed HTTP status code "40"
+=== 899 "H\r\n\r\nTTP/1.0\r\n 200 OK\r\nConn"
+error *errors.errorString malformed HTTP response "H"
+=== 900 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConection: x,,keep-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Conection=["x,,keep-alive ,"] Connection=["kéep-alive"]
+body="" <nil>
+=== 901 "HTTP/1.0 20\r0 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP status code "20\r0"
+=== 902 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nb\tody to eof"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="b\tody to eof" <nil>
+=== 903 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnecti"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connecti"
+=== 904 "HTTP/1.0 "
+error *errors.errorString malformed HTTP status code ""
+=== 905 "HTTP/1.1 200 OK\r\nConnetion: foo,  CL"
+error *errors.errorString unexpected EOF
+=== 906 "HTTP/1.0 200 :OK\r\nConne"
+error textproto.ProtocolError malformed MIME header: missing colon: "Conne"
+=== 907 "HTTP/1.1 200 OK\r\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n"
+"200 OK\r" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 908 "HTTP/1.0 200 OK\r"
+error *errors.errorString unexpected EOF
+=== 909 "HTTP/-1.1 204 No C"
+error *errors.errorString malformed HTTP version "HTTP/-1.1"
+=== 910 "TT"
+error *errors.errorString malformed HTTP response "TT"
+=== 911 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=tf-8\r\nCo"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 912 "HT\r\n\r\nTP/1.0 200 OK\r\nConnecti\x7fon: Keep-Alive\n\r\n\r\nrest"
+error *errors.errorString malformed HTTP response "HT"
+=== 913 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A: "
+error *errors.errorString unexpected EOF
+=== 914 "HTTP/1.1 301 Moved\r\nLocaton: /x\r\nConnection: cloe\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connection=["cloe"] Locaton=["/x"]
+body="" <nil>
+=== 915 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,ar\r\nContent-Lengéth: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Content-Lengéth: 0"
+=== 916 "HTTP/1.0 200 onnectd to Go RPC\n\n"
+"200 onnectd to Go RPC" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 917 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnecion: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connecion=["close"] Content-Type=["text/plain; charset=utf-8"]
+body="400 Bad Request" <nil>
+=== 918 "HTTP/1.1 400 Bad Request\r\nContent-Type: te"
+error *errors.errorString unexpected EOF
+=== 919 "HTTP/1. 204 No C-ontent\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 920 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokm\r\nore"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X-A=["1"]
+body="ok" <nil>
+=== 921 "HTTP/1.\n1 200 OK\r\nCon9nection: fo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n"
+error *errors.errorString malformed HTTP response "HTTP/1."
+=== 922 "HTTP/1.1 200 OK\r\nConnection: cl\x01os\r\nConnection: closed"
+error textproto.ProtocolError malformed MIME header line: "Connection: cl\x01os"
+=== 923 ""
+error *errors.errorString unexpected EOF
+=== 924 "HTT"
+error *errors.errorString malformed HTTP response "HTT"
+=== 925 "HTTP/1.1 204 "
+error *errors.errorString unexpected EOF
+=== 926 "HTTP/1.0 "
+error *errors.errorString malformed HTTP status code ""
+=== 927 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: clos0e"
+error *errors.errorString unexpected EOF
+=== 928 ""
+error *errors.errorString unexpected EOF
+=== 929 "HTTP/1.0 20 OK\r\nConnection: Keep-\r\nAlive\r\n\r\nrest"
+error *errors.errorString malformed HTTP status code "20"
+=== 930 "HTTP/1.1 20\x014 No Co"
+error *errors.errorString malformed HTTP status code "20\x014"
+=== 931 "HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nConte\rnt-Length: 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Conte\rnt-Length: 0"
+=== 932 "HTTP/1.0 200 "
+error *errors.errorString unexpected EOF
+=== 933 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnction: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connction=["close"] Location=["/x"]
+body="" <nil>
+=== 934 "HTTP/1.1301 Movd\r\nLocation: /x\r\nConnection: close\r\n\r\n"
+error *errors.errorString malformed HTTP status code "Movd"
+=== 935 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection:0 closed, Close\r\n\r\n"
+"200 OK" 200 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+
+body="" <nil>
+=== 936 "HTTP/1.0 00 OK\r\nConnection: Keep-Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP status code "00"
+=== 937 "HTTP/1.1 200 OK\r\nConnection: clos\r\nCon"
+error textproto.ProtocolError malformed MIME header: missing colon: "Con"
+=== 938 "HTTP/1.1 400 Bad Request\r\nContent-Type: text\r\n/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+error textproto.ProtocolError malformed MIME header: missing colon: "/plain; charset=utf-8"
+=== 939 "HTTP/1. 200 OK\r\nC\nonnection: Keep-Aliv"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 940 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConne ction: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Conne ction=["close"] Location=["/x"]
+body="" <nil>
+=== 941 "HTTP/1.0 404 No\r\nt Found\r9"
+error textproto.ProtocolError malformed MIME header: missing colon: "t Found\r9"
+=== 942 "HTTP/1.1 :200 OK\r\n"
+error *errors.errorString malformed HTTP status code ":200"
+=== 943 "HTTP/1.0 200 OK\r\nConnection: Kep-Alive\r\n\r\nrest"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["Kep-Alive"]
+body="rest" <nil>
+=== 944 "HTTP/"
+error *errors.errorString malformed HTTP response "HTTP/"
+=== 945 "HTTP/1\r.0 200 Connectedto Go R"
+error *errors.errorString malformed HTTP version "HTTP/1\r.0"
+=== 946 "HTTP/1.1 400 Bad Request\r\nContent-Tye: text/plain; charse9t=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+"400 Bad Request" 400 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Content-Tye=["text/plain; charse9t=utf-8"]
+body="400 Bad Request" <nil>
+=== 947 "HTTP/1.1 200 OK\rCotent-Leng"
+error *errors.errorString unexpected EOF
+=== 948 "\rHTTP/11 24 No Content\r\n\r\n"
+error *errors.errorString malformed HTTP status code "24"
+=== 949 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed\r\n, Close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: ", Close"
+=== 950 "HTTP/1.1 400 Bad Request\r\nContent-T"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-T"
+=== 951 "HTTP/1.1 301 Moved\r\nLoc"
+error textproto.ProtocolError malformed MIME header: missing colon: "Loc"
+=== 952 "HTTP/1.0 200 Connected "
+error *errors.errorString unexpected EOF
+=== 953 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection: x,,keeap-alive ,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,,keeap-alive ,"]
+body="" <nil>
+=== 954 "HTTP/1.1 204 No Content"
+error *errors.errorString unexpected EOF
+=== 955 "\tHTTP/1.0 404 Not Found\r\nCo:ntent-Type: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "\tHTTP/1.0"
+=== 956 "HTTP/1.0 200 OK\r\nConnection: kéep-alive\r\nConnection:x,,keep-alive \r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Connection=["kéep-alive" "x,,keep-alive"]
+body="" <nil>
+=== 957 "HTTP/1.0200 OK\r\nC"
+error *errors.errorString malformed HTTP status code "OK"
+=== 958 "HTTP/1.0 200 OK\r\nC"
+error textproto.ProtocolError malformed MIME header: missing colon: "C"
+=== 959 "HTTP/1. 200 Con"
+error *errors.errorString malformed HTTP version "HTTP/1."
+=== 960 ""
+error *errors.errorString unexpected EOF
+=== 961 "HTTP/1.1 200 OK\r\nConnction: foo, \t CLOSE \t,bar\r\nContent-Leéngth 0\r\n\r\n"
+error textproto.ProtocolError malformed MIME header: missing colon: "Content-Leéngth 0"
+=== 962 "HTTP/.1 200 OK\r:\nContent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP version "HTTP/.1"
+=== 963 "HTP/1.1 200 OK\r\nConnection"
+error *errors.errorString malformed HTTP version "HTP/1.1"
+=== 964 "HTTP/1.0 200 OK\r\nCon0nection: kéep-alive\r\nConnec9tion: x,,keep-alive,\r\n\r\n"
+"200 OK" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Con0nection=["kéep-alive"] Connec9tion=["x,,keep-alive,"]
+body="" <nil>
+=== 965 "HTTP/1.1 204 No "
+error *errors.errorString unexpected EOF
+=== 966 "HT/1.0 200 OK\r\nConnection: Keep- Alive\r\n\r\nrest"
+error *errors.errorString malformed HTTP version "HT/1.0"
+=== 967 "HTT9P/1.1 200 OK\r\nContent-Length: 2\r\n\r\n\r\nX-A: 1\r\n\r\nokmore"
+error *errors.errorString malformed HTTP version "HTT9P/1.1"
+=== 968 "HTTP1\r\n\r\n. 200 Connected to Go RPC\n\n"
+error *errors.errorString malformed HTTP response "HTTP1"
+=== 969 "HTTP/1.1 200 OK\r\nContent-Length: "
+error *errors.errorString unexpected EOF
+=== 970 "HT"
+error *errors.errorString malformed HTTP response "HT"
+=== 971 "HTTP/1.1 204 No Content(\r\n\r\n"
+"204 No Content(" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 972 "HTTP/10 200 OK\r\nCon0nection: Keep-Alive\r\n\r\nest"
+error *errors.errorString malformed HTTP version "HTTP/10"
+=== 973 ":H"
+error *errors.errorString malformed HTTP response ":H"
+=== 974 ""
+error *errors.errorString unexpected EOF
+=== 975 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection:\x7f close\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection:\x7f close"
+=== 976 "HTTP/1.0 200 OK\r\nCo\nnnection: Keep-Alive\r\n\r\nrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 977 "HTTP/1.0 200"
+error *errors.errorString unexpected EOF
+=== 978 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: close\r\r\n\r\n"
+error textproto.ProtocolError malformed MIME header line: "Connection: close\r"
+=== 979 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n"
+error *errors.errorString unexpected EOF
+=== 980 "HTP/1.1 30"
+error *errors.errorString malformed HTTP status code "30"
+=== 981 "HTTP/1.0 200 OK"
+error *errors.errorString unexpected EOF
+=== 982 "TT/1.1 200 OK\r\nContent-Length: 2\r\nX-A: 1\r\n\r\nokm0ore"
+error *errors.errorString malformed HTTP version "TT/1.1"
+=== 983 "HTTP/1.0 404 Not Found\r\nContent-Type: tex"
+error *errors.errorString unexpected EOF
+=== 984 "HTTP/1.0 200 OK\r\nCo\r\n\r\nnection: Keep-Al(ive\r\n\r\nrest"
+error textproto.ProtocolError malformed MIME header: missing colon: "Co"
+=== 985 "HTTP/1.1 200 OK\r\nContent-Legth: 2\rX-A: 1\r\n\r\nokmore"
+error textproto.ProtocolError malformed MIME header line: "Content-Legth: 2\rX-A: 1"
+=== 986 "HTTP/1.1 200 OKa\r\nCon\rtent-Length: 2\r\nX-A: 1\r\n\r\nokmore"
+error textproto.ProtocolError malformed MIME header line: "Con\rtent-Length: 2"
+=== 987 "HTTP/1.1 301 Moved\r\nLocaon: /x\r\nConnction: close\r\n\r\n"
+"301 Moved" 301 HTTP/1.1 1.1 close=true len=-1 te=[] uncompressed=false
+Connction=["close"] Locaon=["/x"]
+body="" <nil>
+=== 988 "HTTP/1.é1 204 No Con\r\nt:ent\r\n\r\n"
+error *errors.errorString malformed HTTP version "HTTP/1.é1"
+=== 989 "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eo"
+"404 Not Found" 404 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+Content-Type=["text/plain"]
+body="body to eo" <nil>
+=== 990 "HTTP/1.0 4904 Not\t Found\r\nContentType: text/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP status code "4904"
+=== 991 "HTTP/"
+error *errors.errorString malformed HTTP response "HTTP/"
+=== 992 "HTTP/10 200 OK\r\nCo"
+error *errors.errorString malformed HTTP version "HTTP/10"
+=== 993 "HTTP/1.1 200 OK\r\nContent-Length: 2\rX-A: 1\r\n\r\nokm"
+error textproto.ProtocolError malformed MIME header line: "Content-Length: 2\rX-A: 1"
+=== 994 "HTTP/1.0 2"
+error *errors.errorString malformed HTTP status code "2"
+=== 995 "HTTP/1.1 200 OK\r\nContent-Length: 2\ra\nX-A: 1\r\n\r\nokmore"
+error textproto.ProtocolError malformed MIME header line: "Content-Length: 2\ra"
+=== 996 "HTTP/1.1 204 No Con"
+error *errors.errorString unexpected EOF
+=== 997 "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nX-A: a1\r\n\r\nokmore"
+"200 OK" 200 HTTP/1.1 1.1 close=false len=2 te=[] uncompressed=false
+Content-Length=["2"] X-A=["a1"]
+body="ok" <nil>
+=== 998 "HTTP/1.0 200 Conected\n to Go RPC\n\n"
+error textproto.ProtocolError malformed MIME header initial line: " to Go RPC"
+=== 999 "HTTP/1.1 204 No Conten\r\n\r\n"
+"204 No Conten" 204 HTTP/1.1 1.1 close=false len=0 te=[] uncompressed=false
+
+body="" <nil>
+=== 1000 "HTTP/1.1 200 OK\r\nContet-Length: 2\r"
+error textproto.ProtocolError malformed MIME header line: "Contet-Length: 2\r"
+=== 1001 "HTP"
+error *errors.errorString malformed HTTP response "HTP"
+=== 1002 "HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed"
+error *errors.errorString unexpected EOF
+=== 1003 "HTTP/1.0 200 OK\r\nConnectio"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connectio"
+=== 1004 "HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnecti"
+error textproto.ProtocolError malformed MIME header: missing colon: "Connecti"
+=== 1005 "HTTP/1.0 200 OK\r\r\n\r\n\nConnecion: Keep-Alive\n\r\nrest"
+"200 OK\r" 200 HTTP/1.0 1.0 close=true len=-1 te=[] uncompressed=false
+
+body="\nConnecion: Keep-Alive\n\r\nrest" <nil>
+=== 1006 "HTTP/1.1 301 Move"
+error *errors.errorString unexpected EOF
+=== 1007 "HTTP/1.1 400 Bd Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\x7f\n\r\n400 Bad Request"
+error textproto.ProtocolError malformed MIME header line: "Connection: close\r\x7f"
+=== 1008 "HTTP/1.1 200 O"
+error *errors.errorString unexpected EOF
+=== 1009 "HTTP/1.(0 404 Not Found\r\nContent-Type: tex/plain\r\n\r\nbody to eof"
+error *errors.errorString malformed HTTP version "HTTP/1.(0"

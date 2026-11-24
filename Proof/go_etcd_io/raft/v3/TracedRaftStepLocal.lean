@@ -77,8 +77,9 @@ theorem hookGateOpt_fupd (tr : Option GName) (r : Loc) (oE : Option (TraceEv →
   iintro H
   iunfold HookGateOpt at H
   iunfold HookGateOpt
+  iintro Hnc
   imod H with H
-  iexact H
+  iapply H $$ Hnc
 
 /-- **The node's numbers from raft's ghost state** (`ownRaftGhost_traceBound`): its commit and last
 indices below the trace's bound, under an update. -/

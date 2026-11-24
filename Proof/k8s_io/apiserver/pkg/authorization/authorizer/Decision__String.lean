@@ -58,9 +58,9 @@ theorem Decision.String.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   try wp_auto
-  wp_apply (EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ [interface.mkOk go.int #k] (DFrac.own 1)
-    (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.int k)
-      _root_.Perennial.fmt.ArgsWf.nil)) $$ [Hasl] as %str -
+  wp_apply (EtcdGrove.fmt.wp_Sprintf_pure wp_Sprintf go!"Unknown (%d)" [.lit go!"Unknown (", .dir none _root_.Perennial.fmt.verb_d, .lit go!")"]
+    _ [interface.mkOk go.int #k] _ (DFrac.own 1) (by fmt_encode) (by fmt_fits)
+    (.int _ _ _ _ (.int k) .nil)) $$ [Hasl] as %str -
   · iexact Hasl
   iapply HΦ; itrivial
 

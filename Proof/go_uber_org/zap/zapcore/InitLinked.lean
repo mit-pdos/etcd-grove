@@ -12,8 +12,11 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
+public import Proof.go_uber_org.multierr.Init
 public import Proof.go_uber_org.zap.internal.color.Init
+public import Proof.go_uber_org.zap.internal.exit.Init
 public import Proof.go_uber_org.zap.internal.pool.Init
+public import Proof.runtime.Init
 public import Proof.go_uber_org.zap.internal.pool.New
 public import Proof.runtime.PkgInitExt
 
@@ -66,14 +69,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := Loc) _cePool _ as H_cePool
   wp_apply wp_GlobalAlloc (V := Loc) _sliceEncoderPool _ as H_sliceEncoderPool
   wp_apply wp_GlobalAlloc (V := go_uber_org.zap.zapcore.systemClock) DefaultClock _ as HDefaultClock
-  wp_apply (_root_.Perennial.go_uber_org.zap.internal.color.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.internal.color.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.internal.exit.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.runtime.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
-      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (_root_.Perennial.go_uber_org.zap.internal.pool.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.internal.pool.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
-      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (_root_.Perennial.go_uber_org.multierr.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
@@ -82,22 +88,36 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of _sliceEncoderPool))
   try wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
-  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %psl -
+  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %psl -
   try wp_auto
   -- translated initializer of _cePool))
   try wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
-  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pce -
+  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pce Hpce
+  imod (EtcdGrove.zap.internal.pool.ownPool_init _ pce _ EtcdGrove.zapcore.pooledEntry ⊤) $$ [$Hpce] with #Hpce
+  · unfold EtcdGrove.zap.internal.pool.fnSpec
+    imodintro
+    iintro %Φ - HΦ
+    wp_auto
+    wp_apply wp_slice_make2 (V := GoInterface) as %sc ⟨Hsc, Hscap⟩
+    · ipureintro
+      word
+    iapply HΦ
+    unfold EtcdGrove.zapcore.pooledEntry
+    iexists _
+    iframe
+    iexists []
+    iapply ownSlice_nil
   try wp_auto
   -- translated initializer of _errArrayElemPool))
   try wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
-  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pea -
+  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pea -
   try wp_auto
   -- translated initializer of _jsonPool))
   try wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
-  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pjs -
+  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pjs -
   try wp_auto
   -- translated initializer of nullLiteralBytes))
   try wp_auto
@@ -105,7 +125,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of errUnmarshalNilLevel))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xerrUnmarshalNilLevel #MerrUnmarshalNilLevel
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xerrUnmarshalNilLevel ⟨#_, #MerrUnmarshalNilLevel⟩
   -- translated initializer of _levelToColor))
   try wp_auto
   wp_apply (wp_map_make1 (K := w8) (V := w8) go_uber_org.zap.zapcore.Level.ty _root_.Perennial.go_uber_org.zap.internal.color.Color.ty) as %mHlc Hlc
@@ -175,7 +195,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     all_goals (repeat (first
       | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HL as HL
       | wp_apply (wp_mapInsert (K := w8) (V := GoString) _) $$ HU as HU
-      | (wp_apply (wp_slice_literal (l := [_, _])); isplitr; (· ipureintro; rfl); iintro %sl ⟨Ssl, -⟩; try wp_auto; wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint8 _) (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)) $$ [$Ssl] as %r -)
+      | (wp_apply (wp_slice_literal (l := [_, _])); isplitr; (· ipureintro; rfl); iintro %sl ⟨Ssl, -⟩; try wp_auto; wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"\x1b[%dm%s\x1b[0m" [.lit go!"\x1b[", .dir none _root_.Perennial.fmt.verb_d, .lit go!"m", .dir none _root_.Perennial.fmt.verb_s, .lit go!"\x1b[0m"] _ _ _ _ (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.uint8 _) (.str _ _ _ .nil)) $$ [$Ssl] as %r -)
       | wp_method_call
       | wp_auto
       | wp_call))
@@ -185,6 +205,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of _levelToColor))
   -- translated initializer of _levelToColor))
   ipersist HDefaultClock
+  ipersist H_cePool
   iframe Hown
   imodintro
   isplitr
@@ -192,8 +213,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  iexists (zero_val go_uber_org.zap.zapcore.systemClock)
-  itrivial
+  isplitl []
+  · iexists (zero_val go_uber_org.zap.zapcore.systemClock)
+    itrivial
+  iexists pce
+  iframe #
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

@@ -109,7 +109,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.envAus at Haus
   icases Haus with ⟨#HauB, -, #HauE, -, #Hfacts, -⟩
   iunfold apply.isApplyLessor at Hle
-  icases Hle with ⟨-, %li, %Hli, -, #HRv, -, -⟩
+  icases Hle with ⟨-, %li, %Hli, -, #HRv, -⟩
   iunfold apply.leaseRevokeIs at Hr
   icases Hr with ⟨%Hrn, #HrID⟩
   have hstep : apply.backendStep rq log (.applied (apply.revokeLog log id) false) := by

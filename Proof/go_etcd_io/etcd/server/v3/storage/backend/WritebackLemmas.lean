@@ -159,13 +159,13 @@ theorem bgOk_writeback {P : BParams} {st : BSess} {n w u : Nat}
     bgOk P (wbSt P st) b (n - 1) (w + 1) u := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10, ht, -⟩ := h
   have hv : 0 ≤ uint.Z st.R.ver := by word
-  have hk : st.cnt.k < 2 ^ 40 := by omega
+  have hk : st.cnt.k < 2 ^ 62 := by omega
   have hc : st.cnt.c ≤ st.cnt.k + 2 := by split at h3 <;> omega
   refine ⟨?_, by omega, by simp [wbSt], by simp [wbSt], ⟨Or.inr rfl, Or.inl rfl⟩, ?_, ?_, ?_, ?_, ?_⟩
-  · show uint.Z (st.R.ver + W64 1) + ((n - 1 : Nat) : Int) + ((0 : Nat) : Int) < 2 ^ 40
+  · show uint.Z (st.R.ver + W64 1) + ((n - 1 : Nat) : Int) + ((0 : Nat) : Int) < 2 ^ 62
     have : uint.Z (st.R.ver + W64 1) = uint.Z st.R.ver + 1 := by word
     omega
-  · show st.cnt.e + P.hookMax * st.cnt.c ≤ P.hookMax * (2 ^ 40 + 2)
+  · show st.cnt.e + P.hookMax * st.cnt.c ≤ P.hookMax * (2 ^ 62 + 2)
     rcases h5.1 with he | hc0
     · rw [he, Nat.zero_add]
       exact Nat.mul_le_mul_left _ (by omega)

@@ -8,12 +8,7 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link\.lean$
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
-axiom mvcc.ReportEventReceived.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom strings.ToLower.wp_proof
-axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.check.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

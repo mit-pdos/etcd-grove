@@ -29,7 +29,7 @@ returns a `*grpc.Server` being built (`grpcSrvNew`), with the unary and stream c
 `ChainUnaryInterceptor`/`ChainStreamInterceptor` give, in order, and nothing registered. -/
 abbrev grpc.NewServer.spec : Prop :=
   ∀ (sl : GoSlice) (vs : List GoInterface) (ks : List SrvOptKind),
-  {{ (sl ↦*□ vs ∗ ⌜List.Forall₂ grpcSrvOpt vs ks⌝ : IProp GF) }}
+  {{ (sl ↦*□ vs ∗ ([∗list] v;k ∈ vs;ks, grpcSrvOpt v k) : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.NewServer)) (Val #sl))
   {{ (gs : Loc), RET #gs;
       grpcSrvNew gs (srvOptsUnary ks) (srvOptsStream ks) [] [] [] }}

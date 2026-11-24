@@ -4,7 +4,7 @@ module
 public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
-public import Code.hash
+public import Perennial.Code.hash
 public import Perennial.Code.io
 public import Perennial.Code.sync
 public import Code.google_golang_org.protobuf.proto
@@ -3473,7 +3473,6 @@ noncomputable def WAL.renameWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "linkErr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.os.LinkError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.os.LinkError.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WAL.ty)))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -3485,9 +3484,16 @@ noncomputable def WAL.renameWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType WAL.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType (go.GoType.PointerType _root_.Perennial.os.LinkError.ty)) go.any))) (Var "linkErr"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.As []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.AsType [(go.GoType.PointerType _root_.Perennial.os.LinkError.ty)]))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "tmpdirpath"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType WAL.ty) go!"renameWALUnlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w"))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -3504,6 +3510,10 @@ noncomputable def WAL.renameWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType WAL.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -3529,7 +3539,7 @@ noncomputable def WAL.renameWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: wal.go:363:15 -/
+/-- go: wal.go:362:15 -/
 noncomputable def WAL.renameWALUnlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "tmpdirpath"
@@ -3661,7 +3671,7 @@ noncomputable def WAL.renameWALUnlock.impl [GooseExts] [GoGlobalContext] : val :
     the given snap. The WAL cannot be appended to before reading out all of its
     previous records.
 
-    go: wal.go:395:6 -/
+    go: wal.go:394:6 -/
 noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -3754,7 +3764,7 @@ noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
 /-- OpenForRead only opens the wal files for read.
     Write on a read only wal panics.
 
-    go: wal.go:409:6 -/
+    go: wal.go:408:6 -/
 noncomputable def OpenForRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -3784,7 +3794,7 @@ noncomputable def OpenForRead.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType WAL.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: wal.go:413:6 -/
+/-- go: wal.go:412:6 -/
 noncomputable def openAtIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -3980,7 +3990,7 @@ noncomputable def openAtIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: wal.go:461:6 -/
+/-- go: wal.go:460:6 -/
 noncomputable def selectWALFiles.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -4105,7 +4115,7 @@ noncomputable def selectWALFiles.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "names") (Var "$r0"))))))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.int))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))
 
-/-- go: wal.go:479:6 -/
+/-- go: wal.go:478:6 -/
 noncomputable def openWALFiles.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -4354,7 +4364,7 @@ noncomputable def openWALFiles.impl [GooseExts] [GoGlobalContext] : val :=
     ReadAll may return uncommitted yet entries, that are subject to be overridden.
     Do not apply entries that have index > state.commit, as they are subject to change.
 
-    go: wal.go:531:15 -/
+    go: wal.go:530:15 -/
 noncomputable def WAL.ReadAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -4404,7 +4414,7 @@ noncomputable def WAL.ReadAll.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w")))) (Val #())))))))
   (Pair (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "$res2"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res3"))))))))))))))
 
-/-- go: wal.go:537:15 -/
+/-- go: wal.go:536:15 -/
 noncomputable def WAL.readAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -5214,7 +5224,7 @@ noncomputable def WAL.readAll.impl [GooseExts] [GoGlobalContext] : val :=
     again at the segment containing the snapshot and validates the CRC chain
     across the entire extended range before accepting its state or entries.
 
-    go: wal.go:750:15 -/
+    go: wal.go:749:15 -/
 noncomputable def WAL.reopenAtRecord.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "r"
@@ -5447,7 +5457,7 @@ noncomputable def WAL.reopenAtRecord.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- snapshotPrefix locates the start of a legacy replay before the filename-selected suffix.
 
-    go: wal.go:786:6 -/
+    go: wal.go:785:6 -/
 noncomputable def snapshotPrefix.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dir"
@@ -5578,7 +5588,7 @@ noncomputable def snapshotPrefix.impl [GooseExts] [GoGlobalContext] : val :=
 /-- segmentContainsSnapshot locates the record by index. readAll checks its term
     and replays the records, including entries saved before the snapshot record.
 
-    go: wal.go:810:6 -/
+    go: wal.go:809:6 -/
 noncomputable def segmentContainsSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dir"
@@ -5739,7 +5749,7 @@ noncomputable def segmentContainsSnapshot.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileReader.ty)))) (Pair (Var "rs") (Var "$r0")))))))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: wal.go:840:15 -/
+/-- go: wal.go:839:15 -/
 noncomputable def WAL.LatestSnapshotEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -5815,7 +5825,7 @@ noncomputable def WAL.LatestSnapshotEntry.impl [GooseExts] [GoGlobalContext] : v
 /-- ValidSnapshotEntries returns all the valid snapshot entries in the wal logs in the given directory.
     Snapshot entries are valid if their index is less than or equal to the most recent committed hardstate.
 
-    go: wal.go:860:6 -/
+    go: wal.go:859:6 -/
 noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "walDir"
@@ -5916,7 +5926,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "attempt") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: wal.go:887:6 -/
+/-- go: wal.go:886:6 -/
 noncomputable def validSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "walDir"
@@ -6159,7 +6169,7 @@ noncomputable def validSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
     If the loaded snap doesn't match with the expected one, it will
     return error ErrSnapshotMismatch.
 
-    go: wal.go:956:6 -/
+    go: wal.go:955:6 -/
 noncomputable def Verify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "walDir"
@@ -6311,7 +6321,7 @@ noncomputable def Verify.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: wal.go:979:6 -/
+/-- go: wal.go:978:6 -/
 noncomputable def verifyRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "walDir"
@@ -6556,7 +6566,7 @@ noncomputable def verifyRange.impl [GooseExts] [GoGlobalContext] : val :=
     cut first creates a temp wal file and writes necessary headers into it.
     Then cut atomically rename temp wal file to a wal file.
 
-    go: wal.go:1052:15 -/
+    go: wal.go:1051:15 -/
 noncomputable def WAL.cut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6924,7 +6934,7 @@ noncomputable def WAL.cut.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "off") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1144:15 -/
+/-- go: wal.go:1143:15 -/
 noncomputable def WAL.sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -7002,7 +7012,7 @@ noncomputable def WAL.sync.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1171:15 -/
+/-- go: wal.go:1170:15 -/
 noncomputable def WAL.Sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -7033,7 +7043,7 @@ noncomputable def WAL.Sync.impl [GooseExts] [GoGlobalContext] : val :=
     For example, if WAL is holding lock 1,2,3,4,5,6, ReleaseLockTo(4) will release
     lock 1,2 but keep 3. ReleaseLockTo(5) will release 1,2,3 but keep 4.
 
-    go: wal.go:1181:15 -/
+    go: wal.go:1180:15 -/
 noncomputable def WAL.ReleaseLockTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "index"
@@ -7193,7 +7203,7 @@ noncomputable def WAL.ReleaseLockTo.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Close closes the current WAL file and directory.
 
-    go: wal.go:1226:15 -/
+    go: wal.go:1225:15 -/
 noncomputable def WAL.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -7278,7 +7288,7 @@ noncomputable def WAL.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1252:15 -/
+/-- go: wal.go:1251:15 -/
 noncomputable def WAL.saveEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "e"
@@ -7327,7 +7337,7 @@ noncomputable def WAL.saveEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1263:15 -/
+/-- go: wal.go:1262:15 -/
 noncomputable def WAL.saveState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "s"
@@ -7372,7 +7382,7 @@ noncomputable def WAL.saveState.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1284:15 -/
+/-- go: wal.go:1283:15 -/
 noncomputable def WAL.Save.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "st"
@@ -7551,7 +7561,7 @@ noncomputable def WAL.Save.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (Var "e") (Var "$value")))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: wal.go:1336:15 -/
+/-- go: wal.go:1335:15 -/
 noncomputable def WAL.SaveSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "e"
@@ -7683,7 +7693,7 @@ noncomputable def WAL.SaveSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1376:15 -/
+/-- go: wal.go:1375:15 -/
 noncomputable def WAL.saveCrc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "prevCrc"
@@ -7702,7 +7712,7 @@ noncomputable def WAL.saveCrc.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1380:15 -/
+/-- go: wal.go:1379:15 -/
 noncomputable def WAL.tail.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -7729,7 +7739,7 @@ noncomputable def WAL.tail.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Var "$res0"))))))
 
-/-- go: wal.go:1387:15 -/
+/-- go: wal.go:1386:15 -/
 noncomputable def WAL.seq.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -7792,7 +7802,7 @@ noncomputable def WAL.seq.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Pair (Var "t") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: wal.go:1399:6 -/
+/-- go: wal.go:1398:6 -/
 noncomputable def closeAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "rcs"

@@ -121,8 +121,13 @@ theorem traceReceiveMessage.gated (h : traceReceiveMessage.spec (GF := GF) (hG :
     traceReceiveMessage.gatedTriple (GF := GF) (hG := hG) := by
   intro c r id s ml dq dqe cap ms Q Hns
   iintro %Φ ⟨#Hpkg, Hphys, Hm, Hg⟩ HΦ
+  iapply (wp_ncfupd _ _ rfl)
   iunfold HookGateOpt at Hg
-  imod Hg with ⟨%tl, #Htl, %Hok, Hfire⟩
+  unfold ncfupd
+  iintro Hnc
+  imod Hg $$ Hnc with ⟨Hnc, %tl, #Htl, %Hok, Hfire⟩
+  imodintro
+  iframe Hnc
   revert Hns Hok
   cases htr : s.gh.tr with
   | none =>

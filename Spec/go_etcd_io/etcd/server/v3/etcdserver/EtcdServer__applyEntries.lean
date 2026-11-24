@@ -71,7 +71,7 @@ abbrev EtcdServer.applyEntries.specBatchAt (P : auth.AuthMode → Prop) : Prop :
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
     (rac : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
     (x : apply.ApplyKV) (γr : ReadNames) (rp : RestartPt) (A : List EntryModel) (γp : WTNames)
-    (dv : Option Loc) (w : Nat) (g : w64) (sa : auth.AuthState),
+    (dv : Option NodeH) (w : Nat) (g : w64) (sa : auth.AuthState),
   P E.authMode → receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShapeM E.authOn E.lm (unapplied ai ms) → logPutsOk (unapplied ai ms) →

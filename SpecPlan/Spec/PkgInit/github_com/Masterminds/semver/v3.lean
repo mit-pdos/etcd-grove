@@ -3,6 +3,10 @@ module
 
 public import GeneratedProof.github_com.Masterminds.semver.v3
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.bytes.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.strings.Base
+public import Perennial.Proof.strconv.Base
 
 @[expose] public section
 noncomputable section

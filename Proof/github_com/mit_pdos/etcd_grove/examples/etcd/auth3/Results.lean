@@ -39,7 +39,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_auth3.wp_Main`). -/
-theorem auth3_Main
+theorem auth3_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [EtcdGrove.ErrorStringLeaf] :
     etcd_auth3.Main.spec (GF := GF) (hG := hG) :=

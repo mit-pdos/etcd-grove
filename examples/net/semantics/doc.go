@@ -23,6 +23,7 @@
 //	                                             D23 the network "tcp4" (TrustedCode/net.lean)
 //	                                             D24 socket options (SetSockoptStep, SockOptOutcome)
 //	                                             D25 the write lock (WriteStep, NetConn.lock)
+//	                                             D26 initial states (NetLocal.init, NetGlobal.init)
 //
 // Each test is one behavior: its doc comment says the decision it supports or
 // refutes, what Linux and Go do, and why (the kernel or Go code path). Every
@@ -62,6 +63,26 @@
 //	TestWriteAfterPeerClose      D2   a Write after the peer's FIN succeeds, bytes lost; after the RST    measured   WriteOutcome (cut)
 //	                                  every Write fails (EPIPE: RST in CLOSE_WAIT); the Read is EOF
 //	TestPartialWriteOnReset      D2   a Write cut by a RST returns 0 < n < len, ECONNRESET                 measured   WriteOutcome (open: steps, then sys, cut)
+//
+// Sticky read errors (sticky_test.go, sticky_netns_test.go; notes/net-sticky-read.md; D1 v3.5,
+// Impl.lean's ReadAvail: a sys read error only once nothing is unread, so that no byte follows a
+// read error but a deadline's timeout):
+//
+//	TestStickyEOF                D1   FIN: the bytes, EOF, EOF ...; a later RST (peer's Close with      measured   ReadAvail (EOF; sticky
+//	                                  unread input) changes nothing, EOF (SOCK_DONE before sk_err);                 already)
+//	                                  a Write after EOF succeeds, after the RST EPIPE
+//	TestStickyReset              D1,D14 a RST with bytes received: the bytes, then ECONNRESET with 0     measured   ReadAvail (sys: v3.5,
+//	                                  unread (SIOCINQ), then EOF on every Read; an expired deadline:                d.bytes = [])
+//	                                  timeout; an empty Read (0, nil); Writes EPIPE
+//	TestStickyResetBlockedRead   D1,D14 a RST while a Read waits: ECONNRESET, then EOF                   measured   ReadOutcome (break)
+//	TestStickyKilledPeer         D1,D10,D11 a killed or exited peer with unread input: the bytes,        measured   ReadOutcome (break)
+//	                                  ECONNRESET with 0 unread, then EOF; Write EPIPE
+//	TestStickyOwnClose           D1,D3 own Close with bytes unread: ErrClosed on every Read and Write   measured   NetEnd.closed
+//	TestStickyNotTimeout         D1,D5 the exception: after a read deadline's timeout (blocked, or       measured   ReadAvail (timeout: d' = d)
+//	                                  expired with bytes unread) the bytes follow once it is cleared
+//	TestStickyTimedOut           D1,D14 (network namespaces) the kernel gives up with bytes received:    measured   ReadAvail (sys: v3.5,
+//	                                  the bytes, then ETIMEDOUT (a partition) or EHOSTUNREACH (an ICMP              d.bytes = [])
+//	                                  host-unreachable: sk_err_soft) with 0 unread, then EOF; Write EPIPE
 //
 // Writes (write_test.go, v3_test.go):
 //
@@ -120,7 +141,8 @@
 // Error values (errors_test.go, v3_test.go):
 //
 //	TestErrorsAreOpErrors        D14  every failure an *OpError, Net "tcp", Op read/write/close/          measured   model.opError
-//	                                  set/dial/listen/accept; EOF is io.EOF itself
+//	                                  set/dial/listen/accept; EOF is io.EOF itself; Error()             measured   OpError.Error.impl
+//	                                  never empty (it starts with Op)
 //	TestErrClosed                D14  own closed end or listener (also a blocked Read, Accept): Err is     measured   NetErr.closed, model.closedErr
 //	                                  net.ErrClosed, Timeout/Temporary false; no other failure Is it
 //	TestDeadlineErrors           D14  a Read or Write deadline: Err is os.ErrDeadlineExceeded itself,     measured   NetErr.timeout, model.deadlineErr
@@ -164,6 +186,13 @@
 //	TestWriteToKilledPeer        D2,D10 a Write after the FIN succeeds (lost); after the RST: EPIPE      measured   WriteOutcome (cut)
 //	TestServerKilledBeforeReply  D1,D10,D11 the client reads EOF, no bytes, no error                     measured   ReadOutcome (break)
 //	TestKilledListener           D7,D8,D10 the queued connection is reset; Dial then refused             measured   AcceptStep, DialStep
+//
+// Initial states (init_test.go; since 2026-11-22 the semantics' initLocal/initGlobal, net_semantics):
+//
+//	TestFreshProcessNoSocket     D26  a process started by os/exec has no socket among its fds, though   measured   NetLocal.init (initLocal)
+//	                                  its parent holds a listener and a connection (CLOEXEC)
+//	(the network at the start)   D13,D26 no connection before the deployment's processes start: none    assumed    NetGlobal.init (initGlobal)
+//	                                  exists yet, and no other process dials or accepts (closed world)
 //
 // Steps (D22; Impl.lean's header has the table of every operation's outcomes in every state):
 //
@@ -222,6 +251,9 @@
 //	                                  EOF, EPIPE
 //	TestPartitionHealed          D1,D2 a 2 s partition shorter than every timeout, healed: every byte     measured   ReadOutcome, WriteOutcome (no break)
 //	                                  both ways once, in order, no error (Writes block up to 2.9 s)
+//	TestStickyTimedOut           D1,D14 (sticky_netns_test.go) the kernel gives up on a connection    measured   ReadAvail (sys)
+//	                                  with bytes received: the bytes, then ETIMEDOUT or EHOSTUNREACH, then
+//	                                  EOF (above, "Sticky read errors")
 //	TestAcceptOrder              D7   8 pending: back-to-back Dials accepted in Dial order (0/50 out of    measured   AcceptStep (any pending connection)
 //	                                  order); concurrent ones 47-50/50 out of Dial-return order
 //
@@ -314,6 +346,16 @@
 // (lisAccepts). It only adds behaviors, each from a step that was a panic: a
 // Listen the kernel refuses (EADDRNOTAVAIL, TestListenNotLocal; EADDRINUSE)
 // is a sys failure, and which machine listens where is the proofs' business.
+//
+// v3.5 (2026-11-23, notes/net-sticky-read.md): a sys read error only once
+// nothing is unread (D1, ReadAvail's sys clause gains d.bytes = []). Before,
+// a Read could fail ECONNRESET with bytes unread and a later Read return
+// them; Linux never does (the sticky tests above: an error from read(2)
+// only when it copied nothing, and every sys source ends the socket's
+// receiving). It only removes behaviors. So after a Read returns EOF or a
+// sys error, its direction is dead (empty, not open), which no step undoes,
+// and every later non-empty Read of that end returns no byte; a read
+// deadline's timeout stays non-sticky (TestStickyNotTimeout).
 //
 // Not measured here: D12 (ENOMEM, ENOBUFS), unreachable addresses. What a
 // peer sees of a machine that dies silently (nothing, then its kernel's

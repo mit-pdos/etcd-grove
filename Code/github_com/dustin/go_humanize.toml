@@ -3,4 +3,54 @@ translate = ["!*"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
+# (etcd-grove#32, 2026-11-22) the `init` function trusted: a model that does nothing
+# (TrustedCode/github_com/dustin/go_humanize.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0"]
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["bigIECExp", "BigByte", "BigKiByte", "BigMiByte", "BigGiByte", "BigTiByte", "BigPiByte",
+  "BigEiByte", "BigZiByte", "BigYiByte", "BigRiByte", "BigQiByte", "bigSIExp", "BigSIByte",
+  "BigKByte", "BigMByte", "BigGByte", "BigTByte", "BigPByte", "BigEByte", "BigZByte", "BigYByte",
+  "BigRByte", "BigQByte", "ten"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable."""
+
+[[skip]]
+names = ["bigBytesSizeTable", "bytesSizeTable", "renderFloatPrecisionMultipliers",
+  "renderFloatPrecisionRounders", "siPrefixTable", "siParseAliases", "defaultMagnitudes"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["minSIExponent", "maxSIExponent"]
+reason = """
+One initializer for both (`var minSIExponent, maxSIExponent = func() (float64, float64) {...}()`):
+the function literal ranges over the map `siPrefixTable` (a literal of 21 entries, initialized
+before) comparing its keys with `math.Inf(±1)`: it terminates, cannot panic and has no effect beyond
+the two variables."""
+
+[[skip]]
+names = ["revSIPrefixTable"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `revfmap` builds
+the reverse of a constant map literal (a finite range). So it terminates, cannot panic and has no
+effect beyond its variable."""
+
+[[skip]]
+names = ["errInvalid"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable."""
+# --- end of skipped package variables ---

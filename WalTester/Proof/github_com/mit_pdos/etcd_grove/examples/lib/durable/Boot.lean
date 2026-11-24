@@ -2,8 +2,8 @@
 
 # `examples/lib/durable` over `fsExt`: a generation's boot (W4c U2, `notes/wal-fsext-w4c-plan.md`)
 
-`durBoot`: at a generation's switch to the shared mode (`wp_osShare`: the shared invariant, a whole claim
-on every name of the file's directory, nothing logged), from what the generation found at the file's
+`durBoot`: at a generation's start, from its tree's shared view (`osShared`: the shared invariant, a whole
+claim on every name of the file's directory, nothing logged), from what the generation found at the file's
 names (`durFound`: no file and the contents `none`, or a file whose start resources the generation holds,
 its contents `v`; `durFoundTmp`: no temporary, or a file there held whole), the file's invariant, a handle,
 the client's half of the state `⟨v, none⟩` and the crash token, under fresh ghost names. The directory is
@@ -123,12 +123,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **What the generation finds at the file's name** in its first tree `m`, its contents `v`: no file
 (`v = none`), or a file whose start resources it holds (`osFileStart`: its `OsMeta` and bytes whole,
-on disk), its contents `v` (at most 1 GiB, as `Write`'s); never a directory. -/
+on disk), its contents `v` (shorter than `2^63`, as `Write`'s); never a directory. -/
 def durFound (f : DFile) (m : Tree) (v : Option GoString) : IProp GF :=
   match m.entry f.J f.b with
   | none => iprop(⌜v = none⌝)
   | some (.file i) => iprop(∃ fl : OsFile,
-      ⌜v = some fl.contents ∧ fl.contents.length ≤ 0x40000000⌝ ∗ osFileStart (L := L) i fl)
+      ⌜v = some fl.contents ∧ fl.contents.length < 2 ^ 63⌝ ∗ osFileStart (L := L) i fl)
   | some (.dir _) => iprop(False)
 
 /-- **What the generation finds at the temporary's name**: nothing, or a file it holds whole; never a

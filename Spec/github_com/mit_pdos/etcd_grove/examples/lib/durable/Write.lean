@@ -27,10 +27,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assu
 atomic step: a logically atomic spec, so that the files' ownership (`durableOwn`) is needed only
 at that step and can come from an invariant (`GooseLang/Ext/Durable/Files.lean` gives the
 per-file form). In the mode `o` (`durableOwnM`: `none`, no area reserved, any name; `some r`, the
-WAL area `r` reserved, a clean absolute name outside `r/` that does not hide: `durableNameOk`). -/
+WAL area `r` reserved, a clean absolute name outside `r/` that does not hide: `durableNameOk`).
+(2026-11-21, the crash invariant) The update may use the generation's crash token when it opens
+(`notCrashed`, handed back at once): the write is one step of the program, at which the token is
+in the state interpretation (`wp_atomic_nc`); a client whose ghost step must run at the write's
+step (kvdurable's *enter*) takes it there. -/
 abbrev github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec : Prop :=
   ∀ (o : Option GoString) (name data : GoString), durableNameOk o name →
-  ⊢ ∀ Φ : val → IProp GF, (|={⊤,∅}=> ∃ fs : DurableState, durableOwnM o fs ∗
+  ⊢ ∀ Φ : val → IProp GF, (notCrashed -∗ |={⊤,∅}=> notCrashed ∗ ∃ fs : DurableState, durableOwnM o fs ∗
         (durableOwnM o (<[name := data]> fs) ={∅,⊤}=∗ Φ #())) -∗
       WP (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.Write)) (Val #name))
         (Val #data)) {{ Φ }}

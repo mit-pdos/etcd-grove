@@ -16,8 +16,8 @@ The `_keep` lemmas (`walDiskAt_crash_keep`, `walDiskAt_crash_any_keep`, `walDisk
 `walAbsent_crash_keep`, `dirDurable_crash_keep`, `walArea_crash_keep`) are `AbsDisk/Specs.lean`'s, with
 the same conclusions, over `walCrashWal`: what the tester's `tester_crash` uses.
 
-`walInv_alloc`: the new generation's invariant from its start, once the tree is in shared mode and
-the WAL's names are claimed (`wp_osShare`, `osNames_split`).
+`walInv_alloc`: the new generation's invariant from its start, once the WAL's names are claimed in
+the tree's shared view (`osShared`, `osNames_split`).
 -/
 module
 
@@ -115,6 +115,132 @@ directory): the files the crash lemma takes are such. -/
 def InAreaDir (m : Tree) (jr i : Ino) : Prop :=
   ∃ J b a, m.entry J b = some (.file i) ∧ m.entry jr a = some (.dir J)
 
+/-- **After a crash, every WAL directory at a WAL name of the area holds no directory but at the
+pipeline's names** (pure; the crash boot's `BootFo`, its WAL-directory part off the pipeline names): the
+directory at the name is a new layout's (`WalsStart`), an old layout's directory (`walCrash_pure`), whose
+claim on every name but the pipeline's (`DirKeysOk`'s `DirClaimExcl`: `.except walTmps`) leaves no
+directory a crash may keep (`WalsNamed`'s `HistFoN`). -/
+theorem crash_noDirX {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s s' : AbsDiskState}
+    {Ls Ls' : GMap GoString WalLay} {cl : List Claim} {n : Nat} {K : GMap GoString (Ino × List GoString)}
+    {cp : Option GoString} {m' : Tree} (hnm : WalsNamed Ls cl n) (hDK : DirKeysOk C Mr jr s Ls cl n K cp)
+    (hreg : RegionCrashed cl n m') (hst : WalsStart C Mr R jr s' Ls' m')
+    (hLL : ∀ dir lay', Ls' !! dir = some lay' → ∃ lay, Ls !! dir = some lay ∧ lay'.j = lay.j) :
+    ∀ nm J, walNameOk nm → m'.entry jr nm = some (.dir J) → NoDirX (entsOf m' J) := by
+  intro nm J hw he b J' hb hd
+  have hin : InArea s'.area (s'.area ++ go!"/" ++ nm) nm := ⟨hw, rfl⟩
+  cases hs : s'.wal !! (s'.area ++ go!"/" ++ nm) with
+  | none => rw [hst.2.2.1 _ nm hin hs] at he; cases he
+  | some d =>
+    obtain ⟨lay', nm', hl', hin', -, -, he', -⟩ := hst.1 _ d hs
+    rw [← inArea_name hin hin', he] at he'
+    cases he'
+    obtain ⟨lay, hl, hj⟩ := hLL _ lay' hl'
+    obtain ⟨X2, hj2, hD2, hx2⟩ := hDK.2.2 _ lay hl
+    have hX2 : X2 = walTmps := hx2.1
+    subst hX2
+    have hmem : (lay.j, NameSet.except walTmps, hj2) ∈ cl := by
+      obtain ⟨l1, l2, hcl, -, -⟩ := hD2.2.2.1; rw [hcl]; simp
+    have hf := (hnm _ lay hl).2.2 _ _ hmem
+    rw [entsOf_lookup, hj] at hd
+    exact HistFoP.crash hreg hmem hf hb hb J' hd
+
+/-- **After a crash, every WAL directory at a WAL name of the area holds no directory at the
+pipeline's names** (pure; `BootFoRest`'s first part): the directory at the name is a new layout's
+(`WalsStart`), an old layout's directory (`walCrash_pure`), whose pipeline names' invariant quarters
+(`walTmpHalves`, `Jh`) leave no directory a crash may keep (`hT`, from `tmpHalvesL_crash`). -/
+theorem crash_tmpNoDir {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s' : AbsDiskState}
+    {Ls Ls' : GMap GoString WalLay} {m' : Tree} {Jh : GMap GoString Ino}
+    (hst : WalsStart C Mr R jr s' Ls' m')
+    (hLL : ∀ dir lay', Ls' !! dir = some lay' → ∃ lay, Ls !! dir = some lay ∧ lay'.j = lay.j)
+    (hJh : ∀ dir lay, Ls !! dir = some lay → Jh !! dir = some lay.j)
+    (hT : ∀ dir J, Jh !! dir = some J → ∀ b ∈ walTmps, ∀ J', m'.entry J b ≠ some (.dir J')) :
+    ∀ nm J, walNameOk nm → m'.entry jr nm = some (.dir J) → ∀ b ∈ walTmps, ∀ J',
+      entsOf m' J !! b ≠ some (.dir J') := by
+  intro nm J hw he b hb J'
+  rw [entsOf_lookup]
+  have hin : InArea s'.area (s'.area ++ go!"/" ++ nm) nm := ⟨hw, rfl⟩
+  cases hs : s'.wal !! (s'.area ++ go!"/" ++ nm) with
+  | none => rw [hst.2.2.1 _ nm hin hs] at he; cases he
+  | some d =>
+    obtain ⟨lay', nm', hl', hin', -, -, he', -⟩ := hst.1 _ d hs
+    rw [← inArea_name hin hin', he] at he'
+    cases he'
+    obtain ⟨lay, hl, hj⟩ := hLL _ lay' hl'
+    rw [hj]
+    exact hT _ _ (hJh _ lay hl) b hb J'
+
+/-- **A pipeline name's invariant quarter after a crash**: the name holds no directory. -/
+theorem tmpHalf_crash (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) (J : Ino) (b : GoString) :
+    ⊢ osSharedInv (L := L) R -∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
+      tmpHalf (hG := ⟨G, L⟩) J b ={E}=∗
+      ⌜∀ J', V'.now.entry J b ≠ some (.dir J')⌝ ∗
+        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' := by
+  iintro #Hsh Hcr Hh
+  unfold tmpHalf
+  icases Hh with ⟨%h, %n0, Hn, #Hlb, %hf⟩
+  imod crashRest_region Q L L' D tt V' R [((J, NameSet.only [b], h), DFrac.own qTmpI)] n0 E hE
+    $$ Hsh Hcr [Hn] Hlb with ⟨%Hreg, Hcr, -⟩
+  · unfold osClaims
+    iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+    iframe Hn
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+  imodintro
+  iframe Hcr
+  ipureintro
+  intro J'
+  exact HistFoP.crash (c := (J, NameSet.only [b], h)) Hreg (by simp) hf (by simp [NameSet.Mem]) trivial J'
+
+/-- **The pipeline names' invariant quarters of a list of directories after a crash.** -/
+theorem tmpHalvesL_crash (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) (l : List (GoString × Ino)) :
+    ⊢ osSharedInv (L := L) R -∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
+      ([∗list] kv ∈ l, walTmpsHalf (hG := ⟨G, L⟩) kv.2) ={E}=∗
+      ⌜∀ kv ∈ l, ∀ b ∈ walTmps, ∀ J', V'.now.entry kv.2 b ≠ some (.dir J')⌝ ∗
+        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' := by
+  induction l with
+  | nil =>
+    iintro #Hsh Hcr -
+    imodintro
+    iframe Hcr
+    ipureintro; intro kv hkv; cases hkv
+  | cons kv l ih =>
+    iintro #Hsh Hcr Hl
+    icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ Hl with ⟨Hk, Hl⟩
+    iunfold walTmpsHalf at Hk
+    iunfold walTmps at Hk
+    icases Hk with ⟨H0, H1, -⟩
+    imod tmpHalf_crash Q L L' D tt V' R E hE kv.2 _ $$ Hsh Hcr H0 with ⟨%h0, Hcr⟩
+    imod tmpHalf_crash Q L L' D tt V' R E hE kv.2 _ $$ Hsh Hcr H1 with ⟨%h1, Hcr⟩
+    imod ih $$ Hsh Hcr Hl with ⟨%hl, Hcr⟩
+    imodintro
+    iframe Hcr
+    ipureintro
+    intro kv' hkv' b hb
+    rcases List.mem_cons.1 hkv' with rfl | hkv'
+    · simp only [walTmps, List.mem_cons, List.not_mem_nil, or_false] at hb
+      rcases hb with rfl | rfl
+      · exact h0
+      · exact h1
+    · exact hl kv' hkv' b hb
+
+/-- **The WAL directories' pipeline names after a crash** (`walTmpHalves`' map). -/
+theorem tmpHalvesM_crash (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) (Jh : GMap GoString Ino) :
+    ⊢ osSharedInv (L := L) R -∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
+      ([∗map] _dir ↦ J ∈ Jh, walTmpsHalf (hG := ⟨G, L⟩) J) ={E}=∗
+      ⌜∀ dir J, Jh !! dir = some J → ∀ b ∈ walTmps, ∀ J', V'.now.entry J b ≠ some (.dir J')⌝ ∗
+        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' := by
+  iintro #Hsh Hcr Hm
+  ihave Hl := (BigSepM.bigSepM_toList (Φ := fun (_ : GoString) (J : Ino) =>
+    walTmpsHalf (hG := ⟨G, L⟩) J)).1 $$ Hm
+  imod tmpHalvesL_crash Q L L' D tt V' R E hE (toList Jh) $$ Hsh Hcr Hl with ⟨%hl, Hcr⟩
+  imodintro
+  iframe Hcr
+  ipureintro
+  intro dir J hd
+  exact hl (dir, J) (toList_get.2 hd)
+
 /-- **The WAL's crash** (plan §2.2): from the old generation's invariant, its `crashed` (from the
 crash adequacy theorem) and the WAL's crash token, the shared mode's invariant, the generation's
 `crashRest` (with the files `D` another client's crash lemma took already, none named in a directory
@@ -138,6 +264,9 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D' : List Ino),
         walCrashWal W W' ∗
         ⌜W'.roots = R ∧ s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s' ∧ TreeWf R V'.now ∧
+          (∀ nm J, walNameOk nm → V'.now.entry jr nm = some (.dir J) → NoDirX (entsOf V'.now J)) ∧
+          (∀ nm J, walNameOk nm → V'.now.entry jr nm = some (.dir J) → ∀ b ∈ walTmps, ∀ J',
+            entsOf V'.now J !! b ≠ some (.dir J')) ∧
           ∀ i ∈ D', InAreaDir V'.now jr i⌝ ∗
         walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
@@ -159,7 +288,16 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · inext; iright; iframe Hcrd Htok
   icases Hb with ⟨%s, >Hb⟩
   iunfold walInvBody at Hb
-  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -, -, -, %Han, %Hnm, -, -, %HAt, -, %Hbd⟩
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -, -, -, %Han, %Hnm, Hpk,
+    ⟨%K, %cp, -, -, %HDK⟩, %HAt, -, %Hbd⟩
+  -- the pipeline names' invariant quarters: no directory there after the crash
+  iunfold walParked at Hpk
+  icases Hpk with ⟨%-, %-, -, -, %-, -, -, Htp, -⟩
+  iunfold walTmpParked at Htp
+  icases Htp with ⟨-, Htp⟩
+  iunfold walTmpHalves at Htp
+  icases Htp with ⟨%Jh, %hJh, Htp⟩
+  imod tmpHalvesM_crash Q L L' D false V' R E hE' Jh $$ Hsh Hcr Htp with ⟨%hTd, Hcr⟩
   icases walGhost_keys_keep (W := W) s $$ Hg with ⟨Hg, %hk⟩
   icases walGhost_steps (W := W) s $$ Hg with ⟨Hg, #Hst⟩
   -- the tree: what the claims allow
@@ -178,7 +316,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     (fun g _ ht hgD => hD g.ino hgD (of_decide_eq_true ht)) (walsOk_nodup Hok)
     (walsOk_cut Hok) $$ Hcr Hlays with ⟨%st, %st', %Hfs, Hstarts, Hcr, -⟩
   obtain ⟨hQs, htree, hfiles⟩ := Hfs
-  obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
+  obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs, hLL⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han.1 Hnm hk (fun _ _ hl => HAt.ne hl) Hreg htree (hQ _ _ hQs) hfiles
   -- the taken segments' starts
   have hT : ([∗list] g ∈ segsAll Ls, if tk g then
@@ -291,7 +429,8 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   isplitr
   · ipureintro
     refine ⟨hWR', by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
-      dirsRoots_crash hcrash Hbd.2, hwf, fun i hi => ?_⟩
+      dirsRoots_crash hcrash Hbd.2, hwf, crash_noDirX Hnm HDK Hreg hstart hLL,
+      crash_tmpNoDir hstart hLL hJh hTd, fun i hi => ?_⟩
     · rw [← hcrash.2.1]; exact hdd
     · rcases List.mem_append.1 hi with h | h
       · exact hareaB i (List.mem_filter.1 h).1
@@ -470,7 +609,9 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
     (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
-    (hst : WalsStart C Mr R jr s Ls V.now) : WalsNamed Ls cl 0 := by
+    (hst : WalsStart C Mr R jr s Ls V.now)
+    (hfo : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) → NoDirX (entsOf V.now J)) :
+    WalsNamed Ls cl 0 := by
   have hc : ∀ c ∈ cl, c.2.2 = ⟨restrictN c.2.1 (entsOf V.now c.1), [],
       restrictN c.2.1 (entsOf V.now c.1)⟩ := fun c h => by rw [hcl c h, namesOf_nil hV]
   intro dir lay hL
@@ -484,7 +625,15 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   rw [hL] at hL'; cases hL'
   obtain ⟨h, hjm⟩ := hdirs nm lay.j hin.1 he
   rw [(hst.2.2.2.2.2 dir lay hL).2.1, List.nil_append]
-  refine ⟨fun hj ⟨X, hX, hm, _⟩ => ?_, fun m' hreg => ?_⟩
+  refine ⟨fun hj ⟨X, hX, hm, _⟩ => ?_, fun m' hreg => ?_, fun N hj hm => ?_⟩
+  rotate_left 2
+  · have e := hc _ hm
+    simp only at e
+    refine HistFoP.of_boot (by rw [e]) (fun b hbN hP J hd => ?_)
+    rw [e] at hd
+    simp only at hd
+    rw [restrictN_lookup _ _ _ hbN] at hd
+    exact hfo nm lay.j hin.1 he b J hP hd
   · have e := hc _ hm
     simp only at e
     rw [e]
@@ -666,11 +815,12 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (hnames : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (jr, NameSet.only [nm], h) ∈ cl)
     (hnok : ∀ b h, (jr, NameSet.only [b], h) ∈ cl → NameOk b) (hbd : WalsBounded s)
-    (hdr : DirsRoots R s) (qs : Qp)
+    (hdr : DirsRoots R s)
+    (hfo : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) → NoDirX (entsOf V.now J)) (qs : Qp)
     (E : CoPset) :
     ⊢ walStart L W C Mr R jr r s V.now -∗
       osClaims L (cl.map (fun c => (c, DFrac.own 1))) -∗
-      ([∗map] _dir ↦ J ∈ Jm, walTmpsRes (hG := ⟨G, L⟩) J) -∗
+      ([∗map] _dir ↦ J ∈ Jm, walTmpsRes (hG := ⟨G, L⟩) J ∗ walTmpsHalf (hG := ⟨G, L⟩) J) -∗
       osPathS (L := L) R r (DFrac.own qs) jr -∗
       (∀ Ls, ⌜WalsStart C Mr R jr s Ls V.now⌝ -∗ walOthersL (L := L) Ls [] cl) ={E}=∗
       walInv (L := L) (W := W) C Mr R jr r ∗
@@ -831,7 +981,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       exact ⟨absentNone_start s jr V cl hV hcl harea hstart.2.2.1, hav⟩
     isplitr
     · ipureintro
-      exact walsNamed_start C Mr R jr s Ls V cl hV hcl hdirs hstart
+      exact walsNamed_start C Mr R jr s Ls V cl hV hcl hdirs hstart hfo
     isplitl [Hpk Hpo Hc2 Hp Htmp Hoth]
     · unfold walParked
       iexists true, WalOut.empty
@@ -847,10 +997,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       isplitl [Htmp]
       rotate_left
       · iexact Hoth
-      unfold walTmpParked
-      iexists Jm
-      isplitr
-      · ipureintro
+      have hJmL : ∀ dir lay, Ls !! dir = some lay → Jm !! dir = some lay.j := by
         intro dir lay hl
         obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
           cases h : s.wal !! dir with
@@ -859,6 +1006,21 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
         obtain ⟨lay', nm, hL', hin, -, -, he, -⟩ := hstart.1 dir d hd
         rw [hl] at hL'; cases hL'
         exact hJm dir nm lay.j (Har ▸ hin) he
+      have hsep : ([∗map] _dir ↦ J ∈ Jm, walTmpsRes (hG := ⟨G, L⟩) J ∗ walTmpsHalf (hG := ⟨G, L⟩) J) ⊢
+          ([∗map] _dir ↦ J ∈ Jm, walTmpsRes (hG := ⟨G, L⟩) J) ∗
+            [∗map] _dir ↦ J ∈ Jm, walTmpsHalf (hG := ⟨G, L⟩) J := by
+        rw [BigSepM.bigSepM_sep_eq]
+      icases hsep $$ Htmp with ⟨Htmp, Hthv⟩
+      unfold walTmpParked walTmpParked0
+      isplitr [Hthv]
+      rotate_left
+      · unfold walTmpHalves
+        iexists Jm
+        iframe Hthv
+        ipureintro; exact hJmL
+      iexists Jm
+      isplitr
+      · ipureintro; exact hJmL
       have hpt : ∀ (dir : GoString) (J : Ino), walTmpsRes (hG := ⟨G, L⟩) J ⊢
           (if dir ∈ ([] : List GoString) then emp else walTmpsRes (hG := ⟨G, L⟩) J) := fun _ _ => by
         rw [if_neg List.not_mem_nil]

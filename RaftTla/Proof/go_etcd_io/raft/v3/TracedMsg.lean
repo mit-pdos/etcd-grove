@@ -337,8 +337,8 @@ theorem traceFireOpt_mono_E (tr : Option GName) (tl : GoInterface) (oE oE' : Opt
 for the events `oE` the hook logs there), with the untraced nil logger (`tr = none → TraceLoggerOk`),
 which `TraceFireOpt none tl none Q` does not say. -/
 def HookGateOpt (tr : Option GName) (r : Loc) (oE : Option (TraceEv → Prop)) (Q : IProp GF) : IProp GF :=
-  iprop(|={⊤}=> ∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜tr = none → TraceLoggerOk tl⌝ ∗
-    TraceFireOpt tr tl oE Q)
+  iprop(notCrashed -∗ |={⊤}=> notCrashed ∗ ∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗
+    ⌜tr = none → TraceLoggerOk tl⌝ ∗ TraceFireOpt tr tl oE Q)
 
 /-- An untraced caller's gate: the struct's nil logger and `Q`. -/
 theorem hookGateOpt_none (r : Loc) (oE : Option (TraceEv → Prop)) (tl : GoInterface) (Q : IProp GF)
@@ -346,7 +346,9 @@ theorem hookGateOpt_none (r : Loc) (oE : Option (TraceEv → Prop)) (tl : GoInte
     (r.[raft, go!"traceLogger"] ↦□ tl ∗ Q : IProp GF) ⊢ HookGateOpt none r oE Q := by
   iintro ⟨#Htl, HQ⟩
   iunfold HookGateOpt
+  iintro Hnc
   imodintro
+  iframe Hnc
   iexists tl
   isplitr
   · iexact Htl

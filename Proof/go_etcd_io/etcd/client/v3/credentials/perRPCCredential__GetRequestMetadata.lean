@@ -25,9 +25,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 /-- **Trust boundary**: `GetRequestMetadata` reads `rc.authToken` under `authTokenMu.RLock()`
 and returns `nil, nil` for `""`, else `map[string]string{"token": t}, nil`
 (`rpctypes.TokenFieldNameGRPC`); the token it reads is one `credTokInv` allows. Untranslated:
-Perennial's `RLock` needs a reader token (or a thread token), which grpc's call for each attempt
-cannot give; true of Go below `RWMutex`'s 2^30 concurrent readers, which `credTokInv`'s
-`threadBound GF ≤ 2^30` bounds (its readers are goroutines). -/
+Perennial's `RLock` needs a reader token (or a thread token, to borrow one from `credTokInv`'s
+pool), which grpc's call for each attempt cannot give; true of Go below `RWMutex`'s 2^30
+concurrent readers, which `credTokInv`'s `threadBound GF ≤ 2^30` bounds (its readers are
+goroutines). Since 2026-11-22 `credTokInv` is the lock's guard over the field (`credTokR`), the
+writers' `UpdateAuthToken` proved over it. -/
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof :
   credentials.perRPCCredential.GetRequestMetadata.spec (GF := GF) (hG := hG)
 

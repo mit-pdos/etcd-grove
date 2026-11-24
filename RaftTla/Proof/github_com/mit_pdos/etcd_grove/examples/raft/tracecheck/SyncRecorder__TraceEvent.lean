@@ -6,6 +6,7 @@ module
 
 public import RaftTla.Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder__TraceEvent
 public import Proof.ReceiptTactics
+public import GooseLang.NotCrashed
 public import Perennial.Spec.sync.Mutex__Lock
 public import Perennial.Spec.sync.Mutex__Unlock
 
@@ -56,7 +57,13 @@ theorem SyncRecorder.TraceEvent.wp_proof
     as %sl' ⟨Hsl', Hcap, -⟩
   · ipureintro; exact DFrac.valid_discard
   try wp_auto
-  imod traceAuth_commit γt L e Q $$ Ha Hau with ⟨Ha, HQ⟩
+  -- (2026-11-21) the linearization point at a step, with the generation's token (`wp_ncfupd`)
+  iapply (wp_ncfupd _ _ (by rfl))
+  unfold ncfupd
+  iintro Hnc
+  imod traceAuth_commit γt L e Q $$ Hnc Ha Hau with ⟨Hnc, Ha, HQ⟩
+  imodintro
+  iframe Hnc
   wp_apply wp_Unlock _ (recLockInv γt r) $$ [$Hsync $Hm $Hlocked Hevs Ha Hsl' Hcap Hrs]
   · iunfold recLockInv
     iexists sl', L ++ [e]

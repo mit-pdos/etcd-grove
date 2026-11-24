@@ -104,8 +104,8 @@ instance ownInt64_discard_persistent (l : Loc) (v : w64) :
 
 /-- **A replica's node** (persistent): its `node` field, the node `n` of id `id`. -/
 def repNode (γ : Cluster) (r : Loc) (id : w64) : IProp GF :=
-  iprop(∃ n : Loc, r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"node"]
-      ↦□ nodeIface n ∗ isNode n γ tcRaftN id)
+  iprop(∃ n : NodeH, r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"node"]
+      ↦□ nodeIface n.loc ∗ isNode n γ tcRaftN id)
 
 instance repNode_persistent (γ : Cluster) (r : Loc) (id : w64) :
     Persistent (repNode (GF := GF) γ r id) := by
@@ -113,16 +113,16 @@ instance repNode_persistent (γ : Cluster) (r : Loc) (id : w64) :
 
 /-- **A replica's read-only part** (persistent): its id, node `n` and storage `ms` (registered, of
 names `γs`). -/
-def repInfo [MemStorReg GF] (γ : Cluster) (r : Loc) (id : w64) (n ms : Loc) (γs : MemStorNames) :
+def repInfo [MemStorReg GF] (γ : Cluster) (r : Loc) (id : w64) (n : NodeH) (ms : Loc) (γs : MemStorNames) :
     IProp GF :=
   iprop(r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"id"] ↦□ id ∗
-    r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"node"] ↦□ nodeIface n ∗
+    r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"node"] ↦□ nodeIface n.loc ∗
     r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"storage"] ↦□ ms ∗
     isNode n γ tcRaftN id ∗ memStorReg ms γs ∗ memStorLock ms γs ∗
     -- (out_size C3) the storage is unsized: the cluster bounds no proposed data
     ⌜γs.sz = false⌝)
 
-instance repInfo_persistent [MemStorReg GF] (γ : Cluster) (r : Loc) (id : w64) (n ms : Loc)
+instance repInfo_persistent [MemStorReg GF] (γ : Cluster) (r : Loc) (id : w64) (n : NodeH) (ms : Loc)
     (γs : MemStorNames) : Persistent (repInfo (GF := GF) γ r id n ms γs) := by
   unfold repInfo; infer_instance
 

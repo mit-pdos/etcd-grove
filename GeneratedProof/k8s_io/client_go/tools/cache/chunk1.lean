@@ -480,7 +480,7 @@ noncomputable instance InformerNameAndResource_access_load_gvr (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerNameAndResource_access_store_gvr (l : Loc) (v : k8s_io.client_go.tools.cache.InformerNameAndResource) (gvr' : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) :
+noncomputable instance InformerNameAndResource_access_store_gvr (l : Loc) (v : k8s_io.client_go.tools.cache.InformerNameAndResource) (gvr' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.InformerNameAndResource go!"gvr" l) v.gvr' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.InformerNameAndResource go!"gvr" l) gvr' (DFrac.own 1))
@@ -651,7 +651,7 @@ noncomputable instance TTLPolicy_access_load_TTL (l : Loc) (v : k8s_io.client_go
  by
   solve_pointsto_access_struct
 
-noncomputable instance TTLPolicy_access_store_TTL (l : Loc) (v : k8s_io.client_go.tools.cache.TTLPolicy) (TTL' : time.Duration) :
+noncomputable instance TTLPolicy_access_store_TTL (l : Loc) (v : k8s_io.client_go.tools.cache.TTLPolicy) (TTL' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.TTLPolicy go!"TTL" l) v.TTL' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.TTLPolicy go!"TTL" l) TTL' (DFrac.own 1))
@@ -667,7 +667,7 @@ noncomputable instance TTLPolicy_access_load_Clock (l : Loc) (v : k8s_io.client_
  by
   solve_pointsto_access_struct
 
-noncomputable instance TTLPolicy_access_store_Clock (l : Loc) (v : k8s_io.client_go.tools.cache.TTLPolicy) (Clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance TTLPolicy_access_store_Clock (l : Loc) (v : k8s_io.client_go.tools.cache.TTLPolicy) (Clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.TTLPolicy go!"Clock" l) v.Clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.TTLPolicy go!"Clock" l) Clock' (DFrac.own 1))
@@ -725,7 +725,7 @@ noncomputable instance TimestampedEntry_access_load_Timestamp (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance TimestampedEntry_access_store_Timestamp (l : Loc) (v : k8s_io.client_go.tools.cache.TimestampedEntry) (Timestamp' : time.Time) :
+noncomputable instance TimestampedEntry_access_store_Timestamp (l : Loc) (v : k8s_io.client_go.tools.cache.TimestampedEntry) (Timestamp' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.TimestampedEntry go!"Timestamp" l) v.Timestamp' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.TimestampedEntry go!"Timestamp" l) Timestamp' (DFrac.own 1))
@@ -1108,7 +1108,7 @@ noncomputable instance Heap_access_load_lock (l : Loc) (v : k8s_io.client_go.too
  by
   solve_pointsto_access_struct
 
-noncomputable instance Heap_access_store_lock (l : Loc) (v : k8s_io.client_go.tools.cache.Heap) (lock' : sync.RWMutex) :
+noncomputable instance Heap_access_store_lock (l : Loc) (v : k8s_io.client_go.tools.cache.Heap) (lock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Heap go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Heap go!"lock" l) lock' (DFrac.own 1))
@@ -1124,7 +1124,7 @@ noncomputable instance Heap_access_load_cond (l : Loc) (v : k8s_io.client_go.too
  by
   solve_pointsto_access_struct
 
-noncomputable instance Heap_access_store_cond (l : Loc) (v : k8s_io.client_go.tools.cache.Heap) (cond' : sync.Cond) :
+noncomputable instance Heap_access_store_cond (l : Loc) (v : k8s_io.client_go.tools.cache.Heap) (cond' : _root_.Perennial.sync.Cond) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Heap go!"cond" l) v.cond' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.Heap go!"cond" l) cond' (DFrac.own 1))
@@ -1215,7 +1215,7 @@ noncomputable instance InformerName_access_load_lock (l : Loc) (v : k8s_io.clien
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerName_access_store_lock (l : Loc) (v : k8s_io.client_go.tools.cache.InformerName) (lock' : sync.Mutex) :
+noncomputable instance InformerName_access_store_lock (l : Loc) (v : k8s_io.client_go.tools.cache.InformerName) (lock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.InformerName go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.InformerName go!"lock" l) lock' (DFrac.own 1))
@@ -1441,7 +1441,7 @@ noncomputable instance tombstone_access_load_uid (l : Loc) (v : k8s_io.client_go
  by
   solve_pointsto_access_struct
 
-noncomputable instance tombstone_access_store_uid (l : Loc) (v : k8s_io.client_go.tools.cache.tombstone) (uid' : k8s_io.apimachinery.pkg.types.UID) :
+noncomputable instance tombstone_access_store_uid (l : Loc) (v : k8s_io.client_go.tools.cache.tombstone) (uid' : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.tombstone go!"uid" l) v.uid' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.tombstone go!"uid" l) uid' (DFrac.own 1))

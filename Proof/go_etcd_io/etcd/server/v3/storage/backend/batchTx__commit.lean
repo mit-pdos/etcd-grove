@@ -50,7 +50,8 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
   armStep γ P W Pk γ.db.ns F S n →
   γ.db.ns = dbNs path →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ.db D ∗ backend.txDB tx γ.db db ∗
-      ownWTx tx γ.db D S ∗ cmtInv γ P W Pk ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
+      ownWTx tx γ.db D S ∗ cmtInv γ P W Pk ∗ fkRd γ P (S, ⟨∅, W64 0⟩) ∗
+      dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       (if stop then stopPay γ else iprop(F ∗ cntLb γ n)) }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Commit")) (Val #()))
   {{ (err : GoInterface), RET #err; backend.txDone tx ∗
@@ -69,7 +70,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
   · simp only [backend.ownDB, backend.dbHalf, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx,
       backend.ownWTxG, backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq,
       backend.bktEnts_eq, backend.seekIdx_eq, onFs_some hfs]
-    iintro %Φ ⟨-, ⟨#Hdb, Hs, Hrest⟩, #Hd, ⟨%G, Hl⟩, #Hinv, Hopn, Hsp⟩ HΦ
+    iintro %Φ ⟨-, ⟨#Hdb, Hs, Hrest⟩, #Hd, ⟨%G, Hl⟩, #Hinv, #Hfk, Hopn, Hsp⟩ HΦ
     cases stop
     · -- an ordinary commit: the invariant's half moves to `S`, every registration armed there
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -83,7 +84,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
         iunfold cmtInv at Hinv
         iinv Hinv with Hb Hclose <;> try exact hE
         iunfold cmtBody at Hb
-        icases Hb with (⟨%Dc, >Hh, Hregs⟩ | >#Hst)
+        icases Hb with (⟨%Dc, >Hh, #Hfk0, Hregs⟩ | >#Hst)
         rotate_left
         · unfold bStopped
           icombine Hopn Hst gives %Hcb
@@ -110,6 +111,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
             iexists D
             isimp only [backend.dbHalf, onFs_some hfs]
             iframe Hh Hregs
+            iframe #
           imodintro
           iframe Hs Hopn Hsp
         · iintro ⟨-, Hw⟩
@@ -124,6 +126,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
             iexists S
             isimp only [backend.dbHalf, onFs_some hfs]
             iframe Hh Hregs
+            iframe #
           imodintro
           iframe Hs Hopn Hi Hlb'
       have h' := h tx γ.db (wView D S G)
@@ -148,7 +151,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
         iunfold cmtInv at Hinv
         iinv Hinv with Hb Hclose <;> try exact hE
         iunfold cmtBody at Hb
-        icases Hb with (⟨%Dc, >Hh, Hregs⟩ | >#Hst)
+        icases Hb with (⟨%Dc, >Hh, #Hfk0, Hregs⟩ | >#Hst)
         rotate_left
         · unfold bStopped
           icombine Hopn Hst gives %Hcb
@@ -175,6 +178,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
             iexists D
             isimp only [backend.dbHalf, onFs_some hfs]
             iframe Hh Hregs
+            iframe #
           imodintro
           iframe Hs Hopn Hsp
         · iintro ⟨-, Hw⟩
@@ -243,7 +247,7 @@ private theorem cmt_arm_noop (γ : BNames) (P : BParams) (W Pk : IProp GF) (db :
     iunfold cmtInv at Hinv
     iinv Hinv with Hb Hclose
     iunfold cmtBody at Hb
-    icases Hb with (⟨%Dc, >Hh, Hregs⟩ | >#Hst)
+    icases Hb with (⟨%Dc, >Hh, #Hfk0, Hregs⟩ | >#Hst)
     rotate_left
     · unfold bStopped
       icombine Hopn Hst gives %Hcb
@@ -264,6 +268,7 @@ private theorem cmt_arm_noop (γ : BNames) (P : BParams) (W Pk : IProp GF) (db :
       iexists C
       isimp only [backend.dbHalf, onFs_some hfs]
       iframe Hh Hregs
+      iframe #
     imodintro
     iframe Hdb Hs Hrest Hopn Hi Hlb'
 
@@ -280,7 +285,7 @@ theorem backend.batchTx.commit.wp_proof
   replace hCommit := bbolt.kvGlue_Tx__Commit_kv hCommit
   replace hStats := bbolt.kvGlue_Tx__Stats_kv hStats
   intro γ P W Pk b t db st stop n F hArm
-  wp_start as ⟨#Hb, #Ht, Hw, Hown, #Htxdb, Hmu, Hopn, Hsp, %hSC⟩
+  wp_start as ⟨#Hb, #Ht, Hw, Hown, #Htxdb, Hmu, Hopn, Hsp, #HfkS, %hSC⟩
   icases isBackend_cmtInv γ P W Pk b $$ Hb with ⟨#Hcmt, %path, %hns⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #-, #-, #-, #-, #-, %HP⟩
@@ -321,7 +326,7 @@ theorem backend.batchTx.commit.wp_proof
     · exact absurd ⟨Hif, rfl⟩ hA
     try wp_auto
     wp_apply time.wp_Now as %start -
-    wp_apply (hCommit db st.tx γ P W Pk path true st.C st.S n F hArm hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $Hopn $Hsp]
+    wp_apply (hCommit db st.tx γ P W Pk path true st.C st.S n F hArm hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $HfkS $Hopn $Hsp]
       as %err ⟨#Hdone, Hr⟩
     wp_apply (hStats st.tx) $$ [$Hdone] as %s1 -
     wp_apply hSeconds as %f1 -
@@ -364,7 +369,7 @@ theorem backend.batchTx.commit.wp_proof
       · exact absurd rfl Herr
   · try wp_auto
     wp_apply time.wp_Now as %start -
-    wp_apply (hCommit db st.tx γ P W Pk path stop st.C st.S n F hArm hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $Hopn $Hsp]
+    wp_apply (hCommit db st.tx γ P W Pk path stop st.C st.S n F hArm hns) $$ [$Hown $Htxdb $Hwtx $Hcmt $HfkS $Hopn $Hsp]
       as %err ⟨#Hdone, Hr⟩
     wp_apply (hStats st.tx) $$ [$Hdone] as %s1 -
     wp_apply hSeconds as %f1 -

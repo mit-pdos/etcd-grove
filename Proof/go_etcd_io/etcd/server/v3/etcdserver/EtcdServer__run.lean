@@ -172,7 +172,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (rp : RestartPt) (A ce : List EntryModel)
     (K : AuthC) (hM : C.E.authMode = K.mode) (hRB : receiptBound GF ≤ 2 ^ 48)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
-    (dv : Option Loc) (γnc : NotifyNames)
+    (dv : Option NodeH) (γnc : NotifyNames)
     (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShapeM K.isOn C.ρ.kv.lm (A ++ ce))
     (hpk : logPutsOk (A ++ ce))
     (hw : C.γw = C.ρ.wait)
@@ -214,7 +214,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyResR K C rp (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
-  have hR : ∀ dv : Option Loc, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
+  have hR : ∀ dv : Option NodeH, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
       srvRunH (GF := GF) C.ρ.raft dv := fun dv => by cases dv <;> rfl
   simp only [EtcdServer.applyAll.specBatch] at hAA
   rw [hR]
@@ -427,7 +427,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `run_job_body`'s running half, as `srvRunH` (`SDRun.lean`). -/
-theorem run_job_body_match (γs : ServerRaftNames) (dv : Option Loc) :
+theorem run_job_body_match (γs : ServerRaftNames) (dv : Option NodeH) :
     run_job_body.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
       (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning (GF := GF) n γs.raft.cl srvClusterN (1 : Qp).half) =
       srvRunH (GF := GF) γs dv := by
@@ -952,7 +952,7 @@ theorem EtcdServer.run.wp_proofG
   ihave #Hrf' := Hrf
   iunfold srvRunFieldsAt at Hrf'
   icases Hrf' with ⟨#Hecf, ⟨%γe, #Hecb⟩, #Hscf, #Hscb, #Hdcf, #Hcff, #Hcfs, #Hcpf, #Hcpok, #Hstf,
-    #Hlcf, #Hlcn, #Hltg, #Hcinv, #Hgok⟩
+    #Hssi, #Hlcf, #Hlcn, #Hltg, #Hcinv, #Hgok⟩
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamed Hrn'

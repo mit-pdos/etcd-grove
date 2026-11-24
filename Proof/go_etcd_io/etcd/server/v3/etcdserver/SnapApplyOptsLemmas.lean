@@ -230,13 +230,13 @@ theorem snap_isApplyLessor [go_etcd_io.etcd.server.v3.storage.backend.Assumption
     (M : auth.AuthMode) (al ast lp cl : Loc) (d' : mvcc.KBReal) (γ : mvcc.api.MvccName)
     (W Pk : IProp GF) (g : GoFunc) (hgnn : g ≠ func.nil) (hlp : mvcc.leaseParams d'.P) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      lessorApplyOk lp ∗ lease.lessorCfg lp ∗ lessorLookupOk lp ∗
+      lessorApplyOk lp ∗ lease.lessorCfg lp ∗
       lease.lessorInv lp (mvcc.api.mvccLeases γ) ∗
       backend.isBackend d'.γB d'.P W Pk d'.be ∗ backend.plHookRO d'.γB g ⊢
     apply.isApplyLessor (lease.lessorIface lp) γ (fun _ => Pk) g (srvBkTie d')
       (srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be))
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
-  iintro ⟨#Hpkg, #Hlbe, #Hlcfg, #Hllk, #Hlinv, #HB, #Hhook⟩
+  iintro ⟨#Hpkg, #Hlbe, #Hlcfg, #Hlinv, #HB, #Hhook⟩
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
   ihave #Hmvpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -244,8 +244,7 @@ theorem snap_isApplyLessor [go_etcd_io.etcd.server.v3.storage.backend.Assumption
   iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv lp γ
     (fun _ => Pk) g (srvBkTie d') (srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be))
     (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be))
-  iunfold lessorLookupOk at Hllk
-  iframe Hmvpkg Hlspkg Hlinv Hlcfg Hllk
+  iframe Hmvpkg Hlspkg Hlinv Hlcfg
   isplitr
   · -- the revocation's lens, at the tie's backend
     iunfold apply.revokeLens
@@ -270,7 +269,7 @@ theorem snap_isApplyLessor [go_etcd_io.etcd.server.v3.storage.backend.Assumption
     unfold apply.bkWT
     rw [show mvcc.leaseName = go!"lease" from rfl]
     iunfold lessorApplyOk at Hlbe
-    iapply Hlbe $$ %B %W %Pk %g %(lease.lessorBeOn lp B.be) HB Hhook [] []
+    iapply Hlbe $$ %B %W %Pk %g %(lease.lessorBeOn lp B.be) %hlp HB Hhook [] []
     · ipureintro; exact hgnn
     · iapply lessorBeOn_lens
   · -- the checkpoint's put right, from the write right

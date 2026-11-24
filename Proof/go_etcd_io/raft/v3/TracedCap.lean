@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.raft.v3.TraceSimGhost
 public import Proof.go_etcd_io.raft.v3.TraceSimFacts
 public import Proof.go_etcd_io.raft.v3.TraceSimSpecInv
 public import Proof.strconv.FormatUintDefs
+public import GooseLang.NotCrashed
 
 @[expose] public section
 
@@ -520,7 +521,8 @@ def TraceFire (tr : Option GName) (tl : GoInterface) (E : TraceEv → Prop) (Q :
   match tr with
   | none => iprop(⌜TraceLoggerOk tl⌝ ∗ Q)
   | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗ isTraceLogger tn.tr tl ∗ ⌜tl ≠ interface.nil⌝ ∗
-      ∀ e, ⌜E e⌝ -∗ AU <{ ∃∃ L, traceAuth tn.tr L }> @ ⊤, ∅ <{ traceAuth tn.tr (L ++ [e]), COMM Q }>)
+      ∀ e, ⌜E e⌝ -∗ AU <{ ∃∃ L, traceAuth tn.tr L }> @ ⊤, ∅
+        <{ traceAuth tn.tr (L ++ [e]) ∗ notCrashed, COMM notCrashed ∗ Q }>)
 
 /-- **What a hook's caller gives for an event that may or may not be logged**: `some E`, as
 `TraceFire`; `none` (a message type the hook does not trace), `Q` (review round 1's S6). -/
@@ -571,7 +573,8 @@ theorem traceFire_mono (tr : Option GName) (tl : GoInterface) (E : TraceEv → P
     isplitl [HAU]
     · iapply HAU $$ %e %HE
     · isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-      iintro %L HQ
+      iintro %L ⟨Hnc, HQ⟩
+      iframe Hnc
       iapply HW $$ HQ
 
 /-- ... and `TraceFireOpt`'s. -/
@@ -709,7 +712,7 @@ hook logs there. In a traced cluster the simulation's capability gives it, by th
 (`trCapB_hookGate`, `TracedHooksGlobal.lean`), with `Q` the capability in its next phase; in an
 untraced one the struct's nil logger does, with `Q` any resource the caller holds (`hookGate_none`). -/
 def HookGate (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : IProp GF) : IProp GF :=
-  iprop(|={⊤}=> ∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ TraceFire tr tl E Q)
+  iprop(notCrashed -∗ |={⊤}=> notCrashed ∗ ∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ TraceFire tr tl E Q)
 
 /-- The gate after an update at `⊤`. -/
 theorem hookGate_fupd (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : IProp GF) :
@@ -717,8 +720,20 @@ theorem hookGate_fupd (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : 
   iintro H
   iunfold HookGate at H
   iunfold HookGate
+  iintro Hnc
   imod H with H
-  iexact H
+  iapply H $$ Hnc
+
+/-- (2026-11-21, the crash invariant) The gate after an update at `⊤` that needs the token (a ghost
+step over raft's ghost state): the gate's own `notCrashed`, lent and given back. -/
+theorem hookGate_nc (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (Q : IProp GF) :
+    iprop(notCrashed -∗ |={⊤}=> notCrashed ∗ HookGate tr r E Q) ⊢ HookGate tr r E Q := by
+  iintro H
+  iunfold HookGate
+  iintro Hnc
+  imod H $$ Hnc with ⟨Hnc, H⟩
+  iunfold HookGate at H
+  iapply H $$ Hnc
 
 /-- An untraced caller's gate: the struct's nil logger and `Q`. -/
 theorem hookGate_none (r : Loc) (E : TraceEv → Prop) (tl : GoInterface) (Q : IProp GF)
@@ -726,7 +741,9 @@ theorem hookGate_none (r : Loc) (E : TraceEv → Prop) (tl : GoInterface) (Q : I
     (r.[raft, go!"traceLogger"] ↦□ tl ∗ Q : IProp GF) ⊢ HookGate none r E Q := by
   iintro ⟨#Htl, HQ⟩
   iunfold HookGate
+  iintro Hnc
   imodintro
+  iframe Hnc
   iexists tl
   isplitr
   · iexact Htl
@@ -765,6 +782,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The simulation's invariant's namespace, beside raft's commit invariant's (`raftLogN`, `raftRegN`). -/
 def simNS (γ : RaftNames) : Namespace := (raftN γ).@"tracesim"
+
+/-- (2026-11-21) A node's crash invariants are outside the simulation's and the commit invariant's log
+half: a trace line's update (`FxPresU`) opens them. -/
+theorem crashNs_sub_sim (γ : RaftNames) (id : w64) :
+    (↑(crashNs γ id) : CoPset) ⊆ (⊤ \ ↑(simNS γ)) \ ↑(raftLogN γ) := by
+  intro p hp
+  have h := nclose_subseteq (raftN γ .@ "crash") id p hp
+  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
+  refine ⟨⟨CoPset.mem_full, fun h' => ?_⟩, fun h' => ?_⟩
+  · exact ndot_ne_disjoint (raftN γ) (show "crash" ≠ "tracesim" by decide) p ⟨h, h'⟩
+  · exact ndot_ne_disjoint (raftN γ) (show "crash" ≠ "log" by decide) p ⟨h, h'⟩
 
 /-- (Amendment A5, Q21) **The servers not known to keep `P` from term `t` on**: of the state's
 servers, those whose log does not extend `P` or whose term is below `t`. -/
@@ -1137,7 +1165,7 @@ def FxPresU (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
       LineEffect C false e (idAbs id) a a' none _root_.id (fun b => P'.foldl Etcdraft.Bag.with b) (fun _ => False) ∧
       σ.server = confAbs C ∧ σ.s (idAbs id) = a ∧ σ.preVote = false ∧ σ.checkQuorum = false ∧
       σ.violated = .ok none⌝ -∗
-    votesTbl γ -∗ simFx γ C σ ==∗
+    notCrashed -∗ votesTbl γ -∗ simFx γ C σ ={(⊤ \ ↑(simNS γ)) \ ↑(raftLogN γ)}=∗ notCrashed ∗
       votesTbl γ ∗ simFx γ C (withNode σ (idAbs id) a' _root_.id (fun b => P'.foldl Etcdraft.Bag.with b)) ∗ R')
 
 /-- `FxPresU`, gated on the cluster's trace mode (review round 6's F4): untraced, only the update
@@ -1155,10 +1183,10 @@ theorem fxPres_upd (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   iunfold FxPres at H
   icases H with #H
   iunfold FxPresU
-  iintro %C %cs %P %e %a %a' %P' %σ %hpre Htbl Hfx
+  iintro %C %cs %P %e %a %a' %P' %σ %hpre Hnc Htbl Hfx
   icases H $$ %C %cs %P %e %a %a' %P' %σ %hpre Htbl Hfx with ⟨Htbl, Hfx'⟩
   imodintro
-  iframe Htbl Hfx'
+  iframe Hnc Htbl Hfx'
 
 /-- `FxPres`, in a traced cluster only. -/
 def FxPresT (tr : Option GName) (γ : RaftNames) (id : w64) (E : TraceEv → Prop)

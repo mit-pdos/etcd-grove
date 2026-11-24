@@ -59,7 +59,14 @@ chunk's key-values or mvcc's index. Its errors are those of `txn.Range` and `txn
 read transaction, both given back. `More` is set only when the page had `Limit ≥ 1` keys (`Limit` is
 at least `1` on each page: `adjustChunkLimit`'s floor and `totalLimit - count > 0` while not done),
 so `resp.Kvs[len(resp.Kvs)-1]` is in bounds. Evidence: the Go tests `examples/authmedrangestream/`
-(each chunk's keys in the range, through the real server; the review's errors and aliasing). -/
+(each chunk's keys in the range, through the real server; the review's errors and aliasing).
+(errors-is-deadline, 2026-11-23) Since then the post's `applyErrIs` also says that the error tree's
+errors of type `context.deadlineExceededError` hold `deadlineExceededError{}` (`deTyped`). Go's
+typing makes this true of every Go error: `deadlineExceededError` is a field-less struct type, whose
+only value is `deadlineExceededError{}`. The model does not type interface values, and `togRPCError`
+compares the error with `context.DeadlineExceeded`, so the fact is stated. It was accepted by the
+coordinator under the user's approval of the same typing class (2026-11-23), and review was
+requested on #31. -/
 abbrev EtcdServer.rangeStream.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (t : Loc) (te : Bool) (r : Loc) (o : OpFull)

@@ -115,7 +115,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leasekv" go!"127.0.0.1:23946" go!"127.0.0.1:23936" lg
       (LogEntry.toEntries boot 0) ctxs (leasekvDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasekvDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [leasekvDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
@@ -198,7 +198,7 @@ theorem Main.wp_proof
       (fun m => iprop(⌜m.ids.Nodup⌝)) lctx lcd) as %lsr %lerr Hls
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseLeasesSpecAny
+    iunfold etcdLeaseLeasesSpecAny, etcdLeaseLeasesSpecAnyW
     iintro %m %Hm
     ipureintro; exact Hm
   -- `lcancel()`
@@ -295,7 +295,7 @@ theorem Main.wp_proof
     · iframe #
       isplitl
       · imodintro; inext
-        iunfold etcdLeaseTTLSpec
+        iunfold etcdLeaseTTLSpec, etcdLeaseTTLSpecW
         iintro %m %Hm
         ipureintro; exact Hm
       iunfold leaseOptsAt

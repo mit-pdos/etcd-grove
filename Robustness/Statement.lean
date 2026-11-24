@@ -23,14 +23,33 @@ failing; a partition is such an execution).
 **Every machine starts as a fresh Go process** (`Fresh`, a premise inside `Robust`, so that no
 instance repeats it): its Go context is the one the theorem's Go semantics is about (`lctx`, the
 instance `[GoLocalContext]`: the meaning of the Go instructions, shared by the machines as echo's
-three programs share one), no package is initialized, and it has its main thread only. What an
-extension needs of a start state (no connection, a file system's roots) stays the instance's.
+three programs share one), no package is initialized, and it has its main thread only. **Every
+machine and the shared state start in their extensions' initial states** (Perennial's trusted
+`ExtSemantics.initLocal`/`initGlobal`, through `extsInitLocal`/`extsInitGlobal`: e.g. the net
+extension's no listener and no connection, `Net.net_semantics`, and the Linux file extension's files
+as on disk, `Fs.fs_semantics`, both stated by the extensions since 2026-11-22; an extension that
+states none starts anywhere, Perennial's default `True`; premises inside `Robust` too, 2026-11-21,
+for kvnet's statement). What an instance needs beyond them (a directory
+that is empty, its addresses) stays the instance's.
 
 The statement says nothing of what the programs compute. A property of a system (its clients'
 history is linearizable) is a theorem of this form about a deployment that includes a program
 checking it and panicking if it fails, e.g. a client on a machine that does not crash, which
 keeps its history: the property is then written in Go, where it is tested, and not in a trusted
 Lean definition over traces.
+
+**An exit is a safe run, so a checker must panic.** Perennial models Go's process exit
+(`syscall.Exit`, which `os.Exit` and the loggers' `Fatal` call; Perennial's
+`TrustedCode/syscall.lean`, and this repository's) as `AngelicExit`: the exiting goroutine steps to
+itself forever, neither stuck nor panicking, and the machine's other goroutines keep running (in Go
+the process ends). An execution in which a program exits, with any status, is thus one this statement
+counts as safe: a check that ends its program with `os.Exit(1)` or `log.Fatal` on a violation is
+checked by nothing. A Go run of a machine that exits is, up to the exit, an execution of this
+statement, and after it is as a machine the scheduler stops picking; the statement also covers the
+model's executions in which the other goroutines run on. `etc/exit-check.py` (a gate) keeps exits out
+of the own code of the programs the robustness theorems are about (the user's approval of the model on
+this condition, 2026-11-24; `notes/decisions.md`, "Go's process exit stays angelic, and checkers
+panic").
 
 The step bound is the proofs' (time receipts, as the closed adequacy theorems' `n < 2^61`).
 
@@ -73,11 +92,19 @@ def Fresh (lctx : GoLocalContext) (σ : state) : Prop :=
 /-- **A robustness statement** (see the file header): in every execution of fewer than `bound`
 steps along which every machine keeps fewer than `threads` live threads, of the machines
 `crashing` (which may crash and restart) and `stable` (which never crash), each running its
-program from its local state, a fresh Go process with the context `lctx`, on the shared state
-`g`, no thread of any machine is stuck or has an unrecovered panic. -/
+program from its local state, a fresh Go process with the context `lctx` in its extensions'
+initial state, on the shared state `g`, in its extensions' initial state, no thread of any machine
+is stuck or has an unrecovered panic.
+
+A process exit is a safe run (see the file header): Go's `os.Exit`/`syscall.Exit` (and so a
+logger's `Fatal`), of any status, is Perennial's `AngelicExit`, under which the exiting goroutine
+steps to itself forever while the machine's other goroutines keep running; so a program that
+checks a property must report a violation by panicking, never by exiting. -/
 def Robust [lctx : GoLocalContext] (crashing stable : List (Expr × state)) (g : GlobalState)
     (threads bound : Nat) : Prop :=
   (∀ m, m ∈ crashing ++ stable → Fresh lctx m.2) →
+  extsInitGlobal g →
+  (∀ m, m ∈ crashing ++ stable → extsInitLocal m.2 g) →
   ∀ (n : Nat) (κs : List Observation) (c : DistCfg),
     DistCrashNstepsBelow (crashing.map Prod.fst) threads n (distInit (crashing ++ stable) g) κs
       c →
@@ -140,8 +167,8 @@ node may crash) proves statements of this form. -/
 theorem Robust.of_all_crashing [GoLocalContext] {crashing stable : List (Expr × state)}
     {g : GlobalState} {threads bound : Nat} (h : Robust (crashing ++ stable) [] g threads bound) :
     Robust crashing stable g threads bound := by
-  intro hfresh n κs c hsteps hn
-  refine h (by simpa using hfresh) n κs c ?_ hn
+  intro hfresh hig hil n κs c hsteps hn
+  refine h (by simpa using hfresh) hig (by simpa using hil) n κs c ?_ hn
   rw [List.map_append, List.append_nil]
   exact distCrashNstepsBelow_more_boots _ hsteps
 
@@ -181,7 +208,7 @@ theorem Robust.of_single [lctx : GoLocalContext] {e : Expr} {σ : state} {g : Gl
       RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2) →
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)) :
     Robust [] [(e, σ)] g threads bound := by
-  intro hfresh n κs c hsteps hn i tp' σ' hi e' he'
+  intro hfresh _ _ n κs c hsteps hn i tp' σ' hi e' he'
   obtain ⟨tp₁, σ₁, g₁, rfl, hreal⟩ := distCrashNsteps_single (tp := [e]) hsteps.nsteps
   obtain ⟨hns, hnp⟩ := h (hfresh (e, σ) (by simp)) n κs tp₁ (σ₁, g₁) hn hreal
   obtain rfl : i = 0 := by
@@ -202,7 +229,7 @@ theorem Robust.of_all [lctx : GoLocalContext] {es : List (Expr × state)} {g : G
         ∀ (i : Nat) (tp : List Expr) (σ : state), c.nodes[i]? = some (tp, σ) →
           (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧ (∀ e, e ∈ tp → ¬ UnrecoveredPanic e)) :
     Robust es [] g threads bound := by
-  intro hf n κs c hs hn i tp σ hi e he
+  intro hf _ _ n κs c hs hn i tp σ hi e he
   simp only [List.append_nil] at hf hs
   obtain ⟨h₁, h₂⟩ := h hf n κs c hs.nsteps hn i tp σ hi
   exact ⟨h₁ e he, h₂ e he⟩
@@ -272,7 +299,7 @@ theorem Robust.of_single_crashing [lctx : GoLocalContext] {e : Expr} {σ : state
       n < bound → RealCrashNsteps e n ([e], ((σ, g) : CfgState)) κs (t2, σ2) b →
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)) :
     Robust [(e, σ)] [] g threads bound := by
-  intro hfresh n κs c hsteps hn i tp' σ' hi e' he'
+  intro hfresh _ _ n κs c hsteps hn i tp' σ' hi e' he'
   obtain ⟨tp₁, σ₁, g₁, m, b, hm, rfl, hreal⟩ :=
     distCrashNsteps_single_crashing (boot := e) (tp := [e]) hsteps.nsteps
   obtain ⟨hns, hnp⟩ := h (hfresh (e, σ) (by simp)) m κs tp₁ (σ₁, g₁) b (by omega) hreal
@@ -322,7 +349,7 @@ theorem Robust.of_single_below [lctx : GoLocalContext] {e : Expr} {σ : state} {
       RealNstepsBelow threads n ([e], ((σ, g) : CfgState)) κs (t2, σ2) →
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)) :
     Robust [] [(e, σ)] g threads bound := by
-  intro hfresh n κs c hsteps hn i tp' σ' hi e' he'
+  intro hfresh _ _ n κs c hsteps hn i tp' σ' hi e' he'
   obtain ⟨tp₁, σ₁, g₁, rfl, hreal⟩ := distCrashNstepsBelow_single (tp := [e]) hsteps
   obtain ⟨hns, hnp⟩ := h (hfresh (e, σ) (by simp)) n κs tp₁ (σ₁, g₁) hn hreal
   obtain rfl : i = 0 := by
@@ -352,13 +379,14 @@ the statement without a thread bound said (the converse being `Robust.of_single`
 siblings, which take that statement's hypothesis). -/
 theorem Robust.toAll [lctx : GoLocalContext] {crashing stable : List (Expr × state)}
     {g : GlobalState} {threads bound : Nat} (h : Robust crashing stable g threads bound)
-    (hf : ∀ m, m ∈ crashing ++ stable → Fresh lctx m.2) (n : Nat) (κs : List Observation)
+    (hf : ∀ m, m ∈ crashing ++ stable → Fresh lctx m.2) (hig : extsInitGlobal g)
+    (hil : ∀ m, m ∈ crashing ++ stable → extsInitLocal m.2 g) (n : Nat) (κs : List Observation)
     (c : DistCfg)
     (hs : DistCrashNsteps (crashing.map Prod.fst) n (distInit (crashing ++ stable) g) κs c)
     (hn : n < min bound (threads - 1)) :
     ∀ (i : Nat) (tp : List Expr) (σ : state), c.nodes[i]? = some (tp, σ) →
       ∀ e, e ∈ tp → RealNotStuck e (σ, c.global) ∧ ¬ UnrecoveredPanic e :=
-  h hf n κs c ((DistCrashNstepsBelow.of_single hs (distInit_threads hf)).mono (by omega))
+  h hf hig hil n κs c ((DistCrashNstepsBelow.of_single hs (distInit_threads hf)).mono (by omega))
     (by omega)
 
 end facts

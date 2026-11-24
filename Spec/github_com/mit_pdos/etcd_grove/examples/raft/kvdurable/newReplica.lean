@@ -34,13 +34,13 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- See the file header. -/
 abbrev newReplica.spec : Prop :=
-  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (n st sts sq ms : Loc)
+  ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (n : NodeH) (st sts sq ms : Loc)
     (γs : MemStorNames) (K : GName) (mK mA csp : Loc) (Kv A : GMap (List w8) (List w8))
     (ap l : List LogEntry) (m : Membership) (cfg : ConfStateM) (ip : Loc) (hs : HardStateM) (S : RaftState)
     (o : Option StorFile) (M : StorFile) (rafted : w64) (tick : time.Duration) (f : GoFunc),
@@ -81,9 +81,9 @@ abbrev newReplica.spec : Prop :=
       ⌜¬ clusterNoSnap γ.r.cluster⌝ }}
     (App (App (App (App (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.newReplica)) (Val #id)) (Val #(kdFileName dir id)))
-      (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st)) (Val #mK)) (Val #mA))
+      (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n.loc))) (Val #st)) (Val #mK)) (Val #mA))
       (Val #csp)) (Val #(W64 ap.length))) (Val #rafted)) (Val #tick)) (Val #sts)) (Val #sq)) (Val #f))
-  {{ (r : Loc), RET #r; (∃ (n' st' sts' sq' : Loc) (ρ : KdRepNames),
+  {{ (r : Loc), RET #r; (∃ (n' : NodeH) (st' sts' sq' : Loc) (ρ : KdRepNames),
         isReplicaR γ vs dir id r n' st' sts' sq' ρ) ∗ repStop γ vs dir id r }}
 
 end spec

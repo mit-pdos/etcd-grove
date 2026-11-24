@@ -13,14 +13,176 @@ neutral module path"). Translated by goose project `models` (`etc/goose.py`, lea
 | model | verified | trusted | evidence |
 |---|---|---|---|
 | `pbcodec/`: protobuf's wire format (varints, tags, length-delimited and fixed values, skipping a field, UTF-8) | translated with its bodies (no trusted function); `(*Error).Error` and the package initialization proved (`Net/Proof/models_lab/pbcodec/`); the helpers' own specs not yet (a kit port proves them) | that each function is protowire's of the same name (protobuf-go v1.36.12), `ConsumeFieldTag` the real Unmarshal's tag check, `ValidUTF8` Go's `unicode/utf8.Valid` | `pbcodec/protowire_test.go`, `pbcodec_test.go` against protowire and `unicode/utf8`; through every generated codec's tests |
-| `protobuf/`: the protobuf codec generator `pbgen.py`, a per-type replacement of `proto.Marshal`/`Unmarshal` | the code it emits is plain Go over `pbcodec` (a program's proof proves it meets the `PbCodec` it uses; the statement does not mention it) | **the generator** (not each output; `notes/decisions.md`, "Trusted generated code: the generator is the trusted artifact"): for every schema it accepts, the emitted code behaves as protobuf-go v1.36.12's Marshal/Unmarshal. The trusted core is `protobuf/pbgen_core.py` (its doc: the subset, the refusals, the encoding per field kind with citations, the documented deviations: unknown fields dropped, error values and what comes with an error not modeled, slice capacities). Its inputs are not hand-written: `pbdesc/` dumps the descriptors protoc-gen-go registered (the ones protobuf-go runs on) and the Go structs | `internal/pbgenrand` (random proto3 schemas compiled by the real protoc-gen-go, each codec against protobuf-go on random values, real encodings and their mutations; and one refused schema per unsupported construct); the regression tests generated beside each codec (`internal/pbdifftest`, `../examples/models/pbetcd`, etcd's messages); the review `../notes/axiom-review/pbgen.md`; `--check` of every input in the gates |
-| `jsoncodec/`: JSON's syntax (the scanner, value appenders) | translated with its bodies; `IsSpace`, `AppendRaw`, `AppendBool`, `(*Error).Error`, initialization proved (`Net/Proof/models_lab/jsoncodec/`) | that the scanner accepts what `encoding/json` accepts, and the appenders write its bytes | `jsoncodec/*_test.go` against `encoding/json` |
-| `json/`: the JSON codec generator `jsongen.py` | as for pbgen: plain Go over `jsoncodec` | its output for the listed types (a hand-written `[json]` table, still the audited input: not yet reworked as pbgen was; the plan note, phase 5.1, says what carries over) | the generated tests (`internal/jsondifftest`) against `encoding/json` |
+| `protobuf/`: the protobuf codec generator `pbgen.py`, a per-type replacement of `proto.Marshal`/`Unmarshal` | the code it emits is plain Go over `pbcodec` (a program's proof proves it meets the `PbCodec` it uses; the statement does not mention it) | **the generator** (not each output; `notes/decisions.md`, "Trusted generated code: the generator is the trusted artifact"): for every schema it accepts, the emitted code behaves as protobuf-go v1.36.12's Marshal/Unmarshal. The trusted core is `protobuf/pbgen_core.py` (its doc: the subset, the refusals, the encoding per field kind with citations, the documented deviations: unknown fields dropped, error values and what comes with an error not modeled, slice capacities). The subset (since 2026-11-23): proto2 and proto3 messages, explicit presence, required fields, defaults, closed enums, packed and unpacked repeated scalars, oneofs; refused: editions, maps, groups, float and double, extensions, lazy fields. Its inputs are not hand-written: `pbdesc/` dumps the descriptors protoc-gen-go registered (the ones protobuf-go runs on) and the Go structs (the one descriptor source: the same dump gives the Lean proofs' trusted schemas, `etc/gen-pbschema.py`) | `internal/pbgenrand` (random proto2 and proto3 schemas, with explicit presence, required fields, defaults, closed enums, packed and unpacked repeated fields and oneofs, compiled by the real protoc-gen-go, each codec against protobuf-go on random values, real encodings and their mutations; one refused schema per unsupported construct; `TestProtobufQuirks`, the two protobuf-go behaviors of its required-field checks the core refuses schemas for, shown on protobuf-go; and `TestOrders`, a schema of required fields in cycles, a oneof, 70 required fields in a message, against protobuf-go in 13 orders of its lazy type setup, each in a fresh process); the regression tests generated beside each codec (`internal/pbdifftest`, `../examples/models/pbetcd`, etcd's messages); the review `../notes/axiom-review/pbgen.md`; `--check` of every input in the gates |
+| `jsoncodec/`: JSON's syntax (the scanner, value appenders, the scalar decoders, `Nesting`, the `NotModelled` panic value) | translated with its bodies; `IsSpace`, `AppendRaw`, `AppendBool`, `(*Error).Error`, initialization proved (`Net/Proof/models_lab/jsoncodec/`) | that the scanner accepts what `encoding/json` accepts, and the appenders and decoders are its, within the plain-string subset (a panic outside it) | `jsoncodec/*_test.go` against `encoding/json` (Go 1.27.3's default build) |
+| `net/rpc/`: Go 1.27.3's `net/rpc` as a model (a standard-library model: `goroot.py`) | Go's code but for gob and reflection (the Client, the Server's loop, Dial/DialHTTP, ServeHTTP, Register's checks); goose project `models-net` (`Net/Code/net/rpc.lean`, with its bodies); proved (`Net/Proof/net/rpc/`, `Results.lean`, axiom-free): the wire's helpers, `readFull`, `readFrame`, the codec registry (`SetCodec`, `getCodec`), both codecs, the Client, and the Server (`Register`, `ServeCodec`'s request loop, `ServeConn`, `Accept`); over HTTP `DialHTTPPath`/`DialHTTP` (Go's code: the `CONNECT` answer read through `bufio.NewReader(conn)`, the net extension's sticky read errors giving no byte after an error, 2026-11-23; linked over Perennial's pending `strings.Cut`/`TrimLeft` specs) and `ServeHTTP` (the plan note's phase 5.2 lists what remains). Its `go/token.IsExported` is a trusted model with a **choice point** (`Net/TrustedCode/go/token.lean`: exact on an ASCII first byte, an arbitrary result on a non-ASCII one; `internal/rpcdifftest/isexported_test.go`) | that every behavior of Go's net/rpc is one of the model's (its doc, `codec.go`): the frame codec in place of gob's (`io.EOF`/`io.ErrUnexpectedEOF` as gob's; read errors as Go's, the server reading on after one: the net extension's semantics makes them sticky but a deadline's timeout, D1 v3.5; 2026-11-24, `rerr` removed), with one **stuck point**: a request frame longer than `maxFrame` (`clientCodec.WriteRequest` calls `stuck`, trusted: `Net/TrustedCode/net/rpc.lean`, Perennial's `internal.gomodel.Stuck.impl`; gob refuses a message too big but leaves the header it encoded buffered for the next flush, not modelled), which the proofs show no client reaches (`Client.Call.spec`'s bound on the request), the generated Codec in place of reflection; out of scope, a panic (decoding across types, the debug page) | `internal/rpcdifftest` (`run.sh`: the same tests against the real net/rpc and the model, faults included: cut streams at every byte, resets, a server closing mid-call) |
+| `net/rpc/rpcgen.py`: the net/rpc codec generator (gob's encoding and merging decode, reflection's receivers) | as pbgen: plain Go a program's proof uses | **the generator** (`rpcgen_core.py`: the claim, the subset, the refusals, gob's decode rules cited); its input derived by reflection (`rpcdesc/`, net/rpc's `suitableMethods` copied) | `internal/rpcgenrand` (random Go types against real gob; one refused input per construct); the generated test beside each codec |
+| `net/http/`: Go 1.27.3's `net/http` as a model | Go's code (the server's connection loop, the response writer, ServeMux, handlers, Request/Response) but for the HTTP/1.x head parser (`textproto_model.go`); not modelled (a panic): chunked bodies, TLS, HTTP/2, the Transport; translated by `models-net`: types, the parser, and with their bodies what net/rpc's HTTP path runs (`ReadResponse`, `Handle`, ServeMux's dispatch, `Serve`/`ListenAndServe`, `conn.serve` up to a hijack; `Net/Code/net/http.toml`); `ReadResponse` on net/rpc's CONNECT answer proved (`Net/Proof/net/http/`, 2026-11-23). (2026-11-23: `strings.Cut`/`strings.TrimLeft` are Go's calls again, the stand-ins `modelCutByte`/`modelTrimLeftByte` removed, their callers' proofs over `Spec/strings/{Cut,TrimLeft}.lean`, pending on Perennial; the server's `connReader` is Go's again, `connReader.failed` removed: the net extension's sticky read errors, D1 v3.5, give no byte after a read error.) (2026-11-23, MODEL, for the server's proof) `Server.protocols` does not read `GODEBUG=http2server` (only the HTTP/2 bit, read only by TLS, not modelled) and `onceSetNextProtoDefaults` configures no HTTP/2 (as with `nethttpomithttp2`; the claim excludes programs reading the `Server`'s `TLSConfig`/`TLSNextProto` after `Serve`); and (2026-11-23, MODEL, for `readRequest`'s proof) `url.ParseRequestURI` as `modelParseRequestURI` (`textproto_model.go`: Go's result computed on a `/`-initial path of the bytes net/url leaves alone, Go's function otherwise; Perennial translates `strings.Cut`/`ToLower`/`Index` as names only); and (2026-11-24, MODEL, for real `fmt`'s stage 1.5, whose `%q` covers strings but not byte slices) `modelReadMIMEHeader`'s two messages quoting the line (missing colon, invalid name) format `%q` of `string(kv)` where textproto's format its `[]byte` `kv`: byte-identical in Go (`fmt`: a byte slice is formatted as a string; `internal/httpdifftest`'s `TestSprintfQBytesAsString`, `TestMIMEHeaderErrorMessages`) | that every behavior of Go's net/http is one of the model's (`textproto_model.go`'s doc), for programs that do not read a `Server`'s `TLSConfig`/`TLSNextProto` after `Serve` | `internal/httpdifftest` (raw server exchanges and `ReadRequest`/`ReadResponse` on heads and mutations, `ReadRequest`'s URL on every byte after `/` and random paths (`TestReadRequestURI`), against golden transcripts the real build writes) |
+| `json/`: the JSON codec generator `jsongen.py`, a per-type replacement of encoding/json's reflection | as for pbgen: plain Go over `jsoncodec` (Goose-translatable but for unnamed root struct types, built outside Goose) | **the generator** (as pbgen): for every set of types it accepts, the emitted code behaves as Go 1.27.3's encoding/json (the default build: the v1 API over encoding/json/v2). The trusted core is `json/jsongen_core.py` (its doc: the claim, the subset, the refusals, the encoding and decoding per kind with citations to Go's source, the deviations: error values, what comes with an error, slice capacities); its inputs are derived by reflection (`jsondesc/`) from the roots the `[json]` table names | `internal/jsongenrand` (random Go types of the subset against the real encoding/json: embedded structs exported, unexported, by pointer, repeated and self-embedded with colliding names, pointers, types with their own MarshalJSON/UnmarshalJSON on value and pointer receivers in every context; encodings of random values, decodings of encodings and their mutations into every type, and the methods called, in order; one refused input per construct, and the constructs accepted since 2026-11-23 checked; `notes/jsongen-extension.md`); the regression tests generated beside each codec (`internal/jsondifftest`, `internal/jsonvsr`: go-vsr's messages and `log.Logs`' methods, `examples/models/jsonetcd`: etcd's membership, downgrade, conf-state and hash-KV types); `--check` of every input in the gates |
+| `encoding/json/`: Go 1.27.3's `encoding/json` as a model (a standard-library model: `goroot.py`) | Go's code (the default build's `v2_*.go`: the API, the error types, `Number`, `HTMLEscape`) but for reflection and encoding/json/v2, replaced by the program's generated codec (`model.go`), and the Decoder over jsontext (`v2_stream.go`: jsontext's buffer and top-level framing, the scanner `jsoncodec.Scan`); Goose translates it (checked by hand: a GOROOT of links, `goroot.py farm`; with its bodies, tried 2026-11-23); the main tree's `Code/encoding/json.lean` is its names only (std_models of projects etcd, k8s-apiserver, k8s-daemonset, since 2026-11-23: the real package's names before); specs: the Lean half (mit-pdos/etcd-grove#24) | that every behavior of Go's encoding/json the program observes is one of the model's (`model.go`'s doc: values, error-or-not and io.EOF/ErrUnexpectedEOF, bytes and Write calls, Read calls with their lengths); not modelled, a panic: MarshalIndent, Indent, Compact, SetIndent, Token, More, DisallowUnknownFields, v2's options | `internal/jsonstreamtest` (`run.sh`: the same stream tests against the real encoding/json and the model, both reproducing the real build's golden transcripts: vsr's wire format over net.Pipe and over scripted readers, chunk sizes, streams cut at every byte, read errors, malformed streams, 3000 random streams) |
+| `grpc/`: grpc-go v1.84.0 as a model (a module model: Go module `google.golang.org/grpc`, put in place by a `replace`, `grpc/gomodel.py`) | grpc-go's code (status, codes, metadata, peer, credentials, resolver, encoding, the options, `invoke`, the interceptor chains, the client stream's attempts and replay, the server stream, `processRPC`, `Serve`, `GracefulStop`, `Stop`) but for its transport and connection management, replaced by the model's (`model_*.go`: one stream per connection; see below); Lean: specs to come (phase 5.4's Lean half) | that every behavior of grpc-go v1.84.0 over Linux TCP, as the program observes it, is one of the model's (`model_transport.go`'s and `model_clientconn.go`'s docs; below) | `internal/grpcdifftest` (`run.sh`: the same tests against grpc-go and the model, faults included; the invariants with the model's choices random; `examples/` built against the model; `--etcd`: etcd's examples over the model) |
+| `gods/`: gods v1.18.1 as a model (a module model: Go module `github.com/emirpasic/gods`, put in place by a `replace`): the packages the kits reach (`utils`, `containers`, `maps`, `trees`, `trees/redblacktree`, `maps/treemap`) | gods' code verbatim but the red-black tree iterator's `Next` and `Prev`, rewritten without `goto` (`MODEL:`, `trees/redblacktree/iterator.go`; goose takes no `goto`, mit-pdos/perennial#691); translated by the dsv-epaxos and dsv-swiftpaxos projects (`module_models`); proved: the treemap specs the kits use (`NewWith`, `Put`, `Get`, `Select`, `Iterator`, `Next`, `Value`: `treemap.hyps_true`, `Dsverify/Proof/github_com/emirpasic/gods/maps/treemap/`; `notes/gods-verified.md`) | that the rewritten `Next`/`Prev` behave as gods' (the same conditions, field reads and writes, in the same order) | `internal/tpdifftest` (`run.sh`: `rbt_test.go`, random red-black trees and iterator walks step by step against gods v1.18.1, and the treemap tests, equal transcripts) |
+| `uuid/`: google/uuid v1.3.1 as a model (module `github.com/google/uuid`) | v1.3.1's code for `Must`, `New`, `UUID.{ID,Time}` and what Go reaches through an interface (`String`, `MarshalText`/`UnmarshalText`, `MarshalBinary`/`UnmarshalBinary`, `Value`/`Scan`, with `Parse`/`ParseBytes`); `NewRandom`'s 16 bytes from goose's `primitive.RandomUint64` (`MODEL:`); Goose takes it (tried); no spec yet | every behavior of v1.3.1 through that API is one of the model's, provided the program never assigns `crypto/rand.Reader` and is not built with boringcrypto (`doc.go`); v4 coverage structural (`ArbitraryInt`) | `internal/tpdifftest` (`ID`/`Time`, formatting, text/binary/JSON/gob/SQL and parsing on random, edge and malformed inputs against v1.3.1; a replaced `crypto/rand.Reader`, and `testdata/randprobe`: outside the premise, v1.3.1 fails) |
+| `concurrent-map/`: orcaman/concurrent-map v1.0.0 as a model (module `github.com/orcaman/concurrent-map`) | v1.0.0's code unchanged for what the kits call (`New`, `GetShard`, `Set`, `Upsert`, `Get`, `Has`, `Remove`, `IterCb`; `Count`, `IsEmpty` for the fork's tests); `MarshalJSON` (encoding/json's interface) `NotModelled`; the rest removed; Goose takes it (tried); no spec yet | every behavior of v1.0.0 through that API is one of the model's (the same code and types), but JSON (`concurrent_map.go`'s doc) | `internal/tpdifftest` (random sequences under several `SHARD_COUNT`s, concurrent runs, formatting, against v1.0.0 and the model; JSON `NotModelled` in the model) |
+| `log/slog/`: Go 1.27.3's `log/slog` as a model (a standard-library model: `goroot.py`) | the API the vr kit calls (`New`, `DiscardHandler`, `Logger.{Debug,Info,Warn,Error,Handler}`, `Debug`, `Handler`; `Record`, `Attr` opaque) and `Level` with its methods (Go's code, reached by fmt and the encoders); `New` refuses any handler but `DiscardHandler` (`MODEL:`); Goose takes it (tried, with its bodies); no spec yet | **no effect the program observes**: every behavior of Go's log/slog through that API is one of the model's, no record being ever enabled through it (DiscardHandler; the default handler, level Info, behind `Debug`); `NotModelled`: a program-supplied Handler (`doc.go`) | `internal/slogdifftest` (`run.sh`: the same tests against Go's log/slog and the model, an overlay: returns and panics, a nil and a zero Logger, `New(nil)`, `Handler()`'s identity, `Level`'s formatting and parsing, no argument method called, nothing written to stdout/stderr) |
 
-Layout: a model's Go package at the top (`pbcodec/`, `jsoncodec/`, `pbdesc/`), its generator in a
-directory named for the library (`protobuf/`, `json/`), its differential tests in `internal/`.
-The patches of real packages (Q1 of `notes/dsverify-net-port-plan.md`: gRPC, net/http, net/rpc as
-patches of the real modules) will live here too, each with its evidence, not in `etc/`.
+Layout: a model's Go package at the top (`pbcodec/`, `jsoncodec/`, `pbdesc/`, `rpcdesc/`, `jsondesc/`),
+its generator in a directory named for the library (`protobuf/`, `json/`, `net/rpc/`), its differential
+tests in `internal/`. A model of a library is a first-class Go package (`notes/decisions.md`, "Models
+are first-class Go packages"): it starts from the real library's source and keeps its API, the places
+it changes marked `MODEL:`; its difference from the library is computed, not stored: `diff.py MODEL
+[--stat]` (e.g. `net/rpc`). A model of a standard-library package lives at its import path
+(`net/rpc/`, `net/http/`, `encoding/json/`, `log/slog/`, in the modules `net/go.mod`, `encoding/go.mod` and `log/go.mod`
+that nothing builds) and builds in place of the
+real package through `goroot.py` (`overlay`: a `go build -overlay` file, with `-tags netmodel` for a
+program's generated registration; `farm`: a GOROOT of links, for goose, a project's `std_models` in
+`etc/goose.py`). `overlay` fails when GOROOT is a toolchain under GOMODCACHE (the one
+`GOTOOLCHAIN=go1.27.3` downloads when the installed go is another release): `go build -overlay`
+refuses to replace files beneath GOMODCACHE. `farm` (`GOROOT=DIR GOTOOLCHAIN=local`, DIR/bin first
+in PATH) is the supported path there, and the one the difftests use (`internal/rpcdifftest/run.sh`).
+Where a model does not model the library it panics with a value that has a
+`NotModelled` method.
+
+## The grpc model (`grpc/`)
+
+`grpc/` is grpc-go v1.84.0 (the version `examples/go.mod` pins), the packages a program of this
+repository reaches, as the module `google.golang.org/grpc`: a model build replaces the real module by
+it (`grpc/gomodel.py DIR GOARGS...`: the module's go.mod plus the `replace`, as a temporary
+`-modfile`; the normal build never sees the model). It keeps grpc-go's API: every exported name of
+the packages etcd, its dependencies (otelgrpc, the prometheus interceptors) and the kits use, which
+`examples/` building against it checks. The packages it no longer reaches are not in it
+(`internal/transport`, the balancers, `internal/idle`, the delegating resolver, ...). Its changes are
+marked `MODEL:`, and its difference from grpc-go is computed, never stored: `diff.py grpc [--stat]`
+(2026-11-20: 16 files of the root package, +2724 -3807 lines). What it replaces:
+
+- **The transport** (`model_transport.go` over `model_wire.go`), in place of HTTP/2: one stream per
+  connection. The client writes HTTP/2's 24-byte preface (cmux's `HTTP2()` matcher reads exactly
+  it) and writes a stream only once the server's preface arrived (as grpc-go waits for SETTINGS:
+  a connection made in a blackhole never carries a stream), then header blocks carrying grpc-go's own header fields (made by grpc-go's
+  `createHeaderFields`, read by its `operateHeaders`, `writeStatus`, ...; `model_http_util.go` is
+  `http_util.go`'s helpers verbatim), gRPC's length-prefixed messages (read by grpc-go's `parser`,
+  which checks the size limit before reading a message) and RST_STREAM codes. Not modelled, and not
+  observable by the program: multiplexing, flow control, HPACK, settings, pings, keepalive (a dead
+  connection is a cut, which the network may make at any time).
+- **The connection management** (`model_clientconn.go`), in place of the balancers, subchannels,
+  picker and idleness manager: the program's resolver (built when the ClientConn leaves idleness,
+  closed when it enters it or closes); an attempt dials any address the resolver reported since it
+  was built, with the dial options' dialer and the credentials' handshake (insecure only), and gets
+  a connection of its own; a fail-fast attempt fails with Unavailable when its dial fails.
+- **Removed:** channelz, stats handlers, binary logging, tracing, server workers, retry policies and
+  hedging (no service config but round robin's, which has none).
+
+**The trusted claim:** every behavior of grpc-go v1.84.0 over Linux TCP, as the program observes it
+(what handlers run with which requests, metadata, deadlines and contexts; what calls and streams
+return; which program callbacks run: dialers, resolvers, credentials, interceptors, codecs), is a
+behavior of the model. Not wire compatibility: both ends run the model. Its choice points are
+`modelChoose`/`modelChooseN`/`modelChooseLength` (`model_choose.go`, the only declarations with a
+hand-written GooseLang body: any value; in Go the common side, or random with `GRPC_MODEL_CHOOSE=random`;
+`modelChooseLength` is the wire length the model reports where grpc-go reports an HPACK size, a
+server stats handler's `InHeader.WireLength`).
+*Over-approximations* (more behaviors than grpc-go): a stream not yet dispatched may be refused
+(REFUSED_STREAM; grpc-go's MaxConcurrentStreams and GOAWAY), and a refused first attempt is retried
+transparently, as grpc-go does; a connection failure before a stream's status ends it with any
+non-OK code; any address reported since the resolver's build may be dialed; a fail-fast RPC may fail
+with Unavailable at its pick; the ClientConn may enter idleness whenever no RPC is active. *Outside
+the model* (a panic with a `NotModelled` method): transport credentials other than insecure, a
+service config other than `{"loadBalancingPolicy": "round_robin"}`, compression, client stats
+handlers, binary logging, `InTapHandle`, a server buffer pool other than the default,
+`Server.ServeHTTP`, a unix address with a custom dialer. *Server stats handlers* (2026-11-22, for
+etcd's otelgrpc handler) get grpc-go's events in grpc-go's order (`TagConn`/`ConnBegin`/`ConnEnd` per
+connection; per call `TagRPC`, `InHeader`, `Begin`, `InPayload`, `OutHeader`, `OutPayload`,
+`OutTrailer`, `End`, with grpc-go's fields but `InHeader.WireLength`, the model's choice:
+`internal/grpcdifftest/stats_test.go`).
+*Simplifications*: one stream per connection, visible only to a connection's addresses (any
+address) and to a server stats handler's connection events (`TagConn`/`HandleConn`: one
+`ConnBegin`/`ConnEnd` pair per call, where grpc-go has one per connection, which carries many): a
+program whose behavior depends on how many connections carry its calls is outside the claim
+(otelgrpc's `TagConn` returns its context and its `HandleConn` does nothing, v0.71.0
+`stats_handler.go:95-101`, so etcd's is not); no HTTP/2 framing, no server workers. `RegisterService` does not make
+grpc-go's reflection check of the handler's type (grpc-go exits when it fails; generated code cannot
+fail it).
+
+## The third-party library models (`gods/`, `uuid/`, `concurrent-map/`)
+
+Models of the third-party Go modules the dsverify kits use (mit-pdos/etcd-grove#24): SwiftPaxos's
+`state` package (the swiftpaxos and epaxos kits) keeps its store in a gods treemap; its `client`
+names itself with a uuid (the swiftpaxos kit); its `swift` package keeps its command descriptors in
+concurrent maps (the swiftpaxos kit). The dsverify lab replaced each module by a cut-down copy
+(`harness/rpcmodel/{gods,uuid,cmap}`); these are their models under the rules above. Each keeps its
+module's path and directory layout (a model build replaces the module, as for grpc: a kit's
+-modfile, or `etc/goose.py`'s `module_models`) and starts from the module's source at the version
+SwiftPaxos's go.mod pins. It keeps the API the kits call and every method of a kept type that Go's
+standard library reaches through an interface (fmt's `String`, encoding's text and binary
+marshalers, encoding/json's `MarshalJSON`/`UnmarshalJSON`, database/sql's `Value`/`Scan`): those as
+the library's code, or as a `NotModelled` panic where the library's code is not modelled. (Cutting
+such a method would not break the program's build but change what it prints or encodes: a cut is
+sound only for a name a program must call by name.) The places a model changes are marked `MODEL:`,
+and `diff.py gods|uuid|concurrent-map [--stat]` computes the difference (2026-11-23: gods +57
+-58 lines, uuid +60 -710, concurrent-map +31 -182; log/slog +94 -2704). Each model's package doc states its trusted
+claim, its premises, and what is not claimed:
+
+- **gods** (`trees/redblacktree/iterator.go`): gods' own code, but the red-black tree iterator's
+  `Next` and `Prev`, whose bodies jump to their `between`/`end` (`begin`) labels with `goto`, which
+  goose does not translate (mit-pdos/perennial#691): the model writes the same steps as structured
+  branches (each `goto between` the label's statements in place, each `goto end` and the fall-through
+  reaching the label's statements after the outer `if`). Claimed: every behavior of v1.18.1 is the
+  model's (the rest of the module's packages the kits reach are its code, unchanged). Until
+  2026-11-23 the model was a sorted slice in place of the tree (`git log`), with `NotModelled`
+  panics; gods' own code needs neither premise nor exclusion.
+- **uuid** (`doc.go`): `NewRandom`'s bytes come from two `primitive.RandomUint64()` (`ArbitraryInt`
+  in Goose's semantics: every 16 bytes with the version-4 and variant bits set is a result, so the
+  coverage of v1.3.1's results is structural; the test only illustrates it) where v1.3.1 reads
+  crypto/rand.Reader; the error is nil. Premises: the program never assigns `crypto/rand.Reader`
+  (v1.3.1 captures it at its initialization, and a package initialized earlier could replace it:
+  `internal/tpdifftest/testdata/randprobe` shows v1.3.1's `New` panicking then), and it is not built
+  with boringcrypto. Not claimed: the process's fatal error when the kernel's random source fails,
+  uniqueness, the distribution.
+- **concurrent-map** (`concurrent_map.go`): v1.0.0's code, only shortened; `MarshalJSON`
+  `NotModelled`.
+
+A model's types other than these keep their own representation: a program that observes it
+(reflection, unsafe, fmt's printing of a struct's fields, e.g. a `treemap.Iterator` value) is outside
+the claims.
+
+The evidence is `internal/tpdifftest` (`run.sh`, in the gates; it fetches the pinned modules if the
+module cache lacks them): one test module built twice, against the real modules (its go.mod) and
+against the models (a temporary -modfile replacing the three, tag `tpmodel`); each build checks the
+library against the tests' own references and writes transcripts of everything it observed (a
+panic's text included), and the two builds' transcripts must be equal byte for byte (2026-11-23:
+treemap 4000 random sequences, 157622 operations, 313521 transcript lines, and the zero, `new`, nil,
+empty, full and copied maps with every operation and fmt verb, changes during iteration, JSON; the
+red-black tree iterator 3000 random trees (118971 Puts, 59264 Removes of random int keys, under
+`utils.IntComparator` and the kits' `state.KeyComparator`), 112138 iterator steps (`Next`, `Prev`,
+`Begin`, `End`, `First`, `Last`, `NextTo`, `PrevTo`, from `Iterator`, treemap's iterator and
+`IteratorAt`, `Key` and `Value` after each, against a reference), 743 walks while the tree changes,
+126657 transcript lines; `Next` and `Prev` fully covered; uuid `ID`/`Time` on 20258 UUIDs,
+fmt, text, binary, JSON, gob and SQL of 240 UUIDs, `Parse`/`ParseBytes`/`UnmarshalText`/`Scan` of
+381 valid, cut, mutated and random texts, 20000 `New`/`NewRandom`/`Must` samples, a replaced
+`crypto/rand.Reader`; concurrent-map 1510 random sequences, 92518 operations, SHARD_COUNT 1 to
+32768, 60 concurrent runs of 8 goroutines, fmt of a shard). Each build also checks the `NotModelled`
+cases (uuid's, concurrent-map's): a panic in the model, the library's behavior otherwise. Beside it, SwiftPaxos's own tests
+(`state`, `swift`, `client` of the fork's packages under `examples/dsverify/swiftpaxos`, branch
+`dsv-swiftpaxos`) pass built against the three models, and so do epaxos's (`epaxos`,
+`examples/epaxosnet`, `master`, `replica`, `state` under `examples/dsverify/epaxos`, branch
+`dsv-epaxos`) against the gods model (2026-11-23, by hand: a -modfile with the replaces; then the
+sorted-slice model).
+
+## The log/slog model (`log/slog/`)
+
+A standard-library model (`goroot.py`), approved on #24: go-vsr (the vr kit) logs through
+`slog.New(slog.DiscardHandler)` and the package-level `slog.Debug`. Its claim is that logging has
+**no effect the program observes**: no record is ever enabled through the model's API. A Logger's
+handler is `DiscardHandler` (Go's code: `Enabled` false, so a call returns at once, its arguments
+untouched), since `New` refuses any other with a `NotModelled` panic, or nil in a zero Logger (whose
+calls panic as Go's); the package-level `Debug` goes to the default handler, enabled from `LevelInfo`
+(the log package's level, which only `SetLogLoggerLevel` changes: not in the model). So the log
+package's output is never reached, and `log.SetOutput` changes nothing observable through this API.
+`Logger.Handler` is Go's (`return l.handler`), `Level`'s methods are Go's (fmt and the encoders
+reach them), a nil `*Logger` panics as Go's (a nil dereference), `New(nil)` with "nil Handler".
+Premise: the program does not make `Record` or `Attr` values of its own (the model's are opaque).
+Evidence: `internal/slogdifftest/run.sh` (in the gates; 2026-11-23: 7 transcripts equal across the
+builds; the model's `NotModelled` panics; a child process making every call writes nothing).
+go-vsr's own tests (`examples/dsverify/vr`, branch `dsv-vr`) pass against it.
 
 ## The other kinds of trusted model
 

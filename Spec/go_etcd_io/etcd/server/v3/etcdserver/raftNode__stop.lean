@@ -50,7 +50,7 @@ abbrev raftNode.stop.spec : Prop :=
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
       rnWalTokA γ r (1 : Qp).half ∗ rnStopClaim γ ∗ rnApplyTok γ A }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
-  {{ RET #(); nodeVacant γ.node.cl γ.id ∗
+  {{ RET #(); (∃ x, nodeVacantA γ.node.cl γ.id x) ∗
       ∃ (S : RaftState) (σ : StorContents), raftState γ.node.cl γ.id S ∗ rnWalClosed γ r σ ∗
         ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit ∧
           -- (S1, r2db §4.1) the restart point's backend log at or below the stored commit (the

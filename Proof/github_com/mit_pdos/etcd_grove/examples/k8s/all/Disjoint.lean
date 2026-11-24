@@ -29,8 +29,8 @@ open Iris Iris.BI go_etcd_io.raft.v3 etcdstart
 
 section pure
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 /-- **The program's addresses are distinct.** -/
 theorem k8sAddrs_nodup (k₁ k₂ : Nat) (hk₁ : k₁ ≤ 1000) (hk₂ : k₂ ≤ 1000) :
@@ -52,6 +52,18 @@ theorem k8sAddrs_lit (k₁ k₂ : Nat) (hk₁ : k₁ ≤ 1000) (hk₂ : k₂ ≤
   rcases List.mem_append.1 ha with h | h
   · exact k8s_etcd3N.k8setcd3NAddrs_lit k₁ hk₁ a h
   · exact k8s_compactorN.k8scompactorNAddrs_lit k₂ hk₂ a h
+
+/-- **The program's addresses are valid for the net extension** (`Net.addrOk`, 2026-11-23: the
+single-process theorem over `etcdNetExts` takes their listening tokens from the extension's start):
+every port is in `[20000, 26000)` (`addr_port`), below Linux's ephemeral range (`addrOk_loopback`). -/
+theorem k8sAddrs_ok (k₁ k₂ : Nat) (hk₁ : k₁ ≤ 1000) (hk₂ : k₂ ≤ 1000) :
+    ∀ a ∈ k8sAddrs k₁ k₂, Net.addrOk a = true := by
+  intro a ha
+  rcases List.mem_append.1 ha with h | h
+  · obtain ⟨b, i, hb, hi, rfl⟩ := k8s_etcd3N.addr_port k₁ a h
+    exact addrOk_loopback _ (by simp [W64]; omega) (by simp [W64]; omega)
+  · obtain ⟨b, i, hb, hi, rfl⟩ := k8s_compactorN.addr_port k₂ a h
+    exact addrOk_loopback _ (by simp [W64]; omega) (by simp [W64]; omega)
 
 /-- `(a ++ b) ++ (c ++ d)` is `(a ++ c) ++ (b ++ d)` up to order. -/
 theorem perm_middle4 {α : Type _} (a b c d : List α) :

@@ -25,11 +25,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [StorageModel GF] [AllG GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [StorageModel GF]
 
 /-- See the file header. -/
 abbrev Replica.install.spec : Prop :=
-  ∀ (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc)
+  ∀ (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st sts : Loc)
     (ap : List LogEntry) (idx : w64) (csp : Loc) (m : Membership) (mA : Loc)
     (A : GMap (List w8) (List w8)) (mdp : Loc) (dq : DFrac) (md : SnapshotMetadataM)
     (mK' mA' : Loc) (K' A' : GMap (List w8) (List w8)) (L : List LogEntry) (mL : Membership),

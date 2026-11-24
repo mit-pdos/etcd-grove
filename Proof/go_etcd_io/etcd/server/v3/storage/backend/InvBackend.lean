@@ -1369,6 +1369,25 @@ of which they are not; the commit's close moves it to the session's logical view
 def batchViewQ0 (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
   iprop(∃ L : VData, viewQ γ (1 : Qp).half.half (vData P (st.C, st.R)) L ∗ ⌜dlsS P st⌝)
 
+/-- **The buffers fit `m`** (2026-11-22, `notes/step-bounds-plan.md`, step 2, option D): each bucket's
+read and write buffers hold at most `m` entries together. -/
+def bufFit (st : BSess) (m : Nat) : Prop :=
+  ∀ i, (bkOf st.R.bks i).length + (bkOf st.W.bks i).length ≤ m
+
+/-- **The buffers' receipt** (2026-11-22, step 2, option D; persistent): a persistent time receipt
+`⧖ m` for a count `m` the buffers fit, and the receipt bound below `2 ^ 60` (`New`'s premise, kept
+here so that no session needs it). Every entry a session puts in the write buffer is paid by a Go
+step of the put itself (`wp_raise_receipt`: `⧖ m` to `⧖ (m + 1)`); a write-back moves entries to
+the read buffer, a commit drops the read buffer: neither adds. So the buffers stay below the step
+bound (`preceipt_lt`), whatever the commits since the last write-back (until then bounded through
+the write-back budget times `hookMax`, which capped the budget at `2 ^ 40`; since, the budget
+`2 ^ 62`). -/
+def bufRc (st : BSess) : IProp GF :=
+  iprop(∃ m, ⧖ m ∗ ⌜bufFit st m ∧ receiptBound GF ≤ 2 ^ 60⌝)
+
+instance bufRc_persistent (st : BSess) : Persistent (bufRc (GF := GF) st) := by
+  unfold bufRc; infer_instance
+
 /-- The batch lock's share of the ghost state for `st`: the view's quarter over the logical view,
 the physical view `(C, R)` thin of it (`batchViewQ`), half of
 the readers' state `γ.rvs` at `(C, R)` (so the batch side's `C` and `R` are the read side's),
@@ -1378,7 +1397,8 @@ open token (the `run` goroutine has another quarter, the clients' `bOpen` the ha
 batch lock is never held in a stopped backend), half of the hook's own keys `γ.hkd` and of the
 tracked buckets `γ.rbk` at the writer's contents and its side of their readers' contents (`trkSide`),
 half the compaction keys' flag, at
-`0` only while the state has none (`fkHalf`, the backend-compaction stage, 2026-10-29), with the
+`0` only while the state has none (`fkHalf`, the backend-compaction stage, 2026-10-29), the
+buffers' receipt (`bufRc`, 2026-11-22), with the
 bounds of `bgOk` over the state's counters (`free`: the lock is free). -/
 def batchGhostAt (γ : BNames) (P : BParams) (st : BSess) (free : Bool) (c : Bool := false) :
     IProp GF :=
@@ -1387,7 +1407,7 @@ def batchGhostAt (γ : BNames) (P : BParams) (st : BSess) (free : Bool) (c : Boo
       ownTokAuth γ.wb n ∗
       monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-      trkSide γ P st c ∗ fkHalf γ P st ∗ ⌜bgOk P st free n w u⌝)
+      trkSide γ P st c ∗ fkHalf γ P st ∗ bufRc st ∗ ⌜bgOk P st free n w u⌝)
 
 /-- The batch lock's ghost share, held (`c`: the session's mode, A1.4). -/
 abbrev batchGhost (γ : BNames) (P : BParams) (st : BSess) (c : Bool := false) : IProp GF :=
@@ -1736,9 +1756,11 @@ def cmtRegs (γ : BNames) (P : BParams) (W Pk : IProp GF) (Dc : Data) : IProp GF
     monoNatAuthOwn gc 1 c ∗ ghostMapAuth gm 1 M ∗ [∗map] _i ↦ e ∈ M, regEntry γ P W Pk c Dc e)
 
 /-- **The commit invariant's content**: the committed data's other half (`dbHalf`) with the
-registrations at it, or the backend stopped (`Close` has taken the half). -/
+registrations at it, or the backend stopped (`Close` has taken the half). (B4, 2026-11-21) With a
+reader's lower bound of the compaction keys' flag at the committed data, with no read buffer (`fkRd`, what
+a snapshot's read transaction gets). -/
 def cmtBody (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
-  iprop((∃ Dc : Data, dbHalf γ.db Dc ∗ cmtRegs γ P W Pk Dc) ∨ bStopped γ)
+  iprop((∃ Dc : Data, dbHalf γ.db Dc ∗ fkRd γ P (Dc, ⟨∅, W64 0⟩) ∗ cmtRegs γ P W Pk Dc) ∨ bStopped γ)
 
 /-- **A commit point came after the count `n`** (persistent): a lower bound of the commit counter. -/
 def cntLb (γ : BNames) (n : Nat) : IProp GF :=

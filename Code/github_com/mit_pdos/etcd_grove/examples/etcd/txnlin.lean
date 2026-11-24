@@ -289,6 +289,12 @@ noncomputable def callTxn [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def call [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin.call"
 
+noncomputable def Call [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin.Call"
+
+noncomputable def IsWrite [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin.IsWrite"
+
 noncomputable def Apply [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin.Apply"
 
@@ -3922,10 +3928,49 @@ noncomputable def call.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad Output.ty))) (Var "$res0"))))))
 
+/-- Call runs one operation through the client cli, without prophecies: the operation of a client
+    machine of examples/lib/remote (etcd-dist's kv, examples/etcd/dist/kvremote), where the
+    orchestrator's remote.Do makes the prophecy. Its output, Err on an error (an unknown outcome).
+
+    go: linkvtxn.go:969:6 -/
+noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cli"
+  (Lam "input"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "input" (App (Val (GoInstruction (GoAlloc go.any))) (Var "input"))
+  (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "$r0" (App (Val (GoInstruction (Convert Output.ty go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "$a1" (App (Val (GoInstruction (TypeAssert Input.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "input")))
+  (App (App (App (Val (GoInstruction (FuncResolve call []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0"))))))
+
+/-- IsWrite reports whether an operation may write (isWrite): remote's codec retries only the others.
+
+    go: linkvtxn.go:974:6 -/
+noncomputable def IsWrite.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "in"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (Var "in"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in"))
+  (App (App (Val (GoInstruction (FuncResolve isWrite []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 /-- Apply runs one operation through the client cli, resolving a prophecy with its outcome and,
     for a read, another with the revision it read at (0 otherwise).
 
-    go: linkvtxn.go:968:6 -/
+    go: linkvtxn.go:980:6 -/
 noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "input"
@@ -3983,7 +4028,7 @@ noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Check runs lintest.Run of clients concurrent clients of cli, each running ops operations, and
     returns porcupine's verdict.
 
-    go: linkvtxn.go:984:6 -/
+    go: linkvtxn.go:996:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "clients"
@@ -4031,7 +4076,7 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
     with etcd's default configuration and runs Check; it panics if porcupine finds the history
     illegal. An error from a step before Check ends Main without a check.
 
-    go: linkvtxn.go:996:6 -/
+    go: linkvtxn.go:1008:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -4822,6 +4867,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   txnRes_unfold : FuncUnfold txnRes [] txnRes.impl
   callTxn_unfold : FuncUnfold callTxn [] callTxn.impl
   call_unfold : FuncUnfold call [] call.impl
+  Call_unfold : FuncUnfold Call [] Call.impl
+  IsWrite_unfold : FuncUnfold IsWrite [] IsWrite.impl
   Apply_unfold : FuncUnfold Apply [] Apply.impl
   Check_unfold : FuncUnfold Check [] Check.impl
   Main_unfold : FuncUnfold Main [] Main.impl
@@ -4898,6 +4945,8 @@ attribute [instance] Assumptions.Cmp_instance
   Assumptions.txnRes_unfold
   Assumptions.callTxn_unfold
   Assumptions.call_unfold
+  Assumptions.Call_unfold
+  Assumptions.IsWrite_unfold
   Assumptions.Apply_unfold
   Assumptions.Check_unfold
   Assumptions.Main_unfold

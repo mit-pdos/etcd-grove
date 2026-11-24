@@ -71,20 +71,20 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
+        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
+        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
-        srvStreamInterceptorWOk is iprop(True) ∗
+        srvStreamInterceptorWOk is (levelTok 0) ∗
         client.srvKVFacts V ∗ client.eofOk ∗ v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
         v3rpc.srvOnce V.W ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗
         client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : client.SrvAt GF) ∗ watchAddrFacts V := by
   haveI := v3rpc.srvWOk_persistent Hp V.W V.R.wsl v3rpc.wsN
-  iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, #Hb, #Hrp,
+  iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hleft, #Hb, #Hrp,
     #Hws, #Hims, #His, #Hnd, #Heof, #HW, #Hon⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs
-    hregs Hrf hnd hrd HL) $$ [Hgs Hlis] with ⟨%γ, Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
+    hregs Hrf hnd hrd HL) $$ [Hgs Hlis Hleft] with ⟨%γ, Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
   · iframe; iframe #
   imod (v3rpc.etcd_watch_served_chain addr pw V.R V.W ims is sregs γ γr hγm Htb HL hset hwreg) $$ []
     with #Hst
@@ -94,7 +94,7 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
   ihave #Hlaws := client.watchLaws_srv V false γr hWM hWL hH $$ Hwl
   imodintro
   isplitl [Htok']
-  · iexists γ; iexact Htok'
+  · iexists _; iexact Htok'
   isplitl []
   · unfold client.kvRegsAt
     subst hrd

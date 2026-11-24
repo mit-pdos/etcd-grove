@@ -36,21 +36,6 @@ opaque Int' [GooseExts] [GoGlobalContext] : val
 
 opaque String [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/intstr.ErrInvalidLengthGenerated"
-
-opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/intstr.ErrIntOverflowGenerated"
-
-opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/util/intstr.ErrUnexpectedEndOfGroupGenerated"
-
-opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.encodeVarintGenerated"
 
@@ -90,26 +75,41 @@ noncomputable def getIntOrPercentValue [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def getIntOrPercentValueSafely [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.getIntOrPercentValueSafely"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `ErrInvalidLengthGenerated` (`var ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrIntOverflowGenerated` (`var ErrIntOverflowGenerated = fmt.Errorf("proto: integer overflow")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrUnexpectedEndOfGroupGenerated` (`var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf("proto: unexpected end of group")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `_@instr_fuzz.go:42` (`var _ randfill.NativeSelfFiller = &IntOrString{}`): An interface check: `&IntOrString{}` converted to `randfill.NativeSelfFiller`. No call, no panic, no
+effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/util/intstr.ErrInvalidLengthGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrInvalidLengthGenerated = fmt.Errorf(\"proto: negative length found during unmarshaling\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/intstr.ErrIntOverflowGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrIntOverflowGenerated = fmt.Errorf(\"proto: integer overflow\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/intstr.ErrUnexpectedEndOfGroupGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf(\"proto: unexpected end of group\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/util/intstr._@instr_fuzz.go:42", "An interface check: `&IntOrString{}` converted to `randfill.NativeSelfFiller`. No call, no panic, no\neffect.", "var _ randfill.NativeSelfFiller = &IntOrString{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.intstr where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.intstr)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val ErrUnexpectedEndOfGroupGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrIntOverflowGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))))
+  (Val #()))))))
 
 opaque IntOrString.nonempty_type : NonemptyType.{0}
 def IntOrString : Type := IntOrString.nonempty_type.type

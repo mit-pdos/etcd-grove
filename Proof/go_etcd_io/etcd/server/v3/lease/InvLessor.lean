@@ -185,8 +185,11 @@ had (`γr.2.2.2.1`, a ghost variable `U` in halves: `lessorRdBody`'s and the own
 (`γr.2.2.2.2.1`, a ghost map of discarded elements, id to requested TTL: `leaseReqIs`, `reqOk`);
 (auth-lease S4 item 7b, 2026-11-17) and the windows' mono-list (`γr.2.2.2.2.2.1`: `winsOk`, `lastWin`,
 `lessorWinTie`); (prove-ps2-lease, 2026-11-21) and the ghost variable of `demotec`'s value
-(`γr.2.2.2.2.2.2`: `demoteTie`, `demoteOuter`). The mode is `γr.2.2.1`. -/
-abbrev LessorRdNames := GName × GName × Bool × GName × GName × GName × GName
+(`γr.2.2.2.2.2.2.1`: `demoteTie`, `demoteOuter`); (prove-ps2-newlessor3, 2026-11-21) and the expiry
+notifier's cell (`notifCell`: `γr.2.2.2.2.2.2.2.1`, a fractional ghost variable whose shares `le.mu`
+holds, `notifShare`; `γr.2.2.2.2.2.2.2.2.1`, the expiry loop's token, `notifRTok`;
+`γr.2.2.2.2.2.2.2.2.2`, who took the cell). The mode is `γr.2.2.1`. -/
+abbrev LessorRdNames := GName × GName × Bool × GName × GName × GName × GName × GName × GName × GName
 
 /-- **A snapshot of the lessor**: its lease map (id to `*Lease`), its item map (item to id) and
 (the lease-expiry plan's R5, 2026-11-04) its TTLs (id to the lease's `ttl` field, which `Grant` and
@@ -207,6 +210,16 @@ def lessorGhost (lp : Loc) (γga γcl : GName) (γr : LessorRdNames) (L : List w
 /-- A share `q` of the live set `L` (the ghost map `γl`'s element `true`). -/
 def leaseFrag (γl : GName) (q : Qp) (L : List w64) : IProp GF :=
   ghostMapElem γl true (DFrac.own q) (Sum.inr L : LessorGV)
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- The lessor of `γl` is at `lp`, its grant guard named `γga`, its closers' map `γcl` and its
 reader-side names `γr` (persistent: the ghost map's element `false`, discarded). -/
@@ -233,6 +246,16 @@ def lessorPinR (γl : GName) (γr : LessorRdNames) : IProp GF :=
 instance lessorPinR_persistent (γl : GName) (γr : LessorRdNames) :
     Persistent (lessorPinR (GF := GF) γl γr) := by
   unfold lessorPinR; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
 
 /-- The lessor of `γl` is at `lp` (persistent). -/
 def lessorPin (γl : GName) (lp : Loc) : IProp GF :=
@@ -627,6 +650,16 @@ def lessorRdInv (γl : GName) : IProp GF :=
 instance lessorRdInv_persistent (γl : GName) : Persistent (lessorRdInv (GF := GF) γl) := by
   unfold lessorRdInv; infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The index `i` of the lessor `γl`'s history is the snapshot `σ`** (persistent). -/
 def lessorAt (γl : GName) (i : Nat) (σ : LSnap) : IProp GF :=
   iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ monoListIdxOwn γr.1 i σ)
@@ -634,6 +667,16 @@ def lessorAt (γl : GName) (i : Nat) (σ : LSnap) : IProp GF :=
 instance lessorAt_persistent (γl : GName) (i : Nat) (σ : LSnap) :
     Persistent (lessorAt (GF := GF) γl i σ) := by
   unfold lessorAt; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
 
 /-- **The owner's witness at the window `w`** (auth-lease S4 item 7b F1, 2026-11-17): in a window `(s, T)`, an index
 `j ≥ s` of the history whose snapshot has the item map `I` (`True` with no window). The owner gives it (`win_wit`) at
@@ -655,6 +698,16 @@ holds, with every id of the history in `U` (`histIn`). `NewLessor` gives it at `
 its id, `Recover` its records' ids; `Revoke`, `Attach` and `Detach` leave it. -/
 def leaseEver (γl : GName) (U : List w64) : IProp GF :=
   iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ dghostVar γr.2.2.2.1 (DFrac.own (1 : Qp).half) U)
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The lease `id` was requested at the TTL `r`** (the lease-expiry plan's S2–S4, Q-S8,
 2026-11-05; persistent): the discarded element of the lessor's requested TTLs' map, which
@@ -678,6 +731,16 @@ def lessorLb (γl : GName) (m : Nat) : IProp GF :=
 instance lessorLb_persistent (γl : GName) (m : Nat) : Persistent (lessorLb (GF := GF) γl m) := by
   unfold lessorLb; infer_instance
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
+
 /-- **A snapshot of the history is a lower bound of it** (the lease-expiry plan's E2 revision 5,
 C3): its index. -/
 theorem lessorAt_lb (γl : GName) (i : Nat) (σ : LSnap) :
@@ -686,6 +749,16 @@ theorem lessorAt_lb (γl : GName) (i : Nat) (σ : LSnap) :
   iintro ⟨%γr, #Hp, %hs, %Hhs, #Hlb⟩
   iexists γr, hs; iframe Hp Hlb; ipureintro
   exact (List.getElem?_eq_some_iff.1 Hhs).1
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **`l` is the lease of `id` at an index no earlier than `m`** (persistent). -/
 def leaseLiveFrom (γl : GName) (m : Nat) (id : w64) (l : Loc) : IProp GF :=
@@ -724,6 +797,16 @@ def leaseKeysFrom (γl : GName) (m : Nat) (id : w64) (l : Loc) (ks : List GoStri
 instance leaseKeysFrom_persistent (γl : GName) (m : Nat) (id : w64) (l : Loc) (ks : List GoString) :
     Persistent (leaseKeysFrom (GF := GF) γl m id l ks) := by
   unfold leaseKeysFrom; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
 
 /-- A smaller lower bound. -/
 theorem lessorLb_le (γl : GName) {m : Nat} (m' : Nat) (h : m' ≤ m) :
@@ -850,6 +933,16 @@ theorem ttlTie_insert (M : GMap w64 Loc) (I I' : GMap LeaseItem w64) (T : GMap w
     rintro rfl; have : M.lookup id = some x := hx; rw [hid] at this; cases this
   rw [GMap.lookup_insert_ne _ _ hne]; exact ht'
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **`ls` is the lease map at the index `i`** (persistent; the lease-read plan, 2026-10-31): its
 pairs `(l, id)` are the map's there, each id once. What `Leases()` returns, in some order. -/
 def leaseMapAt (γl : GName) (i : Nat) (ls : List (Loc × w64)) : IProp GF :=
@@ -894,6 +987,16 @@ def leaseGrantedAt (γl : GName) (i : Nat) (id : w64) : IProp GF :=
 instance leaseGrantedAt_persistent (γl : GName) (i : Nat) (id : w64) :
     Persistent (leaseGrantedAt (GF := GF) γl i id) := by
   unfold leaseGrantedAt; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
 
 /-- A granted lease's index is a lower bound of the history (what a reader's `Leases()` takes). -/
 theorem leaseGrantedAt_lb (γl : GName) (i : Nat) (id : w64) :
@@ -1101,13 +1204,19 @@ def queueAt (s : GoSlice) (xs : List (Loc × w64)) (q : Qp) : IProp GF :=
   iprop(s ↦*{DFrac.own q} (xs.map Prod.fst) ∗ ownSliceCap Loc s (DFrac.own q) ∗
     [∗list] k ↦ x ∈ xs, lwtAt x.1 x.2 (W64 k) q)
 
-/-- **The expiry notifier** at `np` (`LeaseExpiredNotifier`), at share `q`: its map `m` (lease id
-to item) holds exactly the items of its queue, each under its own id, no item twice. -/
-def notifierAt (np : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (mp : Loc) (s : GoSlice) (M : GMap w64 Loc) (xs : List (Loc × w64)),
+/-- **The expiry notifier** at `np` (`LeaseExpiredNotifier`), at share `q`, with the map `M`: its map
+`m` (lease id to item) is `M` and holds exactly the items of its queue, each under its own id, no item
+twice (prove-ps2-newlessor3, 2026-11-21: indexed by `M`, for `Len`, `Peek`, `Unregister` and the
+expiry loop's re-registration of an item already queued; `notifierAt` hides it). -/
+def notifierAtM (np : Loc) (q : Qp) (M : GMap w64 Loc) : IProp GF :=
+  iprop(∃ (mp : Loc) (s : GoSlice) (xs : List (Loc × w64)),
     nF go!"m" np ↦{DFrac.own q} mp ∗ mp ↦${DFrac.own q} M ∗ nF go!"queue" np ↦{DFrac.own q} s ∗
     queueAt s xs q ∗
     ⌜(xs.map Prod.fst).Nodup ∧ ∀ (id : w64) (p : Loc), M.lookup id = some p ↔ (p, id) ∈ xs⌝)
+
+/-- **The expiry notifier** at `np` (`LeaseExpiredNotifier`), at share `q`, at some map. -/
+def notifierAt (np : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ M : GMap w64 Loc, notifierAtM np q M)
 
 /-- **A granted lease's state** (`l`, of id `id`) under `le.mu`, at `q`: its `ID` and `ttl`
 (read-only once granted), its `revokec` (read-only), its `remainingTTL` and the lessor's half
@@ -1128,7 +1237,7 @@ it to `nil` (under the write lock), `Renew` receives on the value it read under 
 own (`onceChanInv`: its state in an invariant, so that any receiver can step it; closed at most
 once, by the holder of its token, `token γt`, which the invariant takes at the close). The token of
 the current channel is in an invariant of the lessor (`demoteOuter`), tied to the field's value by
-a ghost variable (`γr.2.2.2.2.2.2`) of which `le.mu` holds half (`demoteTie`): `Demote`, holding the
+a ghost variable (`γr.2.2.2.2.2.2.1`) of which `le.mu` holds half (`demoteTie`): `Demote`, holding the
 whole of it under the write lock, takes the token out, closes, and sets the variable to `nil`
 before storing `nil`. (Not Perennial's `ownBroadcastChan`, which is stated at `HasLC.hasLC` only,
 where the lessor's invariant is at any `hlc`.) -/
@@ -1142,8 +1251,8 @@ def demoteOuter (γd : GName) : IProp GF :=
 /-- **`le.mu`'s share `q` of the `demotec` variable** of the lessor `γl`, at the field's value `dc`,
 and the invariant that holds its other half. -/
 def demoteTie (γl : GName) (q : Qp) (dc : GoChan) : IProp GF :=
-  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2.2 q.half dc ∗
-    inv demoteOuterN (demoteOuter γr.2.2.2.2.2.2))
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2.2.1 q.half dc ∗
+    inv demoteOuterN (demoteOuter γr.2.2.2.2.2.2.1))
 
 /-- **The lessor's `stopC`** (persistent; prove-ps2-renew, 2026-11-21): read-only (`newLessor` sets
 it, `lessor.go:238`), a close-once channel (`Stop` closes it with `lessorStopTok`'s token; `Renew` and
@@ -1154,17 +1263,65 @@ def lessorStopRecv (lp : Loc) : IProp GF :=
 instance lessorStopRecv_persistent (lp : Loc) : Persistent (lessorStopRecv (GF := GF) lp) := by
   unfold lessorStopRecv; infer_instance
 
+/-! ### The expiry notifier's cell (prove-ps2-newlessor3, 2026-11-21)
+
+The expiry loop (`expireExists`, `lessor.go:681-711`) writes the notifier (`Unregister`,
+`RegisterOrUpdate`, an item's `time`) holding only `le.mu`'s read lock; every other reader leaves it
+alone, and the writers (`Grant`, `Renew`, `Promote`, `Demote`, `Recover`) write it under the write
+lock. So the notifier is not in `le.mu`'s fractional resource but in a cell (`notifCell`). Idle, the
+cell holds half of the field `leaseExpiredNotifier` (the other half is `le.mu`'s, `lessorExtra`), the
+whole notifier the field points to, and the whole ghost variable `γk`. Its taker takes all three and
+leaves half of `γk` at its kind (`false` a writer, `true` the loop) with a deposit: a writer the
+whole ghost variable `γx` (its `notifShare` at `1`), the loop its reader's share of `γx` (`rfrac`,
+every reader's) and its token `γy` (`notifRTok`, exclusive). A writer cannot take the cell from the
+loop, nor the loop from a writer (`1 + rfrac > 1`), nor the loop from itself (its token), nor a writer
+from a writer (`1 + 1 > 1`); the taker gives it back with its half of `γk`, which names its deposit. -/
+
+def notifN : Namespace := nroot .@ "lessor_notifier"
+
+/-- **The expiry notifier's cell** of the lessor at `lp` (`γx` the shares' ghost variable, `γy` the
+loop's token, `γk` the taker's kind): idle (half the field at `np`, the notifier at `np` whole, `γk`
+whole), taken by a writer, or by the loop. -/
+def notifCell (lp : Loc) (γx γy γk : GName) : IProp GF :=
+  iprop((∃ (np : Loc) (k : Bool), lF go!"leaseExpiredNotifier" lp ↦{DFrac.own (1 : Qp).half} np ∗
+      notifierAt np 1 ∗ ghostVar γk 1 k) ∨
+    (ghostVar γk (1 : Qp).half false ∗ ghostVar γx 1 ()) ∨
+    (ghostVar γk (1 : Qp).half true ∗ token γy ∗ ghostVar γx sync.rfrac ()))
+
+/-- The cell's invariant, at the reader-side names `γr`. -/
+abbrev notifInv (lp : Loc) (γr : LessorRdNames) : IProp GF :=
+  inv notifN (notifCell lp γr.2.2.2.2.2.2.2.1 γr.2.2.2.2.2.2.2.2.1 γr.2.2.2.2.2.2.2.2.2)
+
+/-- **`le.mu`'s share `q` of the expiry notifier** of the lessor `γl` at `lp`: the share `q` of the
+cell's ghost variable `γx`, and the cell. -/
+def notifShare (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2.2.2.1 q () ∗ notifInv lp γr)
+
+/-- **The expiry loop's token** (exclusive): `NewLessor` gives it to `runLoop`, which takes the
+notifier's cell with it under the read lock. -/
+def notifRTok (γl : GName) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ token γr.2.2.2.2.2.2.2.2.1)
+
+/-- **The cell taken** by a taker of kind `k` (`false` a writer, `true` the loop): its half of `γk`,
+which names its deposit, and the cell. -/
+def notifTaken (lp : Loc) (γl : GName) (k : Bool) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2.2.2.2.2 (1 : Qp).half k ∗
+    notifInv lp γr)
+
 /-- **The lessor's apply-side fields** under `le.mu` at `q`, for its lease map `M`: `demotec`,
 the expiry notifier, the checkpoint heap (a queue of fresh items, any ids), the checkpointer
 `cp`, `nil` (no checkpointer is installed: `NewLessor.spec`; stage B3, 2026-11-12), and every granted lease's `leaseMeta`; (D22 receiver epochs, S7c, 2026-10-23) half the
 fraction of the backend `b` (the other half its user's, `lessorBeOn`: `Recover` replaces it);
 (prove-ps2-lease, 2026-11-21) and the share `q` of `demotec`'s ghost variable at its value (`demoteTie`);
 (prove-ps2-renew, 2026-11-21) and `stopC`'s receive side (`lessorStopRecv`, read-only: here so that
-`Renew`, which holds only the lessor's invariant, reaches it). -/
+`Renew`, which holds only the lessor's invariant, reaches it); (prove-ps2-newlessor3, 2026-11-21)
+the expiry notifier through its cell: half the field's share (`q/2`) and the cell's share
+(`notifShare`), the notifier itself in the cell (until then `↦{q} np ∗ notifierAt np q`, which the
+expiry loop, a reader that writes the notifier, cannot use). -/
 def lessorExtra (lp : Loc) (γl : GName) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
   iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface),
     lF go!"demotec" lp ↦{DFrac.own q} dc ∗
-    lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q} np ∗ notifierAt np q ∗
+    lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q.half} np ∗ notifShare lp γl q ∗
     lF go!"leaseCheckpointHeap" lp ↦{DFrac.own q} h ∗ queueAt h hx q ∗
     lF go!"cp" lp ↦{DFrac.own q} func.nil ∗
     ([∗map] id ↦ l ∈ M, leaseMeta id l q) ∗

@@ -897,11 +897,6 @@ noncomputable def ErrFIFOClosed [GooseExts] [GoGlobalContext] : GoString :=
 
 opaque ErrFIFOClosed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def informerNameRegistry [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/tools/cache.informerNameRegistry"
-
-opaque informerNameRegistry.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def globalInformerMetricsProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.globalInformerMetricsProvider"
 
@@ -910,8 +905,6 @@ noncomputable def setInformerMetricsProviderOnce [GooseExts] [GoGlobalContext] :
 
 noncomputable def mutationDetectionEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.mutationDetectionEnabled"
-
-opaque mutationDetectionEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultMinWatchTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultMinWatchTimeout"
@@ -963,18 +956,8 @@ noncomputable def unsupportedTableGVK [GooseExts] [GoGlobalContext] : GoString :
 
 opaque unsupportedTableGVK.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def metricsFactory [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/tools/cache.metricsFactory"
-
-opaque metricsFactory.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def sharedProcessorRunHook [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.sharedProcessorRunHook"
-
-noncomputable def batchable [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/tools/cache.batchable"
-
-opaque batchable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.New"
@@ -16227,7 +16210,7 @@ noncomputable def typedIndexer.TypedIndex.impl [GooseExts] [GoGlobalContext] (T 
   (Let "obj" (App (Val (GoInstruction (GoAlloc T))) (Var "obj"))
   (Let "indexName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "indexName"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "indexName"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (Var "obj"))
+  (Let "$a1" (App (Val (GoInstruction (Convert T (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad T))) (Var "obj")))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedIndexer.ty T)) go!"Index"))) (Var "i")) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -24119,10 +24102,85 @@ noncomputable def NewUndeltaStore.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType UndeltaStore.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UndeltaStore.ty)))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@controller.go:447` (`var _ TypedResourceEventHandler[*metav1.ObjectMeta] = TypedResourceEventHandlerFuncs[*metav1.ObjectMeta]{}`): An interface check: `TypedResourceEventHandlerFuncs[*metav1.ObjectMeta]{}` converted to
+`TypedResourceEventHandler[*metav1.ObjectMeta]`. No call, no panic, no effect.
+- `_@controller.go:503` (`var _ TypedResourceEventHandler[*metav1.ObjectMeta] = TypedResourceEventHandlerDetailedFuncs[*metav1.ObjectMeta]{}`): An interface check: `TypedResourceEventHandlerDetailedFuncs[*metav1.ObjectMeta]{}` converted to
+`TypedResourceEventHandler[*metav1.ObjectMeta]`. No call, no panic, no effect.
+- `_@delta_fifo.go:304` (`var _ = Queue(&DeltaFIFO{}) // DeltaFIFO is a Queue`): A conversion check: `&DeltaFIFO{}` converted to `Queue`. No call, no panic, no effect.
+- `_@delta_fifo.go:305` (`var _ = TransformingStore(&DeltaFIFO{}) // DeltaFIFO implements TransformingStore to allow memory optimizations`): A conversion check: `&DeltaFIFO{}` converted to `TransformingStore`. No call, no panic, no effect.
+- `_@delta_fifo.go:306` (`var _ = DoneChecker(&DeltaFIFO{}) // DeltaFIFO implements DoneChecker.`): A conversion check: `&DeltaFIFO{}` converted to `DoneChecker`. No call, no panic, no effect.
+- `_@fake_custom_store.go:34` (`var _ Store = &FakeCustomStore{}`): An interface check: `&FakeCustomStore{}` converted to `Store`. No call, no panic, no effect.
+- `_@fifo.go:141` (`var _ = Queue(&FIFO{}) // FIFO is a Queue`): A conversion check: `&FIFO{}` converted to `Queue`. No call, no panic, no effect.
+- `_@fifo.go:142` (`var _ = DoneChecker(&FIFO{}) // ... and implements DoneChecker.`): A conversion check: `&FIFO{}` converted to `DoneChecker`. No call, no panic, no effect.
+- `_@heap.go:63` (`var _ = heap.Interface(&heapData{}) // heapData is a standard heap`): A conversion check: `&heapData{}` converted to `heap.Interface`. No call, no panic, no effect.
+- `informerNameRegistry` (`var informerNameRegistry = struct { sync.Mutex names map[string]*InformerName }{ names: make(map[string]*InformerName),  … [sha256:3306b6c6284b6053]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@listwatch.go:213` (`var _ ListerWatcher = &ListWatch{}`): An interface check: `&ListWatch{}` converted to `ListerWatcher`. No call, no panic, no effect.
+- `_@listwatch.go:214` (`var _ ListerWatcherWithContext = &ListWatch{}`): An interface check: `&ListWatch{}` converted to `ListerWatcherWithContext`. No call, no panic, no
+effect.
+- `_@listwatch.go:328` (`var _ ListerWatcher = &shardedListWatch{}`): An interface check: `&shardedListWatch{}` converted to `ListerWatcher`. No call, no panic, no
+effect.
+- `_@listwatch.go:329` (`var _ ListerWatcherWithContext = &shardedListWatch{}`): An interface check: `&shardedListWatch{}` converted to `ListerWatcherWithContext`. No call, no
+panic, no effect.
+- `_@mutation_cache.go:464` (`var _ metav1.Object = &tombstone{}`): An interface check: `&tombstone{}` converted to `metav1.Object`. No call, no panic, no effect.
+- `_@mutation_cache.go:465` (`var _ runtime.Object = &tombstone{}`): An interface check: `&tombstone{}` converted to `runtime.Object`. No call, no panic, no effect.
+- `_@reflector.go:1285` (`var _ clock.Ticker = &noopTicker{}`): An interface check: `&noopTicker{}` converted to `clock.Ticker`. No call, no panic, no effect.
+- `metricsFactory` (`var metricsFactory = struct { metricsProvider MetricsProvider setProviders sync.Once }{ metricsProvider: noopMetricsProv … [sha256:6fd6e33543c129bf]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@shared_informer.go:359` (`var _ ResourceEventHandler = &typedResourceEventHandler[*metav1.ObjectMeta]{}`): An interface check: `&typedResourceEventHandler[*metav1.ObjectMeta]{}` converted to
+`ResourceEventHandler`. No call, no panic, no effect.
+- `_@store.go:107` (`var _ error = &TransactionError{}`): An interface check: `&TransactionError{}` converted to `error`. No call, no panic, no effect.
+- `_@store.go:218` (`var _ Store = &cache{}`): An interface check: `&cache{}` converted to `Store`. No call, no panic, no effect.
+- `_@the_real_fifo.go:86` (`var _ QueueWithBatch = &RealFIFO{}`): An interface check: `&RealFIFO{}` converted to `QueueWithBatch`. No call, no panic, no effect.
+- `_@the_real_fifo.go:182` (`var _ = Queue(&RealFIFO{}) // RealFIFO is a Queue`): A conversion check: `&RealFIFO{}` converted to `Queue`. No call, no panic, no effect.
+- `_@the_real_fifo.go:183` (`var _ = TransformingStore(&RealFIFO{}) // RealFIFO implements TransformingStore to allow memory optimizations`): A conversion check: `&RealFIFO{}` converted to `TransformingStore`. No call, no panic, no effect.
+- `_@the_real_fifo.go:184` (`var _ = DoneChecker(&RealFIFO{}) // RealFIFO and implements DoneChecker.`): A conversion check: `&RealFIFO{}` converted to `DoneChecker`. No call, no panic, no effect.
+- `batchable` (`var batchable = map[DeltaType]bool{ Sync: true, Replaced: true, Added: true, Updated: true, Deleted: true, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@undelta_store.go:32` (`var _ Store = &UndeltaStore{}`): An interface check: `&UndeltaStore{}` converted to `Store`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/client-go/tools/cache._@controller.go:447", "An interface check: `TypedResourceEventHandlerFuncs[*metav1.ObjectMeta]{}` converted to\n`TypedResourceEventHandler[*metav1.ObjectMeta]`. No call, no panic, no effect.", "var _ TypedResourceEventHandler[*metav1.ObjectMeta] = TypedResourceEventHandlerFuncs[*metav1.ObjectMeta]{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@controller.go:503", "An interface check: `TypedResourceEventHandlerDetailedFuncs[*metav1.ObjectMeta]{}` converted to\n`TypedResourceEventHandler[*metav1.ObjectMeta]`. No call, no panic, no effect.", "var _ TypedResourceEventHandler[*metav1.ObjectMeta] = TypedResourceEventHandlerDetailedFuncs[*metav1.ObjectMeta]{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@delta_fifo.go:304", "A conversion check: `&DeltaFIFO{}` converted to `Queue`. No call, no panic, no effect.", "var _ = Queue(&DeltaFIFO{}) // DeltaFIFO is a Queue"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@delta_fifo.go:305", "A conversion check: `&DeltaFIFO{}` converted to `TransformingStore`. No call, no panic, no effect.", "var _ = TransformingStore(&DeltaFIFO{}) // DeltaFIFO implements TransformingStore to allow memory optimizations"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@delta_fifo.go:306", "A conversion check: `&DeltaFIFO{}` converted to `DoneChecker`. No call, no panic, no effect.", "var _ = DoneChecker(&DeltaFIFO{}) // DeltaFIFO implements DoneChecker."⟩,
+  ⟨"k8s.io/client-go/tools/cache._@fake_custom_store.go:34", "An interface check: `&FakeCustomStore{}` converted to `Store`. No call, no panic, no effect.", "var _ Store = &FakeCustomStore{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@fifo.go:141", "A conversion check: `&FIFO{}` converted to `Queue`. No call, no panic, no effect.", "var _ = Queue(&FIFO{}) // FIFO is a Queue"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@fifo.go:142", "A conversion check: `&FIFO{}` converted to `DoneChecker`. No call, no panic, no effect.", "var _ = DoneChecker(&FIFO{}) // ... and implements DoneChecker."⟩,
+  ⟨"k8s.io/client-go/tools/cache._@heap.go:63", "A conversion check: `&heapData{}` converted to `heap.Interface`. No call, no panic, no effect.", "var _ = heap.Interface(&heapData{}) // heapData is a standard heap"⟩,
+  ⟨"k8s.io/client-go/tools/cache.informerNameRegistry", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var informerNameRegistry = struct { sync.Mutex names map[string]*InformerName }{ names: make(map[string]*InformerName),  … [sha256:3306b6c6284b6053]"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@listwatch.go:213", "An interface check: `&ListWatch{}` converted to `ListerWatcher`. No call, no panic, no effect.", "var _ ListerWatcher = &ListWatch{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@listwatch.go:214", "An interface check: `&ListWatch{}` converted to `ListerWatcherWithContext`. No call, no panic, no\neffect.", "var _ ListerWatcherWithContext = &ListWatch{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@listwatch.go:328", "An interface check: `&shardedListWatch{}` converted to `ListerWatcher`. No call, no panic, no\neffect.", "var _ ListerWatcher = &shardedListWatch{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@listwatch.go:329", "An interface check: `&shardedListWatch{}` converted to `ListerWatcherWithContext`. No call, no\npanic, no effect.", "var _ ListerWatcherWithContext = &shardedListWatch{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@mutation_cache.go:464", "An interface check: `&tombstone{}` converted to `metav1.Object`. No call, no panic, no effect.", "var _ metav1.Object = &tombstone{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@mutation_cache.go:465", "An interface check: `&tombstone{}` converted to `runtime.Object`. No call, no panic, no effect.", "var _ runtime.Object = &tombstone{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@reflector.go:1285", "An interface check: `&noopTicker{}` converted to `clock.Ticker`. No call, no panic, no effect.", "var _ clock.Ticker = &noopTicker{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache.metricsFactory", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var metricsFactory = struct { metricsProvider MetricsProvider setProviders sync.Once }{ metricsProvider: noopMetricsProv … [sha256:6fd6e33543c129bf]"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@shared_informer.go:359", "An interface check: `&typedResourceEventHandler[*metav1.ObjectMeta]{}` converted to\n`ResourceEventHandler`. No call, no panic, no effect.", "var _ ResourceEventHandler = &typedResourceEventHandler[*metav1.ObjectMeta]{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@store.go:107", "An interface check: `&TransactionError{}` converted to `error`. No call, no panic, no effect.", "var _ error = &TransactionError{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@store.go:218", "An interface check: `&cache{}` converted to `Store`. No call, no panic, no effect.", "var _ Store = &cache{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@the_real_fifo.go:86", "An interface check: `&RealFIFO{}` converted to `QueueWithBatch`. No call, no panic, no effect.", "var _ QueueWithBatch = &RealFIFO{}"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@the_real_fifo.go:182", "A conversion check: `&RealFIFO{}` converted to `Queue`. No call, no panic, no effect.", "var _ = Queue(&RealFIFO{}) // RealFIFO is a Queue"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@the_real_fifo.go:183", "A conversion check: `&RealFIFO{}` converted to `TransformingStore`. No call, no panic, no effect.", "var _ = TransformingStore(&RealFIFO{}) // RealFIFO implements TransformingStore to allow memory optimizations"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@the_real_fifo.go:184", "A conversion check: `&RealFIFO{}` converted to `DoneChecker`. No call, no panic, no effect.", "var _ = DoneChecker(&RealFIFO{}) // RealFIFO and implements DoneChecker."⟩,
+  ⟨"k8s.io/client-go/tools/cache.batchable", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var batchable = map[DeltaType]bool{ Sync: true, Replaced: true, Added: true, Updated: true, Deleted: true, }"⟩,
+  ⟨"k8s.io/client-go/tools/cache._@undelta_store.go:32", "An interface check: `&UndeltaStore{}` converted to `Store`. No call, no panic, no effect.", "var _ Store = &UndeltaStore{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.tools.cache where
   pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.fmt, pkg_id.strings, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.util.wait, pkg_id.k8s_io.client_go.features, pkg_id.k8s_io.klog.v2, pkg_id.k8s_io.utils.clock, pkg_id.k8s_io.apimachinery.pkg.util.sets, pkg_id.k8s_io.utils.trace, pkg_id.reflect, pkg_id.container.heap, pkg_id.sync.atomic, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.api.«meta», pkg_id.k8s_io.apimachinery.pkg.api.errors, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.sharding, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.client_go.rest, pkg_id.k8s_io.client_go.util.watchlist, pkg_id.strconv, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.util.cache, pkg_id.os, pkg_id.k8s_io.apimachinery.pkg.util.diff, pkg_id.io, pkg_id.math, pkg_id.math.rand, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1beta1, pkg_id.k8s_io.apimachinery.pkg.util.naming, pkg_id.k8s_io.apimachinery.pkg.util.net, pkg_id.k8s_io.client_go.tools.pager, pkg_id.k8s_io.utils.ptr, pkg_id.k8s_io.client_go.util.consistencydetector, pkg_id.slices, pkg_id.k8s_io.client_go.tools.cache.synctrack, pkg_id.k8s_io.utils.buffer]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -24178,34 +24236,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert noopInformerMetricsProvider.ty InformerMetricsProvider.ty))) (App (Val (GoInstruction (CompositeLiteral noopInformerMetricsProvider.ty))) (LiteralValue [])))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -24220,29 +24253,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val batchable.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val metricsFactory.init) (Val #()))))))
-  (App (Val doExecute)
   (App (Val unsupportedTableGVK.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val errorStopRequested.init) (Val #()))))))
   (App (Val doExecute)
@@ -24262,45 +24273,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultMinWatchTimeout.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val mutationDetectionEnabled.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (GlobalVarAddr mutationDetectionEnabled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore InformerMetricsProvider.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalInformerMetricsProvider))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val informerNameRegistry.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
   (App (Val ErrFIFOClosed.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
   (App (Val ErrZeroLengthDeltasObject.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -24394,7 +24373,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalInformerMetricsProvider InformerMetricsProvider.ty)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc setInformerMetricsProviderOnce _root_.Perennial.sync.Once.ty)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc setInformerMetricsProviderOnce _root_.Perennial.sync.Once.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc mutationDetectionEnabled go.bool)) (Val #()))))))))
 
 abbrev Queue [GooseExts] : Type := GoInterface
 

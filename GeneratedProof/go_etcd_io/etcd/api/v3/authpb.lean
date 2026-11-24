@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.google_golang_org.protobuf.reflect.protoreflect
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Theory
@@ -50,7 +51,7 @@ noncomputable instance UserAddOptions_access_load_state (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance UserAddOptions_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.authpb.UserAddOptions) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance UserAddOptions_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.authpb.UserAddOptions) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.authpb.UserAddOptions go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.authpb.UserAddOptions go!"state" l) state' (DFrac.own 1))
@@ -144,7 +145,7 @@ noncomputable instance User_access_load_state (l : Loc) (v : go_etcd_io.etcd.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance User_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.authpb.User) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance User_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.authpb.User) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.authpb.User go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.authpb.User go!"state" l) state' (DFrac.own 1))
@@ -285,7 +286,7 @@ noncomputable instance Permission_access_load_state (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Permission_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.authpb.Permission) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Permission_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.authpb.Permission) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.authpb.Permission go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.authpb.Permission go!"state" l) state' (DFrac.own 1))
@@ -409,7 +410,7 @@ noncomputable instance Role_access_load_state (l : Loc) (v : go_etcd_io.etcd.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance Role_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.authpb.Role) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Role_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.authpb.Role) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.authpb.Role go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.authpb.Role go!"state" l) state' (DFrac.own 1))

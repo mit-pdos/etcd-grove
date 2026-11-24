@@ -77,7 +77,7 @@ noncomputable instance envVarFeatureGates_access_load_readEnvVarsOnce (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_readEnvVarsOnce (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (readEnvVarsOnce' : sync.Once) :
+noncomputable instance envVarFeatureGates_access_store_readEnvVarsOnce (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (readEnvVarsOnce' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVarsOnce" l) v.readEnvVarsOnce' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVarsOnce" l) readEnvVarsOnce' (DFrac.own 1))
@@ -109,7 +109,7 @@ noncomputable instance envVarFeatureGates_access_load_enabledViaEnvVar (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_enabledViaEnvVar (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (enabledViaEnvVar' : sync.atomic.Value) :
+noncomputable instance envVarFeatureGates_access_store_enabledViaEnvVar (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (enabledViaEnvVar' : _root_.Perennial.sync.atomic.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"enabledViaEnvVar" l) v.enabledViaEnvVar' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"enabledViaEnvVar" l) enabledViaEnvVar' (DFrac.own 1))
@@ -125,7 +125,7 @@ noncomputable instance envVarFeatureGates_access_load_lockEnabledViaSetMethod (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_lockEnabledViaSetMethod (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (lockEnabledViaSetMethod' : sync.RWMutex) :
+noncomputable instance envVarFeatureGates_access_store_lockEnabledViaSetMethod (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (lockEnabledViaSetMethod' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"lockEnabledViaSetMethod" l) v.lockEnabledViaSetMethod' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"lockEnabledViaSetMethod" l) lockEnabledViaSetMethod' (DFrac.own 1))
@@ -157,7 +157,7 @@ noncomputable instance envVarFeatureGates_access_load_readEnvVars (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance envVarFeatureGates_access_store_readEnvVars (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (readEnvVars' : sync.atomic.Bool') :
+noncomputable instance envVarFeatureGates_access_store_readEnvVars (l : Loc) (v : k8s_io.client_go.features.envVarFeatureGates) (readEnvVars' : _root_.Perennial.sync.atomic.Bool') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVars" l) v.readEnvVars' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.features.envVarFeatureGates go!"readEnvVars" l) readEnvVars' (DFrac.own 1))

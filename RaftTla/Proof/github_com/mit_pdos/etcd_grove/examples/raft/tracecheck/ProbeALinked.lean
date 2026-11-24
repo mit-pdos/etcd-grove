@@ -41,23 +41,23 @@ loan refuted (`probeA_noSnap`), `handleReady`'s storage and apply work (abstract
 `Ready`'s storage part, the batch's receipt and the view with the skipped conf entries: not on the
 probe's list), then the linked `node.Advance.tracedSpec` with the claim. Its post: for each message,
 what `send` takes (`probeA_msgs`), or the node stopped. -/
-theorem probeA_round (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+theorem probeA_round (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (rd : Ready) (qr : Qp) (hN : ↑N ⊆ (⊤ : CoPset)) :
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗ isCluster γ N -∗ isNode n γ N id -∗
+    ⊢ notCrashed -∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗ isCluster γ N -∗ isNode n γ N id -∗
       tcSnapsInv γ -∗ readyGotT n γ N id st rd -∗
       raftState γ id st.durable -∗ nodeRunning n γ N qr -∗
       (∀ (ce : List LogEntry) (es : List EntryM), readySnap γ N id rd st ce es none -∗
         advReceipt st.storage (st.delivered ++ ce).length es none ∗
         ∃ v : ConfigView, nodeConfig n γ N v ∗
           skippedIn γ (st.delivered ++ ce) v.applied (st.delivered ++ ce).length) -∗
-      |={⊤}=> ∃ (ms : List QMsg) (S : RaftState), rd.Messages' ↦* ms.map QMsg.loc ∗ raftState γ id S ∗
+      |={⊤}=> notCrashed ∗ ∃ (ms : List QMsg) (S : RaftState), rd.Messages' ↦* ms.map QMsg.loc ∗ raftState γ id S ∗
         nodeRunning n γ N qr ∗
-        WP (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+        WP (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
           {{ v, ⌜v = #()⌝ ∗ ((∃ st', nodeDriver n γ N st' ∗
               [∗list] q ∈ ms, (msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗
                 msgCredits γ N q.st) ∗ trTok γ q.st) ∨
             (∃ st', nodeStopped n γ N ∗ nodeDriver n γ N st')) }} := by
-  iintro #Hi #Hc #Hn #Hsn Hrg Hrs Hrun Hwork
+  iintro Hnc #Hi #Hc #Hn #Hsn Hrg Hrs Hrun Hwork
   ihave Hsp := probeA_readySplit n γ N id st rd $$ Hrg
   icases Hsp with ⟨%ce, %es, %h, %L, %ms, %ss, Hmsl, Hms, Hsnap, Hent, Hcl, %Hh⟩
   cases L with
@@ -67,10 +67,13 @@ theorem probeA_round (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     exact Hf.elim
   | none =>
   iunfold readyEnter at Hent
-  imod Hent $$ %⊤ %qr %hN [Hrs Hrun] with ⟨Hrs, Hrun, Hdrv, #Hsent⟩
+  icases Hent with ⟨Hent, -⟩
+  iunfold readyEnterLive at Hent
+  imod Hent $$ %⊤ %qr %hN Hnc [Hrs Hrun] with ⟨Hnc, Hrs, Hrun, Hdrv, #Hsent⟩
   · iframe Hrs Hrun
   ihave ⟨Hrec, %v, Hv, #Hsk⟩ := Hwork $$ %ce %es Hsnap
   imodintro
+  iframe Hnc
   iexists ms, _
   iframe Hmsl Hrs Hrun
   iapply (RaftLink.node.wp_Advance_traced n γ N id (st.afterReady ce es h none ss) es none v ms Hh

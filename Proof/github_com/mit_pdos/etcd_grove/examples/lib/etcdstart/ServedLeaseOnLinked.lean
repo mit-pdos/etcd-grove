@@ -48,8 +48,8 @@ theorem lease_served_on (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : Re
         □ (|==> idCred ρ.ids 1) ∗ srvLeaseRd s E .revocable ∗ grpcLeaseUp s A regs ∗
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
-        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd ⊢
+        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
+        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd ⊢
       |={⊤}=> etcdLeaseServedOn addr s E ρ := by
   iintro ⟨#Pv, #Ps, #Hreq, #Hrd, #Hlb, #HNR, #Hlr, #Hlu, #Hil, #Him, #Hiu, #Hat, #Hb, #Hrp⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl

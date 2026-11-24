@@ -29,7 +29,8 @@ log's other half, `srvCLogInv`, and a trivial update).
 
 **The proposer's own resources**: a reader slot of `s.leadTimeMu` (`srvLeadTimeReader`:
 `parseProposeCtxErr` read-locks it, Perennial's `RWMutex` admits a bounded number of readers,
-so each request goroutine holds a token) and one id credit (`idCred ρ.ids 1`: the premise that a
+so each request goroutine holds a token) and (rdslot, 2026-11-22) with it one of the transport's
+(`srvTrReader`: `ActiveSince` read-locks its peer table) and one id credit (`idCred ρ.ids 1`: the premise that a
 process serves fewer than `2 ^ 48` requests).
 -/
 module
@@ -357,6 +358,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+end srv
+
+section srvG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The proposals' mint** (persistent; the cluster's since stage M4, 2026-10-19, allocated once,
 `srvPropMint_alloc`): the authority of raft's fresh-data tokens `F`, each token's data decoding to a
 request claimed under its id (in the cluster's claims, D21e (A): every member's proposals mint
@@ -369,6 +380,16 @@ def srvPropMint (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
 instance srvPropMint_persistent (γ : ServerRaftNames) (γi : IdNames) :
     Persistent (srvPropMint (GF := GF) γ γi) := by
   unfold srvPropMint; infer_instance
+
+end srvG1
+
+section srv
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **The mint** (see the file header): the authority of raft's fresh-data tokens `F`, each
 token's data decoding to a request claimed under its id; and (2026-10-16, stage R7b) the read
@@ -414,10 +435,12 @@ structure ReqFields where
 /-- **The cluster and the transport, as the request path reads them** (persistent; unit P1b,
 2026-10-14): the cluster's id `cid` (`RaftCluster.ID`, the response header's), its members
 (`isRaftCluster`: `Members()`, in `parseProposeCtxErr`), and the transport's `ActiveSince`
-(`isConnectedSince`, there too). Contracts of names-only code
+(`isConnectedSince`, there too; rdslot, 2026-11-22: with some reader's resource `Rd`, which a caller
+holds as `srvTrReader`). Contracts of names-only code
 (`membership`'s fields, rafthttp): premises of the server's start (`srvReqBuilt`). -/
 def srvPeersOk (cl : Loc) (cid : w64) (tr : GoInterface) : IProp GF :=
-  iprop(membership.clusterCid cl cid ∗ membership.isRaftCluster cl ∗ rafthttp.isTransporter tr)
+  iprop(membership.clusterCid cl cid ∗ membership.isRaftCluster cl ∗
+    ∃ Rd : IProp GF, rafthttp.isTransporter tr Rd)
 
 instance srvPeersOk_persistent (cl : Loc) (cid : w64) (tr : GoInterface) :
     Persistent (srvPeersOk (GF := GF) cl cid tr) := by
@@ -481,9 +504,35 @@ theorem isServerReq_fields (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
 def leadTimeP (s : Loc) (q : Qp) : IProp GF :=
   iprop(∃ t : time.Time, structFieldRef EtcdServer go!"leadElectedTime" s ↦{DFrac.own q} t)
 
-/-- **A reader slot of `s.leadTimeMu`** (a request goroutine's; see the file header). -/
+/-- **A reader slot of the server's transport** (rdslot, 2026-11-22): the transport `tr` of
+`s.r.transport` (read-only), its contract read with `Rd` (`rafthttp.isTransporter`: `ActiveSince`,
+`ActivePeers`), and `Rd` itself. Self-contained: the field's `↦□` agrees with the one a server's
+views hold. rafthttp's transport gives `Rd` as one of its lock's reader tokens (`transportTok`), so
+a holder may read-lock the peer table once. -/
+def srvTrReader (s : Loc) : IProp GF :=
+  iprop(∃ (tr : GoInterface) (Rd : IProp GF),
+    structFieldRef raftNodeConfig go!"transport"
+      (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ tr ∗
+    rafthttp.isTransporter tr Rd ∗ Rd)
+
+/-- **A reader slot of the server's transport, from its reader resource** (rdslot). -/
+theorem srvTrReader_of (s : Loc) (tr : GoInterface) (Rd : IProp GF) :
+    structFieldRef raftNodeConfig go!"transport"
+        (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ tr ∗
+      rafthttp.isTransporter tr Rd ∗ Rd ⊢ srvTrReader s := by
+  iintro ⟨#Hf, #Ht, H⟩
+  iunfold srvTrReader
+  iexists tr, Rd
+  iframe H; iframe #
+
+/-- **A proposer's reader slots** (a request goroutine's; see the file header): one of
+`s.leadTimeMu`, and (rdslot, 2026-11-22) one of the server's transport (`srvTrReader`):
+`parseProposeCtxErr` read-locks `leadTimeMu`, then, not nested, the transport's peer table
+(`isConnectedSince`, `ActiveSince`). Until rdslot only the first: the transport's `ActiveSince` was an
+axiom that read-locked without a reader token. -/
 def srvLeadTimeReader (s : Loc) : IProp GF :=
-  sync.ownRWMutex (structFieldRef EtcdServer go!"leadTimeMu" s) (leadTimeP s)
+  iprop(sync.ownRWMutex (structFieldRef EtcdServer go!"leadTimeMu" s) (leadTimeP s) ∗
+    srvTrReader s)
 
 /-- **The proposal may have been made** (the error case of a request): either it was not, or its
 data `d`, which decode to the request `rq'` (the encoding of the proposer's request with its

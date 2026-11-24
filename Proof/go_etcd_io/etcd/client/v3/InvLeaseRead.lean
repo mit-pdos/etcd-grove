@@ -96,6 +96,40 @@ instance leaseLeasesRespMsg_persistent (l : Loc) (m : LeaseLeasesRespM) :
     Persistent (leaseLeasesRespMsg (GF := GF) l m) := by
   unfold leaseLeasesRespMsg; infer_instance
 
+/-! ### The messages' stored forms (moved here from the `PerType*` files at phase 7 S2's
+interface, 2026-11-24: a `ProtoMsg` holds its `tree`) -/
+
+/-- **The store of a lease time-to-live request**: its `ID` and `Keys`. -/
+def leaseTTLReqTree (m : w64 × Bool) : VTree :=
+  .strct etcdserverpb.LeaseTimeToLiveRequest.ty [(go!"ID", go.int64), (go!"Keys", go.bool)]
+    [.leaf #m.1, .leaf #m.2]
+
+/-- **The store of a lease time-to-live response**: its header, `ID`, `TTL`, `GrantedTTL`; its
+`Keys` `nil` (the model does not carry them: see the file header). -/
+def leaseTTLRespTree (m : LeaseTTLRespM) : VTree :=
+  .strct etcdserverpb.LeaseTimeToLiveResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty), (go!"ID", go.int64),
+     (go!"TTL", go.int64), (go!"GrantedTTL", go.int64),
+     (go!"Keys", go.GoType.SliceType (go.GoType.SliceType go.byte))]
+    [hdrTree m.hdr, .leaf #m.id, .leaf #m.ttl, .leaf #m.grantedTtl, .leaf #slice.nil]
+
+/-- **The store of a lease-list request** (no field). -/
+def leaseLeasesReqTree (_ : Unit) : VTree :=
+  .strct etcdserverpb.LeaseLeasesRequest.ty [] []
+
+/-- **The store of a lease status** (a fresh `*LeaseStatus`): its `ID`. -/
+def leaseStatusTree (id : w64) : VTree :=
+  .ptr etcdserverpb.LeaseStatus.ty
+    (.strct etcdserverpb.LeaseStatus.ty [(go!"ID", go.int64)] [.leaf #id])
+
+/-- **The store of a lease-list response**: its header and its leases (`nil` if none). -/
+def leaseLeasesRespTree (m : LeaseLeasesRespM) : VTree :=
+  .strct etcdserverpb.LeaseLeasesResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
+     (go!"Leases", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.LeaseStatus.ty))]
+    [hdrTree m.hdr,
+     sliceTree (go.GoType.PointerType etcdserverpb.LeaseStatus.ty) (m.ids.map leaseStatusTree)]
+
 /-- **A `*pb.LeaseTimeToLiveRequest`** on the wire: its `(ID, Keys)`. The server's decoded copy is
 read-only as a whole (`LeaseServer.LeaseTimeToLive` takes `r ↦{dq} v`; grant's `recv` is two
 fields), which claims that protobuf's internal fields are not written after decoding either: true of
@@ -105,6 +139,7 @@ only the KV requests, `v3rpc/interceptor.go:111-175`; a follower forwards a new 
 def pbLeaseTimeToLiveRequest : ProtoMsg GF where
   ty := etcdserverpb.LeaseTimeToLiveRequest.ty
   M := w64 × Bool
+  tree := leaseTTLReqTree
   send inp m := iprop(∃ req : etcdserverpb.LeaseTimeToLiveRequest, inp ↦ req ∗
     ⌜m = (req.ID', req.Keys') ∧ req.unknownFields' = slice.nil⌝)
   wireLen _ := wireSlack
@@ -119,6 +154,7 @@ def pbLeaseTimeToLiveRequest : ProtoMsg GF where
 def pbLeaseTimeToLiveResponse : ProtoMsg GF where
   ty := etcdserverpb.LeaseTimeToLiveResponse.ty
   M := LeaseTTLRespM
+  tree := leaseTTLRespTree
   send := leaseTTLRespMsg
   recv := leaseTTLRespMsg
   recv_persistent _ _ := inferInstance
@@ -130,6 +166,7 @@ def pbLeaseTimeToLiveResponse : ProtoMsg GF where
 def pbLeaseLeasesRequest : ProtoMsg GF where
   ty := etcdserverpb.LeaseLeasesRequest.ty
   M := Unit
+  tree := leaseLeasesReqTree
   send inp _ := iprop(∃ req : etcdserverpb.LeaseLeasesRequest, inp ↦ req ∗
     ⌜req.unknownFields' = slice.nil⌝)
   wireLen _ := wireSlack
@@ -143,6 +180,7 @@ def pbLeaseLeasesRequest : ProtoMsg GF where
 def pbLeaseLeasesResponse : ProtoMsg GF where
   ty := etcdserverpb.LeaseLeasesResponse.ty
   M := LeaseLeasesRespM
+  tree := leaseLeasesRespTree
   send := leaseLeasesRespMsg
   recv := leaseLeasesRespMsg
   recv_persistent _ _ := inferInstance
@@ -199,13 +237,47 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `LeaseTimeToLive`** (see the file header): the reply is about the lease the
 request asks about. The weakest spec `leasekv` needs: nothing of the header, `TTL` or `GrantedTTL`
 (the server's answer, `v3rpc.leaseTTLOut`, gives more; a stronger spec of the method can be
 registered beside it). -/
-def etcdLeaseTTLSpec : GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse :=
+def etcdLeaseTTLSpecW : w64 × Bool → (LeaseTTLRespM → IProp GF) → IProp GF :=
   fun (req : w64 × Bool) (Φ : LeaseTTLRespM → IProp GF) =>
     iprop(∀ m : LeaseTTLRespM, ⌜m.id = req.1⌝ -∗ Φ m)
+
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdLeaseTTLSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec
+is `etcdLeaseTTLSpecW`, over the models alone, what a service table holds; this is its form at the
+message types). -/
+def etcdLeaseTTLSpec :
+    GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse :=
+  etcdLeaseTTLSpecW
+
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **etcd's old spec of `LeaseLeases`**: the reply lists no lease twice. Since the lease-grant
 review's S6 (2026-11-02) a corollary of the contract `etcdLeaseLeasesSpec`
@@ -213,9 +285,25 @@ review's S6 (2026-11-02) a corollary of the contract `etcdLeaseLeasesSpec`
 kept for its callers. The weakest spec `leasekv`
 needs: nothing of which leases (the server's answer, `v3rpc.leaseLeasesOut`, gives the lessor's at an
 index of its history). -/
-def etcdLeaseLeasesSpecAny : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+def etcdLeaseLeasesSpecAnyW : Unit → (LeaseLeasesRespM → IProp GF) → IProp GF :=
   fun (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) =>
     iprop(∀ m : LeaseLeasesRespM, ⌜m.ids.Nodup⌝ -∗ Φ m)
+
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdLeaseLeasesSpecAnyW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseLeasesSpecAnyW`, over the models alone, what a service table holds; this is its
+form at the message types). -/
+def etcdLeaseLeasesSpecAny :
+    GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+  etcdLeaseLeasesSpecAnyW
 
 namespace client
 

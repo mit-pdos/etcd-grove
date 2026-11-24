@@ -1,7 +1,10 @@
 /-
 `u.ToDecision()` (`conditionsunion.go`): a well-formed decision (a union of copies of the
 children, or an unconditional decision when the builder recorded errors or the union has one
-possible outcome); the builder is unchanged. Lean-first (no Rocq counterpart).
+possible outcome), no deeper and no larger (`Dec.size`) than the union of the children, its names
+the children's; the builder is unchanged. The union of the children fits `strings.Join`
+(`Dec.foldFits`): the unconditional decision's reason joins one string per collected leaf
+(fmt stage 1). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -28,10 +31,11 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 /-- See the file header. -/
 abbrev ConditionsAwareDecisionUnion.ToDecision.spec : Prop :=
-  ∀ (p : Loc) (ks : List Dec),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ ownBuilder p ks }}
+  ∀ (p : Loc) (ks : List Dec) (N : Nat), Dec.foldFits N (.union ks) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ ownBuilder p ks N }}
     (App (Val (p @!! go.GoType.PointerType ConditionsAwareDecisionUnion.ty @!! go!"ToDecision")) (Val #()))
-  {{ (d : ConditionsAwareDecision), RET #d; isWFDecision d ∗ ownBuilder p ks }}
+  {{ (d : ConditionsAwareDecision), RET #d;
+      isWFDecisionBnd (Dec.depthL ks + 1) (Dec.sizeL ks + 1) N d ∗ ownBuilder p ks N }}
 
 end spec
 

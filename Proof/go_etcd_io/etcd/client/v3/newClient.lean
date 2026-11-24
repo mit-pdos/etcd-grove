@@ -165,7 +165,7 @@ theorem newClient.wp_proof
         · exact hp h
       · ipureintro; exact Hrb
     haveI : ThreadBoundLe GF (2 ^ 30) := ⟨Hrb⟩
-    wp_apply wp_NewBundle P $$ [] as %atb #Hb
+    wp_apply wp_NewBundle P as %atb #Hb
     (try wp_auto)
     wp_join_done
     iexists _, _, atb
@@ -186,7 +186,7 @@ theorem newClient.wp_proof
     word)]
   wp_auto
   ihave %Hel := ownSlice_len _ _ _ $$ Heps
-  wp_apply wp_resolverNew _ eps $$ [$Heps] as %r ⟨%Hrnn, Hro⟩
+  wp_apply wp_resolverNew _ eps $$ [$Heps] as %r ⟨%Hrnn, Hro, Hcloser⟩
   rw [decide_eq_false (show ¬ (sint.Z cfg.Endpoints'.len < sint.Z (W64 1)) by
     have : sint.Z (W64 1) = 1 := by decide
     have hne : eps.length ≠ 0 := fun h => Hplain.1 (List.eq_nil_of_length_eq_zero h)
@@ -429,7 +429,7 @@ theorem newClient.wp_proof
       inext
       iintro -
       wp_auto
-      wp_apply wp_rClose r
+      wp_apply wp_rClose r $$ [$Hcloser]
       iapply HΦ
       iright
       try (ipureintro; exact ⟨Hderr, rfl⟩)

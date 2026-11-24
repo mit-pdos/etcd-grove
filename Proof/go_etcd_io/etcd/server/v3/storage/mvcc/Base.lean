@@ -2,7 +2,7 @@
 Package initialization instances for etcd's mvcc store (`server/v3/storage/mvcc`) and the
 packages it imports that no other proof module provides: `pkg/v3/traceutil`,
 `pkg/v3/schedule` and opentelemetry's `otel/trace` with the packages of the
-types its `Span` names (`trace/embedded`, `codes`, `attribute`) (all names and types only, but
+types its `Span` names (`trace/embedded`, `codes`, `attribute`) and its no-op tracer (`trace/noop`) (all names and types only, but
 `schedule`'s jobs: `NewJob`, `job.Do`) and `hash` (a standard-library package Perennial does not
 translate: types only, here, the type of `kvHasher`'s `hash` field). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
 cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`, `client/v3`), the server's
@@ -39,6 +39,7 @@ public import Perennial.Proof.strings
 public import Perennial.Proof.io
 public import Proof.hash.PkgInit
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricRep
 
 @[expose] public section
 
@@ -58,20 +59,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 -- (`hash`'s instance: `Proof/hash/PkgInit.lean`, shared with bbolt)
-
-namespace go_etcd_io.etcd.pkg.v3.traceutil
-
-/-- `traceutil`'s fact (item 8, 2026-10-17: moved here from the server's `srvReqInit`): `Tracer`
-holds a fixed tracer (`trace.go`: `noop.NewTracerProvider().Tracer(...)`). -/
-abbrev traceutilInit : IProp GF :=
-  iprop(∃ tr : GoInterfaceOk, globalAddr Tracer ↦□ GoInterface.ok tr)
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
-  define_is_pkg_init traceutilInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.traceutil
 
 namespace go_etcd_io.etcd.pkg.v3.schedule
 
@@ -128,6 +115,38 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemet
   build_get_is_pkg_init_wf
 
 end go_opentelemetry_io.otel.trace
+
+namespace go_opentelemetry_io.otel.trace.noop
+
+/-- otel `trace/noop`'s fact (otel-tracing, 2026-11-23): `noopSpanInstance` holds a no-op `Span` as a
+`trace.Span`, read-only for good (`noop.go`: `var noopSpanInstance trace.Span = Span{}`). -/
+def noopInit : IProp GF :=
+  iprop(∃ x : Span, globalAddr noopSpanInstance ↦□ (interface.mkOk Span.ty #x : GoInterface))
+
+instance noopInit_persistent : Persistent (noopInit (GF := GF)) := by
+  unfold noopInit; infer_instance
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.trace.noop :=
+  define_is_pkg_init noopInit
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemetry_io.otel.trace.noop :=
+  build_get_is_pkg_init_wf
+
+end go_opentelemetry_io.otel.trace.noop
+
+namespace go_etcd_io.etcd.pkg.v3.traceutil
+
+/-- `traceutil`'s fact (item 8, 2026-10-17: moved here from the server's `srvReqInit`): `Tracer`
+holds a fixed tracer (`trace.go`: `noop.NewTracerProvider().Tracer(...)`). -/
+abbrev traceutilInit : IProp GF :=
+  iprop(∃ tr : GoInterfaceOk, globalAddr Tracer ↦□ GoInterface.ok tr)
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
+  define_is_pkg_init traceutilInit
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.pkg.v3.traceutil
 
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -192,7 +211,9 @@ metrics reporters' locks (`reportVar`), which `setupMetricsReporter` takes to se
 (mvccfull's Freeze, 2026-11-10: `errVars.law`) `ErrWatcherNotExist` as the `errors.New` error it is,
 and the message cells of `ErrEmptyWatcherRange` and `ErrWatcherNotExist` (as `ErrCompacted`'s and
 `ErrFutureRev`'s), so that the four error variables a client compares with are apart: one conjunct,
-the last, so that every pattern ending in `-` is unchanged. -/
+the last, so that every pattern ending in `-` is unchanged; and (prove-ps2-metrics, 2026-11-22), in
+that last conjunct, `ReportEventReceived`'s two metrics: the counter `totalEventsCounter` and the
+gauge `pendingEventsGauge` as the `*gauge` it is (`metric.isGauge`, for its proved `Sub`). -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -241,11 +262,14 @@ abbrev mvccInit : IProp GF :=
     reportVar reportCompactRevMu reportCompactRev ∗
     (EtcdGrove.errorsNewVar ErrWatcherNotExist go!"mvcc: watcher does not exist" ∗
       EtcdGrove.errVarCell ErrEmptyWatcherRange go!"mvcc: watcher range is empty" ∗
-      EtcdGrove.errVarCell ErrWatcherNotExist go!"mvcc: watcher does not exist"))
+      EtcdGrove.errVarCell ErrWatcherNotExist go!"mvcc: watcher does not exist" ∗
+      (∃ c : GoInterfaceOk, globalAddr totalEventsCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
+      (∃ g : GoInterfaceOk, globalAddr pendingEventsGauge ↦□ GoInterface.ok g ∗
+        EtcdGrove.prometheus.metric.isGauge g)))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   build_get_is_pkg_init_wf
 

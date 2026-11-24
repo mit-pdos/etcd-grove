@@ -18,4 +18,21 @@ imports = ["google.golang.org/protobuf/runtime/protoimpl",
 trust_proofgen = true
 
 # translate the definitions of all type declarations goose supports
+# (etcd-grove#32, 2026-11-22) the `init` function (the file descriptor's registration) trusted:
+# a model that does nothing (TrustedCode/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0"]
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["file_v3lock_proto_msgTypes", "file_v3lock_proto_goTypes", "file_v3lock_proto_depIdxs"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+# --- end of skipped package variables ---

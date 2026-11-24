@@ -74,6 +74,22 @@ theorem opReps_pick (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3
       · iexact Hab
       · iexact Hr
 
+/-- A linearization's values are at most the history's operations. -/
+theorem vals_length_lin {σ α : Type} {M : SeqModel σ α} {h : List (Op α)} {π : List Nat}
+    (hl : IsLinearization M h π) : (vals h π).length ≤ h.length := by
+  obtain ⟨hnd, hmem, -, -⟩ := hl
+  have h1 : (vals h π).length ≤ π.length := List.length_filterMap_le _ _
+  have hsub : π ⊆ List.range h.length := fun k hk => List.mem_range.2 ((hmem k).1 hk).1
+  have h2 := (List.subperm_of_subset hnd hsub).length_le
+  rw [List.length_range] at h2
+  omega
+
+/-- The unary operations are at most the history's. -/
+theorem fmapH_histR_length (lops : List github_com.anishathalye.porcupine.Operation) (vs : List GOp) :
+    (fmapH unaryOf (histR lops vs)).length ≤ lops.length := by
+  unfold fmapH histR
+  exact Nat.le_trans (List.length_filterMap_le _ _) (by rw [List.length_zipWith]; exact Nat.min_le_left _ _)
+
 set_option hygiene false in
 /-- `realCheck` after its porcupine block (`linearizedOps ↦ lo`, `Hlo : lo ↦*□ os2`, `Hrep2`: `os2` against
 `vals U lin2`, `hlin2 : IsLinearization (realS init) U lin2`): `NewReplay`, the `Validate` loop,
@@ -81,7 +97,11 @@ set_option hygiene false in
 local macro "rc_tail" os2:term:max lin2:term:max : tactic => `(tactic| (
   obtain ⟨R, hR, hval, hw⟩ := hrep $lin2 hlin2
   have hpre := replayPre_of (absR g0.st)
-    (vals (fmapH unaryOf (histR lops vs)) $lin2) hfit (fun op hop => by
+    (vals (fmapH unaryOf (histR lops vs)) $lin2) hfit (by
+      have h1 := vals_length_lin hlin2
+      have h2 := fmapH_histR_length lops vs
+      have h3 := hhist.1
+      omega) (fun op hop => by
     obtain ⟨u, hu, rfl⟩ := mem_vals _ _ op hop
     exact hstepU _ (List.mem_map_of_mem hu))
   wp_apply wp_NewReplay mp (absR g0.st) lo _ _ R hpre hR $$ [Hm Hlo Hrep2] as %rp %err ⟨%herr, #Hrp⟩
@@ -185,7 +205,11 @@ theorem realCheck.wp_proof
     (wp_NewWatchValidator : k8s_correctness.NewWatchValidator.spec (GF := GF) (hG := hG))
     (wp_ValidateWatch : k8s_correctness.WatchValidator.ValidateWatch.spec (GF := GF) (hG := hG)) :
     realCheck.spec (GF := GF) (hG := hG) := by
-  intro s0 g0 sl lops dur hlin hhist hok hrun0 hn
+  intro s0 g0 sl lops dur hlin hhist hok hrun0 hn hitems
+  have hszI : GMap.size (absR g0.st).items ≤ g0.st.items.length := by
+    have := size_ofList_le (g0.st.items.map fun it => (storeKeyL it.key', it.obj'))
+    rw [List.length_map] at this
+    exact this
   wp_start as ⟨#Hcc, #Hs0, Hsl, #Hio⟩
   ihave ⟨%vs, %Hvs, #Hvr⟩ := gOks_collect (sem := sem) (package_sem := package_sem) g0 lops hok $$ Hio
   ihave %Hl := ownSlice_len $$ Hsl
@@ -362,7 +386,7 @@ theorem realCheck.wp_proof
       realCheck_pure (sem := sem) (package_sem := package_sem) g0 lops vs Hvs hlin hrun0 hn
     obtain ⟨hhps, hpsl⟩ := histOk_ps lops vs Hvs.1 hhist os ps Holen Hj.2.2
     ihave %hag := stepAgree_of (sem := sem) (package_sem := package_sem) os _ hstepU $$ Hor
-    wp_apply wp_initialModel s0 g0.st (storeKeys_nodup g0.st hrun0.1.1) $$ [$Hs0] as %mp Hm
+    wp_apply wp_initialModel s0 g0.st (storeKeys_nodup g0.st hrun0.1.1) (by omega) $$ [$Hs0] as %mp Hm
     · solve_pkg_init
     ihave Hmf := modelOwn_freeze (GF := GF) mp (absR g0.st) $$ Hm
     imod Hmf with #Hm
@@ -378,7 +402,8 @@ theorem realCheck.wp_proof
     wp_if_destruct
     · -- some unary operations: porcupine
       have hpos : sint.Z (W64 0) < sint.Z psl.len := by first | exact Hif | exact dec_true Hif
-      wp_apply wp_toPorcupineModel mp (absR g0.st) (Lof os (fmapH unaryOf (histR lops vs))) hfit $$ [$Hm] as %m #Hmodel
+      wp_apply wp_toPorcupineModel mp (absR g0.st) (Lof os (fmapH unaryOf (histR lops vs))) hfit
+        (by omega) $$ [$Hm] as %m #Hmodel
       ihave #Hio2 := realMS_opsIoOk (sem := sem) (package_sem := package_sem) (absR g0.st) os _ ps Hj.2.2
         hstepU $$ Hor
       wp_apply wp_CheckOperationsVerbose _ (realMS (Lof os (fmapH unaryOf (histR lops vs))) (absR g0.st)) m

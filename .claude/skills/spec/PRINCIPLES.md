@@ -59,6 +59,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (an `isContext` or a quiet context), approved, while its one caller passes
   `wait.ContextForChannel(stopCh)`, which is neither (K4, `notes/decisions.md`, "A context outside
   Perennial's model", 2026-11-04).
+- **A premise about an argument is stated in the form the code consumes it**, so that a proof can use
+  it: what the function's own code does with the argument (the calls, comparisons and method calls it
+  makes on it), not a triple of some other entry point that the code never calls on it. A premise that
+  no proof can use is a hypothesis true of Go that can never be discharged. (`fmt.ErrorfErrsNot.spec`
+  took `errIsNot e t`, a triple of `errors.Is(e, t)`, of its wrapped argument; but `errors.Is` of the
+  `*fmt.wrapError` walks `e`'s tree itself, Go's `is` loop calling `==`, `Is` and `Unwrap` on each
+  node, never `errors.Is(e, _)`. Restated over the tree Perennial's `errors.Is.spec` takes, with the
+  old triple a lemma for the callers that want it; the user's item (3), 2026-11-22, ledger.)
 - **An unsound candidate is replaced by a sound one, not dropped**: every function in the scope
   keeps a spec. When a candidate turns out false (it lets a client reach a path that breaks
   another spec's guarantee), find what is true of the function: often a precondition that names
@@ -384,7 +392,10 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   bound is there, a change of the limit is one edit, and a caller composes named quantities. Define
   it next to the law that chose it, `@[word_unfold]` so that `word` sees through it. A literal is
   for a bound local to one function (a library's own overflow precondition, `< 2 ^ 63` for an
-  `int64`). Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
+  `int64`). Upamanyu, 2026-11-24 (the `strings.Join` sites): **a spec does not expose a literal
+  bound** a caller must discharge from its configuration (URL counts and lengths: `etcdURLCountMax`,
+  `etcdURLLenMax`, the literal only in their definitions; a message bound: `syscall.errnoMsgMax`).
+  Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
   two read locks at once, the inner lock's slot is a counted stock at that call path only.
 - **A closer gives back what the goroutines it waits for held**: a `Close` that stops goroutines and
   waits for them (`wg.Wait()`, a stop channel's last payload) returns their resources, which they
@@ -422,8 +433,8 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 
 ## Preferences: measures
 
-Preferences too, but counted for each spec: on its unfolded statement (as `etc/gen-interface.py`
-renders it), or in its callers' proofs. Each is a cost; lower is better among specs that keep the
+Preferences too, but counted for each spec: on its unfolded statement (`<F>.spec`
+unfolded), or in its callers' proofs. Each is a cost; lower is better among specs that keep the
 hard rules. (`notes/spec-first-plan.md`,
 Review)
 

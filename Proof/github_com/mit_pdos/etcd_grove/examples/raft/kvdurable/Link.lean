@@ -178,35 +178,35 @@ theorem wp_sleep :
     EtcdGrove.raft_kvdurable.sleep.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.sleep.wp_proof wp_below _root_.Perennial.time.wp_After
 
-theorem Cluster.wp_all [AllG GF] [KdStor GF] :
+theorem Cluster.wp_all [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.all.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.all.wp_proof
 
-theorem Cluster.wp_random [AllG GF] [KdStor GF] :
+theorem Cluster.wp_random [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.random.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.random.wp_proof Cluster.wp_all wp_below
 
-theorem Cluster.wp_replicaPin [AllG GF] [KdStor GF] :
+theorem Cluster.wp_replicaPin [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.replica.specPin (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.replica.wp_proofPin
 
-theorem Replica.wp_stop [AllG GF] [KdStor GF] :
+theorem Replica.wp_stop [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.stop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.stop.wp_proof node.wp_Stop
 
-theorem Replica.wp_crash [AllG GF] [KdStor GF] :
+theorem Replica.wp_crash [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.crash.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.crash.wp_proof Replica.wp_stop
 
-theorem Stats.wp_add [AllG GF] [KdStor GF] :
+theorem Stats.wp_add [KdStor GF] :
     EtcdGrove.raft_kvdurable.Stats.add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Stats.add.wp_proof
 
-theorem wp_itoa [AllG GF] [KdStor GF] :
+theorem wp_itoa [KdStor GF] :
     EtcdGrove.raft_kvdurable.itoa.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.itoa.wp_proof
 
-theorem Cluster.wp_fileOf [AllG GF] [KdStor GF] :
+theorem Cluster.wp_fileOf [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.fileOf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.fileOf.wp_proof wp_itoa
 
@@ -234,7 +234,7 @@ theorem wp_getEntry :
     EtcdGrove.raft_kvdurable.getEntry.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.getEntry.wp_proof wp_getUint64 wp_getBytes raftpb.EntryType.wp_Enum
 
-theorem wp_openStorage [AllG GF] [KdStor GF] :
+theorem wp_openStorage [KdStor GF] :
     EtcdGrove.raft_kvdurable.openStorage.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.openStorage.wp_proof wp_NewMemoryStorage wp_getUint64 wp_getSnapshot wp_getEntry MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_Append MemoryStorage.wp_CreateSnapshot MemoryStorage.wp_SetHardState raftpb.Snapshot.wp_GetMetadata raftpb.Snapshot.wp_GetData raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
 
@@ -250,15 +250,15 @@ theorem wp_oneIn :
     EtcdGrove.raft_kvdurable.oneIn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.oneIn.wp_proof
 
-theorem Cluster.wp_config [AllG GF] [KdStor GF] :
+theorem Cluster.wp_config [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.config.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.config.wp_proof
 
-theorem Cluster.wp_tick [AllG GF] [KdStor GF] :
+theorem Cluster.wp_tick [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.tick.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.tick.wp_proof wp_below
 
-theorem Cluster.wp_replica [AllG GF] [KdStor GF] :
+theorem Cluster.wp_replica [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.replica.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.replica.wp_proof
 
@@ -266,23 +266,23 @@ theorem wp_copyMsg :
     EtcdGrove.raft_kvdurable.copyMsg.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.copyMsg.wp_proof proto.wp_CloneSnapshot
 
-theorem Cluster.wp_dropped [AllG GF] [KdStor GF] :
+theorem Cluster.wp_dropped [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.dropped.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.dropped.wp_proof Stats.wp_add raftpb.Message.wp_GetTo raftpb.Message.wp_GetType node.wp_ReportUnreachable node.wp_ReportSnapshot
 
-theorem Cluster.wp_step [AllG GF] [KdStor GF] :
+theorem Cluster.wp_step [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.step.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.step.wp_proof Stats.wp_add wp_oneIn raftpb.Message.wp_GetTo raftpb.Message.wp_GetType node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot context.wp_WithTimeoutBackground
 
-theorem Cluster.wp_deliver [AllG GF] [KdStor GF] :
+theorem Cluster.wp_deliver [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.deliver.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.deliver.wp_proof Cluster.wp_replica Cluster.wp_dropped Cluster.wp_step wp_copyMsg Stats.wp_add wp_oneIn wp_below raftpb.Message.wp_GetTo
 
-theorem Cluster.wp_send [AllG GF] [KdStor GF] :
+theorem Cluster.wp_send [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.send.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.send.wp_proof Cluster.wp_replica wp_copyMsg Cluster.wp_deliver
 
-theorem Cluster.wp_sender [AllG GF] [KdStor GF] :
+theorem Cluster.wp_sender [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.sender.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.sender.wp_proof Cluster.wp_send
 
@@ -290,7 +290,7 @@ theorem wp_decode :
     EtcdGrove.raft_kvdurable.decode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.decode.wp_proof
 
-theorem Replica.wp_applyOp [AllG GF] [KdStor GF] :
+theorem Replica.wp_applyOp [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.applyOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.applyOp.wp_proof wp_decode
 
@@ -298,15 +298,15 @@ theorem wp_validConf [StorageModel GF] :
     EtcdGrove.raft_kvdurable.validConf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.validConf.wp_proof RaftLink.tracker.wp_MakeProgressTracker_api RaftLink.confchange.wp_Restore_api RaftLink.confchange.Changer.wp_Simple_api RaftLink.confchange.Changer.wp_EnterJoint_api RaftLink.confchange.Changer.wp_LeaveJoint_api raftpb.ConfChangeV2.wp_LeaveJoint raftpb.ConfChangeV2.wp_EnterJoint raftpb.ConfChangeV2.wp_GetChanges
 
-theorem Replica.wp_applyConf [AllG GF] [KdStor GF] :
+theorem Replica.wp_applyConf [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.applyConf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.applyConf.wp_proof node.wp_ApplyConfChange wp_validConf Stats.wp_add raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 raftpb.ConfChangeV2.wp_EnterJoint
 
-theorem Replica.wp_applyEntry [AllG GF] [KdStor GF] :
+theorem Replica.wp_applyEntry [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.applyEntry.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.applyEntry.wp_proof Replica.wp_applyOp Replica.wp_applyConf raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData raftpb.Entry.wp_GetIndex proto.wp_UnmarshalConfChange proto.wp_UnmarshalConfChangeV2 Stats.wp_add
 
-theorem Replica.wp_install [AllG GF] [KdStor GF] :
+theorem Replica.wp_install [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.install.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.install.wp_proof Stats.wp_add raftpb.SnapshotMetadata.wp_GetConfState raftpb.SnapshotMetadata.wp_GetIndex raftpb.ConfState.wp_GetVotersOutgoing raftpb.ConfState.wp_GetLearners raftpb.ConfState.wp_GetLearnersNext proto.wp_CloneConfState
 
@@ -314,7 +314,7 @@ theorem wp_decodeReadCtx :
     EtcdGrove.raft_kvdurable.decodeReadCtx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.decodeReadCtx.wp_proof wp_decode
 
-theorem Replica.wp_answer [AllG GF] [KdStor GF] :
+theorem Replica.wp_answer [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.answer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.answer.wp_proof wp_decodeReadCtx
 
@@ -338,7 +338,7 @@ theorem wp_encodeState :
     EtcdGrove.raft_kvdurable.encodeState.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.encodeState.wp_proof wp_putMap
 
-theorem Replica.wp_request [AllG GF] [KdStor GF] :
+theorem Replica.wp_request [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.request.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.request.wp_proof wp_encodeState
 
@@ -362,11 +362,11 @@ theorem Storage.wp_encode :
     EtcdGrove.raft_kvdurable.Storage.encode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Storage.encode.wp_proof wp_putUint64 wp_putSnapshot wp_putEntry raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit
 
-theorem Replica.wp_persist [AllG GF] [KdStor GF] :
+theorem Replica.wp_persist [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.persist.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.persist.wp_proof Storage.wp_encode github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_Write Stats.wp_add
 
-theorem Replica.wp_persistRun [AllG GF] [KdStor GF] :
+theorem Replica.wp_persistRun [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.persist.specRun (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.persist.wp_proofRun Storage.wp_encode github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_Write Stats.wp_add
 
@@ -390,15 +390,15 @@ theorem Storage.wp_ApplySnapshot [KdStor GF] :
     EtcdGrove.raft_kvdurable.Storage.ApplySnapshot.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Storage.ApplySnapshot.wp_proof image.wp_applySnapshot
 
-theorem Storage.wp_SetHardState [AllG GF] [KdStor GF] :
+theorem Storage.wp_SetHardState [KdStor GF] :
     EtcdGrove.raft_kvdurable.Storage.SetHardState.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Storage.SetHardState.wp_proof MemoryStorage.wp_SetHardState
 
-theorem Replica.wp_run [AllG GF] [KdStor GF] :
+theorem Replica.wp_run [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.run.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.run.wp_proof Replica.wp_applyEntry Replica.wp_install Replica.wp_answer Replica.wp_request Replica.wp_persist Replica.wp_persistRun Stats.wp_add wp_fits wp_oneIn wp_decodeState Storage.wp_Append Storage.wp_ApplySnapshot Storage.wp_SetHardState node.wp_Ready node.wp_Advance wp_IsEmptySnap wp_IsEmptyHardState wp_MustSync raftpb.Snapshot.wp_GetData raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.Entry.wp_GetIndex MemoryStorage.wp_Append MemoryStorage.wp_ApplySnapshot
 
-theorem Replica.wp_ticker [AllG GF] [KdStor GF] :
+theorem Replica.wp_ticker [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.ticker.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.ticker.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop node.wp_Tick
 
@@ -418,27 +418,27 @@ theorem Storage.wp_Compact [KdStor GF] :
     EtcdGrove.raft_kvdurable.Storage.Compact.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Storage.Compact.wp_proof image.wp_compact
 
-theorem Replica.wp_snapshot [AllG GF] [KdStor GF] :
+theorem Replica.wp_snapshot [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.snapshot.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.snapshot.wp_proof Stats.wp_add wp_below wp_oneIn Replica.wp_persist raftpb.ConfState.wp_GetVotersOutgoing Storage.wp_CreateSnapshot Storage.wp_Compact MemoryStorage.wp_CreateSnapshot MemoryStorage.wp_FirstIndex MemoryStorage.wp_Compact
 
-theorem Replica.wp_snapshotter [AllG GF] [KdStor GF] :
+theorem Replica.wp_snapshotter [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.snapshotter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.snapshotter.wp_proof Replica.wp_snapshot
 
-theorem wp_newReplica [AllG GF] [KdStor GF] :
+theorem wp_newReplica [KdStor GF] :
     EtcdGrove.raft_kvdurable.newReplica.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.newReplica.wp_proof Replica.wp_run Replica.wp_ticker Replica.wp_snapshotter proto.wp_CloneConfState
 
-theorem Storage.wp_snapIndex [AllG GF] [KdStor GF] :
+theorem Storage.wp_snapIndex [KdStor GF] :
     EtcdGrove.raft_kvdurable.Storage.snapIndex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Storage.snapIndex.wp_proof MemoryStorage.wp_Snapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
 
-theorem Storage.wp_InitialState [AllG GF] [KdStor GF] :
+theorem Storage.wp_InitialState [KdStor GF] :
     EtcdGrove.raft_kvdurable.Storage.InitialState.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Storage.InitialState.wp_proof MemoryStorage.wp_InitialState Storage.wp_snapIndex proto.wp_CloneConfState
 
-theorem Storage.wp_Snapshot [AllG GF] [KdStor GF] :
+theorem Storage.wp_Snapshot [KdStor GF] :
     EtcdGrove.raft_kvdurable.Storage.Snapshot.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Storage.Snapshot.wp_proof wp_oneIn MemoryStorage.wp_Snapshot
 
@@ -458,19 +458,19 @@ theorem quietLogger.wp_Warningf :
     EtcdGrove.raft_kvdurable.quietLogger.Warningf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.quietLogger.Warningf.wp_proof
 
-theorem Cluster.wp_start [AllG GF] [KdStor GF] :
+theorem Cluster.wp_start [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.start.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.start.wp_proof Cluster.wp_fileOf github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_Read wp_newStorage wp_openStorage MemoryStorage.wp_Snapshot raftpb.Snapshot.wp_GetMetadata raftpb.Snapshot.wp_GetData raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetConfState wp_decodeState Stats.wp_add wp_oneIn wp_below Cluster.wp_config wp_RestartNode Cluster.wp_tick Cluster.wp_sender wp_newReplica Storage.wp_InitialState Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries quietLogger.wp_Debugf quietLogger.wp_Errorf quietLogger.wp_Infof quietLogger.wp_Warningf
 
-theorem Cluster.wp_restart [AllG GF] [KdStor GF] :
+theorem Cluster.wp_restart [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.restart.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.restart.wp_proof Cluster.wp_replicaPin Replica.wp_crash Stats.wp_add Cluster.wp_start
 
-theorem Cluster.wp_Crash [AllG GF] [KdStor GF] :
+theorem Cluster.wp_Crash [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.Crash.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.Crash.wp_proof wp_sleep Cluster.wp_random Cluster.wp_restart
 
-theorem Cluster.wp_Disrupt [AllG GF] [KdStor GF] :
+theorem Cluster.wp_Disrupt [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.Disrupt.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.Disrupt.wp_proof wp_sleep Cluster.wp_random wp_below node.wp_TransferLeadership node.wp_Campaign node.wp_ForgetLeader node.wp_Status context.wp_WithTimeoutBackground
 
@@ -478,27 +478,27 @@ theorem wp_encode :
     EtcdGrove.raft_kvdurable.encode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.encode.wp_proof
 
-theorem Replica.wp_conf [AllG GF] [KdStor GF] :
+theorem Replica.wp_conf [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.conf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.conf.wp_proof
 
-theorem Cluster.wp_randomMember [AllG GF] [KdStor GF] :
+theorem Cluster.wp_randomMember [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.randomMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.randomMember.wp_proof Cluster.wp_random Cluster.wp_replica Replica.wp_conf wp_below wp_oneIn raftpb.ConfState.wp_GetVoters raftpb.ConfState.wp_GetLearners
 
-theorem Replica.wp_propose [AllG GF] [KdStor GF] :
+theorem Replica.wp_propose [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.propose.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.propose.wp_proof node.wp_Propose context.wp_WithTimeoutBackground
 
-theorem Cluster.wp_do [AllG GF] [KdStor GF] :
+theorem Cluster.wp_do [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.do.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.do.wp_proof wp_encode Cluster.wp_randomMember Replica.wp_propose Stats.wp_add
 
-theorem Cluster.wp_Get [AllG GF] [KdStor GF] :
+theorem Cluster.wp_Get [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.Get.wp_proof Cluster.wp_do
 
-theorem Cluster.wp_Put [AllG GF] [KdStor GF] :
+theorem Cluster.wp_Put [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.Put.wp_proof Cluster.wp_do
 
@@ -506,43 +506,43 @@ theorem wp_readCtx :
     EtcdGrove.raft_kvdurable.readCtx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.readCtx.wp_proof wp_encode
 
-theorem readSeqs.wp_next [AllG GF] [KdStor GF] :
+theorem readSeqs.wp_next [KdStor GF] :
     EtcdGrove.raft_kvdurable.readSeqs.next.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.readSeqs.next.wp_proof
 
-theorem Replica.wp_read [AllG GF] [KdStor GF] :
+theorem Replica.wp_read [KdStor GF] :
     EtcdGrove.raft_kvdurable.Replica.read.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Replica.read.wp_proof wp_readCtx readSeqs.wp_next node.wp_ReadIndex context.wp_WithTimeoutBackground
 
-theorem Cluster.wp_Read [AllG GF] [KdStor GF] :
+theorem Cluster.wp_Read [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.Read.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.Read.wp_proof Cluster.wp_randomMember Replica.wp_read Stats.wp_add _root_.Perennial.github_com.mit_pdos.gokv.trusted_proph.ResolveBytes.wp_proof
 
-theorem Cluster.wp_startNew [AllG GF] [KdStor GF] :
+theorem Cluster.wp_startNew [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.startNew.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.startNew.wp_proof Cluster.wp_start Stats.wp_add
 
-theorem wp_pick [AllG GF] [KdStor GF] :
+theorem wp_pick [KdStor GF] :
     EtcdGrove.raft_kvdurable.pick.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.pick.wp_proof wp_below
 
-theorem Cluster.wp_randomID [AllG GF] [KdStor GF] :
+theorem Cluster.wp_randomID [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.randomID.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.randomID.wp_proof Cluster.wp_random Cluster.wp_startNew wp_oneIn wp_pick raftpb.ConfState.wp_GetVoters raftpb.ConfState.wp_GetVotersOutgoing raftpb.ConfState.wp_GetLearners
 
-theorem Cluster.wp_randomChange [AllG GF] [KdStor GF] :
+theorem Cluster.wp_randomChange [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.randomChange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.randomChange.wp_proof Cluster.wp_random Cluster.wp_randomID Replica.wp_conf wp_below wp_oneIn raftpb.ConfChangeType.wp_Enum raftpb.ConfChangeTransition.wp_Enum
 
-theorem Cluster.wp_Reconfigure [AllG GF] [KdStor GF] :
+theorem Cluster.wp_Reconfigure [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.Reconfigure.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.Reconfigure.wp_proof wp_sleep Cluster.wp_randomChange Cluster.wp_random Stats.wp_add node.wp_ProposeConfChange context.wp_WithTimeoutBackground
 
-theorem Cluster.wp_allStop [AllG GF] [KdStor GF] :
+theorem Cluster.wp_allStop [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.all.specStop (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.all.wp_proofStop
 
-theorem Cluster.wp_Stop [AllG GF] [KdStor GF] :
+theorem Cluster.wp_Stop [KdStor GF] :
     EtcdGrove.raft_kvdurable.Cluster.Stop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Cluster.Stop.wp_proof Cluster.wp_allStop Replica.wp_stop
 
@@ -558,7 +558,7 @@ theorem wp_RandomConfig :
     EtcdGrove.raft_kvdurable.RandomConfig.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.RandomConfig.wp_proof wp_RandomOptions wp_below
 
-theorem wp_StartCluster [AllG GF] [KdStor GF] :
+theorem wp_StartCluster [KdStor GF] :
     EtcdGrove.raft_kvdurable.StartCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.StartCluster.wp_proof Cluster.wp_start Stats.wp_add
 
@@ -582,7 +582,7 @@ theorem wp_Model :
     EtcdGrove.raft_kvdurable.Model.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Model.wp_proof wp_copyMap wp_within wp_hashMap
 
-theorem wp_Run [AllG GF] [KdStor GF] :
+theorem wp_Run [KdStor GF] :
     EtcdGrove.raft_kvdurable.Run.spec (GF := GF) (hG := hG) :=
   EtcdGrove.raft_kvdurable.Run.wp_proof wp_StartCluster Cluster.wp_Reconfigure Cluster.wp_Disrupt Cluster.wp_Crash Cluster.wp_Put Cluster.wp_Get Cluster.wp_Read wp_Model wp_Gen lintest.wp_Run
 

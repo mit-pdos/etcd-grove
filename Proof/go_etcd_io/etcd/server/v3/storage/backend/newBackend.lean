@@ -16,7 +16,6 @@ public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Panic
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.NewAlloc
-public import Proof.go_etcd_io.etcd.server.v3.storage.backend.MutexLit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
 public import Perennial.ProgramLogic.Bounds
 public import Spec.go_etcd_io.bbolt.Open
@@ -72,7 +71,7 @@ the inode, to the caller (`bPath`, S5). The options come back with their
 private theorem bbolt.kvGlue_Open
     (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
       bbolt.Open.spec (GF := GF) (hG := hG)) :
-  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM) (D : backend.Data),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ backend.fileHolds path D ∗
       backend.optsAt opts dq o ∗ ⌜o.ok ∧ o.noErr⌝ ∗
@@ -241,7 +240,7 @@ theorem backend.newBackend.wp_proof
   -- the backend's structure
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %m Hm
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %cm Hcm
-  wp_apply wp_mutexLit
+  try wp_auto
   wp_apply chan.wp_make1 (V := Unit) as %sc %γsc ⟨#Hscc, %-, Hsco⟩
   wp_apply chan.wp_make1 (V := Unit) as %dc %γdc ⟨#Hdcc, %-, Hdco⟩
   iStructNamed «$r0»
@@ -298,7 +297,7 @@ theorem backend.newBackend.wp_proof
   -- the backend's invariants
   imod backend_init P W Pk K cfg.Hooks' «$r0_ptr» t «$v5_ptr» «$v3_ptr» «$v2_ptr» db lg wtx rtx m cm γd
     cfg.Path'
-    γrw D sc dc γsc γdc HP.1 $$ [Hmk Hmu1 Hbmus Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
+    γrw D sc dc γsc γdc HP.1 (ReceiptBoundLe.le (2 ^ 60)) $$ [Hmk Hmu1 Hbmus Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
       Hhalf Hwtx Hst Hrtoks rtx Hlive rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
       cbuf cbufVersion Hsco Hdco Hsr1]
     with ⟨%γ, %Hγd, #Hbfile, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩

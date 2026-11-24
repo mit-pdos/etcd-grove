@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/all`: the one closed etcd theorem, `etcd_safe`
+# `etcd/all`: the single-process closed etcd theorem, `etcd_safe_single_process`
 
 The program of `examples/etcd/all` runs eleven etcd examples, each on a cluster of its own, in one
 process and at once, in four parts (`notes/etcd-unified-scope.md`; the statement's header,
@@ -10,13 +10,14 @@ compactwatch, compacted and cache on one member each), **Auth** (authN on `k₂`
 **Lease** (leaseN on `k₄`, leasecatchup on three) and **Restart** (restartN on `k₅`, restart1 on one).
 Each driver panics if its check fails.
 
-`etcd_safe` is `etcd_adequate_of` (`Adequacy.lean`) applied to `Main`'s linked triple
+`etcd_safe_single_process` (`etcd_safe` until the net swap, 2026-11-22, whose name the distributed theorem
+took; restored 2026-11-23 over the net extension, `notes/single-process-restore.md`) is `etcd_adequate_of` (`Adequacy.lean`) applied to `Main`'s linked triple
 (`MainLinked.lean`'s `etcd_all.wp_Main`, over the eleven drivers' linked `Main` results): in every real
-execution of fewer than `2 ^ 40 - 11` steps along which fewer than `2 ^ 28` threads are live, from a
+execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are live, from a
 fresh state with one thread, no thread is stuck, none has ended in a panic, and the main thread's
-result, if any, is `#()`. Its premises are `etcd_robust.spec`'s, at one `n`; `Hlow` (`_Hlow`: the 16
+result, if any, is `#()`. Its premises are `etcd_robust_single_process.spec`'s, at one `n`; `Hlow` (`_Hlow`: the 16
 low bits of the ids of all the process's members distinct, the condition of idutil's trusted model) is
-stated, not used. `TopLevelRobustness.lean` restates it as `etcd_robust`.
+stated, not used. `TopLevelRobustness.lean` restates it as `etcd_robust_single_process`.
 -/
 module
 
@@ -48,30 +49,28 @@ variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_all.wp_Main`). -/
 theorem etcd_all_Main
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     etcd_all.Main.spec (GF := GF) (hG := hG) :=
   etcd_all.wp_Main
 
 end results
 
 section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 variable [go_gctx : GoGlobalContext]
 
-/-- **The one closed etcd theorem** (see the file header): the eleven examples at once in one process,
+/-- **The single-process closed etcd theorem** (see the file header; `etcd_safe` until the net swap,
+restored 2026-11-23 over the net extension, `notes/single-process-restore.md`): the eleven examples at once in one process,
 for every `1 ≤ k₁ ≤ 1000`, `1 ≤ k₂, k₃, k₄ ≤ 300`, `3 ≤ k₅ ≤ 300`, every two schedules and every
-workload within the bounds: in every real execution of `n` steps (`n + 12 ≤ 2 ^ 40`) from a fresh state
-with one thread, along which fewer than `2 ^ 28` threads are live, no thread is stuck, none has ended
+workload within the bounds: in every real execution of `n` steps (`n + 1 ≤ 2 ^ 48`) from a fresh state
+with one thread and a network with no connection, along which fewer than `2 ^ 28` threads are live, no thread is stuck, none has ended
 in a panic, and the main thread's result, if any, is `#()`. -/
-theorem etcd_safe [lctx : GoLocalContext] [sem : go.Semantics]
+theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
-    [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    -- (wal-nostorageok, 2026-11-21: for the premise `rnNewStorageOk`) `os`'s field steps
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    [_root_.Perennial.net.FieldAssumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC etcdGF, ContextReadErrs (GF := etcdGF) (hG := etcdHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC etcdGF, ContextErrsClient (GF := etcdGF) (hG := etcdHeapAt hG lctx))
     -- KV: txnlinfaultsN's cluster, `k₁` members
@@ -128,9 +127,7 @@ theorem etcd_safe [lctx : GoLocalContext] [sem : go.Semantics]
     -- cache's workload
     (cnw cnops : w64) (Hcnw0 : 0 ≤ sint.Z cnw) (Hcnw31 : sint.Z cnw < 2 ^ 31)
     (Hcnops : 0 ≤ sint.Z cnops) (Hcmul : sint.Z cnw * sint.Z cnops < 2 ^ 62)
-    -- the program's metric names, addresses, data directories and environment
-    (HNs : prometheus.namesUnclaimed
-      (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅) etcdNames)
+    -- the program's addresses, data directories and environment
     (HAs : addrsUnclaimed (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
       (etcdAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
@@ -161,14 +158,15 @@ theorem etcd_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₅ n ids₅ ps₅ ctxs₅ boot₅)
     (HpremR : ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_restart1.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n rId ctxsR bootR)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdDirs k₁ k₂ k₃ k₄ k₅))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNstepsBelow (2 ^ 28) n
       ([etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅], ((σ, g) : CfgState))
       κs (t2, σ2))
-    (Hn : n + 12 ≤ 2 ^ 40) :
+    (Hn : n + 1 ≤ 2 ^ 48) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
@@ -178,15 +176,15 @@ theorem etcd_safe [lctx : GoLocalContext] [sem : go.Semantics]
     Hlen₂ Hbf₂ k₃ hk₃1 hk₃ ids₃ ps₃ ctxs₃ boot₃ Hlen₃ Hbf₃ Hap k₄ hk₄1 hk₄ ids₄ ps₄ ctxs₄ boot₄
     Hlen₄ Hbf₄ lid₁ lid₂ lid₃ psL ctxsL bootL HbfL k₅ hk₅3 hk₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId
     ctxsR bootR HbfR Haf Hbuq Hrf Hdbo Hlp Hlne clients ops Hc0 Hc31 Hops Hmul steps₁ Hsteps₁ nw
-    nops Hnw0 Hnw31 Hnops Hnmul steps₂ Hsteps₂ cnw cnops Hcnw0 Hcnw31 Hcnops Hcmul HNs HAs HDs HEnv
-    n Hprem₁ HpremP HpremCW HpremC HpremK Hprem₂ Hprem₃ Hprem₄ HpremL Hprem₅ HpremR σ g Hfs HWal
+    nops Hnw0 Hnw31 Hnops Hnmul steps₂ Hsteps₂ cnw cnops Hcnw0 Hcnw31 Hcnops Hcmul HAs HDs HEnv
+    n Hprem₁ HpremP HpremCW HpremC HpremK Hprem₂ Hprem₃ Hprem₄ HpremL Hprem₅ HpremR σ g Hg Hfs HWal
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 
 #print axioms etcd_all_Main
 #print axioms etcd_adequate_of
-#print axioms etcd_safe
+#print axioms etcd_safe_single_process
 
 end EtcdGrove
 end Perennial

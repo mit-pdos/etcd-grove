@@ -39,7 +39,7 @@ conf change is taken at its content `cc` (`ccPtsCC`), whose size measure `ccSize
 cluster's bound on proposed data, if any: the entry's data, its encoding, is at most
 `ccSize cc + 64` bytes; it is given back at its model, `ownConfChangeI`.) -/
 abbrev node.ProposeConfChange.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM)
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM)
     (cc : ConfChangeIC) (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   -- (2026-11-12, trace-check implementation step 1: the design's §3.5) refused at a traced
   -- cluster: `run` steps no message of this kind there
@@ -52,7 +52,7 @@ abbrev node.ProposeConfChange.spec : Prop :=
          <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
               ownCommittedOps γ (ops ++ opsOf [⟨t, confChangeEntryType (some o), bs⟩]),
             COMM True }>) }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
+    (App (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))
   {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err }}
 

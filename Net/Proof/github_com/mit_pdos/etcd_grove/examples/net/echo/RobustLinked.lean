@@ -1,15 +1,15 @@
 /-
-`examples/net/echo` as an instance of the kits' statement: `Robust` with no crashing machine
-(`Robustness/Statement.lean`) under the kit deployment premise (`KitDeploy`,
-`Net/Statement/KitDeploy.lean`), proved through the kits' bridge (`robust_of_kitBoot`,
-`Net/Statement/KitBridge.lean`): the check that the premise is not vacuous and that the bridge is
+`examples/net/echo` as an instance of the distributed deployments' statement: `Robust` with no crashing machine
+(`Robustness/Statement.lean`) under the deployment premise (`DistDeploy`,
+`Net/Statement/DistDeploy.lean`), proved through the distributed bridge (`robust_of_distBoot`,
+`Net/Statement/DistBridge.lean`): the check that the premise is not vacuous and that the bridge is
 usable (`notes/dsverify-net-port-plan.md`, phase 4).
 
 The three machines are the example's commands (`system`, `Results.lean`: `cmd/server`, `cmd/client`,
 `cmd/junk`, each its package's boot program), the addresses `[SrvAddr]` (`echoAddrs`; valid:
 `decide`). From the start resources the bridge gives (`SrvAddr` unset: its pending set), the proof
 allocates
-echo's own protocol (`echoInvs`, `Defs.lean`) rather than the kits' library (a program may keep the
+echo's own protocol (`echoInvs`, `Defs.lean`) rather than the net protocol library (a program may keep the
 network's resources in its own protocol), and each machine's boot program is safe by the same
 `wp_main` lemmas as `echo_crash_safety` (`Results.lean`).
 
@@ -20,7 +20,7 @@ bridge to show the bridge applies to a real system.
 -/
 module
 
-public import Net.Statement.KitBridge
+public import Net.Statement.DistBridge
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.echo.Results
 
 @[expose] public section
@@ -38,19 +38,19 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.echo
 attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
   GooseGlobalGS.gooseInvGS
 
-/-- The kit's addresses: the server's. -/
+/-- The deployment's addresses: the server's. -/
 def echoAddrs : List GoString := [srvAddr]
 
 set_option linter.unusedVariables false in
-/-- **echo as a kit**: the three machines, none of which crashes, deployed with the address
-`echoAddrs` (`KitDeploy`), are robust: in every execution, of any length, no thread of any machine
+/-- **echo as a distributed deployment**: the three machines, none of which crashes, deployed with the address
+`echoAddrs` (`DistDeploy`), are robust: in every execution, of any length, no thread of any machine
 is stuck and none has an unrecovered panic. -/
-theorem echo_kit_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
+theorem echo_dist_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
     [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     (σs σc σj : state) (g : GlobalState) (threads bound : Nat) :
-    KitDeploy echoAddrs (system σs σc σj) g → Robust [] (system σs σc σj) g threads bound := by
-  refine robust_of_kitBoot _ _ g threads bound ?_
+    DistDeploy echoAddrs (system σs σc σj) g → Robust [] (system σs σc σj) g threads bound := by
+  refine robust_of_distBoot _ _ g threads bound ?_
   intro G
   iintro Hs
   unfold echoAddrs
@@ -116,7 +116,7 @@ theorem echo_kit_robust [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sema
     iapply BigSepL.bigSepL_nil.2
     iempintro
 
-#print axioms echo_kit_robust
+#print axioms echo_dist_robust
 
 end github_com.mit_pdos.etcd_grove.examples.net.echo
 

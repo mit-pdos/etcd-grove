@@ -11,6 +11,7 @@ public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.hash.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
@@ -24,7 +25,6 @@ public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.InitLinked
-public import Proof.hash.Init
 public import Proof.hash.crc32.InitLinked
 public import Proof.os.Init
 public import Proof.path.filepath.Init
@@ -33,7 +33,13 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Set
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Add
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Inc
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Dec
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__MustRegister
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -58,6 +64,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
+variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [_root_.Perennial.log.NewModel]
 
@@ -74,10 +81,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
     (L1 := EtcdGrove.regResL (GF := GF) [])
     (L2 := EtcdGrove.regResL (GF := GF) [])
-    (L' := EtcdGrove.regResL (GF := GF) []) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
+    (L' := EtcdGrove.regResL (GF := GF) [])
+    (R := EtcdGrove.prometheus.idToks (GF := GF) (EtcdGrove.prometheus.PromRegGS.γ (GF := GF))
+      (regNames.map EtcdGrove.prometheus.descId ++ regKeys))
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
+  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames at HR
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrSaveBatchTooLarge _ as HErrSaveBatchTooLarge
@@ -142,7 +152,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.hash.wp_initialize'_lb _ Hinit.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.hash _root_.Perennial.hash.initialize'
+      EtcdGrove.ExternalInit.hash _root_.Perennial.hash.wp_initialize' _ Hinit.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.1))
@@ -156,7 +167,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of walFsyncSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwalFsyncSec BwalFsyncSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwalFsyncSec as %cwalFsyncSec ⟨#CwalFsyncSec, %NwalFsyncSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwalFsyncSec as %cwalFsyncSec ⟨#CwalFsyncSec, #NwalFsyncSec⟩
   try wp_auto
   ihave #EwalFsyncSec : (EtcdGrove.wal.histSpec cwalFsyncSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CwalFsyncSec
@@ -165,14 +176,20 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of walWriteSec))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bwalWriteSec BwalWriteSec
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwalWriteSec as %cwalWriteSec ⟨#CwalWriteSec, %NwalWriteSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwalWriteSec as %cwalWriteSec ⟨#CwalWriteSec, #NwalWriteSec⟩
   try wp_auto
   ihave #EwalWriteSec : (EtcdGrove.wal.histSpec cwalWriteSec : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.histSpec at CwalWriteSec
     unfold EtcdGrove.wal.histSpec
     iexact CwalWriteSec
   -- translated initializer of walWriteBytes))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwalWriteBytes ⟨#CwalWriteBytes, #DwalWriteBytes, %NwalWriteBytes⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwalWriteBytes ⟨#RwalWriteBytes, #NwalWriteBytes⟩
+  ihave #CwalWriteBytes : (EtcdGrove.prometheus.metric.gaugeSpec cwalWriteBytes : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals first | iassumption | iPkgInit
+  ihave #DwalWriteBytes : (EtcdGrove.prometheus.metric.gaugeSetSpec cwalWriteBytes : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   ihave #EwalWriteBytes : (EtcdGrove.wal.gaugeAddSpec cwalWriteBytes : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.gaugeSpec at CwalWriteBytes
@@ -181,39 +198,39 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iexact K
   -- translated initializer of errBadWALName))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBW #EBW
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBW ⟨#_, #EBW⟩
   try wp_auto
   -- translated initializer of SegmentSizeBytes))
   -- translated initializer of openWALFilesFn))
   -- translated initializer of ErrMetadataConflict))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xMC #EMC
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xMC ⟨#_, #EMC⟩
   try wp_auto
   -- translated initializer of ErrFileNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFN #EFN
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFN ⟨#_, #EFN⟩
   try wp_auto
   -- translated initializer of ErrCRCMismatch))
   try wp_auto
   ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd11
-  icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT⟩
+  icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT, -⟩
   try wp_auto
   -- translated initializer of ErrSnapshotMismatch))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSM #ESM
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSM ⟨#_, #ESM⟩
   try wp_auto
   -- translated initializer of ErrSnapshotNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSN #ESN
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSN ⟨#_, #ESN⟩
   try wp_auto
   -- translated initializer of ErrSliceOutOfRange))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSO #ESO
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSO ⟨#_, #ESO⟩
   try wp_auto
   -- translated initializer of ErrDecoderNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xDN #EDN
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xDN ⟨#_, #EDN⟩
   try wp_auto
   -- translated initializer of crcTable))
   try wp_auto
@@ -223,37 +240,47 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of MaxSaveBatchBytes))
   -- translated initializer of ErrSaveBatchTooLarge))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBL #EBL
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBL ⟨#_, #EBL⟩
   try wp_auto
   -- the translated init.«0»
   wp_func_call
   wp_call
   try wp_auto
   -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch))
-  iunfold EtcdGrove.prometheus.namesFree at HR
-  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames at HR
-  icases HR with ⟨HR1, HR2, HR3, -⟩
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR1, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok cwalFsyncSec])
   isplitr
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwalFsyncSec $$ [S1 HR1] as S1
-  · iframe S1 HR1
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"wal_fsync_duration_seconds") (by decide +kernel) $$ [S1 HR1] as S1
+  · iframe S1 HR1 NwalFsyncSec
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR2, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok cwalWriteSec])
   isplitr
   · ipureintro; rfl
   iintro %s2 ⟨S2, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwalWriteSec $$ [S2 HR2] as S2
-  · iframe S2 HR2
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"wal_write_duration_seconds") (by decide +kernel) $$ [S2 HR2] as S2
+  · iframe S2 HR2 NwalWriteSec
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR3, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok cwalWriteBytes])
   isplitr
   · ipureintro; rfl
   iintro %s3 ⟨S3, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NwalWriteBytes $$ [S3 HR3] as S3
-  · iframe S3 HR3
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"wal_write_bytes_total") (by decide +kernel) $$ [S3 HR3] as S3
+  · iframe S3 HR3 NwalWriteBytes
+    try iframe #
+    try iPkgInit
+  iclear HR
   ipersist HerrBadWALName
   ipersist HErrMetadataConflict
   ipersist HErrFileNotFound
@@ -352,7 +379,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.wal get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal }} :=

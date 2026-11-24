@@ -3,7 +3,7 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.crc
 public import SpecPlan.Spec.PkgInit.Base
-public import SpecPlan.Spec.PkgInit.hash
+public import Perennial.Proof.hash.Base
 public import SpecPlan.Spec.PkgInit.hash.crc32
 
 @[expose] public section

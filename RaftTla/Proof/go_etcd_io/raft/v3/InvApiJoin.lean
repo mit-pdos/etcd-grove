@@ -72,9 +72,7 @@ theorem mem_allNodeIds (x : w64) : x ∈ allNodeIds ↔ x ≠ W64 0 := by
 section join
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- **One node's allocated part** (2026-11-01, durability stage I-7; until then raft's ghost state
 of node `id` at the initial state and its table of views, empty): its durable state at

@@ -25,6 +25,7 @@ public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.hash.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
@@ -38,13 +39,13 @@ public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
-public import Proof.hash.Init
 public import Proof.hash.crc32.Init
 public import Proof.os.Init
 public import Proof.path.filepath.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.ErrIsTerm
 public import Proof.errors.ErrorStringOk
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 
@@ -73,15 +74,16 @@ def regNames : List GoString :=
    EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"wal_write_duration_seconds",
    EtcdGrove.prometheus.fqName go!"etcd" go!"disk" go!"wal_write_bytes_total"]
 
-/-- The packages of this package's import closure (itself included) whose initializers
-register metrics, with their names: their registration rights are its initializer's
-resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
-def regQs : List (GoString × List GoString) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames)]
+/-- The IDs besides its names' this package's initializer takes the rights to (prom-registry:
+a later registration's, `REG_KEYS`). -/
+def regKeys : List w64 := []
 
-/-- The metric names its initializer registers, with those of its import closure: its
-`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
-def initNames : List GoString := regQs.flatMap (·.2)
+/-- The packages of this package's import closure (itself included) whose initializers
+register metrics, with their names and other IDs: their registration rights (keyed by ID,
+`EtcdGrove.prometheus.regRes`) are its initializer's resources (`ownInitResL`,
+`Proof/runtime/PkgInitRes.lean`; its `wp_initialize'`'s precondition: `regsFree regQs`). -/
+def regQs : List (GoString × List GoString × List w64) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regKeys)]
 
 end go_etcd_io.etcd.server.v3.storage.wal
 

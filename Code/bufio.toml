@@ -1,15 +1,43 @@
-# (project etcd's part `LinuxFs/`; Perennial does not translate bufio) types and names, and (WAL
-# leaf specs, 2026-11-13) with their bodies what the WAL's decoder runs of a `*bufio.Reader`
-# (`fileutil.NewFileBufReader`'s `NewReader`, and `Read`, through `io.ReadFull`/`binary.Read`):
-# `NewReader`, `NewReaderSize`, `(*Reader).reset`, `Read`, `readErr`, `Buffered`, the constants
-# they use, and the package's error variables (`errors.New` calls), proved in
-# `Proof/bufio/`.
-translate = ["!*", "Reader", "NewReader", "NewReaderSize", "Reader.reset", "Reader.Read",
-  "Reader.readErr", "Reader.Buffered", "defaultBufSize", "minReadBufferSize",
+# (project etcd's part `LinuxFs/` until 2026-11-15; Perennial does not translate bufio) types and
+# names, and with their bodies:
+# * (WAL leaf specs, 2026-11-13) what the WAL's decoder runs of a `*bufio.Reader`
+#   (`fileutil.NewFileBufReader`'s `NewReader`, and `Read`, through `io.ReadFull`/`binary.Read`):
+#   `NewReader`, `NewReaderSize`, `(*Reader).reset`, `Read`, `readErr`, `Buffered`;
+# * (dsv-bufio, 2026-11-23, mit-pdos/etcd-grove#24: the dsverify kits rabia, epaxos, gryff and
+#   swiftpaxos, which frame messages over a `net.Conn` through a buffered reader and writer) the
+#   rest of the reader's byte path (and, net/http's `ReadResponse`, 2026-11-23, `Peek`), `(*Reader).fill`, `ReadByte`, `Size`, and `ReadString` with
+#   what it runs (`collectFragments`, `ReadSlice`); the writer, `NewWriter`, `NewWriterSize`,
+#   `(*Writer).{Write,WriteByte,WriteString,Flush,Available,Buffered,Size}`; `NewReadWriter`;
+# * (net/http server, 2026-11-23: its pools of readers and writers, `Hijack`) `(*Reader).Reset`,
+#   `(*Writer).Reset`;
+# the constants they use, and the package's error variables (`errors.New` calls). Specs in
+# `Spec/bufio/`, proofs in `Proof/bufio/` (generic over an `io.Reader`/`io.Writer` contract).
+translate = ["!*", "Reader", "Writer", "ReadWriter",
+  "NewReader", "NewReaderSize", "Reader.reset", "Reader.fill", "Reader.Read", "Reader.readErr",
+  "Reader.Buffered", "Reader.Size", "Reader.ReadByte", "Reader.Peek", "Reader.ReadSlice",
+  "Reader.collectFragments", "Reader.ReadString",
+  "NewWriter", "NewWriterSize", "Writer.Flush", "Writer.Available", "Writer.Buffered",
+  "Writer.Size", "Writer.Write", "Writer.WriteByte", "Writer.WriteString", "NewReadWriter",
+  "Reader.Reset", "Writer.Reset",
+  "defaultBufSize", "minReadBufferSize", "maxConsecutiveEmptyReads",
   "errNegativeRead", "ErrInvalidUnreadByte", "ErrInvalidUnreadRune", "ErrBufferFull",
   "ErrNegativeCount", "errNegativeWrite", "ErrTooLong", "ErrNegativeAdvance", "ErrAdvanceTooFar",
   "ErrBadReadCount", "ErrFinalToken"]
-imports = ["!*", "io", "errors"]
+imports = ["!*", "io", "errors", "bytes", "strings"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["errorRune"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+# --- end of skipped package variables ---

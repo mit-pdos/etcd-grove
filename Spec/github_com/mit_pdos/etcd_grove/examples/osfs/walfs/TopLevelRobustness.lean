@@ -46,12 +46,8 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 a fresh Go process (`Robust`'s premise), under `dirswap_crash_safety`'s other hypotheses: in every
 execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
 def dirswap_crash_robust.spec : Prop :=
-  ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions] [os.Assumptions]
+  ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
     [os.file.FieldAssumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (σ : state) (g : GlobalState) (dir : GoString) (j : Ino)
     (Hinit : FsInit (extLocal fsExt σ.world)) (Hdir : (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
     (Hsafe : DS.SafeT j none (extLocal fsExt σ.world).fs.treeDur ∨
@@ -93,12 +89,8 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 a fresh Go process (`Robust`'s premise), under `crash_safety`'s other hypotheses: in every
 execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
 def crash_robust.spec : Prop :=
-  ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions] [os.Assumptions]
+  ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
     [os.file.FieldAssumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (σ : state) (g : GlobalState) (dir : GoString) (Hinit : FsInit (extLocal fsExt σ.world))
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
     (Hnd : (∀ J, (extLocal fsExt σ.world).lookup (child dir segB) ≠ some (.dir J)) ∧
@@ -141,12 +133,8 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 a fresh Go process (`Robust`'s premise), under `seglog_crash_safety`'s other hypotheses: in every
 execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
 def seglog_crash_robust.spec : Prop :=
-  ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions] [os.Assumptions]
-    [os.file.FieldAssumptions] [golang_org.x.sys.unix.Assumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
+  ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
+    [os.file.FieldAssumptions]
     (σ : state) (g : GlobalState) (dir : GoString) (Hinit : FsInit (extLocal fsExt σ.world))
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots) (bound : Nat),
     Robustness.Robust [(bootLog dir, σ)] [] g (threads := bound + 1) (bound := bound)

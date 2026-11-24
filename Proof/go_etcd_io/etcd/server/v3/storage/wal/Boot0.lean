@@ -2,7 +2,7 @@
 
 # The WAL's first boot (`notes/wal-fsext-w4c-plan.md`, §3, "W4c U3 log")
 
-`walBoot0`: from what the shared mode's switch gives the program (`wp_osShare`: the shared invariant,
+`walBoot0`: from the tree's shared view at the first start (`osShared`, `fs_start`: the shared invariant,
 a whole claim on all names of every directory of the boot tree `V.now`, nothing logged), what a WAL
 client needs to call `Create`, `Open`, ...: the area's `walAreaOk` (the WAL invariant, allocated by
 `walInv_alloc` over `walStart_boot0`), the program's `walAreaRes`, the lock and crash tokens, the
@@ -11,16 +11,16 @@ WAL's past (`walPast`, for `dirDurable r`) and the program's (empty) WAL map (`w
 (the area's names holding an entry, and every other directory's claim).
 
 Its premises, each a world premise of a closed theorem's first boot:
-* `hV`: nothing logged (`wp_osShare` at the program's first step);
+* `hV`: nothing logged (`fs_start`'s `osShared`);
 * `hR`, `hr`: the roots well formed (`FsInit`) and **the area `r` one of them** (its directory `jr`):
   the area must be durable for `Create` (`dirDurable r`), and no `fsExt` step makes a directory durable
   (`BootPure`);
-* `Js`, `hjr`: the directories whose whole claims the caller holds (the boot tree's, from `wp_osShare`, or
+* `Js`, `hjr`: the directories whose whole claims the caller holds (the boot tree's, from `osShared`, or
   what an earlier area's boot left: `walBoot0s`), the area's among them;
 * `hslots`: **no entry of the area at a name a WAL function may change** (`AreaSlot`: a WAL name `nm`,
   no `.` or `/`, or `nm.<sfx>`: every name not starting with `.`), so no WAL is found (as
   `absDiskInitOk`'s `s.wal = ∅`), and the program's part of the area (`walAreaRes`) holds no entry:
-  nothing for `SubCover`, `TmpOk` or a `.touch` file to say;
+  nothing for `SubCover` or `ClRanked` to say;
 * `hrb`, `henc`: `walAreaOk`'s pure parts, the receipts' bound (the adequacy theorem's constant) and the
   marshaller's law (U4).
 -/
@@ -132,7 +132,8 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
     (fun nm J h he => (hdir nm J h he).elim) (fun nm J _ h he => (hdir nm J h he).elim) hWR
     (dirsOk_roots hR (walBoot0St_dirsRoots hr) cl 0) (dirsAvoid_roots hR (walBoot0St_dirsRoots hr) jr)
     ∅ (fun dir nm J hin he => (hdir nm J hin.1 he).elim) (fun nm J h he => (hdir nm J h he).elim)
-    (fun b h hc => by simp [cl, N] at hc) (walBoot0St_bounded r) (walBoot0St_dirsRoots hr) 1 E
+    (fun b h hc => by simp [cl, N] at hc) (walBoot0St_bounded r) (walBoot0St_dirsRoots hr)
+    (fun nm J h he => (hdir nm J h he).elim) 1 E
     $$ Hst [Har] [] Hsp [] with ⟨#Hinv, %Ls, %hLs, Hnw, -, Hcl⟩
   · unfold osClaims
     simp only [cl, List.map_cons, List.map_nil]
@@ -184,16 +185,14 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   isplitr
   · unfold areaCls osClaims
     simp only [List.map_nil]
-    isplitl
-    · iapply BigSepL.bigSepL_nil.2; iempintro
-    · iapply BigSepL.bigSepL_nil.2; iempintro
+    iapply BigSepL.bigSepL_nil.2; iempintro
   isplitr
   · ipureintro
     intro b _ _ _ J hJ
     rw [hcur b] at hJ; cases hJ
   · ipureintro
     intro nm _
-    exact Or.inl (hcur _)
+    exact ⟨fun _ => 0, fun c hc => by simp [clOf] at hc⟩
 
 /-- **The first boot of several WAL areas, one ghost generation each** (`notes/wal-link-scope.md` §4.3, L4:
 one `WalGS` per area, its own lock token `walUnlockedTok` and crash token): `walBoot0` for each area `(r, jr)`

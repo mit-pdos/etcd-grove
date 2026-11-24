@@ -30,7 +30,7 @@ theorem EtcdServer.ReportSnapshot.wp_proof :
   wp_start as ⟨#Hn, #Hsi⟩
   iunfold rnStepIfc at Hsi
   icases Hsi with ⟨%ni, %Hni, -, -, #HRU⟩
-  have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=
+  have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩ :=
     (GoInterface.ok.inj Hni).symm
   subst Hni'
   wp_auto

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.membershippb
@@ -175,7 +176,7 @@ noncomputable instance RangeRequest_access_load_state (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance RangeRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest go!"state" l) state' (DFrac.own 1))
@@ -458,7 +459,7 @@ noncomputable instance RequestOp_access_load_state (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestOp_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance RequestOp_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp go!"state" l) state' (DFrac.own 1))
@@ -549,7 +550,7 @@ noncomputable instance ResponseOp_access_load_state (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseOp_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ResponseOp_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp go!"state" l) state' (DFrac.own 1))
@@ -644,7 +645,7 @@ noncomputable instance Compare_access_load_state (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Compare_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Compare_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare go!"state" l) state' (DFrac.own 1))
@@ -799,7 +800,7 @@ noncomputable instance WatchRequest_access_load_state (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance WatchRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance WatchRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest go!"state" l) state' (DFrac.own 1))
@@ -892,7 +893,7 @@ noncomputable instance AlarmRequest_access_load_state (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlarmRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AlarmRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest go!"state" l) state' (DFrac.own 1))
@@ -1016,7 +1017,7 @@ noncomputable instance AlarmMember_access_load_state (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlarmMember_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AlarmMember_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember go!"state" l) state' (DFrac.own 1))

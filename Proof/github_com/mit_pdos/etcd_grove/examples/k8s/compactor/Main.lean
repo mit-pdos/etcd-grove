@@ -129,7 +129,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartCompactingServer N memberName peerAddr clientAddr (W64 0) lg
       (LogEntry.toEntries boot 0) ctxs (etcdstart.dir1 peerAddr id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN
       HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide)
+      (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) (by decide) (by decide)
       (by rw [hkr]; decide) Haf Hbuq Hdbo)
       $$ [Htok Hmb Hfresh]
     as %srv %err Hr
@@ -174,7 +174,7 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     subst hRE
     -- (per-type stage B3) the gRPC run pools, from the serving stocks
@@ -204,7 +204,7 @@ theorem Main.wp_proof
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [Hgsn Hlis HWok] with ⟨Hserv, #HKV, #HWF⟩
+      $$ [Hgsn Hlis Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro

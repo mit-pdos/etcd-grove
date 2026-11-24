@@ -45,6 +45,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --porcupine-dag > PorcupineDag/Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/Link.lean
+       etc/gen-link.py --perclient > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/perclient/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/Link.lean
        etc/gen-link.py --lintest-logkv > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/Link.lean
        etc/gen-link.py --lintest-logkvcompact > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvcompact/Link.lean
@@ -70,8 +71,10 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
        etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
        etc/gen-link.py --tracecheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link.lean
+       etc/gen-link.py --antcheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
+       etc/gen-link.py --kvnet > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --k8s-authz > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Link.lean
@@ -197,6 +200,9 @@ name; `sort.Sort`'s is the main tree's).
 `notes/trace-validation-plan.md`), from etc/link-lean-first-tracecheck.txt: every callee is in the
 package (no `@`, `?` or `=`); the trace check's `Results.lean` takes `NewTrace`'s, `CheckTrace`'s
 and `Result.TLCOK`'s results from it.
+`--antcheck` links the proofs of Antithesis's model's checker (`examples/raft/antithesis/check`,
+#33 S3b, `notes/antithesis-check-design.md` §10), from etc/link-lean-first-antcheck.txt: every
+callee is in the package.
 `--raft-witness` and `--kvwitness` link the same in the parallel tree `RaftWitness/` (raft's
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
@@ -245,15 +251,15 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringNotWriter",
     # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
     "EtcdGrove.MutexLitSemantics",
-    # (client-go's work queue) `float64(n)` of an untyped integer constant
-    # (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`)
-    "EtcdGrove.UntypedIntToFloat64Semantics",
     # (wal-nostorageok, 2026-11-21) `os`'s field steps of its trusted `file`/`fileStat` layouts, which
     # goose does not emit (`TrustedCode/os.lean`): the WAL's results take them, and so, through
     # `=rnNewStorageOk_law_holds`, does the server's `newRaftNode` and every result reaching it. A mode
     # that has them as section variables (`PRE_VARS`, `EXTRA_VARS`) does not repeat them per result.
     "os.file.FieldAssumptions",
     "os.fileStat.FieldAssumptions",
+    # (net-swap, 2026-11-22) the net extension's `net`'s hand-stated field facts (`Net/TrustedCode/net.lean`),
+    # which Net's `Listen` spec takes (`Proof/net/Listen.lean`)
+    "_root_.Perennial.net.FieldAssumptions",
 ]
 # The semantic premises a proof takes only as a section variable: `os`'s field assumptions also occur
 # inside the binders of a hypothesis (backend's `∀ [os.file.FieldAssumptions] ..., bbolt.Tx.Commit.spec`).
@@ -416,6 +422,14 @@ LEAN_FIRST = {
                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions",
                   "The porcupine driver's proofs (`examples/lib/lintest`)", [""]),
+    # the driver with an apply told the client's id (examples/lib/lintest/perclient), over
+    # porcupine's (`@`)
+    "--perclient": ("link-lean-first-perclient.txt",
+                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient "
+                    "github_com.anishathalye.porcupine",
+                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions",
+                    "The porcupine driver's per-client variant's proofs "
+                    "(`examples/lib/lintest/perclient`)", [""]),
     # its instance, a counter under a mutex (examples/lib/lintest/counter), over the driver's (`@`)
     "--lintest-counter": ("link-lean-first-lintest-counter.txt",
                           "github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter "
@@ -547,7 +561,7 @@ LEAN_FIRST = {
                     "client-go's work queue's proofs (`k8s.io/client-go/util/workqueue`)", [""]),
     # client-go's consistency store (k8s.io/client-go/util/consistency, notes/k8s-daemonset-plan.md
     # phase 2) and apimachinery's resource versions, over the trust boundary of
-    # `resourceversion.isWellFormed` (gap C1) and `schema.GroupResource.String`
+    # `schema.GroupResource.String`
     "--consistency": ("link-lean-first-consistency.txt",
                       "k8s_io.client_go.util.consistency k8s_io.apimachinery.pkg.util.resourceversion",
                       "k8s_io.client_go.util.consistency.Assumptions",
@@ -604,6 +618,13 @@ LEAN_FIRST = {
                      "github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions",
                      "The trace checker's proofs (`examples/raft/tracecheck/etcdraft`, the Go "
                      "transcription of raft's TLA+ trace specification)", [""]),
+    # the checker of Antithesis's model (examples/raft/antithesis/check, #33 S3b): every proof over
+    # its callees', all in the package
+    "--antcheck": ("link-lean-first-antcheck.txt",
+                   "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check",
+                   "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions",
+                   "The proofs of the checker of Antithesis's model of raft (`examples/raft/antithesis/"
+                   "check`, the Go transcription of `EtcdRaft.tla` and `EtcdBinding.tla`)", [""]),
 }
 # The GooseLang extensions a mode's specs assume (their binders, after the semantics variables): the
 # Linux file extension's specs are over any semantics of it with `FsSemOk`
@@ -619,7 +640,7 @@ for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--link
     EXTS[_m] = "[HasExt idIssueExt]"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
-              "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest",
+              "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest", "--perclient": "perclient",
               "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--kvdurable": "raft_kvdurable", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs"}
@@ -634,7 +655,12 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                            "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
-                 "--raft": ["Perennial.Proof.time.Link"],
+                 "--raft": ["Perennial.Proof.time.Link", "Perennial.Proof.strings.Link"],
+                 # (fmt stage 1, 2026-11-24) Perennial's `strings.Join` (raft's `strings.Join`, `=` callee)
+                 "--raft-tla": ["Perennial.Proof.strings.Link"],
+                 "--raft-witness": ["Perennial.Proof.strings.Link"],
+                 # (prove-ps2-rqb, 2026-11-22) Perennial's `math.Float64bits` (zap's `Float64`, `=` callee)
+                 "--client": ["Perennial.Proof.math.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)
                  "--k8s-etcd3": ["Perennial.Proof.time.Link"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)
@@ -656,7 +682,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # the reader tokens, 2026-11-06)
                  "--apply": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
                  # Perennial's `time` and `sync/atomic` results minibolt's proofs take as terms (`=` callees)
-                 "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link"],
+                 "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link",
+                               # (fs single view) the shared open, `Open`'s `=` callee
+                               "Proof.os.OpenFileS"],
                  # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
                  "--kv": ["Proof.go_etcd_io.raft.v3.Linked"],
                  # raft's importable `confchange`/`tracker` specs (`=RaftLink.*` callees),
@@ -678,6 +706,11 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (prove-authcrypto, 2026-11-21) the simple token provider's
                               # `genTokenPrefix`'s callees (`=` terms)
                               "Perennial.Proof.crypto.rand.Link", "Perennial.Proof.math.big.Link",
+                              # (prove-ps2-succ, 2026-11-22) `v2stats.FollowerStats.Succ`'s `math.Sqrt`
+                              "Perennial.Proof.math.Link",
+                              # (2026-11-23) `path.Split`/`Base`'s `bytealg.LastIndexByteString`,
+                              # Perennial's since its pin 940c686dd (until then translated here)
+                              "Perennial.Proof.internal.bytealg.Link",
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas",
                               # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
                               # axiom, net/http's errors not `errMemberRemoved`
@@ -699,7 +732,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (wal-item3, 2026-11-21) `NewStorage`'s contract proved over the WAL
                               # (`rnNewStorageOk_law_holds`, under `os`'s field assumptions; not yet
                               # passed to `newRaftNode`: imported so the trust-base report sees it)
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked"]}
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked",
+                              # (#24 J2, 2026-11-23) the encoding/json model's `Marshal` and
+                              # jsoncodec's encoders, which membership's JSON proofs take (`=` callees)
+                              "Proof.encoding.json.Results", "Net.Proof.models_lab.jsoncodec.Linked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
 for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
@@ -712,6 +748,15 @@ EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                                  "Proof.go_etcd_io.etcd.client.v3.LinkMembers"]
 # (the import tiers, 2026-11-18) the linking modules whose laws (`=*_law_holds`) the modes' proofs take
 EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
+# (#26, 2026-11-24) `bytes.Buffer`'s `Write` and `Bytes` proved over Perennial's (`=_root_.Perennial.bytes.*`)
+EXTRA_IMPORTS["--k8setcd3"] += ["Perennial.Proof.bytes.Link"]
+EXTRA_IMPORTS["--server"] += ["Proof.bytes.BufferLinked"]
+# (#26, 2026-11-24) `WithCancel(TODO())` over Perennial's context proofs (`=_root_.Perennial.context.*`)
+EXTRA_IMPORTS["--client"] += ["Perennial.Proof.context.Link", "Perennial.Proof.sync.atomic.Link"]
+# (net-swap, etcd-dist D2, 2026-11-22) `net.Listen`'s proof takes the part `Net/`'s `Listen` spec, its
+# proof over the net extension
+for _m in ["--common", "--cluster3"]:
+    EXTRA_IMPORTS.setdefault(_m, []).append("Net.Proof.net.Listen")
 # (k8s 7g) the maintainers' checker's trust-boundary axioms (`=`, `notes/k8s-7g-trust.md` §1) and
 # `strconv.ParseUint`'s result (`Obj.SetResourceVersion`)
 EXTRA_IMPORTS["--k8setcd3"] += ["Proof.reflect.DeepEqualK8s", "Proof.maps.Keys", "Proof.maps.Clone",
@@ -722,6 +767,9 @@ EXTRA_IMPORTS.setdefault("--common", []).extend(["Proof.go_etcd_io.etcd.client.v
                              "Proof.go_etcd_io.etcd.client.v3.ClientPutGet"])
 EXTRA_IMPORTS.setdefault("--linkv3p", []).append(
     "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLinked")
+# the checker of Antithesis's model: the budget laws (pure, defs modules) its proofs take (`=AntCheck.State.*`)
+EXTRA_IMPORTS["--antcheck"] = ["Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within." + m
+                               for m in ["Combined", "GC", "ActionCfg", "Init0"]]
 EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
                               "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
@@ -737,6 +785,16 @@ if sys.argv[1:2] in (["--walfs"], ["--durable"], ["--wal-tester"]):
     link_walfs.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
                     cfg={"--durable": link_walfs.DURABLE, "--wal-tester": link_walfs.TESTER}.get(sys.argv[1]))
+    sys.exit(0)
+if sys.argv[1:2] == ["--kvnet"]:
+    # kvnet's Link (the part KvNet/): the callees read off the proofs' binders, the generic proofs
+    # linked at the store's model parameters (`etc/link_kvnet.py`); `--check` compares
+    sys.dont_write_bytecode = True  # no etc/__pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import link_kvnet  # noqa: E402
+    import proof_roots  # noqa: E402
+    link_kvnet.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+                    proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:])
     sys.exit(0)
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
@@ -792,7 +850,7 @@ if ALIAS:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
+NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--perclient", "--lintest-counter", "--lintest-logkv", "--lintest-logkvcompact", "--lintest-logkvsnap", "--lintest-logkvrw", "--lintest-logkvappend", "--kv", "--kvreconf", "--kvdurable", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
@@ -834,6 +892,10 @@ EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
                                "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
+# (prom-registry, route (b), 2026-11-22) prometheus's `Register` is proved over the real registry's
+# `(*Registry).Register` (`=` callee of v3rpc's `prometheus_Register`)
+EXTRA_IMPORTS.setdefault("--v3rpc", []).append(
+    "Proof.github_com.prometheus.client_golang.prometheus.Registry__Register")
 # The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
 # whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the
 # compactor's channel context needs (`chanCtx_ok`; k8s etcd3 7c-2 part 2, S7)

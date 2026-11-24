@@ -45,6 +45,8 @@ abbrev StartMember.spec : Prop :=
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir ps →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  addrFits peerAddr → addrFits client →
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →

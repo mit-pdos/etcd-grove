@@ -7,7 +7,7 @@ interceptor proved: the gRPC boundary below it".
 
 **The options** (`*options`: `retryPolicy`, `max`, `backoffFunc`, `retryAuth`): read-only once
 built (`retryOptsAt o`), their backoff function one that returns (`optionsOk`, `backoffOk`:
-`waitRetryBackoff`, an axiom, calls it). The interceptor's own options are built at
+`waitRetryBackoff` calls it). The interceptor's own options are built at
 `unaryClientInterceptor` from `defaultOptions` (a package fact) by the dial's `retryOption`s
 (`optApplyOk`: any write of the options keeping `optionsOk`: `withMax`'s, `withBackoff`'s); a
 call's by the call's `retryOption`s (`retryApplyOk`, `InvKVConn.lean`: they write only

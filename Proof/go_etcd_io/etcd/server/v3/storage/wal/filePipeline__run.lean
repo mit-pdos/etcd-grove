@@ -5,8 +5,8 @@ The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/filePipeline__run.lean`
   `pipeTmp n`), return; the deferred `close(errc)` with `pipeErrR [e]` (its left disjunct);
 * the file: the `select` (`chan.wp_select_blocking`): the send on `filec` (`hsn_send_au`, `hsnSnd n`,
   `pipeFile n`) gives `hsnSnd (n + 1)` and `pipeQ j n`: `pipeRun (n + 1)`; `donec`'s receive
-  (`broadcast_chan_receive`) gives `pipeClosedW`: `os.Remove(f.Name())` (`wp_removeTmp`, the
-  trivial update; the claim back as a `tmpClaim`), the promoted `(*os.File).Close`, return; the
+  (`broadcast_chan_receive`) gives `pipeClosedW`: `os.Remove(f.Name())` (`wp_removeTmp`, under
+  the WAL invariant; the claim back as a `tmpClaim`), the promoted `(*os.File).Close`, return; the
   deferred close with `pipeErrR []` (`pipeLeft` and `pipeClosedW`).
 -/
 module
@@ -31,7 +31,7 @@ open Fs WalFs
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions]
@@ -49,7 +49,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
   · iexact Hfp
   iunfold isFilePipe at Hfp
   icases Hfp with ⟨%lg, #Hlg, #Hdir, #Hsz, #Hfc, #Hec, #Hdc, #Hhsn, #Hspsc, #Hbc, #Hlgok, #Hos,
-    #Hsi, #Hpkg, %hsz⟩
+    #Hsi, ⟨%C, %Mr, %jr, %r, %X, #Hwi, #Hkey⟩, #Hpkg, %hsz⟩
   (try wp_auto)
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
@@ -110,8 +110,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
       iunfold pipeRes at Hres
       icases Hres with ⟨Hperm, Hp⟩
       ihave Ht := zerosA_trFile i m hmaps hcut hlo (OsMeta.ZeroPg.zfGe hzp) $$ [$Hm $Hz]
-      wp_apply wp_removeTmp wp_Remove R dir dq j (pipeTmp n) i h _ (pipeTmp_nameOk n) hcur
-        $$ [$Hos $Hsi $Hp $Hperm $Hn $Ht] as %re ⟨Hp, Hperm, Hc⟩
+      ihave #Hpko : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+      · iPkgInit
+      wp_apply wp_removeTmp wp_Remove C Mr jr r X R dir dq j (pipeTmp n) i h _ (pipeTmp_nameOk n)
+        (pipeTmp_mem n) hcur $$ [$Hpko $Hos $Hsi $Hwi $Hkey $Hp $Hperm $Hn $Ht] as %re ⟨Hp, Hperm, Hc⟩
       (try wp_auto)
       wp_method_call
       wp_call

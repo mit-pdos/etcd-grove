@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.etcd.api.v3.mvccpb
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
@@ -54,7 +55,7 @@ noncomputable instance KeyValue_access_load_state (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance KeyValue_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance KeyValue_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"state" l) state' (DFrac.own 1))
@@ -227,7 +228,7 @@ noncomputable instance Event_access_load_state (l : Loc) (v : go_etcd_io.etcd.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Event_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" l) state' (DFrac.own 1))

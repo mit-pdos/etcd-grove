@@ -11,7 +11,7 @@ status_Error:
 status_Errorf:
 errors_Is:
 errors_IsStatusErr:
-errors_IsDeadlineExceeded:
+errors_IsDeadlineExceeded: =_root_.Perennial.errors.wp_Is
 # The functions of other packages the checks call (`@`: linked in their Link.lean): the txn
 # package's stream-check predicates, the interval tree's intervals.
 txn_IsDefaultOrdering: @
@@ -66,12 +66,12 @@ kvServer__RangeStream: checkRangeStreamRequest togRPCError headerFillingRangeStr
 # linked in the server's Link (`@`; since 2026-10-26 also `IsMemberExist`, `IsLearner`, over the
 # cluster's). Trust boundary (axioms): the apply package's
 # `storage.NewBackendQuota` (under `apply.backendUnderQuota`; since audit B3 no `EtcdServer.Alarm`),
-# `api.IsCapabilityEnabled`, grpc's
-# `metadata.FromIncomingContext`, prometheus's `CounterVec.WithLabelValues`, and
+# grpc's `metadata.FromIncomingContext`, prometheus's `CounterVec.WithLabelValues`, and
 # `logUnaryRequestStats` (zap, peer, proto.Size). `utf8.ValidString` is proved (2026-10-26; until
 # then an axiom), over `utf8.word`; `metadata.MD.Get` (2026-11-18; until then an axiom), over
 # `strings.ToLower`'s (an axiom). otel's `trace.WithAttributes` and `attribute.{String,Int64,Bool}`
-# below are proved over their real bodies (2026-11-18).
+# below are proved over their real bodies (2026-11-18); `api.IsCapabilityEnabled` (2026-11-23, until then
+# an axiom), over `api`'s pool of `enableMapMu`'s reader slots (`CapPool.lean`).
 _KV_Put_Handler:
 _KV_Range_Handler:
 _KV_Compact_Handler:
@@ -133,7 +133,9 @@ EtcdServer__AuthInfoFromCtx: @
 EtcdServer__AuthStore: @
 EtcdServer__Watchable: @
 config_ServerConfig__MaxRequestBytesWithOverhead:
-errors_IsCtxErr:
+# `errors.Is` of a context's error against `Canceled`/`DeadlineExceeded`: over Perennial's `errors.Is`
+# at comparable targets (errors-is-axioms, 2026-11-22; a trust-boundary axiom until then).
+errors_IsCtxErr: =_root_.Perennial.errors.wp_Is
 traceutil_Tracer__Start:
 trace_WithAttributes:
 attribute_String:
@@ -142,7 +144,7 @@ attribute_Bool:
 zap_Error:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
@@ -215,7 +217,7 @@ prometheus_WithServerHandlingTimeHistogram:
 prometheus_ServerMetrics__UnaryServerInterceptor:
 prometheus_ServerMetrics__StreamServerInterceptor:
 prometheus_ServerMetrics__InitializeMetrics:
-prometheus_Register:
+prometheus_Register: =EtcdGrove.prometheus.Registry.Register.wp_proof
 zap_String:
 zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 RegisterKVServer: grpc_Server__RegisterService
@@ -298,3 +300,6 @@ healthNotifier__startServe: zap_String zap_Logger__Info health_Server__SetServin
 newHealthNotifier: healthNotifier__startServe EtcdServer__Logger EtcdServer__FeatureEnabled
 getServerMetrics: prometheus_NewServerMetrics prometheus_WithServerHandlingTimeHistogram prometheus_Register zap_Logger__Warn zap_Error
 Server: grpc_CustomCodec grpc_StatsHandler otelgrpc_NewServerHandler grpc_ChainUnaryInterceptor grpc_ChainStreamInterceptor grpc_MaxRecvMsgSize grpc_MaxSendMsgSize grpc_MaxConcurrentStreams grpc_NewServer getServerMetrics newLogUnaryInterceptor prometheus_ServerMetrics__UnaryServerInterceptor newUnaryInterceptor prometheus_ServerMetrics__StreamServerInterceptor newStreamInterceptor config_ServerConfig__MaxRequestBytesWithOverhead NewQuotaKVServer RegisterKVServer NewWatchServer RegisterWatchServer NewQuotaLeaseServer RegisterLeaseServer NewClusterServer RegisterClusterServer NewAuthServer RegisterAuthServer health_NewServer newHealthNotifier grpc_health_v1_RegisterHealthServer NewMaintenanceServer RegisterMaintenanceServer prometheus_ServerMetrics__InitializeMetrics
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

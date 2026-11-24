@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart). The proof of `runner.open`: proved.
 
 The outline (the chain's step 3): `openBackend` (the opener's `K := bFresh`, `W := mvccW gx` of
-`mvccW_alloc.law`), `inc_open_backend` at `k = Ops` (its `receiptBound + Ops + 4 ≤ wbInit` from
+`mvccW_alloc.law`), `inc_open_backend` at `k = Ops` (its `receiptBound + Ops + 5 ≤ wbInit` from
 `ReceiptBoundLe 2 ^ 38` and `writerCtx`'s `Ops < 2 ^ 38`; the post's `Ops ≤ k`); `lease.NewLessor.spec` over the records (`GA := True`,
 `reqOf := 3600`, the ids the live leases, `logOk_leases`; `noCluster`'s `clusterOk` from
 `noCluster.Version.spec`); `mvcc.api.New.spec` at `σ` (the lessor's owner part at the live leases,
@@ -97,8 +97,8 @@ theorem runner.open.wp_proof
     iframe
   subst Hrnb
   (try wp_auto)
-  have hRB : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.receiptBound_le
-  have hk : receiptBound GF + (sint.Z cfg.Ops').toNat + 4 ≤ backend.wbInit := by
+  have hRB : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.receiptBound_le
+  have hk : receiptBound GF + (sint.Z cfg.Ops').toNat + 5 ≤ backend.wbInit := by
     rw [backend.wbInit_val]; omega
   imod inc_open_backend hopen hrest hCR γB bnb gx (limOf cfg) path D σ.log σ.crev u
       (sint.Z cfg.Ops').toNat hk
@@ -128,14 +128,16 @@ theorem runner.open.wp_proof
       (leasesAfter ks ops n) rfl (mvccrand.rcP_lease _) hrecs1 hreq (by rw [hrecs2]))
     $$ [Hnoh Hwb1 Hrbn]
     as %l ⟨Hnoh, Hrbn, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, -, -, #Hguard, Hlrds, Hlown, -, Hever,
-      Hrvk, Hrdo, Hbeon, #Happly, Hstop, #HreqN, -, -⟩
+      Hrvk, Hrdo, Hbeon, #Happly, Hstop, #HreqN, -⟩
   · rw [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
     iframe #; iframe
     isplitr
     · ipureintro; simp only; exact Int.le_refl _
-    imodintro
-    iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp GF)) (fun _ _ _ => BI.true_intro))
-    iempintro
+    isplitr
+    · imodintro
+      iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp GF)) (fun _ _ _ => BI.true_intro))
+      iempintro
+    ipureintro; exact ThreadBoundLe.le_of (2 ^ 28) (by decide)
   subst Hl
   (try wp_auto)
   -- the model's facts at `n`

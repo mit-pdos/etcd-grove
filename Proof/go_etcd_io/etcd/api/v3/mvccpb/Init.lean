@@ -2,10 +2,11 @@
 Package initialization of `go_etcd_io.etcd.api.v3.mvccpb`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact (`mvccpbInit`, `cache/v3/Base.lean`; etcd-grove#39, 2026-11-23, `True` until then):
+`Event_EventType_name` holds a map with `mvccpb.eventTypeNames` (`0` `PUT`, `1` `DELETE`), both
+read-only for good: `Event_EventType.String`'s trusted model reads it. Its initializer allocates and
+sets the translated name map (a `map[int32]string` literal, `kv.pb.go`), initializes its imports and
+runs its trusted `init` (a no-op model).
 -/
 module
 
@@ -29,39 +30,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace go_etcd_io.etcd.api.v3.mvccpb
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.api.v3.mvccpb`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([Event_EventType_name.init,
-        Event_EventType_value.init,
-        file_kv_proto_enumTypes.init,
-        file_kv_proto_msgTypes.init,
-        file_kv_proto_goTypes.init,
-        file_kv_proto_depIdxs.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- **The trust boundary: `go_etcd_io.etcd.api.v3.mvccpb`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.api.v3.mvccpb
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -82,16 +50,31 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := Loc) Event_EventType_name _ as HEvent_EventType_name
   wp_apply (_root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk Event_EventType_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk Event_EventType_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_kv_proto_enumTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_kv_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_kv_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_kv_proto_depIdxs.init (by mem_tac))
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- translated initializer of Event_EventType_name))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mn Hmn
+  try wp_auto
+  repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hmn as Hmn; try wp_auto)
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
+  ipersist HEvent_EventType_name
+  ipersist Hmn
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try (isplitl []; · (imodintro; itrivial))
+  imodintro
+  unfold go_etcd_io.etcd.cache.v3.mvccpbInit go_etcd_io.etcd.cache.v3.mvccpb.eventTypeNames
+  iexists _
+  iframe #
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

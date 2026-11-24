@@ -8,6 +8,7 @@ public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Perennial.Code.context
 public import Code.google_golang_org.grpc
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.api.v3.etcdserverpb
 
 @[expose] public section
 
@@ -1127,21 +1128,6 @@ noncomputable def file_etcdserver_proto_rawDescOnce [GooseExts] [GoGlobalContext
 noncomputable def file_etcdserver_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_rawDescData"
 
-noncomputable def file_etcdserver_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_msgTypes"
-
-opaque file_etcdserver_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_etcdserver_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_goTypes"
-
-opaque file_etcdserver_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_etcdserver_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_depIdxs"
-
-opaque file_etcdserver_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def File_raft_internal_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.File_raft_internal_proto"
 
@@ -1151,96 +1137,14 @@ noncomputable def file_raft_internal_proto_rawDescOnce [GooseExts] [GoGlobalCont
 noncomputable def file_raft_internal_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_rawDescData"
 
-noncomputable def file_raft_internal_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_msgTypes"
-
-opaque file_raft_internal_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_raft_internal_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_goTypes"
-
-opaque file_raft_internal_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_raft_internal_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_depIdxs"
-
-opaque file_raft_internal_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def AlarmType_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmType_name"
-
-opaque AlarmType_name.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def AlarmType_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmType_value"
-
-opaque AlarmType_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RangeRequest_SortOrder_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortOrder_name"
 
-noncomputable def RangeRequest_SortOrder_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortOrder_value"
-
-opaque RangeRequest_SortOrder_value.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def RangeRequest_SortTarget_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortTarget_name"
-
-noncomputable def RangeRequest_SortTarget_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortTarget_value"
-
-opaque RangeRequest_SortTarget_value.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Compare_CompareResult_name [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareResult_name"
-
-opaque Compare_CompareResult_name.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Compare_CompareResult_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareResult_value"
-
-opaque Compare_CompareResult_value.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Compare_CompareTarget_name [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareTarget_name"
-
-opaque Compare_CompareTarget_name.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Compare_CompareTarget_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareTarget_value"
-
-opaque Compare_CompareTarget_value.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def WatchCreateRequest_FilterType_name [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.WatchCreateRequest_FilterType_name"
-
-opaque WatchCreateRequest_FilterType_name.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def WatchCreateRequest_FilterType_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.WatchCreateRequest_FilterType_value"
-
-opaque WatchCreateRequest_FilterType_value.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def AlarmRequest_AlarmAction_name [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmRequest_AlarmAction_name"
-
-opaque AlarmRequest_AlarmAction_name.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def AlarmRequest_AlarmAction_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmRequest_AlarmAction_value"
-
-opaque AlarmRequest_AlarmAction_value.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DowngradeRequest_DowngradeAction_name [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.DowngradeRequest_DowngradeAction_name"
-
-opaque DowngradeRequest_DowngradeAction_name.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DowngradeRequest_DowngradeAction_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.DowngradeRequest_DowngradeAction_value"
-
-opaque DowngradeRequest_DowngradeAction_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_rpc_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.File_rpc_proto"
@@ -1250,26 +1154,6 @@ noncomputable def file_rpc_proto_rawDescOnce [GooseExts] [GoGlobalContext] : GoS
 
 noncomputable def file_rpc_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_rawDescData"
-
-noncomputable def file_rpc_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_enumTypes"
-
-opaque file_rpc_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_rpc_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_msgTypes"
-
-opaque file_rpc_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_rpc_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_goTypes"
-
-opaque file_rpc_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_rpc_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_depIdxs"
-
-opaque file_rpc_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def KV_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.KV_ServiceDesc"
@@ -4488,6 +4372,21 @@ noncomputable def _Lease_LeaseLeases_Handler.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType LeaseLeasesRequest.ty)))) (Pair (Var "in") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
+/-- go: rpc_grpc.pb.go:755:6 -/
+noncomputable def NewClusterClient.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cc"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ClusterClient.ty))) (App (Val (GoInstruction (GoZeroVal ClusterClient.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType clusterClient.ty) ClusterClient.ty))) (App (Val (GoInstruction (GoAlloc clusterClient.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (App (Val (GoInstruction (CompositeLiteral clusterClient.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ClusterClient.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad ClusterClient.ty))) (Var "$res0")))))
+
 /-- go: rpc_grpc.pb.go:858:6 -/
 noncomputable def RegisterClusterServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
@@ -4519,6 +4418,21 @@ noncomputable def RegisterClusterServer.impl [GooseExts] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0"))))))))))))))))
   (Val #()))))
+
+/-- go: rpc_grpc.pb.go:1036:6 -/
+noncomputable def NewMaintenanceClient.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cc"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc MaintenanceClient.ty))) (App (Val (GoInstruction (GoZeroVal MaintenanceClient.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType maintenanceClient.ty) MaintenanceClient.ty))) (App (Val (GoInstruction (GoAlloc maintenanceClient.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (App (Val (GoInstruction (CompositeLiteral maintenanceClient.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore MaintenanceClient.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad MaintenanceClient.ty))) (Var "$res0")))))
 
 /-- go: rpc_grpc.pb.go:1201:6 -/
 noncomputable def RegisterMaintenanceServer.impl [GooseExts] [GoGlobalContext] : val :=
@@ -5631,6 +5545,129 @@ noncomputable def _Auth_RoleGrantPermission_Handler.impl [GooseExts] [GoGlobalCo
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType AuthRoleGrantPermissionRequest.ty)))) (Pair (Var "in") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `file_etcdserver_proto_msgTypes` (`var file_etcdserver_proto_msgTypes = make([]protoimpl.MessageInfo, 1)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_etcdserver_proto_goTypes` (`var file_etcdserver_proto_goTypes = []any{ (*Metadata)(nil), }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_etcdserver_proto_depIdxs` (`var file_etcdserver_proto_depIdxs = []int32{ 0, 0, 0, 0, 0, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_raft_internal_proto_msgTypes` (`var file_raft_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 4)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_raft_internal_proto_goTypes` (`var file_raft_internal_proto_goTypes = []any{ (*RequestHeader)(nil), (*InternalRaftRequest)(nil), (*EmptyResponse)(nil), … [sha256:a5c1f556cd21a95b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_raft_internal_proto_depIdxs` (`var file_raft_internal_proto_depIdxs = []int32{ 0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 3, 16, 17, 18, 19, 20, 21,  … [sha256:32eacb301e0d96fa]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `AlarmType_value` (`var AlarmType_value = map[string]int32{ "NONE": 0, "NOSPACE": 1, "CORRUPT": 2, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `RangeRequest_SortOrder_value` (`var RangeRequest_SortOrder_value = map[string]int32{ "NONE": 0, "ASCEND": 1, "DESCEND": 2, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `RangeRequest_SortTarget_value` (`var RangeRequest_SortTarget_value = map[string]int32{ "KEY": 0, "VERSION": 1, "CREATE": 2, "MOD": 3, "VALUE": 4, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Compare_CompareResult_name` (`var Compare_CompareResult_name = map[int32]string{ 0: "EQUAL", 1: "GREATER", 2: "LESS", 3: "NOT_EQUAL", }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Compare_CompareResult_value` (`var Compare_CompareResult_value = map[string]int32{ "EQUAL": 0, "GREATER": 1, "LESS": 2, "NOT_EQUAL": 3, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Compare_CompareTarget_name` (`var Compare_CompareTarget_name = map[int32]string{ 0: "VERSION", 1: "CREATE", 2: "MOD", 3: "VALUE", 4: "LEASE", }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Compare_CompareTarget_value` (`var Compare_CompareTarget_value = map[string]int32{ "VERSION": 0, "CREATE": 1, "MOD": 2, "VALUE": 3, "LEASE": 4, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `WatchCreateRequest_FilterType_name` (`var WatchCreateRequest_FilterType_name = map[int32]string{ 0: "NOPUT", 1: "NODELETE", }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `WatchCreateRequest_FilterType_value` (`var WatchCreateRequest_FilterType_value = map[string]int32{ "NOPUT": 0, "NODELETE": 1, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `AlarmRequest_AlarmAction_name` (`var AlarmRequest_AlarmAction_name = map[int32]string{ 0: "GET", 1: "ACTIVATE", 2: "DEACTIVATE", }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `AlarmRequest_AlarmAction_value` (`var AlarmRequest_AlarmAction_value = map[string]int32{ "GET": 0, "ACTIVATE": 1, "DEACTIVATE": 2, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `DowngradeRequest_DowngradeAction_name` (`var DowngradeRequest_DowngradeAction_name = map[int32]string{ 0: "VALIDATE", 1: "ENABLE", 2: "CANCEL", }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `DowngradeRequest_DowngradeAction_value` (`var DowngradeRequest_DowngradeAction_value = map[string]int32{ "VALIDATE": 0, "ENABLE": 1, "CANCEL": 2, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_rpc_proto_enumTypes` (`var file_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 8)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_rpc_proto_msgTypes` (`var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 98)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_rpc_proto_goTypes` (`var file_rpc_proto_goTypes = []any{ (AlarmType)(0), (RangeRequest_SortOrder)(0), (RangeRequest_SortTarget)(0), (Compare_ … [sha256:95979232e478634c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_rpc_proto_depIdxs` (`var file_rpc_proto_depIdxs = []int32{ 1, 2, 8, 106, 8, 106, 8, 106, 9, 11, 13, 18, 10, 12, 14, 19, 3, 4, 17, 15, 15, 8,  … [sha256:b2f52007cf418297]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_etcdserver_proto_msgTypes = make([]protoimpl.MessageInfo, 1)"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_etcdserver_proto_goTypes = []any{ (*Metadata)(nil), }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_etcdserver_proto_depIdxs = []int32{ 0, 0, 0, 0, 0, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_raft_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 4)"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_raft_internal_proto_goTypes = []any{ (*RequestHeader)(nil), (*InternalRaftRequest)(nil), (*EmptyResponse)(nil), … [sha256:a5c1f556cd21a95b]"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_raft_internal_proto_depIdxs = []int32{ 0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 3, 16, 17, 18, 19, 20, 21,  … [sha256:32eacb301e0d96fa]"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmType_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var AlarmType_value = map[string]int32{ \"NONE\": 0, \"NOSPACE\": 1, \"CORRUPT\": 2, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortOrder_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var RangeRequest_SortOrder_value = map[string]int32{ \"NONE\": 0, \"ASCEND\": 1, \"DESCEND\": 2, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortTarget_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var RangeRequest_SortTarget_value = map[string]int32{ \"KEY\": 0, \"VERSION\": 1, \"CREATE\": 2, \"MOD\": 3, \"VALUE\": 4, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareResult_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Compare_CompareResult_name = map[int32]string{ 0: \"EQUAL\", 1: \"GREATER\", 2: \"LESS\", 3: \"NOT_EQUAL\", }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareResult_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Compare_CompareResult_value = map[string]int32{ \"EQUAL\": 0, \"GREATER\": 1, \"LESS\": 2, \"NOT_EQUAL\": 3, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareTarget_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Compare_CompareTarget_name = map[int32]string{ 0: \"VERSION\", 1: \"CREATE\", 2: \"MOD\", 3: \"VALUE\", 4: \"LEASE\", }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareTarget_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Compare_CompareTarget_value = map[string]int32{ \"VERSION\": 0, \"CREATE\": 1, \"MOD\": 2, \"VALUE\": 3, \"LEASE\": 4, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.WatchCreateRequest_FilterType_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var WatchCreateRequest_FilterType_name = map[int32]string{ 0: \"NOPUT\", 1: \"NODELETE\", }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.WatchCreateRequest_FilterType_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var WatchCreateRequest_FilterType_value = map[string]int32{ \"NOPUT\": 0, \"NODELETE\": 1, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmRequest_AlarmAction_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var AlarmRequest_AlarmAction_name = map[int32]string{ 0: \"GET\", 1: \"ACTIVATE\", 2: \"DEACTIVATE\", }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmRequest_AlarmAction_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var AlarmRequest_AlarmAction_value = map[string]int32{ \"GET\": 0, \"ACTIVATE\": 1, \"DEACTIVATE\": 2, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.DowngradeRequest_DowngradeAction_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DowngradeRequest_DowngradeAction_name = map[int32]string{ 0: \"VALIDATE\", 1: \"ENABLE\", 2: \"CANCEL\", }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.DowngradeRequest_DowngradeAction_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DowngradeRequest_DowngradeAction_value = map[string]int32{ \"VALIDATE\": 0, \"ENABLE\": 1, \"CANCEL\": 2, }"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_enumTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 8)"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 98)"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_rpc_proto_goTypes = []any{ (AlarmType)(0), (RangeRequest_SortOrder)(0), (RangeRequest_SortTarget)(0), (Compare_ … [sha256:95979232e478634c]"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_rpc_proto_depIdxs = []int32{ 1, 2, 8, 106, 8, 106, 8, 106, 9, 11, 13, 18, 10, 12, 14, 19, 3, 4, 17, 15, 15, 8,  … [sha256:b2f52007cf418297]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl, pkg_id.go_etcd_io.etcd.api.v3.membershippb, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.context, pkg_id.google_golang_org.grpc]
 
@@ -5655,12 +5692,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(W32 0))
+  (Let "$v1" (Val #(go!"NONE"))
+  (Let "$k2" (Val #(W32 1))
+  (Let "$v3" (Val #(go!"NOSPACE"))
+  (Let "$k4" (Val #(W32 2))
+  (Let "$v5" (Val #(go!"CORRUPT"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5")))]))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$k0" (Val #(W32 0))
   (Let "$v1" (Val #(go!"NONE"))
@@ -5669,7 +5707,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$k4" (Val #(W32 2))
   (Let "$v5" (Val #(go!"DESCEND"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5")))]))))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$k0" (Val #(W32 0))
   (Let "$v1" (Val #(go!"KEY"))
@@ -5682,21 +5719,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$k8" (Val #(W32 4))
   (Let "$v9" (Val #(go!"VALUE"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k6"))) (ElementExpression go.string (Var "$v7"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k8"))) (ElementExpression go.string (Var "$v9")))]))))))))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(go!"etcdserverpb.KV"))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType KVServer.ty)))) (Val UntypedNil))
@@ -5851,57 +5873,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr KV_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val file_rpc_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_rpc_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_rpc_proto_msgTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_rpc_proto_enumTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DowngradeRequest_DowngradeAction_value.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DowngradeRequest_DowngradeAction_name.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val AlarmRequest_AlarmAction_value.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val AlarmRequest_AlarmAction_name.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val WatchCreateRequest_FilterType_value.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val WatchCreateRequest_FilterType_name.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Compare_CompareTarget_value.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Compare_CompareTarget_name.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Compare_CompareResult_value.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Compare_CompareResult_name.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val RangeRequest_SortTarget_value.init) (Val #()))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr RangeRequest_SortTarget_name))) (Val #())) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val RangeRequest_SortOrder_value.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr RangeRequest_SortOrder_name))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val AlarmType_value.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val AlarmType_name.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_raft_internal_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_raft_internal_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_raft_internal_proto_msgTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_etcdserver_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_etcdserver_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_etcdserver_proto_msgTypes.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr AlarmType_name))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -5914,6 +5890,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc AlarmType_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc RangeRequest_SortOrder_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
   (App (Val doExecute)

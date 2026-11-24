@@ -38,6 +38,8 @@ public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
 public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
 public import Proof.go_etcd_io.raft.v3.MsgRead
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -69,7 +71,9 @@ theorem msgFrame_prefix_eq {bs bs' : List w8} (hl : bs.length < 2 ^ 63) (hl' : b
 /-- **A streamed request body is a reader** (`readFullAt`) of its stream's prefixes. -/
 theorem bodyStream_readFullAt (hRF : http.ReadFull_stream_spec (GF := GF)) (rd : GoInterface)
     (Pre Φ : List w8 → Prop) :
-    ⊢ readFullAt (GF := GF) rd (http.bodyStream rd Pre Φ) (fun rs => iprop(⌜Pre rs⌝)) := by
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.io -∗
+      readFullAt (GF := GF) rd (http.bodyStream rd Pre Φ) (fun rs => iprop(⌜Pre rs⌝)) := by
+  iintro #Hio
   unfold readFullAt
   iintro !> %p %xs %rs %Ψ !> ⟨Hp, Hs⟩ HΨ
   wp_apply (hRF rd Pre Φ rs p xs) $$ [$Hs $Hp] as %n %err ⟨%ys, %Hys, Hp, Hs, #He⟩
@@ -109,16 +113,15 @@ theorem msgPtsC_snapMeta (ml : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt) (
   iframe #
   ipureintro; exact Hnn
 
-/-- An error whose `Error()` returns is a formatting argument (`fmt.argOk`). -/
-theorem argOk_of_errStrOk [_root_.Perennial.fmt.Assumptions] (e : GoInterface) :
-    http.errStrOk (GF := GF) e ⊢ fmt.argOk e := by
+/-- An error `errStrOk` is an argument `fmt` formats by its `Error()` (`fmt.isArg_error`). -/
+theorem isArg_of_errStrOk [_root_.Perennial.fmt.Assumptions] (ei : GoInterfaceOk) :
+    http.errStrOk (GF := GF) (.ok ei) ⊢ _root_.Perennial.fmt.isArg (.ok ei) (.method fun _ => True) := by
   unfold http.errStrOk
-  iintro (%h | ⟨%ei, %h, #HE, -, %hF⟩)
-  · subst h; unfold fmt.argOk; itrivial
-  · subst h; unfold fmt.argOk; iright; ileft
-    isplitr
-    · unfold fmt.stringMethodSpec; iexact HE
-    · ipureintro; exact hF
+  iintro (%h | ⟨%ei', %h, #HE, -, %hF⟩)
+  · cases h
+  · cases h
+    iapply (fmt.isArg_error _ hF.1 hF.2)
+    unfold _root_.Perennial.fmt.stringMethodSpec; iexact HE
 
 /-- An application to a panic is that panic. -/
 theorem wp_app_panic (e : Expr) (q : val) (Φ : val → IProp GF) :
@@ -203,19 +206,20 @@ local macro "zap_log" : tactic => `(tactic| (
 
 set_option hygiene false in
 /-- `fmt.Sprintf(format, err)` of an error whose `Error()` returns (`He`, `errStrOk`). -/
-local macro "sprintf_err" e:term:max : tactic => `(tactic| (
+local macro "sprintf_err" f:str pre:str e:term:max : tactic => `(tactic| (
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoInterface) [$e]
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   (try wp_auto)
-  wp_apply hSprintf _ _ _ (DFrac.own 1) $$ [Hasl] as %msg -
+  wp_apply hSprintf (go!$f) [.lit go!$pre, .dir none _root_.Perennial.fmt.verb_v, .lit go!")"] _ _ [.method fun _ => True] (DFrac.own 1) (by fmt_encode) (by fmt_fits)
+    $$ [Hasl] as %msg -
   · iframe
-    fmt_args_intro
+    iapply BigSepL2.bigSepL2_cons.2
     isplitl
-    · fmt_arg_method; iapply argOk_of_errStrOk $$ He
-    · itrivial))
+    · iapply isArg_of_errStrOk $$ He
+    · iapply BigSepL2.bigSepL2_nil.2; itrivial))
 
 set_option hygiene false in
 /-- The deferred `snapshotReceiveInflights.WithLabelValues(from).Dec()`. -/
@@ -322,7 +326,8 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
         ipersist r_d
         iclear __d
         (try wp_auto)
-        ihave #Hrf := bodyStream_readFullAt hReadFull rd Pre Φ
+        ihave #Hrf := bodyStream_readFullAt hReadFull rd Pre Φ $$ []
+        · iPkgInit
         wp_apply hDecode «$r0_ptr» rd (http.bodyStream rd Pre Φ) (fun rs => iprop(⌜Pre rs⌝)) []
             (W64 67108864) (by decide) $$ [$Hbs] as %ml %err ⟨#Herr, %Hml, %rs', Hbs, Hok⟩
         · iframe #
@@ -346,7 +351,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
           wp_apply hGetFrom.2
           wp_apply hIDString _ as %fs %Hfs
           ihave #He := Herr
-          sprintf_err (GoInterface.ok ei)
+          sprintf_err "failed to decode raft message (%v)" "failed to decode raft message (" (GoInterface.ok ei)
           zap_log
           wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
           · resp_ok
@@ -422,7 +427,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
           cases serr with
           | ok ei =>
             -- not saved: `500`
-            sprintf_err (GoInterface.ok ei)
+            sprintf_err "failed to save KV snapshot (%v)" "failed to save KV snapshot (" (GoInterface.ok ei)
             zap_log
             wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
             · resp_ok
@@ -520,7 +525,8 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
                   exfalso; rw [go.is_underlying (t := rafthttp.writerToResponse.ty)] at h
                   simp [rafthttp.writerToResponse.underlying, go.isInterfaceType] at h) $$ [$writerErr]
                 as writerErr
-              sprintf_err (GoInterface.ok ⟨go.GoType.PointerType errors.errorString.ty, #xs⟩)
+              sprintf_err "failed to process raft message (%v)" "failed to process raft message ("
+                (GoInterface.ok ⟨go.GoType.PointerType errors.errorString.ty, #xs⟩)
               zap_log
               wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
               · resp_ok

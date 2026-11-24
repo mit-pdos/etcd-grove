@@ -1,0 +1,172 @@
+chunks [1]
+  read 64 -> 1
+  read 63 -> 1
+  read 62 -> 1
+  read 61 -> 1
+  read 60 -> 1
+  read 59 -> 1
+  read 58 -> 1
+  read 57 -> 1
+  read 56 -> 1
+  read 55 -> 1
+  read 54 -> 1
+  read 53 -> 1
+  read 52 -> 1
+  read 51 -> 1
+  read 50 -> 1
+  read 49 -> 1
+  read 48 -> 1
+  read 47 -> 1
+  read 46 -> 1
+  read 45 -> 1
+  read 44 -> 1
+  read 43 -> 1
+  read 42 -> 1
+  read 41 -> 1
+  read 40 -> 1
+  read 39 -> 1
+  read 38 -> 1
+  read 37 -> 1
+  read 36 -> 1
+  read 35 -> 1
+  read 34 -> 1
+  read 33 -> 1
+  read 32 -> 1
+  read 31 -> 1
+  read 30 -> 1
+  read 29 -> 1
+  read 28 -> 1
+  read 27 -> 1
+  read 26 -> 1
+ ... 27947 lines in all, sha256 6fc626772d7a0c5bbd9c96a7167e577dd46995633eadf463237c89505e896504
+chunks [50]
+  read 64 -> 50
+  read 78 -> 50
+ wire.Decode 0: nil type 1 data events.Request
+  read 64 -> 50
+ wire.Decode 1: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 2: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 3: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 4: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 5: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 6: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 7: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 8: error type 0 data <nil>
+  read 64 -> 50
+  read 78 -> 50
+  read 156 -> 50
+  read 106 -> 50
+  read 312 -> 50
+  read 262 -> 50
+  read 212 -> 50
+ wire.Decode 9: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 10: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 11: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 12: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 13: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 14: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 15: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 16: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 17: error type 0 data <nil>
+  read 64 -> 50
+ wire.Decode 18: error type 0 data <nil>
+  read 64 -> 50
+  read 78 -> 50
+ wire.Decode 19: error type 0 data <nil>
+chunks [200]
+  read 64 -> 64
+ wire.Decode 0: nil type 1 data events.Request
+  read 64 -> 64
+ wire.Decode 1: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 2: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 3: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 4: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 5: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 6: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 7: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 8: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 9: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 10: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 11: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 12: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 13: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 14: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 15: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 16: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 17: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 18: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 19: error type 0 data <nil>
+chunks [100000]
+  read 64 -> 64
+ wire.Decode 0: nil type 1 data events.Request
+  read 64 -> 64
+ wire.Decode 1: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 2: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 3: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 4: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 5: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 6: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 7: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 8: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 9: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 10: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 11: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 12: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 13: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 14: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 15: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 16: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 17: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 18: error type 0 data <nil>
+  read 64 -> 64
+ wire.Decode 19: error type 0 data <nil>

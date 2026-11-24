@@ -43,22 +43,21 @@ variable [go_gctx : GoGlobalContext]
 /-- **`mvccfull_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `mvccfull_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
+execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are live, no thread
+is stuck and none has an unrecovered panic. -/
 def mvccfull_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
-    [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions]
     [os.fileStat.FieldAssumptions] (r : GoString)
-    (HNs : prometheus.namesUnclaimed (mvccfullProgram r) mvccfullMetricNames)
     (HEnv : verifyEnvOff (mvccfullProgram r))
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
     (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
     (Hrfit : Fs.DirFits r),
     Robustness.Robust [] [(mvccfullProgram r, σ)] g (threads := 2 ^ 28)
-      (bound := 2 ^ 28 - 1)
+      (bound := 2 ^ 48)
 
 end adequacy
 end EtcdGrove

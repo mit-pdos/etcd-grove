@@ -264,7 +264,7 @@ theorem authorizer.wp_validateConditions :
 
 theorem slices.wp_Clone :
     EtcdGrove.slices.Clone.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.slices.Clone.wp_proof
+  EtcdGrove.slices.Clone.wp_proof _root_.Perennial.slices.wp_Clone
 
 theorem authorizer.wp_ConditionsAwareDecisionConditionsMap :
     EtcdGrove.authorizer.ConditionsAwareDecisionConditionsMap.spec (GF := GF) (hG := hG) :=
@@ -276,7 +276,7 @@ theorem authorizer.ConditionsAwareDecisionUnion.wp_ContainsUnconditionalAllowOrD
 
 theorem slices.wp_ContainsFunc :
     EtcdGrove.slices.ContainsFunc.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.slices.ContainsFunc.wp_proof
+  EtcdGrove.slices.ContainsFunc.wp_proof _root_.Perennial.slices.wp_ContainsFunc
 
 theorem authorizer.ConditionsAwareDecisionUnion.wp_hasConditionalAuthorizerName :
     EtcdGrove.authorizer.ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.spec (GF := GF) (hG := hG) :=
@@ -360,7 +360,7 @@ theorem authorizer.ConditionsAwareDecision.wp_UnionedDecisions :
 
 theorem slices.wp_Concat :
     EtcdGrove.slices.Concat.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.slices.Concat.wp_proof
+  EtcdGrove.slices.Concat.wp_proof _root_.Perennial.slices.wp_Concat
 
 theorem authorizer.wp_collectReasonsAndErrors :
     EtcdGrove.authorizer.collectReasonsAndErrors.spec (GF := GF) (hG := hG) :=

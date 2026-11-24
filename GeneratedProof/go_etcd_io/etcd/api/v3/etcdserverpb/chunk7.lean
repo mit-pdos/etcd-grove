@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.membershippb
@@ -55,7 +56,7 @@ noncomputable instance AuthenticateResponse_access_load_state (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthenticateResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthenticateResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse go!"state" l) state' (DFrac.own 1))
@@ -162,7 +163,7 @@ noncomputable instance AuthUserAddResponse_access_load_state (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthUserAddResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthUserAddResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse go!"state" l) state' (DFrac.own 1))
@@ -254,7 +255,7 @@ noncomputable instance AuthUserGetResponse_access_load_state (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthUserGetResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthUserGetResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse go!"state" l) state' (DFrac.own 1))
@@ -361,7 +362,7 @@ noncomputable instance AuthUserDeleteResponse_access_load_state (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthUserDeleteResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthUserDeleteResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse go!"state" l) state' (DFrac.own 1))
@@ -452,7 +453,7 @@ noncomputable instance AuthUserChangePasswordResponse_access_load_state (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthUserChangePasswordResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthUserChangePasswordResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse go!"state" l) state' (DFrac.own 1))
@@ -543,7 +544,7 @@ noncomputable instance AuthUserGrantRoleResponse_access_load_state (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthUserGrantRoleResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthUserGrantRoleResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse go!"state" l) state' (DFrac.own 1))
@@ -634,7 +635,7 @@ noncomputable instance AuthUserRevokeRoleResponse_access_load_state (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthUserRevokeRoleResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthUserRevokeRoleResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse go!"state" l) state' (DFrac.own 1))
@@ -725,7 +726,7 @@ noncomputable instance AuthRoleAddResponse_access_load_state (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthRoleAddResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthRoleAddResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse go!"state" l) state' (DFrac.own 1))
@@ -817,7 +818,7 @@ noncomputable instance AuthRoleGetResponse_access_load_state (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthRoleGetResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthRoleGetResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse go!"state" l) state' (DFrac.own 1))
@@ -925,7 +926,7 @@ noncomputable instance AuthRoleListResponse_access_load_state (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthRoleListResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthRoleListResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse go!"state" l) state' (DFrac.own 1))
@@ -1033,7 +1034,7 @@ noncomputable instance AuthUserListResponse_access_load_state (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthUserListResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthUserListResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse go!"state" l) state' (DFrac.own 1))
@@ -1140,7 +1141,7 @@ noncomputable instance AuthRoleDeleteResponse_access_load_state (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthRoleDeleteResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthRoleDeleteResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse go!"state" l) state' (DFrac.own 1))
@@ -1231,7 +1232,7 @@ noncomputable instance AuthRoleGrantPermissionResponse_access_load_state (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthRoleGrantPermissionResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthRoleGrantPermissionResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse go!"state" l) state' (DFrac.own 1))
@@ -1322,7 +1323,7 @@ noncomputable instance AuthRoleRevokePermissionResponse_access_load_state (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthRoleRevokePermissionResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance AuthRoleRevokePermissionResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse go!"state" l) state' (DFrac.own 1))

@@ -1,11 +1,11 @@
 /-
-`slices.Concat(ss...)` of string slices (Go's `slices`, names only in Perennial): **the trust
-boundary**. The axiom (see its docstring for why it is faithful). Lean-first (no Rocq
-counterpart).
+Proof of `Spec/slices/Concat.lean`: an instance of Perennial's proved `slices.Concat`
+(mit-pdos/perennial#670). Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Spec.slices.Concat
+public import Perennial.Spec.slices.Concat
 
 @[expose] public section
 
@@ -17,20 +17,24 @@ namespace Perennial
 namespace EtcdGrove
 namespace slices
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode 
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.slices.Assumptions]
 
-/-- **The trust boundary.** Go's `slices.Concat(slices...)` returns a new slice holding the elements of each slice in
-turn, reading the slices only. Go panics (`len out of range`) when the total length overflows
-`int`; for strings (16 bytes each) the slices' total length is bounded by the address space, far
-below `2^63`, so no premise is needed (as for the model's `append`, README, "Model assumptions
-(overflow)"). -/
-axiom Concat.wp_proof : Concat.spec (GF := GF) (hG := hG)
+theorem Concat.wp_proof
+    (wp_Concat : _root_.Perennial.slices.Concat.spec (GF := GF) (hG := hG)) :
+    Concat.spec (GF := GF) (hG := hG) := by
+  intro ss dq sls xss dq' hlen hsum
+  iintro %Φ ⟨Hss, Hsls⟩ HΦ
+  wp_apply (wp_Concat (S := go.GoType.SliceType go.string) ss dq sls xss dq' hlen hsum)
+    $$ [$Hss $Hsls] as %s' ⟨Hss, Hsls, Hs', Hcap, -⟩
+  iapply HΦ
+  iframe
 
 end proof
 

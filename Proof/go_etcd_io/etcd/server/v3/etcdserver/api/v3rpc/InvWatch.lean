@@ -126,7 +126,7 @@ theorem eofVar_of_init [_root_.Perennial.io.Assumptions]
   iintro #Hpkg
   ihave #Hv := _root_.Perennial.io.eof_of_init $$ Hpkg
   iunfold _root_.Perennial.errors.newVar at Hv
-  icases Hv with ⟨%x, #Hpt, #Hmsg⟩
+  icases Hv with ⟨%x, #Hpt, #_, #Hmsg⟩
   iunfold eofVar
   iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
   iframe Hpt

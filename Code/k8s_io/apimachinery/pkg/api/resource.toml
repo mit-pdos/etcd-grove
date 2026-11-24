@@ -5,3 +5,57 @@ imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+# (etcd-grove#32, 2026-11-22) the `init` function trusted: a model that does nothing
+# (TrustedCode/k8s_io/apimachinery/pkg/api/resource.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0"]
+
+[[skip]]
+names = ["Zero", "zeroBytes", "MaxMilliValue"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["bigTen", "bigZero", "bigOne", "bigThousand", "big1024", "maxInt64", "minInt64"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable."""
+
+[[skip]]
+names = ["decZero", "decOne", "maxAllowed"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `inf.NewDec`
+allocates a decimal of constants. So each terminates, cannot panic and has no effect beyond its
+variable."""
+
+[[skip]]
+names = ["ErrFormatWrong", "ErrNumeric", "ErrSuffix"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable."""
+
+[[skip]]
+names = ["ErrInvalidLengthGenerated", "ErrIntOverflowGenerated"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable."""
+
+[[skip]]
+names = ["quantitySuffixer"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `newSuffixer`
+allocates the suffix tables, filled with constants. So it terminates, cannot panic and has no effect
+beyond its variable."""
+# --- end of skipped package variables ---

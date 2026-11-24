@@ -40,7 +40,7 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 /-- **A configuration of node `id` on the store's storage `st`, restarted at `applied`** (see the
 file header): what `RestartNode.spec` asks of it, with its node id, storage, logger and applied

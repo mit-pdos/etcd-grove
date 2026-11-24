@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// TestMain runs an echo server instead of the tests when the harness started this binary as one
+// TestMain runs an echo server instead of the tests when the test started this binary as one
 // (ROBUST_ECHO set to the address to listen at).
 func TestMain(m *testing.M) {
 	if addr := os.Getenv("ROBUST_ECHO"); addr != "" {
@@ -40,12 +40,18 @@ func asRootTest(t *testing.T) bool {
 	if os.Getenv("ROBUST_NETNS") == "" {
 		t.Skip("a network-namespace test: set ROBUST_NETNS=1 (needs sudo -n)")
 	}
-	if IsRoot() {
+	if IsRoot() && HasNetAdmin() {
 		return true
 	}
 	var out bytes.Buffer
-	err := RerunAsRoot([]string{"-test.run=^" + t.Name() + "$", "-test.v", "-test.count=1"},
-		[]string{"ROBUST_NETNS=1"}, &out)
+	args := []string{"-test.run=^" + t.Name() + "$", "-test.v", "-test.count=1"}
+	var err error
+	if IsRoot() {
+		// a container's root without CAP_NET_ADMIN: a user namespace of its own (the bridge variant)
+		err = RerunInUserns(args, []string{"ROBUST_NETNS=1"}, &out)
+	} else {
+		err = RerunAsRoot(args, []string{"ROBUST_NETNS=1"}, &out)
+	}
 	for _, l := range strings.Split(out.String(), "\n") {
 		if strings.TrimSpace(l) != "" {
 			t.Log(l)
@@ -125,14 +131,16 @@ func TestNetworkFaults(t *testing.T) {
 		t.Errorf("a dropping partition failed the dial at once (%v): %v", time.Since(start), err)
 	}
 
-	if err := n.SetBlocks(Partition([][]*Machine{{a}, {b}}, true)); err != nil {
-		t.Fatal(err)
-	}
-	start = time.Now()
-	if err := echo(a, addr, 2*time.Second); err == nil {
-		t.Error("an echo across a resetting partition succeeded")
-	} else if time.Since(start) > time.Second {
-		t.Errorf("a resetting partition did not refuse at once (%v): %v", time.Since(start), err)
+	if n.CanReset() {
+		if err := n.SetBlocks(Partition([][]*Machine{{a}, {b}}, true)); err != nil {
+			t.Fatal(err)
+		}
+		start = time.Now()
+		if err := echo(a, addr, 2*time.Second); err == nil {
+			t.Error("an echo across a resetting partition succeeded")
+		} else if time.Since(start) > time.Second {
+			t.Errorf("a resetting partition did not refuse at once (%v): %v", time.Since(start), err)
+		}
 	}
 
 	// b's packets to a lost: the handshake's answer never arrives

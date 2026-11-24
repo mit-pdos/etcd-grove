@@ -38,7 +38,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Ass
 /-- **putget3's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Main.lean`), under the semantic premises of
 its callees' linked results (putget's). -/
-theorem etcd_putget3.wp_Main
+theorem etcd_putget3.wp_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     :
     etcd_putget3.Main.spec (GF := GF) (hG := hG) :=

@@ -93,7 +93,7 @@ theorem writerLe_start (w : Loc) (wv : writer) (γ : RandNames) (γB : backend.B
   ihave #Hro' : backend.plHookRO (GF := GF) (rcKB γB b gx lim).γB f $$ []
   · rw [rcKB_γB]; iexact Hro
   ihave #Hlb := Happly $$ %(rcKB γB b gx lim) %(mvccW gx) %iprop(True) %f
-    %(lease.lessorBeOn lp (rcKB γB b gx lim).be) Hisb' Hro' %hf []
+    %(lease.lessorBeOn lp (rcKB γB b gx lim).be) %(by rw [rcKB_P]; exact rcP_lease lim) Hisb' Hro' %hf []
   · iunfold rwLens
     iintro !> H
     iframe H

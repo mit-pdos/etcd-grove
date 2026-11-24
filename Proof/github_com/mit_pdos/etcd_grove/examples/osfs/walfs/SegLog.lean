@@ -6,7 +6,7 @@ the specs of the calls they make (hypotheses) and `SegLogOps.lean`'s.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogOps
-public import Proof.os.File__Truncate
+public import Spec.os.File__Truncate
 public import Proof.golang_org.x.sys.unix.FileOps
 public import Spec.os.File__Fd
 public import Spec.os.File__Close
@@ -97,27 +97,27 @@ def segFile (i : Ino) : IProp GF :=
 /-- `Segment(dir/seg.log, rec)`, `dir` the root of inode `j`, `seg.log` absent, `rec` the 8 bytes
 of data: on success `seg.log` names a new file of a fresh inode `i`, `segSize` long, and the offset
 past `rec` is returned. -/
-theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+theorem wp_Segment (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
-    (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R)
-    (V : Hist) (hn : V.now.entry j logB = none) (sl : GoSlice) (dqs : DFrac) :
-    {{ osInv (GF := GF) ∗ logInv (GF := GF) R ∗ osTree (GF := GF) (DFrac.own (1 : Qp).half) R V ∗
-        sl ↦*{dqs} dataC }}
+    (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R)
+    (h : NamesH) (hn : h.cur !! logB = none) (sl : GoSlice) (dqs : DFrac) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ logRes (GF := GF) R dir j h ∗ sl ↦*{dqs} dataC }}
       (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Segment))
         (Val #(child dir logB))) (Val #sl))
     {{ (e : w64) (err : GoInterface), RET (PairV #e #err);
-        ∃ V', osTree (DFrac.own (1 : Qp).half) R V' ∗
-        ((⌜err = interface.nil ∧ e = W64 8⌝ ∗ ∃ i, ⌜V'.now.entry j logB = some (.file i)⌝ ∗
+        ∃ V' : NamesH, logRes (GF := GF) R dir j V' ∗
+        ((⌜err = interface.nil ∧ e = W64 8⌝ ∗ ∃ i, ⌜V'.cur !! logB = some (.file i)⌝ ∗
             segFile i) ∨
          ⌜err ≠ interface.nil⌝) }} := by
-  wp_start as ⟨#Hos, #Hinv, Hh, Hsl⟩
+  wp_start as ⟨#Hos, #Hsi, Hh, Hsl⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   rw [show (W64 2 ||| W64 64) = W64 66 from by decide]
-  wp_apply wp_openLog R hR dir j hrj V hn (W32 384) $$ [Hos Hinv Hh] as %f %err Hr
+  wp_apply wp_openLog wp_CreateS R dir j hrj h hn (W32 384) $$ [Hos Hsi Hh] as %f %err Hr
   · iframe; iframe #
   icases Hr with (⟨%fd, %i, %V', %hek, Hf, Ho, Hfd, Hm, Hh⟩ | ⟨%herr, %V', Hh⟩)
   rotate_left
@@ -131,10 +131,10 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     iright; ipureintro; intro h; cases h
   obtain ⟨rfl, hfd0, hk⟩ := hek
   have hclose : ∀ (e : GoInterface), e ≠ interface.nil →
-      ⊢ (∀ e' err', (∃ V2, osTree (GF := GF) (DFrac.own (1 : Qp).half) R V2 ∗
-          ((⌜err' = interface.nil ∧ e' = W64 8⌝ ∗ ∃ i, ⌜V2.now.entry j logB = some (.file i)⌝ ∗
+      ⊢ (∀ e' err', (∃ V2 : NamesH, logRes (GF := GF) R dir j V2 ∗
+          ((⌜err' = interface.nil ∧ e' = W64 8⌝ ∗ ∃ i, ⌜V2.cur !! logB = some (.file i)⌝ ∗
             segFile i) ∨ ⌜err' ≠ interface.nil⌝)) -∗ Φ (PairV #e' #err')) -∗
-        osTree (GF := GF) (DFrac.own (1 : Qp).half) R V' -∗ Φ (PairV #(W64 0) #e) := by
+        logRes (GF := GF) R dir j V' -∗ Φ (PairV #(W64 0) #e) := by
     intro e he
     iintro HΦ Hh
     iapply HΦ
@@ -320,7 +320,8 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
 
 /-- `ZeroToEnd(f)`, the offset 8, the file of inode `i` (no mapping, `segSize` bytes) whole: on
 success its first 8 bytes kept and its size at least 8; the offset stays some offset. -/
-theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+theorem wp_ZeroToEnd (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (i : Ino) (m : OsMeta)
     (bs : List ByteG) (hfd0 : 0 ≤ fd.toInt) (hmaps : m.maps = ∅) (hsz : m.size = 0x10000)
     (hbl : bs.length = 0x10000) :
@@ -360,7 +361,7 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   have hmax8 : max m.size (W64 8).toNat = 0x10000 := by rw [hsz]; decide
   ihave Hc8 : mcellsAny (GF := GF) m.maps (min m.size (W64 8).toNat) (rsHi true m.size (W64 8).toNat) $$ []
   · unfold mcellsAny; rw [hmaps]; iapply BigSepM.bigSepM_empty.2; iempintro
-  wp_apply os.File.Truncate.wp_proof f fd name dqf (W64 8) dq ⟨i, true, true, none, none⟩ m (bs.drop 8)
+  wp_apply wp_Truncate f fd name dqf (W64 8) dq ⟨i, true, true, none, none⟩ m (bs.drop 8)
       hfd0 rfl (by decide) (by simp [hbl, hsz])
     $$ [Hos Hf Hfd Hm Hbr Hc8] as %err ⟨Hf, Hfd, Hr, -⟩
   · iframe; iframe #; rw [hmin]; iexact Hbr
@@ -518,30 +519,31 @@ theorem wp_readFull (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : G
     iapply HΦ
     iframe
 
-/-- `Reread(dir/seg.log, 8)`, `dir` the root of inode `j`, `seg.log` the file of inode `i`, of
-size at least 8, its first 8 bytes held at any fractions: it does not panic. -/
+/-- `Reread(dir/seg.log, 8)`, `dir` the root of inode `j`, `seg.log` the file of inode `i` (a
+fraction of a claim on it), of size at least 8, its first 8 bytes held at any fractions: it does not
+panic. -/
 theorem wp_Reread (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
-    (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (q : Qp)
-    (V : Hist) (i : Ino) (hk : V.now.entry j logB = some (.file i)) (dqm dqb : DFrac)
+    (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (dqn : DFrac) (qc : Qp)
+    (h : NamesH) (i : Ino) (hk : h.cur !! logB = some (.file i)) (dqm dqb : DFrac)
     (m : OsMeta) (bs : List ByteG) (hsz : 8 ≤ m.size) (hbl : bs.length = 8) :
-    {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own q) R V ∗ osMeta (GF := GF) i dqm m ∗
-        osBytes (GF := GF) i 0 dqb bs }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm (callKey R dir) qc ∗ osNames j lN dqn h ∗
+        osMeta (GF := GF) i dqm m ∗ osBytes (GF := GF) i 0 dqb bs }}
       (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Reread))
         (Val #(child dir logB))) (Val #(W64 8)))
     {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); True }} := by
-  wp_start as ⟨#Hos, Hh, Hm, Hb⟩
+  wp_start as ⟨#Hos, #Hsi, Hperm, Hn, Hm, Hb⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  have hl : lookupH R V (child dir logB) = some (.file i) := by
-    rw [lookupH_child_root hR hrj V logB_ok]; exact hk
-  wp_apply wp_openExisting (child dir logB) (W64 0) flRO_ok (by decide) q R V i hl (W32 0)
-    $$ [Hos Hh] as %f %err ⟨-, Hr⟩
-  · iframe; iexact Hos
-  icases Hr with (⟨%fd, %herr, Hf, Ho, Hfd⟩ | %herr)
+  imod osPathS_root R dir j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
+  wp_apply os.OpenFile.wp_fileS dir logB (W64 0) (W32 0) R j i lN (DFrac.own 1) dqn h qc
+      (by rw [show W64 0 ||| W64 0x80000 = flRO from by decide]; exact flRO_ok) (by decide)
+      logB_ok lN_log hk $$ [Hos Hsi Hp Hn Hperm] as %f %err ⟨-, -, -, Hr⟩
+  · iframe; iframe #
+  icases Hr with (⟨%fd, %herr, Hf, Ho, Hfd⟩ | ⟨%herr, -⟩)
   rotate_left
   · cases err with
-    | nil => exact absurd rfl herr
+    | nil => exact absurd rfl herr.1
     | ok ie =>
     (try wp_auto)
     iapply HΦ
@@ -575,37 +577,43 @@ theorem wp_Reread (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     iapply HΦ
     itrivial
 
-/-- `Run(dir)`, `dir` the root of inode `j`, from half of the history: it does not panic (nor is
-it stuck). -/
-theorem wp_Run (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+/-- `Run(dir)`, `dir` the root of inode `j`, with the whole claim on `seg.log` (and, if it names a
+directory, that directory's whole claim): it does not panic (nor is it stuck). -/
+theorem wp_Run (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
-    (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (V0 : Hist) :
-    {{ osInv (GF := GF) ∗ logInv (GF := GF) R ∗
-        osTree (GF := GF) (DFrac.own (1 : Qp).half) R V0 }}
+    (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (h0 : NamesH) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ logRes (GF := GF) R dir j h0 ∗ DS.subRes (GF := GF) logB h0 }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Run)) (Val #dir))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hos, #Hinv, Hh⟩
+  wp_start as ⟨#Hos, #Hsi, Hh, Hsub⟩
   wp_auto
-  wp_apply wp_readNamesT dir _ R V0 j (lookupH_root hR hrj V0) $$ [Hos Hh] as %sl %ok ⟨Hh, Hr⟩
-  · iframe; iexact Hos
+  unfold logRes
+  icases Hh with ⟨Hperm, Hn⟩
+  imod osPathS_root R dir j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
+  wp_apply wp_readNamesS dir R j (DFrac.own 1) 1 lN (DFrac.own 1) h0 $$ [Hp Hperm Hn]
+    as %sl %ok ⟨-, Hperm, Hn, Hr⟩
+  · iframe; iframe #
   icases Hr with (%hok | ⟨%names, %hn, Hsl⟩)
   · subst hok
     (try wp_auto)
     iapply HΦ
     itrivial
-  obtain ⟨rfl, hnodup, hmem⟩ := hn
+  obtain ⟨rfl, -, hmem, -⟩ := hn
   (try wp_auto)
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   try rw [show dir ++ go!"/seg.log" = child dir logB from rfl]
-  ihave IH : iprop(∃ (i : w64) (nv : GoString) (V : Hist),
+  ihave IH : iprop(∃ (i : w64) (nv : GoString) (h : NamesH),
       "i" ∷ i_ptr ↦ i ∗ "n" ∷ n_ptr ↦ nv ∗
-      "Hh" ∷ osTree (GF := GF) (DFrac.own (1 : Qp).half) R V ∗
+      "Hperm" ∷ osCallPerm (GF := GF) (callKey R dir) 1 ∗
+      "Hn" ∷ osNames (GF := GF) j lN (DFrac.own 1) h ∗ "Hsub" ∷ DS.subRes (GF := GF) logB h ∗
       "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.nat i ≤ names.length ∧
-        (logB ∈ names.take (sint.nat i) → V.now.entry j logB = none) ∧
-        (logB ∉ names.take (sint.nat i) → V = V0)⌝) $$ [i n Hh]
-  · iexists W64 0, _, V0
+        (logB ∈ names.take (sint.nat i) → h.cur !! logB = none) ∧
+        (logB ∉ names.take (sint.nat i) → h = h0)⌝) $$ [i n Hperm Hn Hsub]
+  · iexists W64 0, _, h0
     iframe
     ipureintro
     refine ⟨by decide, ?_, ?_, fun _ => rfl⟩
@@ -628,7 +636,9 @@ theorem wp_Run (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     · subst hbl
       rw [decide_eq_true (show logB = go!"seg.log" from rfl)]
       wp_auto
-      wp_apply wp_removeLog R hR dir j hrj V $$ [Hos Hinv Hh] as %err ⟨%V', Hh, %hg'⟩
+      imod osPathS_root R dir j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
+      wp_apply DS.wp_rmAny R dir logB j (DFrac.own 1) h logB_ok $$ [Hp Hperm Hn Hsub]
+        as %err ⟨-, Hperm, %h', Hn, Hsub, %hg'⟩
       · iframe; iframe #
       cases err with
       | ok ie =>
@@ -640,15 +650,19 @@ theorem wp_Run (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
       (try wp_auto)
       wp_for_post
       iframe
-      iexists i + W64 1, logB, V'
+      iexists i + W64 1, logB, h'
       iframe
       ipureintro
-      refine ⟨by word, by word, fun _ => hg' rfl, fun h => absurd (by rw [htake]; simp) h⟩
+      have hg2 : h'.cur !! logB = none := by
+        rcases hg' with ⟨-, hne⟩ | hn
+        · exact absurd rfl hne
+        · exact hn
+      refine ⟨by word, by word, fun _ => hg2, fun h => absurd (by rw [htake]; simp) h⟩
     rw [decide_eq_false (show ¬ b = go!"seg.log" from hbl)]
     wp_auto
     wp_for_post
     iframe
-    iexists i + W64 1, b, V
+    iexists i + W64 1, b, h
     iframe
     ipureintro
     refine ⟨by word, by word, ?_, ?_⟩
@@ -657,18 +671,21 @@ theorem wp_Run (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   · -- the loop is done
     have hie : sint.nat i = names.length := by word
     rw [hie, List.take_length] at hgin hgout
-    have hn : V.now.entry j logB = none := by
+    have hn : h.cur !! logB = none := by
       by_cases hm : logB ∈ names
       · exact hgin hm
       · rw [hgout hm]
-        cases h : V0.now.entry j logB with
+        cases hc : h0.cur !! logB with
         | none => rfl
-        | some x => exact absurd ((hmem logB).2 (by rw [h]; rfl)) hm
+        | some x => exact absurd ((hmem logB lN_log).1 (by rw [hc]; rfl)) hm
+    iclear Hsub
     (try wp_auto)
     wp_apply wp_newData as %sl2 Hsl2
     (try wp_auto)
-    wp_apply wp_Segment wp_Fd wp_Close wp_WriteAt wp_Fdatasync R hR dir j hrj V hn sl2 (DFrac.own 1)
-      $$ [Hos Hinv Hh Hsl2] as %e %err ⟨%V', Hh, Hr⟩
+    ihave Hh : logRes (GF := GF) R dir j h $$ [Hperm Hn]
+    · unfold logRes; iframe
+    wp_apply wp_Segment wp_CreateS wp_Fd wp_Close wp_WriteAt wp_Fdatasync R dir j hrj h hn sl2 (DFrac.own 1)
+      $$ [Hh Hsl2] as %e %err ⟨%V', Hh, Hr⟩
     · iframe; iframe #
     icases Hr with (⟨%hr, %k, %hk1, Hsf⟩ | %herr)
     rotate_left
@@ -684,29 +701,29 @@ theorem wp_Run (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     unfold segFile
     icases Hsf with ⟨%m, %bs, %hm, Hm, Hb⟩
     obtain ⟨hmaps, hsz, hbl⟩ := hm
-    have hl : lookupH R V' (child dir logB) = some (.file k) := by
-      rw [lookupH_child_root hR hrj V' logB_ok]; exact hk1
-    have hfl : OpenFlagsOk (W64 66 ||| W64 524288).toNat := by
-      rw [show (W64 66 ||| W64 524288) = flCreat from by decide]; exact flCreat_ok
-    wp_apply wp_openExisting (child dir logB) (W64 66) hfl (by decide) _ R V' k hl (W32 384)
-      $$ [Hos Hh] as %f %err ⟨Hh, Hr⟩
-    · iframe; iexact Hos
-    icases Hr with (⟨%fd, %herr, Hf, Ho, Hfd⟩ | %herr)
+    unfold logRes
+    icases Hh with ⟨Hperm, Hn⟩
+    imod osPathS_root R dir j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
+    wp_apply os.OpenFile.wp_fileS dir logB (W64 66) (W32 384) R j k lN (DFrac.own 1) (DFrac.own 1) V' 1
+        createL_flag.1 createL_flag.2.2 logB_ok lN_log hk1 $$ [Hp Hn Hperm]
+      as %f %err ⟨-, Hn, Hperm, Hr⟩
+    · iframe; iframe #
+    icases Hr with (⟨%fd, %herr, Hf, Ho, Hfd⟩ | ⟨%herr, -⟩)
     rotate_left
     · cases err with
-      | nil => exact absurd rfl herr
+      | nil => exact absurd rfl herr.1
       | ok ie =>
       (try wp_auto)
       iapply HΦ
       itrivial
     obtain ⟨rfl, hfd0⟩ := herr
-    rw [show (W64 66 ||| W64 524288) = W64 0x80042 from by decide, openFd_rw]
+    rw [createL_openFd]
     (try wp_auto)
     wp_apply os.File.Seek.wp_start f fd (child dir logB) (DFrac.own 1) (W64 0) (W64 8) hfd0
       (by decide) (by decide) $$ [Hf Ho] as ⟨Hf, Ho⟩
     · iframe
     (try wp_auto)
-    wp_apply wp_ZeroToEnd wp_Fd f fd (child dir logB) (DFrac.own 1) (DFrac.own 1) k m bs hfd0 hmaps
+    wp_apply wp_ZeroToEnd wp_Truncate wp_Fd f fd (child dir logB) (DFrac.own 1) (DFrac.own 1) k m bs hfd0 hmaps
       hsz hbl $$ [Hos Hf Ho Hfd Hm Hb] as %err ⟨Hf, Hfd, -, Hr⟩
     · iframe; iexact Hos
     icases Hr with (⟨%herr, %m', %hm', Hm, Hb⟩ | %herr)
@@ -725,9 +742,9 @@ theorem wp_Run (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     wp_apply wp_Close f fd (child dir logB) ⟨k, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
     · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
     (try wp_auto)
-    wp_apply wp_Reread wp_Close R hR dir j hrj _ V' k hk1 (DFrac.own 1) (DFrac.own 1) m' (bs.take 8)
-      hm'.1 (by rw [List.length_take, hbl]; rfl) $$ [Hos Hh Hm Hb] as %sl3 %err3 -
-    · iframe; iexact Hos
+    wp_apply wp_Reread wp_Close R dir j hrj (DFrac.own 1) 1 V' k hk1 (DFrac.own 1) (DFrac.own 1) m'
+      (bs.take 8) hm'.1 (by rw [List.length_take, hbl]; rfl) $$ [Hperm Hn Hm Hb] as %sl3 %err3 -
+    · iframe; iframe #
     (try wp_auto)
     iapply HΦ
     itrivial

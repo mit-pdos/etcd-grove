@@ -52,7 +52,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     (wp_BackendPath : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (wp_OpenBackend : storage.OpenBackend.spec (GF := GF) (hG := hG)) :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) := by
-  intro _ cfg ss sn mp hk dq dq' md P D W Pk K γo R'
+  intro _ _ cfg ss sn mp hk dq dq' md P D W Pk K γo R' hdd
   wp_start as ⟨#Hss, Hmdp, Hsm, Hhd, Hpo, Hpre⟩
   iunfold snapHeld at Hhd
   icases Hhd with ⟨Hf, HR'⟩
@@ -69,7 +69,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     ipersist cfg
     ihave #Hcf := cfg
     iStructNamed Hcf
-    wp_apply wp_BackendPath $$ [$DataDir] as -
+    wp_apply (wp_BackendPath _ _ _ hdd) $$ [$DataDir] as -
     -- (S5) the rename, with no error: the file at the backend path, the snapshot's name free
     have hpar := snap.snapDBPath_parent cfg.DataDir' md.Index'
     wp_apply (wp_Rename _ _ _ _ hpar) $$ [$Hf $Hpo] as %err2 ⟨%Hr, Hf, -⟩

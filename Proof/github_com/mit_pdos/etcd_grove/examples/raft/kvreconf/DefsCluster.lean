@@ -164,7 +164,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
@@ -188,7 +188,7 @@ def snapReqOk (γr : RNames) (K : GName) (γs : MemStorNames) (q : RSnapReq) : I
       nodeAppliedLb γr.cluster K (uint.nat q.compact')))
 
 /-- **Replica `id` at `r`, running** (persistent; see the file header). -/
-def isReplicaR (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ : RepNames) :
+def isReplicaR (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st sts : Loc) (ρ : RepNames) :
     IProp GF :=
   iprop(
     "#Hrep" ∷ isReplica γr vs id r n st sts ∗
@@ -211,13 +211,13 @@ def isReplicaR (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ 
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
-instance isReplicaR_persistent (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc)
+instance isReplicaR_persistent (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st sts : Loc)
     (ρ : RepNames) : Persistent (isReplicaR (GF := GF) γr vs id r n st sts ρ) := by
   unfold isReplicaR; infer_instance
 
 /-- Replica `id` at `r`, running, its node and storage hidden (persistent). -/
 def isRep (γr : RNames) (vs : List w64) (id : w64) (r : Loc) : IProp GF :=
-  iprop(∃ (n st sts : Loc) (ρ : RepNames), isReplicaR γr vs id r n st sts ρ)
+  iprop(∃ (n : NodeH) (st sts : Loc) (ρ : RepNames), isReplicaR γr vs id r n st sts ρ)
 
 instance isRep_persistent (γr : RNames) (vs : List w64) (id : w64) (r : Loc) :
     Persistent (isRep (GF := GF) γr vs id r) := by
@@ -225,13 +225,13 @@ instance isRep_persistent (γr : RNames) (vs : List w64) (id : w64) (r : Loc) :
 
 /-- **The stopper's share of replica `r`** (exclusive; see the file header). -/
 def repStop (γr : RNames) (vs : List w64) (r : Loc) : IProp GF :=
-  iprop(∃ (id : w64) (n st sts : Loc) (ρ : RepNames),
+  iprop(∃ (id : w64) (n : NodeH) (st sts : Loc) (ρ : RepNames),
     isReplicaR γr vs id r n st sts ρ ∗
     ownBroadcastChan ρ.stopc ρ.sc iprop(True) .Pending ∗
     handoffConsumer ρ.rd false ∗ handoffConsumer ρ.td false ∗ handoffConsumer ρ.sd false)
 
 /-- **What `run` starts with** (see the file header). -/
-def runStart (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ : RepNames) : IProp GF :=
+def runStart (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st : Loc) (ρ : RepNames) : IProp GF :=
   iprop(∃ (csp mA : Loc) (hs : HardStateM),
     nodeDriver n γr.cluster kvrRaftN (NodeDriverState.init (kvrStorIface st) ρ.key) ∗
     raftState γr.cluster id RaftState.init ∗

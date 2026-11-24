@@ -6,11 +6,11 @@
 # `consistency`.
 #
 # the trust boundary: names-only functions (axioms)
-resourceversion_isWellFormed:
 schema_GroupResource__String_ptr:
 #
 # k8s.io/apimachinery/pkg/util/resourceversion
 resourceversion_isDigit:
+resourceversion_isWellFormed: resourceversion_isDigit
 resourceversion_CompareResourceVersion: resourceversion_isWellFormed =_root_.Perennial.strings.wp_Compare
 #
 # the consistency store (`consistency.go`)

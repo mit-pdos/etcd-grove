@@ -29,7 +29,7 @@ abbrev grpc.KeepaliveEnforcementPolicy.spec : Prop :=
   ∀ (kep : google_golang_org.grpc.keepalive.EnforcementPolicy),
   {{ (True : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.KeepaliveEnforcementPolicy)) (Val #kep))
-  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v .neutral⌝ }}
+  {{ (v : GoInterface), RET #v; grpcSrvOpt v .neutral }}
 
 end spec
 

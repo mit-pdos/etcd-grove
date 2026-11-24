@@ -326,10 +326,10 @@ theorem walsNamed_relay {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} 
       · exact ⟨y, List.mem_append_left _ hy, rfl⟩
       · obtain ⟨x, hx, e⟩ := hsub' y hy
         exact ⟨x, List.mem_append_right _ hx, e⟩
-    obtain ⟨h1, h2⟩ := h dir' lay hl
+    obtain ⟨h1, h2, h3⟩ := h dir' lay hl
     rw [hj]
     exact ⟨fun hj' hw => segsNamed_congr hsub (h1 hj' hw),
-      fun m' hr => segsNamedC_congr hsubP hsubP' (h2 m' hr)⟩
+      fun m' hr => segsNamedC_congr hsubP hsubP' (h2 m' hr), h3⟩
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
     exact h dir' l hl'
 

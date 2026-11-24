@@ -187,6 +187,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   AuthServer_instance : AuthServer.TypeAssumptions
   UnimplementedAuthServer_instance : UnimplementedAuthServer.TypeAssumptions
   UnsafeAuthServer_instance : UnsafeAuthServer.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
+  «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
   NewKVClient_unfold : FuncUnfold NewKVClient [] NewKVClient.impl
   RegisterKVServer_unfold : FuncUnfold RegisterKVServer [] RegisterKVServer.impl
   _KV_Range_Handler_unfold : FuncUnfold _KV_Range_Handler [] _KV_Range_Handler.impl
@@ -204,7 +207,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   _Lease_LeaseKeepAlive_Handler_unfold : FuncUnfold _Lease_LeaseKeepAlive_Handler [] _Lease_LeaseKeepAlive_Handler.impl
   _Lease_LeaseTimeToLive_Handler_unfold : FuncUnfold _Lease_LeaseTimeToLive_Handler [] _Lease_LeaseTimeToLive_Handler.impl
   _Lease_LeaseLeases_Handler_unfold : FuncUnfold _Lease_LeaseLeases_Handler [] _Lease_LeaseLeases_Handler.impl
+  NewClusterClient_unfold : FuncUnfold NewClusterClient [] NewClusterClient.impl
   RegisterClusterServer_unfold : FuncUnfold RegisterClusterServer [] RegisterClusterServer.impl
+  NewMaintenanceClient_unfold : FuncUnfold NewMaintenanceClient [] NewMaintenanceClient.impl
   RegisterMaintenanceServer_unfold : FuncUnfold RegisterMaintenanceServer [] RegisterMaintenanceServer.impl
   NewAuthClient_unfold : FuncUnfold NewAuthClient [] NewAuthClient.impl
   RegisterAuthServer_unfold : FuncUnfold RegisterAuthServer [] RegisterAuthServer.impl
@@ -387,6 +392,9 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions.AuthServer_instance
   Assumptions.UnimplementedAuthServer_instance
   Assumptions.UnsafeAuthServer_instance
+  Assumptions.«init.0_unfold»
+  Assumptions.«init.1_unfold»
+  Assumptions.«init.2_unfold»
   Assumptions.NewKVClient_unfold
   Assumptions.RegisterKVServer_unfold
   Assumptions._KV_Range_Handler_unfold
@@ -404,7 +412,9 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions._Lease_LeaseKeepAlive_Handler_unfold
   Assumptions._Lease_LeaseTimeToLive_Handler_unfold
   Assumptions._Lease_LeaseLeases_Handler_unfold
+  Assumptions.NewClusterClient_unfold
   Assumptions.RegisterClusterServer_unfold
+  Assumptions.NewMaintenanceClient_unfold
   Assumptions.RegisterMaintenanceServer_unfold
   Assumptions.NewAuthClient_unfold
   Assumptions.RegisterAuthServer_unfold

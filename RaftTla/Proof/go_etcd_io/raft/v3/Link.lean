@@ -219,7 +219,9 @@ public import RaftTla.Proof.go_etcd_io.raft.v3.raft__tickHeartbeat
 public import RaftTla.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
 public import RaftTla.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetType
 public import RaftTla.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__Enum
+public import RaftTla.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__String
 public import RaftTla.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
+public import RaftTla.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
 public import RaftTla.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV1
 public import RaftTla.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
 public import RaftTla.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
@@ -350,6 +352,7 @@ public import RaftTla.Proof.go_etcd_io.raft.v3.unstable__stableSnapTo
 public import RaftTla.Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import RaftTla.Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import RaftTla.Proof.go_etcd_io.raft.v3.voteRespMsgType
+public import Perennial.Proof.strings.Link
 public import Proof.context.Link
 public import Proof.fmt.Link
 
@@ -377,9 +380,57 @@ theorem Config.wp_validate [StorageModel GF] :
     Config.validate.spec (GF := GF) (hG := hG) :=
   Config.validate.wp_proof wp_IsLocalMsgTarget
 
+theorem raftpb.ConfChange.wp_GetType :
+    raftpb.ConfChange.GetType.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChange.GetType.wp_proof
+
+theorem raftpb.ConfChangeType.wp_Enum :
+    raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeType.Enum.wp_proof
+
+theorem raftpb.ConfChange.wp_GetNodeId :
+    raftpb.ConfChange.GetNodeId.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChange.GetNodeId.wp_proof
+
+theorem raftpb.ConfChange.wp_AsV2 :
+    raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChange.AsV2.wp_proof raftpb.ConfChange.wp_GetType raftpb.ConfChangeType.wp_Enum raftpb.ConfChange.wp_GetNodeId
+
+theorem raftpb.ConfChangeV2.wp_AsV2 :
+    raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeV2.AsV2.wp_proof
+
+theorem raftpb.ConfChangeV2.wp_GetTransition :
+    raftpb.ConfChangeV2.GetTransition.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeV2.GetTransition.wp_proof
+
+theorem raftpb.ConfChangeV2.wp_GetChanges :
+    raftpb.ConfChangeV2.GetChanges.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeV2.GetChanges.wp_proof
+
+theorem raftpb.ConfChangeSingle.wp_GetType :
+    raftpb.ConfChangeSingle.GetType.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeSingle.GetType.wp_proof
+
+theorem raftpb.ConfChangeSingle.wp_GetNodeId :
+    raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeSingle.GetNodeId.wp_proof
+
+theorem strconv.wp_Itoa :
+    strconv.Itoa.spec (GF := GF) (hG := hG) :=
+  strconv.Itoa.wp_proof
+
+theorem raftpb.ConfChangeType.wp_String :
+    raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeType.String.wp_proof strconv.wp_Itoa
+
+theorem raftpb.ConfChangeTransition.wp_String :
+    raftpb.ConfChangeTransition.String.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeTransition.String.wp_proof strconv.wp_Itoa
+
 theorem wp_DescribeConfChange [StorageModel GF] :
     DescribeConfChange.spec (GF := GF) (hG := hG) :=
-  DescribeConfChange.wp_proof
+  DescribeConfChange.wp_proof raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 raftpb.ConfChangeV2.wp_GetTransition raftpb.ConfChangeV2.wp_GetChanges raftpb.ConfChangeSingle.wp_GetType raftpb.ConfChangeSingle.wp_GetNodeId raftpb.ConfChangeType.wp_String raftpb.ConfChangeTransition.wp_String
 
 theorem raftpb.HardState.wp_GetTerm :
     raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG) :=
@@ -613,10 +664,6 @@ theorem raftpb.Message.wp_GetSnapshot :
     raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG) :=
   raftpb.Message.GetSnapshot.wp_proof
 
-theorem strconv.wp_Itoa :
-    strconv.Itoa.spec (GF := GF) (hG := hG) :=
-  strconv.Itoa.wp_proof
-
 theorem raftpb.MessageType.wp_String :
     raftpb.MessageType.String.spec (GF := GF) (hG := hG) :=
   raftpb.MessageType.String.wp_proof strconv.wp_Itoa
@@ -664,10 +711,6 @@ theorem wp_traceNodeEvent [StorageModel GF] :
 theorem wp_traceInitState [StorageModel GF] :
     traceInitState.spec (GF := GF) (hG := hG) :=
   traceInitState.wp_proof wp_traceNodeEvent
-
-theorem raftpb.ConfChangeType.wp_Enum :
-    raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeType.Enum.wp_proof
 
 theorem confchange.wp_toConfChangeSingle :
     confchange.toConfChangeSingle.spec (GF := GF) (hG := hG) :=
@@ -736,14 +779,6 @@ theorem confchange.Changer.wp_remove :
 theorem confchange.Changer.wp_makeLearner :
     confchange.Changer.makeLearner.spec (GF := GF) (hG := hG) :=
   confchange.Changer.makeLearner.wp_proof confchange.Changer.wp_initProgress confchange.Changer.wp_remove confchange.wp_outgoing confchange.wp_nilAwareAdd
-
-theorem raftpb.ConfChangeSingle.wp_GetNodeId :
-    raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeSingle.GetNodeId.wp_proof
-
-theorem raftpb.ConfChangeSingle.wp_GetType :
-    raftpb.ConfChangeSingle.GetType.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeSingle.GetType.wp_proof
 
 theorem confchange.Changer.wp_apply :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) :=
@@ -859,7 +894,7 @@ theorem fmt.wp_Sprintf [StorageModel GF] :
 
 theorem strings.wp_Join [StorageModel GF] :
     strings.Join.spec (GF := GF) (hG := hG) :=
-  strings.Join.wp_proof
+  strings.Join.wp_proof _root_.Perennial.strings.wp_Join
 
 theorem raft.wp_softState [StorageModel GF] :
     raft.softState.spec (GF := GF) (hG := hG) :=
@@ -1201,22 +1236,6 @@ theorem proto.wp_UnmarshalConfChangeV2 :
     proto.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG) :=
   proto.UnmarshalConfChangeV2.wp_proof
 
-theorem raftpb.ConfChange.wp_GetType :
-    raftpb.ConfChange.GetType.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChange.GetType.wp_proof
-
-theorem raftpb.ConfChange.wp_GetNodeId :
-    raftpb.ConfChange.GetNodeId.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChange.GetNodeId.wp_proof
-
-theorem raftpb.ConfChange.wp_AsV2 :
-    raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChange.AsV2.wp_proof raftpb.ConfChange.wp_GetType raftpb.ConfChangeType.wp_Enum raftpb.ConfChange.wp_GetNodeId
-
-theorem raftpb.ConfChangeV2.wp_AsV2 :
-    raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeV2.AsV2.wp_proof
-
 theorem wp_traceChangeConfEvent [StorageModel GF] :
     traceChangeConfEvent.spec (GF := GF) (hG := hG) :=
   traceChangeConfEvent.wp_proof wp_traceEvent raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 raftpb.ConfChangeSingle.wp_GetType raftpb.ConfChangeSingle.wp_GetNodeId strconv.wp_FormatUint
@@ -1288,14 +1307,6 @@ theorem raftLog.wp_stableSnapTo [StorageModel GF] :
 theorem raft.wp_reduceUncommittedSize [StorageModel GF] :
     raft.reduceUncommittedSize.spec (GF := GF) (hG := hG) :=
   raft.reduceUncommittedSize.wp_proof
-
-theorem raftpb.ConfChangeV2.wp_GetTransition :
-    raftpb.ConfChangeV2.GetTransition.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeV2.GetTransition.wp_proof
-
-theorem raftpb.ConfChangeV2.wp_GetChanges :
-    raftpb.ConfChangeV2.GetChanges.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeV2.GetChanges.wp_proof
 
 theorem raftpb.ConfChangeV2.wp_LeaveJoint :
     raftpb.ConfChangeV2.LeaveJoint.spec (GF := GF) (hG := hG) :=

@@ -1,36 +1,29 @@
 /-
 Trusted model of `hash/crc32` (namespace of the generated package; project etcd, `Code/hash/crc32.toml`):
-`MakeTable` and `update`, what `pkg/v3/crc` and the WAL reach (`crcTable = crc32.MakeTable(crc32.Castagnoli)`,
-`crc32.Update(d.crc, d.tab, p)`, which is `update(crc, tab, p, true)`) and what mvcc's `kvHasher` reaches
-(`crc32.New(crc32.MakeTable(crc32.Castagnoli))`, whose digest's `Write` is `update(d.crc, d.tab, p,
-false)`). **Pending the user's review** (a trusted model, 2026-11-13; `notes/perennial-changes.md`,
-"hash/crc32"; 2026-11-21, prove-etcdint3: `update` in place of `Update`, which is now translated with
-its body, so that the digest's `Write` reaches the same model).
+the three hooks of the Castagnoli fast path, `archAvailableCastagnoli`, `archInitCastagnoli` and
+`archUpdateCastagnoli` (`crc32_amd64.go`, the target `notes/` and the tests build for: linux/amd64,
+go1.27.3), whose Go is SSE4.2 assembly that goose cannot translate. Everything else that `MakeTable`,
+`Update`, `New` and the digest reach is translated with its body: the package state
+(`castagnoliTable`, `castagnoliTable8`, `updateCastagnoli`, `haveCastagnoli`, `IEEETable`), the once
+`castagnoliInitOnce` that sets it up, `update`'s dispatch, `simpleUpdate`, and the slicing-by-8 code.
+So `MakeTable(Castagnoli)` returns Go's one shared table, and which path `update` takes is decided by
+the translated code (etcd-grove#14; until 2026-11-22 `MakeTable` and `update` were trusted, with a
+fresh table per `MakeTable`).
 
-Go computes the Castagnoli CRC with SSE4.2 assembly (`crc32_amd64.go`, `castagnoliSSE42`), which
-goose cannot translate. The model is Go's portable code (`crc32_generic.go`): the table of
-`simplePopulateTable(Castagnoli)` (each byte's 8 reflected shift-xor steps), and `update` as
-`simpleUpdate` reading the table it is given. Go's `update` (`crc32.go:202-214`) takes the arch path
-for the package's `castagnoliTable` once `haveCastagnoli` is set (`updateCastagnoli`), the IEEE path for
-`IEEETable` (`updateIEEE`, after `ieeeInitOnce` when `checkInitIEEE`), and `simpleUpdate` otherwise; the
-arch and slicing-by-8 paths compute the same function of their table as `simpleUpdate` does (they are
-its optimizations; `go test hash/crc32` checks them against `simpleUpdate`), so `update` is
-`simpleUpdate` of its table whatever the path, and its last argument changes no result. Checked
-against Go on test vectors and on the whole table by `examples/stdlib/crc32/crc32_test.go`
-(go1.27.3, linux/amd64).
+`crc32.go` states the hooks' contract (its comment "The interface that they implement"):
+`archAvailableCastagnoli()` reports whether the fast path exists; `archInitCastagnoli()` may be
+called only if it does; `archUpdateCastagnoli(crc, p)` only after `archInitCastagnoli()`, and it
+updates the CRC-32C `crc` with `p`. The translated code calls them only so (`castagnoliInitOnce`,
+`crc32.go:83-98`: `archInitCastagnoli` and `updateCastagnoli = archUpdateCastagnoli` only after
+`archAvailableCastagnoli()` returned true, and `update` calls `updateCastagnoli` only once
+`haveCastagnoli` is set, after both). Each hook's docstring says why its model covers Go's.
 
-Deviations from Go, outside what any proof here may use:
-- `MakeTable(poly)` of a polynomial other than `Castagnoli` panics (Go builds that polynomial's
-  table): a program calling it is never proved panic-free, so the model covers no such run.
-- `MakeTable(Castagnoli)` allocates a fresh table holding the Castagnoli table; Go returns the
-  package's one `castagnoliTable` (the same pointer at every call). A program comparing the
-  pointers of two calls' results is outside the model's faithful range (the WAL calls it once, in
-  its package initializer; mvcc once per `newKVHasher`, and compares nothing). Go never writes the
-  table after it is built; the model's is read-only for good in the specs
-  (`tab ↦□ castagnoliTableArr`). Go's `New` compares the table with `IEEETable` (to initialize the
-  IEEE path), which the model's fresh Castagnoli table is not, as Go's `castagnoliTable` is not.
-- `update` skips `ieeeInitOnce` (Go runs it for `IEEETable` when `checkInitIEEE`): it initializes
-  only the IEEE path's tables, which no result reads (the path computes `simpleUpdate`'s function).
+What stays trusted: that the assembly computes the same CRC-32C as Go's portable code, on every CPU
+where it is enabled (checked by Go's own `TestArchCastagnoli`, `crc32_test.go:271`, which compares
+`archUpdateCastagnoli` with `simpleUpdate` over `simpleMakeTable(Castagnoli)` on every length up to
+and beyond its cutoffs, and by `examples/stdlib/crc32/crc32_test.go` against the model's values).
+
+The pure definitions below (the polynomial, the table) are the specs' vocabulary, not models.
 -/
 module
 
@@ -64,46 +57,47 @@ def crcTableEntry (poly : w32) (i : Nat) : w32 := crcBits poly 8 (BitVec.ofNat 3
 /-- The 256 entries of `simplePopulateTable(poly)`. -/
 def crcTableOf (poly : w32) : List w32 := (List.range 256).map (crcTableEntry poly)
 
-/-- **The Castagnoli table** (what `MakeTable(Castagnoli)` returns a pointer to). -/
+/-- **The Castagnoli table** (what `MakeTable(Castagnoli)` returns a pointer to: `simpleMakeTable`'s,
+`castagnoliInitOnce`'s `castagnoliTable`). -/
 def castagnoliTableArr : GoArray w32 256 := array.mk 256 (crcTableOf castagnoliPoly)
 
 section code
 variable [GooseExts] [GoGlobalContext]
 
-/-- `MakeTable(poly *Table)` (`crc32.go`): for `Castagnoli`, a pointer to a table holding
-`castagnoliTableArr` (freshly allocated: the file header); any other polynomial panics (the file
-header). The table's type is `crc32.Table`, `[256]uint32`, allocated at its underlying type. -/
-noncomputable def MakeTable.impl : val :=
-  λ: "poly",
-    if: "poly" =⟨go.uint32⟩ #castagnoliPoly then
-      GoAlloc (go.ArrayType 256 go.uint32) #castagnoliTableArr
-    else Panic "crc32 model: MakeTable of a polynomial other than Castagnoli"
+/-- `archAvailableCastagnoli() bool` (`crc32_amd64.go`: `return cpu.X86.HasSSE42`): **an arbitrary
+`bool`**. Go's is a property of the CPU, fixed for the process; the model allows either answer at
+each call, so it covers every CPU (with or without SSE4.2, and the other architectures' files, whose
+answer is also fixed: `crc32_otherarch.go`'s `false`). Only `castagnoliInitOnce` calls it, once per
+process. -/
+noncomputable def archAvailableCastagnoli.impl : val :=
+  λ: <>, ArbitraryInt =⟨go.int64⟩ #(W64 0)
 
-/-- `update(crc uint32, tab *Table, p []byte, checkInitIEEE bool) uint32` (`crc32.go:202-214`), as
-`simpleUpdate` (`crc32_generic.go`; the file header: every path computes it, and `checkInitIEEE`
-changes no result):
+/-- `archInitCastagnoli()` (`crc32_amd64.go`): **a no-op**. Go's panics unless SSE4.2 is present,
+which the translated code rules out (it calls it only after `archAvailableCastagnoli()` returned
+true), and otherwise fills `castagnoliSSE42TableK1`/`K2`, package variables that only
+`archUpdateCastagnoli`'s Go reads (nothing translated names them; they are not translated). Its loop
+calls only `castagnoliSSE42` on a zeroed stack buffer, so it reads and writes nothing else and
+returns. The model's `archUpdateCastagnoli` reads no table, so skipping the fill changes no result. -/
+noncomputable def archInitCastagnoli.impl : val :=
+  λ: <>, #()
+
+/-- `archUpdateCastagnoli(crc uint32, p []byte) uint32` (`crc32_amd64.go`: SSE4.2 `CRC32`
+instructions, three streams combined through the K1/K2 tables): **`crc32c crc p`**, the CRC-32C of
+Go's portable code, computed here by that code itself,
 
 ```go
-	crc = ^crc
-	for _, v := range p {
-		crc = tab[byte(crc)^v] ^ (crc >> 8)
-	}
-	return ^crc
+	return simpleUpdate(crc, simpleMakeTable(Castagnoli), p)
 ```
 
-the loop as a recursion on `p[1:]`. -/
-noncomputable def update.impl : val :=
-  λ: "crc" "tab" "p" <>,
-    (rec: "loop" "c" "p" :=
-      let: "n" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "p" in
-      if: "n" =⟨go.int⟩ #(W64 0) then ⟨go.uint32⟩^ "c"
-      else
-        let: "v" := ![go.byte] (IndexRef (go.GoType.SliceType go.byte) ("p", #(W64 0))) in
-        let: "i" := Convert go.byte go.int ((Convert go.uint32 go.byte "c") ^⟨go.byte⟩ "v") in
-        let: "e" := ![go.uint32] (IndexRef (go.ArrayType 256 go.uint32) ("tab", "i")) in
-        "loop" ("e" ^⟨go.uint32⟩ ("c" >>⟨go.uint32⟩ #(W64 8)))
-          (Slice (go.GoType.SliceType go.byte) (("p", #(W64 1)), "n")))
-      (⟨go.uint32⟩^ "crc") "p"
+(the translated `simpleUpdate` and `simpleMakeTable`; the table is a fresh allocation that nothing
+else sees). Go's panics unless SSE4.2 is present, which the translated code rules out (it is called
+only through `updateCastagnoli`, set to it only after `archAvailableCastagnoli()` returned true). It
+reads `p` (as Go's assembly does) and nothing the caller can see changes. That the assembly computes
+this function is the trusted claim of this file (the header: Go's `TestArchCastagnoli`). -/
+noncomputable def archUpdateCastagnoli.impl : val :=
+  λ: "crc" "p",
+    let: "t" := (FuncResolve go!"hash/crc32.simpleMakeTable" []) #() #castagnoliPoly in
+    (FuncResolve go!"hash/crc32.simpleUpdate" []) #() "crc" "t" "p"
 
 end code
 end hash.crc32

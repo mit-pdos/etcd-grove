@@ -1229,7 +1229,11 @@ at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `L
 (the lease-revoke plan, 2026-10-31) `Revoke` clauses, from their proofs: the store watchable, its
 hook's facts, and the rest resource `RO` lending the store's right to the tracked buckets and the
 lessor's half of `le.b` (given back at buckets agreeing with `rs.bk` off `lease`: 2026-11-02, the
-backend-auth-split stage); its `Lookup` clause is the premise (`apply.isApplyLessor_of_lessorInv`). -/
+backend-auth-split stage). (prove-ps2-newlessor5, 2026-11-21) The last premise, the token-free `Lookup`
+triple, was `isApplyLessor`'s `Lookup` clause, which no proof used and none over the real code can give (the
+code read-locks the lessor's `mu`, which the model bounds by reader slots); the clause is deleted, and the
+premise kept unused so that this statement stays as it was (its conclusion loses exactly the conjunct the
+premise restates). -/
 theorem lessor_apply_contract (lp : Loc) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF)
     (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RO : EtcdGrove.apply.RestM → IProp GF)
     (RW : IProp GF) :
@@ -1248,11 +1252,12 @@ theorem lessor_apply_contract (lp : Loc) (γ : mvcc.api.MvccName) (Pk : mvcc.KBR
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
           @!! go!"Lookup")) (Val #id))
         {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ EtcdGrove.apply.leaseIs l id }}) ⊢
-      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) γ Pk f BT RO RW :=
-  EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
+      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) γ Pk f BT RO RW := by
+  iintro ⟨H1, H2, H3, H4, H5, H6, H7, -⟩
+  iapply (EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
     lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Revoke
-    lp γ Pk f BT RO RW
+    lp γ Pk f BT RO RW) $$ [$H1 $H2 $H3 $H4 $H5 $H6 $H7]
 
 /-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
@@ -2212,7 +2217,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.Field
     mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema.wp_NewAuthBackend v3compactor.wp_New
     EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier
     EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook
-    config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID
+    config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID membership.RaftCluster.wp_Version
     rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer
     rafthttp.peer.wp_stop rafthttp.remote.wp_stop mvcc.api.mvccApi_watchableStore_Close_wp_api
     schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
@@ -2269,10 +2274,10 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
     -- (auth-lease S4, D-k) raft's no-snapshot mode, the caller's choice (`cluster_alloc_ns`'s)
     (ns : Bool := false) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
-      ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
+      ∃ (γ : SrvRaft) (issued cnt wn fs gen : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
-          γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
+          γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧ γk.ids.gen = gen ∧
           γk.cmp = false ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
         -- (auth-lease S4, D-k) in raft's no-snapshot mode exactly when `ns` (`cluster_alloc_ns`'s)
         ⌜clusterNoSnap γ.cl ↔ ns = true⌝ ∗
@@ -2281,7 +2286,7 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
         -- (5b) the client's view of the auth history, at the start
         authHistView γk [srvAuthSt0] ∗
-        idClusterInv issued cnt wn fs srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
+        idClusterInv issued cnt wn fs gen srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
           idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16 (uint.Z id)))) ∗
@@ -2292,7 +2297,8 @@ theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8)) (boot : 
           -- (2026-10-26, D22 J2) and its snapshot directory, empty (`SrvRaft.snapLoc`)
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
-        [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) :=
+        ([∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)) ∗
+        [∗list] id ∈ ps, idPfxInv gen (idPfxOf (W16 (uint.Z id))) :=
   srvClusterBootOn_alloc ps ctxs boot xs reg Hrb Hrb2 Hbc Hnd Hne Hnz lm gp gps hgps ns
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
@@ -2309,7 +2315,7 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp ∧
           ρ.rd.kv.lm = γk.lm ∧
-          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
+          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0 ∧ ρ.ids.gen = γk.ids.gen⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
   srvMemberBootOn_alloc γ cnt γk id cok hpfx hpo

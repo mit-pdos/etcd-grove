@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.github_com.dustin.go_humanize
 
 @[expose] public section
 
@@ -65,188 +66,8 @@ opaque Year [GooseExts] [GoGlobalContext] : val
 
 opaque LongTime [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bigIECExp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.bigIECExp"
-
-opaque bigIECExp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigByte"
-
-opaque BigByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigKiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigKiByte"
-
-opaque BigKiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigMiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigMiByte"
-
-opaque BigMiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigGiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigGiByte"
-
-opaque BigGiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigTiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigTiByte"
-
-opaque BigTiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigPiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigPiByte"
-
-opaque BigPiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigEiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigEiByte"
-
-opaque BigEiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigZiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigZiByte"
-
-opaque BigZiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigYiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigYiByte"
-
-opaque BigYiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigRiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigRiByte"
-
-opaque BigRiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigQiByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigQiByte"
-
-opaque BigQiByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def bigSIExp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.bigSIExp"
-
-opaque bigSIExp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigSIByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigSIByte"
-
-opaque BigSIByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigKByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigKByte"
-
-opaque BigKByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigMByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigMByte"
-
-opaque BigMByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigGByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigGByte"
-
-opaque BigGByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigTByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigTByte"
-
-opaque BigTByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigPByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigPByte"
-
-opaque BigPByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigEByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigEByte"
-
-opaque BigEByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigZByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigZByte"
-
-opaque BigZByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigYByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigYByte"
-
-opaque BigYByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigRByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigRByte"
-
-opaque BigRByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BigQByte [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.BigQByte"
-
-opaque BigQByte.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def bigBytesSizeTable [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.bigBytesSizeTable"
-
-opaque bigBytesSizeTable.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ten [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.ten"
-
-opaque ten.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def bytesSizeTable [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.bytesSizeTable"
-
-opaque bytesSizeTable.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def renderFloatPrecisionMultipliers [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.renderFloatPrecisionMultipliers"
-
-opaque renderFloatPrecisionMultipliers.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def renderFloatPrecisionRounders [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.renderFloatPrecisionRounders"
-
-opaque renderFloatPrecisionRounders.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def siPrefixTable [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.siPrefixTable"
-
-opaque siPrefixTable.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def revSIPrefixTable [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.revSIPrefixTable"
-
-opaque revSIPrefixTable.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def minSIExponent [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.minSIExponent"
-
-opaque minSIExponent.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def maxSIExponent [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.maxSIExponent"
-
-opaque maxSIExponent.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def siParseAliases [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.siParseAliases"
-
-opaque siParseAliases.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def riParseRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.riParseRegex"
-
-noncomputable def errInvalid [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.errInvalid"
-
-opaque errInvalid.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def defaultMagnitudes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/dustin/go-humanize.defaultMagnitudes"
-
-opaque defaultMagnitudes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def oomm [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.oomm"
@@ -359,6 +180,167 @@ noncomputable def RelTime [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def CustomRelTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.CustomRelTime"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `bigIECExp` (`var bigIECExp = big.NewInt(1024)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigByte` (`var // BigByte is one byte in bit.Ints BigByte = big.NewInt(1)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigKiByte` (`var // BigKiByte is 1,024 bytes in bit.Ints BigKiByte = (&big.Int{}).Mul(BigByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigMiByte` (`var // BigMiByte is 1,024 k bytes in bit.Ints BigMiByte = (&big.Int{}).Mul(BigKiByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigGiByte` (`var // BigGiByte is 1,024 m bytes in bit.Ints BigGiByte = (&big.Int{}).Mul(BigMiByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigTiByte` (`var // BigTiByte is 1,024 g bytes in bit.Ints BigTiByte = (&big.Int{}).Mul(BigGiByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigPiByte` (`var // BigPiByte is 1,024 t bytes in bit.Ints BigPiByte = (&big.Int{}).Mul(BigTiByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigEiByte` (`var // BigEiByte is 1,024 p bytes in bit.Ints BigEiByte = (&big.Int{}).Mul(BigPiByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigZiByte` (`var // BigZiByte is 1,024 e bytes in bit.Ints BigZiByte = (&big.Int{}).Mul(BigEiByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigYiByte` (`var // BigYiByte is 1,024 z bytes in bit.Ints BigYiByte = (&big.Int{}).Mul(BigZiByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigRiByte` (`var // BigRiByte is 1,024 y bytes in bit.Ints BigRiByte = (&big.Int{}).Mul(BigYiByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigQiByte` (`var // BigQiByte is 1,024 r bytes in bit.Ints BigQiByte = (&big.Int{}).Mul(BigRiByte, bigIECExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `bigSIExp` (`var bigSIExp = big.NewInt(1000)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigSIByte` (`var // BigSIByte is one SI byte in big.Ints BigSIByte = big.NewInt(1)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigKByte` (`var // BigKByte is 1,000 SI bytes in big.Ints BigKByte = (&big.Int{}).Mul(BigSIByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigMByte` (`var // BigMByte is 1,000 SI k bytes in big.Ints BigMByte = (&big.Int{}).Mul(BigKByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigGByte` (`var // BigGByte is 1,000 SI m bytes in big.Ints BigGByte = (&big.Int{}).Mul(BigMByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigTByte` (`var // BigTByte is 1,000 SI g bytes in big.Ints BigTByte = (&big.Int{}).Mul(BigGByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigPByte` (`var // BigPByte is 1,000 SI t bytes in big.Ints BigPByte = (&big.Int{}).Mul(BigTByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigEByte` (`var // BigEByte is 1,000 SI p bytes in big.Ints BigEByte = (&big.Int{}).Mul(BigPByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigZByte` (`var // BigZByte is 1,000 SI e bytes in big.Ints BigZByte = (&big.Int{}).Mul(BigEByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigYByte` (`var // BigYByte is 1,000 SI z bytes in big.Ints BigYByte = (&big.Int{}).Mul(BigZByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigRByte` (`var // BigRByte is 1,000 SI y bytes in big.Ints BigRByte = (&big.Int{}).Mul(BigYByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `BigQByte` (`var // BigQByte is 1,000 SI r bytes in big.Ints BigQByte = (&big.Int{}).Mul(BigRByte, bigSIExp)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `bigBytesSizeTable` (`var bigBytesSizeTable = map[string]*big.Int{ "b": BigByte, "kib": BigKiByte, "kb": BigKByte, "mib": BigMiByte, "mb": Big … [sha256:9aee2c5bbfeb1668]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ten` (`var ten = big.NewInt(10)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `bytesSizeTable` (`var bytesSizeTable = map[string]uint64{ "b": Byte, "kib": KiByte, "kb": KByte, "mib": MiByte, "mb": MByte, "gib": GiByte … [sha256:7e513403b053ce8b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `renderFloatPrecisionMultipliers` (`var renderFloatPrecisionMultipliers = [...]float64{ 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 10000 … [sha256:2fac9125dc5caeb4]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `renderFloatPrecisionRounders` (`var renderFloatPrecisionRounders = [...]float64{ 0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005, 0.0 … [sha256:fcb13811e97e111e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `siPrefixTable` (`var siPrefixTable = map[float64]string{ -30: "q", -27: "r", -24: "y", -21: "z", -18: "a", -15: "f", -12: "p", -9: "n", - … [sha256:da3dd105bff4eef1]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `revSIPrefixTable` (`var revSIPrefixTable = revfmap(siPrefixTable)`): Its initializer calls, besides literals of constants and other variables' values: `revfmap` builds
+the reverse of a constant map literal (a finite range). So it terminates, cannot panic and has no
+effect beyond its variable.
+- `minSIExponent` (`var minSIExponent, maxSIExponent = func() (float64, float64) { min, max := math.Inf(1), math.Inf(-1) for k := range siPr … [sha256:58780403289b2fdb]`): One initializer for both (`var minSIExponent, maxSIExponent = func() (float64, float64) {...}()`):
+the function literal ranges over the map `siPrefixTable` (a literal of 21 entries, initialized
+before) comparing its keys with `math.Inf(±1)`: it terminates, cannot panic and has no effect beyond
+the two variables.
+- `maxSIExponent` (`var minSIExponent, maxSIExponent = func() (float64, float64) { min, max := math.Inf(1), math.Inf(-1) for k := range siPr … [sha256:58780403289b2fdb]`): One initializer for both (`var minSIExponent, maxSIExponent = func() (float64, float64) {...}()`):
+the function literal ranges over the map `siPrefixTable` (a literal of 21 entries, initialized
+before) comparing its keys with `math.Inf(±1)`: it terminates, cannot panic and has no effect beyond
+the two variables.
+- `siParseAliases` (`var siParseAliases = map[string]float64{ "μ": 1e-6, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errInvalid` (`var errInvalid = errors.New("invalid input")`): Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable.
+- `defaultMagnitudes` (`var defaultMagnitudes = []RelTimeMagnitude{ {time.Second, "now", time.Second}, {2 * time.Second, "1 second %s", 1}, {tim … [sha256:1a05425c119f48a5]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"github.com/dustin/go-humanize.bigIECExp", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var bigIECExp = big.NewInt(1024)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigByte is one byte in bit.Ints BigByte = big.NewInt(1)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigKiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigKiByte is 1,024 bytes in bit.Ints BigKiByte = (&big.Int{}).Mul(BigByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigMiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigMiByte is 1,024 k bytes in bit.Ints BigMiByte = (&big.Int{}).Mul(BigKiByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigGiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigGiByte is 1,024 m bytes in bit.Ints BigGiByte = (&big.Int{}).Mul(BigMiByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigTiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigTiByte is 1,024 g bytes in bit.Ints BigTiByte = (&big.Int{}).Mul(BigGiByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigPiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigPiByte is 1,024 t bytes in bit.Ints BigPiByte = (&big.Int{}).Mul(BigTiByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigEiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigEiByte is 1,024 p bytes in bit.Ints BigEiByte = (&big.Int{}).Mul(BigPiByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigZiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigZiByte is 1,024 e bytes in bit.Ints BigZiByte = (&big.Int{}).Mul(BigEiByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigYiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigYiByte is 1,024 z bytes in bit.Ints BigYiByte = (&big.Int{}).Mul(BigZiByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigRiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigRiByte is 1,024 y bytes in bit.Ints BigRiByte = (&big.Int{}).Mul(BigYiByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigQiByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigQiByte is 1,024 r bytes in bit.Ints BigQiByte = (&big.Int{}).Mul(BigRiByte, bigIECExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.bigSIExp", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var bigSIExp = big.NewInt(1000)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigSIByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigSIByte is one SI byte in big.Ints BigSIByte = big.NewInt(1)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigKByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigKByte is 1,000 SI bytes in big.Ints BigKByte = (&big.Int{}).Mul(BigSIByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigMByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigMByte is 1,000 SI k bytes in big.Ints BigMByte = (&big.Int{}).Mul(BigKByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigGByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigGByte is 1,000 SI m bytes in big.Ints BigGByte = (&big.Int{}).Mul(BigMByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigTByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigTByte is 1,000 SI g bytes in big.Ints BigTByte = (&big.Int{}).Mul(BigGByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigPByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigPByte is 1,000 SI t bytes in big.Ints BigPByte = (&big.Int{}).Mul(BigTByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigEByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigEByte is 1,000 SI p bytes in big.Ints BigEByte = (&big.Int{}).Mul(BigPByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigZByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigZByte is 1,000 SI e bytes in big.Ints BigZByte = (&big.Int{}).Mul(BigEByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigYByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigYByte is 1,000 SI z bytes in big.Ints BigYByte = (&big.Int{}).Mul(BigZByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigRByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigRByte is 1,000 SI y bytes in big.Ints BigRByte = (&big.Int{}).Mul(BigYByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.BigQByte", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // BigQByte is 1,000 SI r bytes in big.Ints BigQByte = (&big.Int{}).Mul(BigRByte, bigSIExp)"⟩,
+  ⟨"github.com/dustin/go-humanize.bigBytesSizeTable", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var bigBytesSizeTable = map[string]*big.Int{ \"b\": BigByte, \"kib\": BigKiByte, \"kb\": BigKByte, \"mib\": BigMiByte, \"mb\": Big … [sha256:9aee2c5bbfeb1668]"⟩,
+  ⟨"github.com/dustin/go-humanize.ten", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ten = big.NewInt(10)"⟩,
+  ⟨"github.com/dustin/go-humanize.bytesSizeTable", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var bytesSizeTable = map[string]uint64{ \"b\": Byte, \"kib\": KiByte, \"kb\": KByte, \"mib\": MiByte, \"mb\": MByte, \"gib\": GiByte … [sha256:7e513403b053ce8b]"⟩,
+  ⟨"github.com/dustin/go-humanize.renderFloatPrecisionMultipliers", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var renderFloatPrecisionMultipliers = [...]float64{ 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 10000 … [sha256:2fac9125dc5caeb4]"⟩,
+  ⟨"github.com/dustin/go-humanize.renderFloatPrecisionRounders", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var renderFloatPrecisionRounders = [...]float64{ 0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005, 0.0 … [sha256:fcb13811e97e111e]"⟩,
+  ⟨"github.com/dustin/go-humanize.siPrefixTable", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var siPrefixTable = map[float64]string{ -30: \"q\", -27: \"r\", -24: \"y\", -21: \"z\", -18: \"a\", -15: \"f\", -12: \"p\", -9: \"n\", - … [sha256:da3dd105bff4eef1]"⟩,
+  ⟨"github.com/dustin/go-humanize.revSIPrefixTable", "Its initializer calls, besides literals of constants and other variables' values: `revfmap` builds\nthe reverse of a constant map literal (a finite range). So it terminates, cannot panic and has no\neffect beyond its variable.", "var revSIPrefixTable = revfmap(siPrefixTable)"⟩,
+  ⟨"github.com/dustin/go-humanize.minSIExponent", "One initializer for both (`var minSIExponent, maxSIExponent = func() (float64, float64) {...}()`):\nthe function literal ranges over the map `siPrefixTable` (a literal of 21 entries, initialized\nbefore) comparing its keys with `math.Inf(±1)`: it terminates, cannot panic and has no effect beyond\nthe two variables.", "var minSIExponent, maxSIExponent = func() (float64, float64) { min, max := math.Inf(1), math.Inf(-1) for k := range siPr … [sha256:58780403289b2fdb]"⟩,
+  ⟨"github.com/dustin/go-humanize.maxSIExponent", "One initializer for both (`var minSIExponent, maxSIExponent = func() (float64, float64) {...}()`):\nthe function literal ranges over the map `siPrefixTable` (a literal of 21 entries, initialized\nbefore) comparing its keys with `math.Inf(±1)`: it terminates, cannot panic and has no effect beyond\nthe two variables.", "var minSIExponent, maxSIExponent = func() (float64, float64) { min, max := math.Inf(1), math.Inf(-1) for k := range siPr … [sha256:58780403289b2fdb]"⟩,
+  ⟨"github.com/dustin/go-humanize.siParseAliases", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var siParseAliases = map[string]float64{ \"μ\": 1e-6, }"⟩,
+  ⟨"github.com/dustin/go-humanize.errInvalid", "Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a\nconstant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var errInvalid = errors.New(\"invalid input\")"⟩,
+  ⟨"github.com/dustin/go-humanize.defaultMagnitudes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defaultMagnitudes = []RelTimeMagnitude{ {time.Second, \"now\", time.Second}, {2 * time.Second, \"1 second %s\", 1}, {tim … [sha256:1a05425c119f48a5]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.dustin.go_humanize where
   pkgImportedPkgs := []
 
@@ -368,113 +350,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.dustin.go_humanize)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val defaultMagnitudes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInvalid.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val revSIPrefixTable.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val siParseAliases.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val minSIExponent.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val siPrefixTable.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val renderFloatPrecisionRounders.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val renderFloatPrecisionMultipliers.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val bytesSizeTable.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ten.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val bigBytesSizeTable.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigQByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigRByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigYByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigZByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigEByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigPByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigTByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigGByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigMByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigKByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigSIByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val bigSIExp.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigQiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigRiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigYiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigZiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigEiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigPiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigTiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigGiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigMiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigKiByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BigByte.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val bigIECExp.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
 opaque RelTimeMagnitude.nonempty_type : NonemptyType.{0}
 def RelTimeMagnitude : Type := RelTimeMagnitude.nonempty_type.type
@@ -497,8 +374,10 @@ attribute [instance] RelTimeMagnitude.TypeAssumptions.type_repr
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RelTimeMagnitude_instance : RelTimeMagnitude.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.RelTimeMagnitude_instance
+  Assumptions.«init.0_unfold»
 
 end github_com.dustin.go_humanize
 

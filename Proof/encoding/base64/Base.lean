@@ -20,7 +20,7 @@ opaque; now the package's initializer and `EncodeToString` are translated with t
 module
 
 public import GeneratedProof.encoding.base64
-public import Proof.internal.byteorder.Base
+public import Perennial.Proof.internal.byteorder.Base
 public import Perennial.Proof.strconv.Base
 
 @[expose] public section
@@ -63,6 +63,10 @@ def stdEnc (d : List w8) : GoString := b64Enc stdAlphabet (some 61) d
 /-- **base64's URL encoding without padding** (`RawURLEncoding.EncodeToString`) of a byte
 string. -/
 def rawUrlEnc (d : List w8) : GoString := b64Enc urlAlphabet none d
+
+/-- **base64's standard encoding without padding** (`RawStdEncoding.EncodeToString`) of a byte
+string (phase 7 S2 core, 2026-11-23: grpc's `encodeBinHeader`). -/
+def rawStdEnc (d : List w8) : GoString := b64Enc stdAlphabet none d
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]

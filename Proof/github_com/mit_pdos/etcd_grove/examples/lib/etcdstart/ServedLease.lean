@@ -6,7 +6,8 @@ example, 2026-11-02, `notes/lease-ex-plan.md`). Lean-first (no Rocq counterpart)
 (`client.etcdLeaseReadAt`: `LeaseTimeToLive`, `LeaseLeases` at etcd's specs), from `grpcUp`'s
 Lease service (`grpcLeaseUp`) and the member's lessor reader side (`memberUp`'s `srvLeaseRd`). One
 `grpc.serve` serves every method, with one slot: the KV's run resources and the level-0 token
-(`etcdGrpcSlot s E γr ∗ levelTok 0`, a run's bundle `srvRunBundle` by `client.etcdGrpcSlot_bundle`),
+(`etcdGrpcSlot s E γr`, the token among the interceptors' lent resources since prove-ps2-cap,
+2026-11-23; a run's bundle `srvRunBundle` by `client.etcdGrpcSlot_bundle`),
 which each run borrows from the server's run pools, built here from `memberUp`'s stocks
 (`kvServeStocks_pools`; per-type stage B3: until then a thread token the caller gave). The lease
 reads take the token with `E.RD` and the store's reader (`raftLeaseRead_server`'s
@@ -95,7 +96,7 @@ revoked it). -/
 def etcdLeaseGrantLiveAt (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
       (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E γr false) (mvcc.api.mvccLeases E.γ)) ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) s) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) (leaseTTLRow s (mvcc.api.mvccLeases E.γ))) ∗
     isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecLive (mvcc.api.mvccLeases E.γ)))
 
 instance etcdLeaseGrantLiveAt_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF)

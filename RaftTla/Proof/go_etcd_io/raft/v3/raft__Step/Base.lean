@@ -22,6 +22,7 @@ Lean notes:
 module
 
 public import RaftTla.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import GooseLang.NotCrashed
 public import RaftTla.Proof.go_etcd_io.raft.v3.StepLemmasR
 public import RaftTla.Proof.go_etcd_io.raft.v3.StepGhostMode
 public import RaftTla.Spec.go_etcd_io.raft.v3.raft__Step
@@ -646,18 +647,19 @@ theorem ghost_step_mdL (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : 
     (Hstep : StepCD c id B m s recv s') (Hdh : DynHypFor md m s s')
     (Hn : rdCount recv ≤ n) (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
       rdCred γ n -∗ msgsTks γ recv -∗
       £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
       ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
-  iintro #Hrc Hall Hcr Htk Hlc Hg Hrest
+      notCrashed ∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
+  iintro Hnc #Hrc Hall Hcr Htk Hlc Hg Hrest
   ihave Hc := (rdCred_split γ (rdCount recv) (n - rdCount recv)).1 $$ [Hcr]
   · rw [show rdCount recv + (n - rdCount recv) = n by omega]; iexact Hcr
   icases Hc with ⟨Hc, -⟩
-  imod ghost_stepCD γ md c id m B HB s recv s' Hstep Hdh Hng Hot $$ Hrc Hall Hc Htk Hlc Hg Hrest
-    with ⟨%md', %Hout, Hg, Hrest⟩
+  imod ghost_stepCD γ md c id m B HB s recv s' Hstep Hdh Hng Hot $$ Hnc Hrc Hall Hc Htk Hlc Hg Hrest
+    with ⟨Hnc, %md', %Hout, Hg, Hrest⟩
   imodintro
+  iframe Hnc
   iexists md'
   isplitr
   · ipureintro; exact Hout
@@ -671,18 +673,18 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     (Hn : rdCount recv ≤ n) (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ rdCred γ n -∗ msgsTks γ recv -∗
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ rdCred γ n -∗ msgsTks γ recv -∗
       £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
       ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
-  iintro #Hrc #Hm Hcr Htk Hlc Hg Hrest
+      notCrashed ∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
+  iintro Hnc #Hrc #Hm Hcr Htk Hlc Hg Hrest
   ihave #Hall : ([∗list] m ∈ recv, isMessage (GF := GF) γ m) $$ []
   · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ a))
       (fun k x hx => by
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
-  iapply ghost_step_mdL γ md c id m s s' recv n B HB Hstep Hdh Hn Hng Hot $$ Hrc Hall Hcr Htk Hlc Hg
+  iapply ghost_step_mdL γ md c id m s s' recv n B HB Hstep Hdh Hn Hng Hot $$ Hnc Hrc Hall Hcr Htk Hlc Hg
     Hrest
 
 /-- The same, for a branch that receives nothing. -/
@@ -691,20 +693,21 @@ theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : 
     (Hdh : DynHypFor md m s s') (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
-  iintro Hlc Hg Hrest
+    ⊢ notCrashed -∗ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+      notCrashed ∗ ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
+  iintro Hnc Hlc Hg Hrest
   -- (2026-10-18, D19b stage 5) a step that creates no entry, at the node's last index
   ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
   imod lastRec_receipt γ _ $$ Hlr with #Hrc
   imod rdCred_zero (GF := GF) γ with Hcr
-  imod ghost_stepCD γ md c id m _ HB s [] s' Hstep Hdh Hng Hot $$ Hrc [] [Hcr] [] Hlc Hg Hrest
-    with ⟨%md', %Hout, Hg, Hrest⟩
+  imod ghost_stepCD γ md c id m _ HB s [] s' Hstep Hdh Hng Hot $$ Hnc Hrc [] [Hcr] [] Hlc Hg Hrest
+    with ⟨Hnc, %md', %Hout, Hg, Hrest⟩
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
   · iapply msgsTks_nil
   imodintro
+  iframe Hnc
   iexists md'
   isplitr
   · ipureintro; exact Hout
@@ -720,10 +723,10 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
     (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) GMode.static.isDyn -∗
+    ⊢ notCrashed -∗ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) GMode.static.isDyn -∗
       ghostRest γ .static c id s ={⊤}=∗
-      ⌜GMode.static.StepOut c id m s s' .static⌝ ∗ ownStepGhost γ .static c id s' := by
-  iintro Hlc Hg Hrest
+      notCrashed ∗ ⌜GMode.static.StepOut c id m s s' .static⌝ ∗ ownStepGhost γ .static c id s' := by
+  iintro Hnc Hlc Hg Hrest
   ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
   imod lastRec_receipt γ _ $$ Hlr with #Hrc
   imod rdCred_zero (GF := GF) γ with Hcr
@@ -735,11 +738,12 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   ihave #Hw' := leadW_stepC γ c id _ (toPState s) [] (toPState s') Hstep $$ Hnil Hw
-  imod ownRaftGhost_stepC γ c HC.1 id HC.2 _ HB (toPState s) [] (toPState s') Hstep $$ Hrc Hnil
-    [Hcr] [] Hlc Hg with Hg
+  imod ownRaftGhost_stepC γ c HC.1 id HC.2 _ HB (toPState s) [] (toPState s') Hstep $$ Hnc Hrc Hnil
+    [Hcr] [] Hlc Hg with ⟨Hnc, Hg⟩
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
   · iapply msgsTks_nil
   imodintro
+  iframe Hnc
   isplitr
   · ipureintro; exact ⟨rfl, _, [], Hstep⟩
   unfold ownStepGhost
@@ -762,12 +766,13 @@ theorem ghost_step_static0' (γ : RaftNames) (c c' : CfgM) (id : w64) (m : Messa
     (HC' : CfgStatic γ c' ∧ TrackedOk γ c' id)
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) GMode.static.isDyn -∗
+    ⊢ notCrashed -∗ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) GMode.static.isDyn -∗
       ghostRest γ .static c id s ={⊤}=∗
-      ⌜GMode.static.StepOut c id m s s' .static⌝ ∗ ownStepGhost γ .static c' id s' := by
-  iintro Hlc Hg Hrest
-  imod ghost_step_static0 γ c id m s s' Hstep Hng Hot $$ Hlc Hg Hrest with ⟨%Hout, Hgh⟩
+      notCrashed ∗ ⌜GMode.static.StepOut c id m s s' .static⌝ ∗ ownStepGhost γ .static c' id s' := by
+  iintro Hnc Hlc Hg Hrest
+  imod ghost_step_static0 γ c id m s s' Hstep Hng Hot $$ Hnc Hlc Hg Hrest with ⟨Hnc, %Hout, Hgh⟩
   imodintro
+  iframe Hnc
   isplitr
   · ipureintro; exact Hout
   iunfold ownStepGhost at Hgh
@@ -797,8 +802,8 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
         uint.Z j ≤ uint.Z s.logst.prev.index' ∧
         (s'.logst.snap = none → j = s.logst.prev.index') ∧
         ∃ cs', cfgFold (effDec dec g.decs) c0 (g.fp.take (uint.nat j)) = some cs' ∧ cs'.cfg = c')) :
-    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id m s s' md' ∧
+    ⊢ notCrashed -∗ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+      notCrashed ∗ ∃ md', ⌜md.StepOut c id m s s' md' ∧
         (∀ dec c0 h0 g, md = .dyn dec c0 h0 g → ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat j, cs', g.fp, g.decs⟩)⌝ ∗
         ownStepGhost γ md' c' id s' := by
   -- (Q8 stage 1 slice 10) the outbox kept
@@ -810,10 +815,11 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
       rcases Hmode with ⟨-, h⟩ | ⟨_, _, _, _, h, -⟩
       · exact h
       · cases h
-    iintro Hlc Hg Hrest
+    iintro Hnc Hlc Hg Hrest
     imod ghost_step_static0' γ c c' id m s s' (by rw [Hps]; exact .refl _) Hng HC' Hot
-      $$ Hlc Hg Hrest with ⟨%Hout, Hgh⟩
+      $$ Hnc Hlc Hg Hrest with ⟨Hnc, %Hout, Hgh⟩
     imodintro
+    iframe Hnc
     iexists GMode.static
     iframe Hgh
     ipureintro; exact ⟨Hout, fun _ _ _ _ h => by cases h⟩
@@ -827,7 +833,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
       · cases h; exact Hd
     obtain ⟨Hrole, Hap, Hlt, Hjb, Hsn, cs', Hfold, Hcs'⟩ := Hd
     simp only [ghostRest, ghostRestM, ownStepGhost, GMode.isDyn]
-    iintro Hlc Hg ⟨%Hnl, ⟨%Hdc, #HM, #Hfr⟩, #Hcl⟩
+    iintro Hnc Hlc Hg ⟨%Hnl, ⟨%Hdc, #HM, #Hfr⟩, #Hcl⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
     imod lastRec_receipt γ _ $$ Hlr with #Hrc
@@ -855,7 +861,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
       iframe Hg Hfr
       ipureintro; exact HI
     imod ownRaftGhostR_stepR γ dec g.decs c0 h0 HD (fun l => l = g.fp.take (uint.nat j)) id _ HB
-      (rOf s g) [] _ HR $$ Hrc HM [] [] [Hcr] [] Hlc Hown with Hown
+      (rOf s g) [] _ HR $$ Hnc Hrc HM [] [] [Hcr] [] Hlc Hown with ⟨Hnc, Hown⟩
     · imodintro
       iintro %fp %h
       subst h
@@ -865,6 +871,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
     · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
     · iapply msgsTks_nil
     imodintro
+    iframe Hnc
     iexists GMode.dyn dec c0 h0 g'
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI', #Hfr'⟩
@@ -896,14 +903,14 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
     (Hnp : a.ty ≠ .propose := by simp [absMsg, absMsgFrom])
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ isMessage γ a -∗
+    ⊢ notCrashed -∗ isMessage γ a -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
       Gq s' -∗ stepPost γ md c r id s m Gq Φ -∗
-      |={⊤}=> Φ #err := by
-  iintro #Hm Hghost Hrest Hphys Herr HG HΦ
+      |={⊤}=> notCrashed ∗ Φ #err := by
+  iintro Hnc #Hm Hghost Hrest Hphys Herr HG HΦ
   have Hcnt : rdCount recv = 0 := by
     unfold rdCount; rw [List.countP_eq_zero]
     intro x hx; rw [Hrecv x hx]; simp [Hna]
@@ -913,11 +920,12 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
   -- (2026-10-18, D19b stage 5) a step that creates no entry, at the node's last index
   ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
   imod lastRec_receipt γ _ $$ Hlr with #Hrc
-  imod ghost_step_md γ md c id m s s' a recv 0 _ HB Hrecv Hstep Hdh (by omega) Hng Hot $$ Hrc Hm Hz [] Hlc
+  imod ghost_step_md γ md c id m s s' a recv 0 _ HB Hrecv Hstep Hdh (by omega) Hng Hot $$ Hnc Hrc Hm Hz [] Hlc
     Hghost Hrest
-    with ⟨%md', %Hout, Hghost⟩
+    with ⟨Hnc, %md', %Hout, Hghost⟩
   · iapply msgsTks_noprop γ recv (fun x hx => by rw [Hrecv x hx]; exact Hnp)
   imodintro
+  iframe Hnc
   iapply HΦ $$ %err %s' %c %md'
   iframe Hphys Hghost Herr HG
   ipureintro
@@ -935,14 +943,14 @@ theorem finish_branchT (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
     (Hnp : a.ty ≠ .propose := by simp [absMsg, absMsgFrom])
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ isMessage γ a -∗
+    ⊢ notCrashed -∗ isMessage γ a -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
       Gq s' -∗ stepPostT γ md c r id s m P Gq Φ -∗
-      |={⊤}=> Φ #err := by
-  iintro #Hm Hghost Hrest Hphys Herr HG HΦ
+      |={⊤}=> notCrashed ∗ Φ #err := by
+  iintro Hnc #Hm Hghost Hrest Hphys Herr HG HΦ
   have Hcnt : rdCount recv = 0 := by
     unfold rdCount; rw [List.countP_eq_zero]
     intro x hx; rw [Hrecv x hx]; simp [Hna]
@@ -951,11 +959,12 @@ theorem finish_branchT (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
   icases HΦ with ⟨Hlc, HΦ⟩
   ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
   imod lastRec_receipt γ _ $$ Hlr with #Hrc
-  imod ghost_step_md γ md c id m s s' a recv 0 _ HB Hrecv Hstep Hdh (by omega) Hng Hot $$ Hrc Hm Hz [] Hlc
+  imod ghost_step_md γ md c id m s s' a recv 0 _ HB Hrecv Hstep Hdh (by omega) Hng Hot $$ Hnc Hrc Hm Hz [] Hlc
     Hghost Hrest
-    with ⟨%md', %Hout, Hghost⟩
+    with ⟨Hnc, %md', %Hout, Hghost⟩
   · iapply msgsTks_noprop γ recv (fun x hx => by rw [Hrecv x hx]; exact Hnp)
   imodintro
+  iframe Hnc
   iapply HΦ $$ %err %s' %c %md'
   iframe Hphys Hghost Herr HG
   ipureintro
@@ -974,24 +983,25 @@ theorem finish_branchB (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
     (Hnp : a.ty ≠ .propose := by simp [absMsg, absMsgFrom])
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage γ a -∗
+    ⊢ notCrashed -∗ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage γ a -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
       Gq s' -∗ stepPost γ md c r id s m Gq Φ -∗
-      |={⊤}=> Φ #err := by
-  iintro #Hrc #Hm Hghost Hrest Hphys Herr HG HΦ
+      |={⊤}=> notCrashed ∗ Φ #err := by
+  iintro Hnc #Hrc #Hm Hghost Hrest Hphys Herr HG HΦ
   have Hcnt : rdCount recv = 0 := by
     unfold rdCount; rw [List.countP_eq_zero]
     intro x hx; rw [Hrecv x hx]; simp [Hna]
   imod rdCred_zero (GF := GF) γ with Hz
   unfold stepPost
   icases HΦ with ⟨Hlc, HΦ⟩
-  imod ghost_step_md γ md c id m s s' a recv 0 B HB Hrecv Hstep Hdh (by omega) Hng Hot $$ Hrc Hm Hz [] Hlc
-    Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+  imod ghost_step_md γ md c id m s s' a recv 0 B HB Hrecv Hstep Hdh (by omega) Hng Hot $$ Hnc Hrc Hm Hz [] Hlc
+    Hghost Hrest with ⟨Hnc, %md', %Hout, Hghost⟩
   · iapply msgsTks_noprop γ recv (fun x hx => by rw [Hrecv x hx]; exact Hnp)
   imodintro
+  iframe Hnc
   iapply HΦ $$ %err %s' %c %md'
   iframe Hphys Hghost Herr HG
   ipureintro
@@ -1006,17 +1016,18 @@ theorem finish_branch0 (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
     (Hresp : RespStep m s s') (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
     -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
     (Hot : OutTrStep s s' := by outtr_tac) :
-    ⊢ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
+    ⊢ notCrashed -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
       Gq s' -∗ stepPost γ md c r id s m Gq Φ -∗
-      |={⊤}=> Φ #err := by
-  iintro Hghost Hrest Hphys Herr HG HΦ
+      |={⊤}=> notCrashed ∗ Φ #err := by
+  iintro Hnc Hghost Hrest Hphys Herr HG HΦ
   unfold stepPost
   icases HΦ with ⟨Hlc, HΦ⟩
-  imod ghost_step_md0 γ md c id m s s' Hstep Hdh Hng Hot $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+  imod ghost_step_md0 γ md c id m s s' Hstep Hdh Hng Hot $$ Hnc Hlc Hghost Hrest with ⟨Hnc, %md', %Hout, Hghost⟩
   imodintro
+  iframe Hnc
   iapply HΦ $$ %err %s' %c %md'
   iframe Hphys Hghost Herr HG
   ipureintro

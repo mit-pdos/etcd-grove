@@ -35,10 +35,11 @@ theorem rate.Every.wp_proof
   · iPkgInit
   wp_auto
   wp_if_destruct
-  · rw [show golang_org.x.time.rate.Inf = #(W64 9218868437227405311) from rfl]
-    wp_auto
-    iapply HΦ; itrivial
+  · iapply HΦ; itrivial
   · wp_apply wp_Seconds $$ [$interval] as %f interval
+    (try wp_auto)
+    wp_apply wp_float64_div as %_ -
+    (try wp_auto)
     iapply HΦ; itrivial
 
 end proof

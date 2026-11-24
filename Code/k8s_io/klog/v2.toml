@@ -1,8 +1,110 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md). It imports `logr` (names only), so that the alias `Logger = logr.Logger`
 # translates (client-go's workqueue names it; notes/k8s-clientgo-goose.md, gap C3).
-translate = ["!*"]
-imports = ["!*", "github.com/go-logr/logr"]
+# (klog-leaves, 2026-11-23, etcd-grove#25) with bodies: `V` and what it runs (`VDepth`, `newVerbose`,
+# `Level.get`), and the variable `logging` they read (allocated zero: no initializer; its fact,
+# `klog.loggingOk`, Proof/k8s_io/klog/v2/Base.lean). For `loggingT` to translate (so that `logging`
+# and its fields have a type), the packages its fields' types name are imported (`sync`, `io`,
+# `time`, `sync/atomic` and `runtime` for `VDepth`'s calls, klog's `internal/severity`, names only).
+translate = ["!*", "V", "VDepth", "newVerbose", "Level.get", "logging"]
+imports = ["!*", "github.com/go-logr/logr", "sync", "sync/atomic", "io", "time", "runtime",
+  "k8s.io/klog/v2/internal/severity"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+# (etcd-grove#32, 2026-11-22) the `init` functions trusted: a model that does nothing
+# (TrustedCode/k8s_io/klog/v2.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0", "init.1"]
+
+[[skip]]
+names = ["klogLogger"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`logr.New(&klogger{})` allocates a logger over a new sink and calls its `Init`, which sets the
+sink's own field. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["ExitFlushTimeout", "OsExit", "New", "nilToken", "severityStats", "timeNow", "MaxSize",
+  "host", "userName"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["errVmoduleSyntax", "errTraceSyntax"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable."""
+
+[[skip]]
+names = ["pid"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `os.Getpid` reads
+the process id. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["program"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `filepath.Base`
+computes a string (of `os.Args[0]`, which exists: Linux gives every process a non-empty argv since
+5.18). So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@format.go:64"]
+reason = """
+An interface check: `formatAny{}` converted to `fmt.Stringer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@format.go:65"]
+reason = """
+An interface check: `formatAny{}` converted to `logr.Marshaler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@k8s_references.go:67"]
+reason = """
+An interface check: `ObjectRef{}` converted to `logr.Marshaler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@k8s_references.go:137"]
+reason = """
+An interface check: `kobjSlice{}` converted to `fmt.Stringer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@k8s_references.go:138"]
+reason = """
+An interface check: `kobjSlice{}` converted to `logr.Marshaler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@k8s_references_slog.go:33"]
+reason = """
+An interface check: `ObjectRef{}` converted to `slog.LogValuer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@k8s_references_slog.go:39"]
+reason = """
+An interface check: `kobjSlice{}` converted to `slog.LogValuer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@klogr.go:104"]
+reason = """
+An interface check: `&klogger{}` converted to `logr.LogSink`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@klogr.go:105"]
+reason = """
+An interface check: `&klogger{}` converted to `logr.CallDepthLogSink`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@klogr_slog.go:101"]
+reason = """
+An interface check: `&klogger{}` converted to `logr.SlogSink`. No call, no panic, no effect."""
+# --- end of skipped package variables ---

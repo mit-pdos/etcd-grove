@@ -52,7 +52,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [NaInvG GF] [AllG GF] [raft_kvreconf.KvrStor GF]
+variable [NaInvG GF] [raft_kvreconf.KvrStor GF]
 
 attribute [local instance] raft_kvreconf.kvrStorageModel
 

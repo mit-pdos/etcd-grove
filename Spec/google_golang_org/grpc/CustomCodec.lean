@@ -28,7 +28,7 @@ abbrev grpc.CustomCodec.spec : Prop :=
   ∀ (c : GoInterface),
   {{ (⌜grpcProtoCodec c⌝ : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.CustomCodec)) (Val #c))
-  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v .neutral⌝ }}
+  {{ (v : GoInterface), RET #v; grpcSrvOpt v .neutral }}
 
 end spec
 

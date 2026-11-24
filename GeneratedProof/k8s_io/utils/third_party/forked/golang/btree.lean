@@ -49,7 +49,7 @@ noncomputable instance FreeList_access_load_mu {T' : Type} [TypedPointsto (GF :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance FreeList_access_store_mu {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (mu' : sync.Mutex) :
+noncomputable instance FreeList_access_store_mu {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"mu" l) mu' (DFrac.own 1))

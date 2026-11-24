@@ -33,7 +33,7 @@ abbrev credentials.perRPCCredentialBundle.PerRPCCredentials.spec : Prop :=
     (App (Val (b @!! go.GoType.PointerType
       go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle.ty @!! go!"PerRPCCredentials"))
       (Val #()))
-  {{ (pc : GoInterface), RET #pc; perRPCCredsOk pc (tokMdOk P) }}
+  {{ (pc : GoInterface), RET #pc; perRPCCredsOk pc anyRes (tokMdOk P) }}
 
 end spec
 

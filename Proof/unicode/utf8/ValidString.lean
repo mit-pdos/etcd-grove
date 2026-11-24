@@ -55,7 +55,7 @@ theorem utf8.ValidString.wp_proof (wp_word : utf8.word.spec (GF := GF) (hG := hG
     utf8.ValidString.spec (GF := GF) (hG := hG) := fun str => by
   wp_start
   ihave #Hi : (utf8.utf8Init : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
+  · iapply utf8.utf8Init_of_pkgInit $$ Hpkg
   icases Hi with ⟨#Hfirst, #Hacc⟩
   wp_auto
   ihave HI : (∃ (sr : GoString), "s" ∷ s_ptr ↦ sr ∗

@@ -3,6 +3,7 @@ module
 
 public import Code.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.api.v3.membershippb
 
 @[expose] public section
 
@@ -62,21 +63,6 @@ noncomputable def file_membership_proto_rawDescOnce [GooseExts] [GoGlobalContext
 noncomputable def file_membership_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_rawDescData"
 
-noncomputable def file_membership_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_msgTypes"
-
-opaque file_membership_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_membership_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_goTypes"
-
-opaque file_membership_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_membership_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_depIdxs"
-
-opaque file_membership_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def file_membership_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_rawDescGZIP"
 
@@ -85,6 +71,29 @@ noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def file_membership_proto_init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_init"
+
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `file_membership_proto_msgTypes` (`var file_membership_proto_msgTypes = make([]protoimpl.MessageInfo, 6)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_membership_proto_goTypes` (`var file_membership_proto_goTypes = []any{ (*RaftAttributes)(nil), (*Attributes)(nil), (*Member)(nil), (*ClusterVersionS … [sha256:4a25d03ce87c8f5d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_membership_proto_depIdxs` (`var file_membership_proto_depIdxs = []int32{ 0, 1, 1, 3, 3, 3, 3, 0, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_membership_proto_msgTypes = make([]protoimpl.MessageInfo, 6)"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_membership_proto_goTypes = []any{ (*RaftAttributes)(nil), (*Attributes)(nil), (*Member)(nil), (*ClusterVersionS … [sha256:4a25d03ce87c8f5d]"⟩,
+  ⟨"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_membership_proto_depIdxs = []int32{ 0, 1, 1, 3, 3, 3, 3, 0, }"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.membershippb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
@@ -96,17 +105,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.membershippb)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val file_membership_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_membership_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_membership_proto_msgTypes.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
 
@@ -471,6 +471,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ClusterVersionSetRequest_instance : ClusterVersionSetRequest.TypeAssumptions
   ClusterMemberAttrSetRequest_instance : ClusterMemberAttrSetRequest.TypeAssumptions
   DowngradeInfoSetRequest_instance : DowngradeInfoSetRequest.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
 attribute [instance] Assumptions.RaftAttributes_instance
@@ -479,6 +480,7 @@ attribute [instance] Assumptions.RaftAttributes_instance
   Assumptions.ClusterVersionSetRequest_instance
   Assumptions.ClusterMemberAttrSetRequest_instance
   Assumptions.DowngradeInfoSetRequest_instance
+  Assumptions.«init.0_unfold»
   Assumptions.import_protoimpl_Assumption
 
 end go_etcd_io.etcd.api.v3.membershippb

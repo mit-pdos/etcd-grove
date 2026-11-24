@@ -386,10 +386,10 @@ theorem batchFree_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db wtx
     ghostVar γ.rvs (1 : Qp).half (rv0 D, false) ∗ ownTokAuth γ.wb wbInit ∗
     monoNatAuthOwn γ.wbc 1 0 ∗ ghostVar γ.used (1 : Qp).half 0 ∗
     dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-    trkSide γ P (st0 D wtx) ∗ fkHalf γ P (st0 D wtx) ∗ W ∗ Pk ∗ bDB γ db ⊢
+    trkSide γ P (st0 D wtx) ∗ fkHalf γ P (st0 D wtx) ∗ W ∗ Pk ∗ bDB γ db ∗ bufRc (st0 D wtx) ⊢
     batchFree (GF := GF) γ P W Pk b t := by
   iintro ⟨Htxf, Hpend, Hdel, Hwb, Hphk, Hhook, Hown, Hwtx, #Hwdb, Hmus, Hv, Hrvs, Hwba, Hwbc, Hused,
-    Hopn, Hhkd, Hfkh, HW, HPk, #Hbdb⟩
+    Hopn, Hhkd, Hfkh, HW, HPk, #Hbdb, #Hbr0⟩
   unfold batchFree
   ileft
   iexists st0 D wtx, db
@@ -406,6 +406,7 @@ theorem batchFree_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db wtx
     simp only [st0, rv0]
     iexists wbInit, 0, 0
     iframe
+    iframe Hbr0
     ipureintro
     exact st0_bgOk P D wtx
   iframe
@@ -523,7 +524,7 @@ receiver epochs, S8a, 2026-10-24) the fresh backend's payment rights (`bFresh`),
 theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterface)
     (b t rt tm wg db lg wtx rtx : Loc) (m cm : GoMap) (γd : DBNames) (path : GoString)
     (γrw : sync.rwmutex.RWMutexNames) (D : Data) (sc dc : GoChan) (γsc γdc : ChanNames)
-    (hP : P.Wf) :
+    (hP : P.Wf) (hrb : receiptBound GF ≤ 2 ^ 60) :
     envVerifyOff ∗ hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
     bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗ rtmuOf (baseOf rt) ↦□ tm ∗
@@ -533,7 +534,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     -- (backend-snapshot B3) `b.mu`'s other read slots, one for each reader's token
     bmStock b db ∗ isDB db γd ∗
     dbFile db γd path ∗
-    muOf t ↦ (false : Bool) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
+    muOf t ↦ (zero_val sync.Mutex) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
     ownWB (wbOf t) ⟨∅, ∅⟩ ∗ bF go!"txPostLockInsideApplyHook" b ↦ func.nil ∗
     ownDB db γd D ∗ dbHalf γd D ∗ ownWTx wtx γd D D ∗ txDB wtx γd db ∗
     sync.rwmutex.isRWMutex (rmuOf (baseOf rt)) γrw (nroot.@"rw") ∗
@@ -548,7 +549,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     ownMap m (DFrac.own 1) (∅ : GMap w64 Loc) ∗
     rbktOf (baseOf rt) ↦ cm ∗ ownMap cm (DFrac.own 1) (∅ : GMap w64 Loc) ∗
     tm ↦ (zero_val sync.RWMutex) ∗
-    cmuOf b ↦ (false : Bool) ∗ cbufOf b ↦ Loc.null ∗ cverOf b ↦ (W64 0) ∗
+    cmuOf b ↦ (zero_val sync.Mutex) ∗ cbufOf b ↦ Loc.null ∗ cverOf b ↦ (W64 0) ∗
     isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ∗
     srSlot b ⊢
     |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ bFile γ path ∗ newPostK γ P W Pk K b D ∗
@@ -750,7 +751,14 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod sync.init_Mutex (cacheRes γ P b) ⊤ (cmuOf b) $$ [Hcmu] [Hcbuf Hcver] with #Hcmx
   · iexact Hcmu
   · inext; unfold cacheRes; iexists Loc.null, W64 0; iframe; ileft; ipureintro; rfl
-  -- the batch lock
+  -- the batch lock (its buffers' receipt, `⧖ 0`: both buffers empty; 2026-11-22, step 2)
+  imod preceipt_zero (GF := GF) with #Hrc0
+  ihave #Hbr0 : bufRc (st0 D wtx) $$ [Hrc0]
+  · unfold bufRc
+    iexists 0
+    iframe Hrc0
+    ipureintro
+    exact ⟨fun i => by simp [st0, rb0, bkOf_empty], hrb⟩
   ihave Hko : hkOwn γ (hkData P D) $$ [Hhkdc]
   · unfold hkOwn; iexact Hhkdc
   ihave Hfr : bFresh γ $$ [Hwbt Hopnc Hcls]
@@ -783,6 +791,9 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     ileft
     iexists D
     iframe Hhalf
+    isplitr
+    · rw [show ((D, (⟨∅, W64 0⟩ : RBuf)) : RView) = rv0 D from rfl]
+      iexact Hfkr
     iexists gregm, gregc, 0, ∅
     iframe Hregc Hregm
     isplitr

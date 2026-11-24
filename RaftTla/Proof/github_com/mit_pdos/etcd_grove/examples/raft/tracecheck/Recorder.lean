@@ -122,10 +122,11 @@ theorem receipt_lt_keep (n : Nat) : ⧗ n ⊢@{IProp GF} ⌜n < receiptBound GF�
 /-- **The linearization point of `TraceEvent`**: the caller's atomic update fired against the
 lock's half of the trace, both halves appended `e`. -/
 theorem traceAuth_commit (γt : GName) (L : List TraceEv) (e : TraceEv) (Q : IProp GF) :
-    traceAuth (GF := GF) γt L -∗
-      (AU <{ ∃∃ L', traceAuth (GF := GF) γt L' }> @ ⊤, ∅ <{ traceAuth γt (L' ++ [e]), COMM Q }>) ={⊤}=∗
-      traceAuth γt (L ++ [e]) ∗ Q := by
-  iintro Hl Hau
+    notCrashed -∗ traceAuth (GF := GF) γt L -∗
+      (AU <{ ∃∃ L', traceAuth (GF := GF) γt L' }> @ ⊤, ∅
+        <{ traceAuth γt (L' ++ [e]) ∗ notCrashed, COMM notCrashed ∗ Q }>) ={⊤}=∗
+      notCrashed ∗ traceAuth γt (L ++ [e]) ∗ Q := by
+  iintro Hnc Hl Hau
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
   imod Hacc with Hacc
@@ -136,7 +137,8 @@ theorem traceAuth_commit (γt : GName) (L : List TraceEv) (e : TraceEv) (Q : IPr
   subst Heq
   imod ghostVar_update_halves (GF := GF) (L ++ [e]) γt L L $$ Hl Hc with ⟨Hl, Hc⟩
   icases Hclose with ⟨-, Hcom⟩
-  imod Hcom $$ Hc with HQ
+  imod Hcom $$ [Hc Hnc] with ⟨Hnc, HQ⟩
+  · iframe Hc Hnc
   imodintro
   iframe
 

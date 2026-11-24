@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -13,7 +14,7 @@ import (
 
 // TestErrorsAreOpErrors (D14; the trusted models, Net/TrustedCode/net.lean,
 // model.opError: every failure an *OpError whose Op is Go's and Net "tcp";
-// Read's end is io.EOF itself). Every failure of the modeled operations on values
+// Read's end is io.EOF itself; the message Op, then ": " and more). Every failure of the modeled operations on values
 // that Listen, Dial and Accept returned is an *net.OpError (never a bare
 // error) with Net "tcp" and the model's Op: "read", "write", "close" (Close,
 // CloseWrite, the listener's Close), "set" (the deadlines), "dial", "listen",
@@ -32,6 +33,11 @@ func TestErrorsAreOpErrors(t *testing.T) {
 		}
 		if oe.Op != op || oe.Net != "tcp" {
 			t.Errorf("%s: Op %q Net %q; want %q, \"tcp\"", what, oe.Op, oe.Net, op)
+		}
+		// the message's form (OpError.Error.impl: Op, an arbitrary string, ": ", another):
+		// Go's starts with Op and holds ": " after it, before Err's message (net.go, OpError.Error)
+		if msg := err.Error(); !strings.HasPrefix(msg, op) || !strings.Contains(msg[len(op):], ": ") {
+			t.Errorf("%s: Error() %q; want a message starting with %q, holding \": \"", what, msg, op)
 		}
 	}
 	// a reset connection, then a closed one

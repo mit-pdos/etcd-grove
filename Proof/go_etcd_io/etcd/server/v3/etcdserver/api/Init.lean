@@ -4,10 +4,13 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs the
+Its fact (`capInit`, `CapPool.lean`; prove-ps2-cap, 2026-11-23, until then `True`):
+`enableMapMu`'s guard and its reader slots, pooled at level 0, over `enabledMap` holding `nil` or a
+read-only map. Its initializer initializes its imports, allocates its variables and runs the
 translated initializer of `capabilityMaps` (a map literal of map literals) and its translated `init`
 function, which sets `enabledMap` to a map literal (prove-smallinits, 2026-11-20; until then the
-trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).
+trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`), and makes the fact from the map, made
+read-only, and the fresh lock (`capInit_alloc`).
 -/
 module
 
@@ -37,14 +40,11 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace go_etcd_io.etcd.server.v3.etcdserver.api
 
 /-- The packages of this package's import closure (itself included) whose initializers
-register metrics, with their names: their registration rights are its initializer's
-resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
-def regQs : List (GoString × List GoString) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames)]
-
-/-- The metric names its initializer registers, with those of its import closure: its
-`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
-def initNames : List GoString := regQs.flatMap (·.2)
+register metrics, with their names and other IDs: their registration rights (keyed by ID,
+`EtcdGrove.prometheus.regRes`) are its initializer's resources (`ownInitResL`,
+`Proof/runtime/PkgInitRes.lean`; its `wp_initialize'`'s precondition: `regsFree regQs`). -/
+def regQs : List (GoString × List GoString × List w64) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regKeys)]
 
 end go_etcd_io.etcd.server.v3.etcdserver.api
 

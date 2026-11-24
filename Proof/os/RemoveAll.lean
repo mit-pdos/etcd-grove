@@ -6,7 +6,7 @@ rest. Lean-first; untrusted.
 -/
 module
 
-public import Proof.os.RemoveAllFrom
+public import Proof.os.RemoveAllTop
 
 @[expose] public section
 
@@ -18,66 +18,12 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open Fs
 
-/-- A path of the roots begins with a separator followed by a byte that is not one. -/
-theorem os.root_path_head {R : Roots} {r : GoString} {j0 : Ino} {cs : List GoString}
-    (hR : RootsOk R) (hm : (r, j0) ∈ R) :
-    ∃ c rest, joinPath r cs = slashB :: c :: rest ∧ c ≠ slashB := by
-  obtain ⟨⟨cs', hne, hok, hr⟩, -⟩ := hR.2.2 (r, j0) hm
-  obtain ⟨c1, cs'', rfl⟩ : ∃ c1 cs'', cs' = c1 :: cs'' := by
-    cases cs' with
-    | nil => exact absurd rfl hne
-    | cons c1 cs'' => exact ⟨c1, cs'', rfl⟩
-  obtain ⟨hc1, -, -, hs1, -⟩ := hok c1 (by simp)
-  obtain ⟨x, xs, rfl⟩ : ∃ x xs, c1 = x :: xs := by
-    cases c1 with
-    | nil => exact absurd rfl hc1
-    | cons x xs => exact ⟨x, xs, rfl⟩
-  refine ⟨x, xs ++ cs''.flatMap (fun c => slashB :: c) ++ cs.flatMap (fun c => slashB :: c), ?_,
-    fun h => hs1 (by simp [h])⟩
-  simp only at hr
-  rw [hr]
-  simp [joinPath]
-
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions] [os.fileStat.FieldAssumptions]
-
-/-- What a spine says of its path: the root's form, and `TreePath`'s for `d/b`. -/
-theorem os.osPathS_facts (R : Roots) (d : GoString) (dq : DFrac) (j : Ino) (b : GoString)
-    (hb : NameOk b) :
-    osPathS (GF := GF) R d dq j ⊢ ⌜(∃ c rest, d = slashB :: c :: rest ∧ c ≠ slashB) ∧
-      ∃ r j0 cs, (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ child d b = joinPath r cs⌝ := by
-  unfold osPathS
-  iintro ⟨%r, %j0, %cs, %hp, -⟩
-  obtain ⟨hR, hm, hcs, rfl⟩ := hp
-  ipureintro
-  refine ⟨os.root_path_head hR hm, r, j0, cs ++ [b], hm, ?_, (joinPath_snoc r cs b).symm⟩
-  intro c hc; simp only [List.mem_append, List.mem_singleton] at hc
-  rcases hc with hc | rfl
-  · exact hcs c hc
-  · exact hb
-
-/-- A non-nil error pointer of `RemoveAll`'s model, as an `error`, is one `fmt` formats. -/
-theorem os.peOk_fmt (pe : Loc) (hpn : pe ≠ null) :
-    os.peOk (GF := GF) pe ⊢ |==> fmtErrorOkOrNil
-      (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe) := by
-  unfold os.peOk
-  iintro (%hn | ⟨%op, %path, %err, #Hop, Hpath, #Herr, #Hok⟩)
-  · exact absurd hn hpn
-  ipersist Hpath
-  imodintro
-  iapply (EtcdGrove.fmtErrorOkOrNil_of _)
-  iapply (os.pathError_fmtErrorOk pe op path err) $$ Hop Hpath Herr Hok
-
-/-- The call permission's two halves. -/
-theorem os.osCallPerm_halves (r : GoString) (q : Qp) :
-    osCallPerm (GF := GF) r q.half ∗ osCallPerm r q.half ⊣⊢ osCallPerm r q := by
-  have h := osCallPerm_split (GF := GF) r q.half q.half
-  rw [Qp.half_add_half] at h
-  exact ⟨h.2, h.1⟩
 
 set_option hygiene false in
 /-- The end of `RemoveAll`: the guard's `LstatDir`, the guard's fraction (half of `qc`) back. -/
@@ -95,6 +41,9 @@ local macro "rm_fin" qc:term:max fin:tacticSeq : tactic => `(tactic| (
 theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG := hG) := by
   intro d b j R qd dqn h qc hb hn
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases os.osPathS_facts R d _ j b hb $$ Hp with %hpf
   obtain ⟨hd, hp⟩ := hpf
   rw [decide_eq_false (show child d b ≠ [] by simp [child])]
@@ -108,8 +57,9 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
   wp_auto
   have hnd : ∀ J, h.cur !! b ≠ some (.dir J) := fun J h' => by rw [hn] at h'; cases h'
   wp_apply os.model.wp_unlinkLoop_leaf d b R j (DFrac.own qd) dqn h qc.half hb hnd (.inr hn)
-    $$ [Hp Hn Hperm] as %e ⟨Hp, Hperm, %h', Hn, %hlo⟩
+    $$ [Hp Hn Hperm] as %e ⟨Hp, Hperm, %h', Hn, %hlow⟩
   · iframe; iframe #
+  obtain ⟨hlo, -⟩ := hlow
   obtain rfl := hlo.2 hn
   by_cases he0 : e = W64 0
   · rw [decide_eq_true he0]
@@ -146,7 +96,7 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
       wp_auto
       simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
       wp_auto
-      wp_apply os.wp_pathError_ok _ _ eo heo as %pe #Hok
+      wp_apply os.wp_pathError_ok _ _ eo heo $$ Hsys as %pe #Hok
       rm_fin qc
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
     · rw [decide_eq_false (show eo ≠ W64 2 by rw [heo]; decide)]
@@ -154,8 +104,9 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
       simp only [decide_eq_true (show eo = W64 0 from heo), Bool.not_true]
       wp_auto
       wp_apply os.model.wp_removeAllFrom_leaf d b R j (DFrac.own qd) dqn h' qc.half hb hnd (.inr hn)
-        $$ [Hp Hn Hperm] as %pe ⟨Hp, Hperm, Hpe, %h'', Hn, %hlo'⟩
+        $$ [Hp Hn Hperm] as %pe ⟨Hp, Hperm, Hpe, %h'', Hn, %hlo'w⟩
       · iframe; iframe #
+      obtain ⟨hlo', -⟩ := hlo'w
       obtain rfl := hlo'.2 hn
       wp_apply os.model.wp_closeFd_dir fd j _ $$ [Hfd]
       · iframe; iframe #
@@ -173,6 +124,9 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
 theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) := by
   intro d b j J R qd h hJ hb hbJ hfo
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, HJ, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases os.osPathS_facts R d _ j b hb $$ Hp with %hpf
   obtain ⟨hd, hp⟩ := hpf
   ihave Hst : rmAllOut j b J h hJ $$ [Hn HJ]
@@ -193,7 +147,8 @@ theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) 
   · iframe; iframe #
   rw [decide_eq_false (show e ≠ W64 0 from he0)]
   wp_auto
-  wp_apply os.model.wp_rmdirLoop_dirSt d b j J R qd h hJ (1 : Qp).half (1 : Qp).half t sg hb hbJ
+  wp_apply os.model.wp_rmdirLoop_dirSt d b j J R qd h hJ (1 : Qp).half (1 : Qp).half t sg (child d b) rfl
+    hb hbJ
     hqg $$ [Hp Hst Hperm Hg] as %e1 ⟨Hp, Hst, Hperm, Hg⟩
   · iframe; iframe #
   by_cases he10 : e1 = W64 0
@@ -226,7 +181,7 @@ theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) 
       wp_auto
       simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
       wp_auto
-      wp_apply os.wp_pathError_ok _ _ eo heo as %pe #Hok
+      wp_apply os.wp_pathError_ok _ _ eo heo $$ Hsys as %pe #Hok
       rm_fin (1 : Qp)
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
     · rw [decide_eq_false (show eo ≠ W64 2 by rw [heo]; decide)]

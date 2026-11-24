@@ -342,7 +342,7 @@ node's decoder gives the change at `k` and rejects the entries before it (`DynCC
 private theorem node.wp_ApplyConfChange_impl
     (hA : EtcdGrove.node.ApplyConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ApplyConfChange.spec (GF := GF) (hG := hG) := by
-  unfold EtcdGrove.node.ApplyConfChange.spec EtcdGrove.Cluster EtcdGrove.Membership.applyChange
+  unfold EtcdGrove.node.ApplyConfChange.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.Membership.applyChange
     EtcdGrove.deliveredLogLb EtcdGrove.isCluster EtcdGrove.confDecided EtcdGrove.isNode
     EtcdGrove.nodeConfig EtcdGrove.nodeStopped
   intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap Htrk
@@ -380,7 +380,7 @@ private theorem node.wp_ApplyConfChange_impl
   iunfold deliveredLogLb at Hdl
   icases Hdl with ⟨⟨%γn2, %id2, %ds, %Hf2, #Hn2, #Htab2, #Hlb⟩, #Hlc⟩
   obtain ⟨Hnok2, Hds⟩ := Hf2
-  icases isNode_id_agree γn γn2 id1 id2 n $$ Hn1 Hn2 with %Hid
+  icases isNode_id_agree γn γn2 id1 id2 n.loc $$ Hn1 Hn2 with %Hid
   subst Hid
   obtain ⟨h0, h1, Hmd1⟩ := Hmd0.mode
   have Hmd : γn.mode = .dyn noDec (stOf c0) h0 h1 := by rw [Hnok.2.2, Hmd1]
@@ -423,7 +423,7 @@ private theorem node.wp_ApplyConfChange_impl
         rw [List.length_take]; omega
       show (U.lookup (ds.take k).length).map ccDecOf = some (.apply (ccV2Of o'))
       rw [hlen, HUk]; rfl
-  iapply (hA γn id1 n c o ds v.applied (stOf v.membership) k eM (stOf m') U
+  iapply (hA γn id1 n.loc c o ds v.applied (stOf v.membership) k eM (stOf m') U
     (fun h => by rw [Hmd] at h; cases h)
     (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; exact Hpre)
     (fun ht => by rw [Htrk (by unfold Cluster.trace; rw [← Hnok.1]; exact ht)])) $$ [Hcc0 Hcf]

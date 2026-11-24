@@ -1,5 +1,5 @@
 /-
-`clientv3.NewCluster(c)` (`client/v3`, names only; item 5: `newClient` calls it). Lean-first (no Rocq
+`clientv3.NewCluster(c)` (`client/v3/cluster.go`, translated since 2026-11-22; item 5: `newClient` calls it). Lean-first (no Rocq
 counterpart).
 -/
 module

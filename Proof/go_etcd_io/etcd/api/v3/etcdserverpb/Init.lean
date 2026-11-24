@@ -8,7 +8,9 @@ initializer allocates and sets the translated gRPC service descriptors (`KV_Serv
 initializers (the generated protobuf descriptors and enum maps), which the trust-boundary axiom
 `opaqueInitsOk` says run. (const-inits, 2026-11-19) The two sort enumerations' name maps the fact
 reads (`RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`: `map[int32]string` literals,
-`rpc.pb.go`) are translated and set; until then the trust-boundary axioms `<X>_init`.
+`rpc.pb.go`) are translated and set; until then the trust-boundary axioms `<X>_init`. (etcd-grove#39, 2026-11-23) And `AlarmType_name` (a `map[int32]string` literal),
+which the fact holds read-only, `etcdserverpb.alarmTypeNames`: `AlarmType.String`'s trusted model reads
+it.
 -/
 module
 
@@ -36,57 +38,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.api.v3.etcdserverpb
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.api.v3.etcdserverpb`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([file_etcdserver_proto_msgTypes.init,
-        file_etcdserver_proto_goTypes.init,
-        file_etcdserver_proto_depIdxs.init,
-        file_raft_internal_proto_msgTypes.init,
-        file_raft_internal_proto_goTypes.init,
-        file_raft_internal_proto_depIdxs.init,
-        AlarmType_name.init,
-        AlarmType_value.init,
-        RangeRequest_SortOrder_value.init,
-        RangeRequest_SortTarget_value.init,
-        Compare_CompareResult_name.init,
-        Compare_CompareResult_value.init,
-        Compare_CompareTarget_name.init,
-        Compare_CompareTarget_value.init,
-        WatchCreateRequest_FilterType_name.init,
-        WatchCreateRequest_FilterType_value.init,
-        AlarmRequest_AlarmAction_name.init,
-        AlarmRequest_AlarmAction_value.init,
-        DowngradeRequest_DowngradeAction_name.init,
-        DowngradeRequest_DowngradeAction_value.init,
-        file_rpc_proto_enumTypes.init,
-        file_rpc_proto_msgTypes.init,
-        file_rpc_proto_goTypes.init,
-        file_rpc_proto_depIdxs.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- **The trust boundary: `go_etcd_io.etcd.api.v3.etcdserverpb`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0», init.«1», init.«2»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.api.v3.etcdserverpb
-end opaqueInits
 
 /-- A small 64-bit literal's value as a signed natural (the descriptors' slice indices). -/
 theorem EtcdGrove.sint_nat_ofNat64 (n : Nat) (h : n < 2 ^ 63) : sint.nat (BitVec.ofNat 64 n) = n := by
@@ -122,6 +73,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := google_golang_org.grpc.ServiceDesc) KV_ServiceDesc _ as HKV_ServiceDesc
   wp_apply wp_GlobalAlloc (V := Loc) RangeRequest_SortTarget_name _ as HRangeRequest_SortTarget_name
   wp_apply wp_GlobalAlloc (V := Loc) RangeRequest_SortOrder_name _ as HRangeRequest_SortOrder_name
+  wp_apply wp_GlobalAlloc (V := Loc) AlarmType_name _ as HAlarmType_name
   wp_apply (_root_.Perennial.google_golang_org.grpc.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
@@ -129,40 +81,21 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.authpb.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk file_etcdserver_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_etcdserver_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_etcdserver_proto_depIdxs.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_raft_internal_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_raft_internal_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_raft_internal_proto_depIdxs.init (by mem_tac))
-  wp_apply (opaqueInitsOk AlarmType_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk AlarmType_value.init (by mem_tac))
+  -- translated initializer of AlarmType_name))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mHatn Hatn
+  try wp_auto
+  repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hatn as Hatn; try wp_auto)
   -- translated initializer of RangeRequest_SortOrder_name))
   try wp_auto
   wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mHso Hso
   try wp_auto
   repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hso as Hso; try wp_auto)
-  wp_apply (opaqueInitsOk RangeRequest_SortOrder_value.init (by mem_tac))
   -- translated initializer of RangeRequest_SortTarget_name))
   try wp_auto
   wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mHst Hst
   try wp_auto
   repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hst as Hst; try wp_auto)
-  wp_apply (opaqueInitsOk RangeRequest_SortTarget_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk Compare_CompareResult_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk Compare_CompareResult_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk Compare_CompareTarget_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk Compare_CompareTarget_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchCreateRequest_FilterType_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchCreateRequest_FilterType_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk AlarmRequest_AlarmAction_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk AlarmRequest_AlarmAction_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk DowngradeRequest_DowngradeAction_name.init (by mem_tac))
-  wp_apply (opaqueInitsOk DowngradeRequest_DowngradeAction_value.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_rpc_proto_enumTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_rpc_proto_msgTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_rpc_proto_goTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk file_rpc_proto_depIdxs.init (by mem_tac))
   -- translated initializer of KV_ServiceDesc))
   -- translated initializer of Watch_ServiceDesc))
   -- translated initializer of Lease_ServiceDesc))
@@ -182,9 +115,18 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pAm ⟨SAm, -⟩; try wp_auto
   wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pAs ⟨SAs, -⟩; try wp_auto
   try wp_auto
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
-  wp_apply (initFuncsOk init.«1» (by mem_tac))
-  wp_apply (initFuncsOk init.«2» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
+  -- the translated init.«1»
+  wp_func_call
+  wp_call
+  try wp_auto
+  -- the translated init.«2»
+  wp_func_call
+  wp_call
+  try wp_auto
   ipersist SKVm
   ipersist SKVs
   ipersist SWm
@@ -213,6 +155,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HRangeRequest_SortTarget_name
   ipersist Hso
   ipersist Hst
+  ipersist HAlarmType_name
+  ipersist Hatn
   iframe Hown
   imodintro
   isplitr
@@ -225,6 +169,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; by_cases hk : k = W32 0 ∨ k = W32 1 ∨ k = W32 2; (· rcases hk with rfl | rfl | rfl <;> simp (config := {decide := true})); (· have hr : ¬ (0 ≤ sint.Z k ∧ sint.Z k ≤ 2) := fun hr => hk (by word); simp only [hr, iff_false, Bool.not_eq_true, Option.isSome_eq_false_iff, Option.isNone_iff_eq_none]; rw [if_neg (show ¬(W32 2 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 1 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 0 = k) from fun h => hk (by subst h; simp))])
   isplitl []
   · iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; by_cases hk : k = W32 0 ∨ k = W32 1 ∨ k = W32 2 ∨ k = W32 3 ∨ k = W32 4; (· rcases hk with rfl | rfl | rfl | rfl | rfl <;> simp (config := {decide := true})); (· have hr : ¬ (0 ≤ sint.Z k ∧ sint.Z k ≤ 4) := fun hr => hk (by word); simp only [hr, iff_false, Bool.not_eq_true, Option.isSome_eq_false_iff, Option.isNone_iff_eq_none]; rw [if_neg (show ¬(W32 4 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 3 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 2 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 1 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 0 = k) from fun h => hk (by subst h; simp))])
+  isplitl []
+  · iexists _; iframe HAlarmType_name; unfold go_etcd_io.etcd.cache.v3.etcdserverpb.alarmTypeNames; iexact Hatn
   iframe #
   repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))
 

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.apimachinery.pkg.api.resource
 
 @[expose] public section
 
@@ -150,103 +151,8 @@ opaque splitREString [GooseExts] [GoGlobalContext] : val
 
 opaque int64QuantityExpectedBytes [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Zero [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.Zero"
-
-opaque Zero.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def zeroBytes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.zeroBytes"
-
-opaque zeroBytes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def bigTen [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.bigTen"
-
-opaque bigTen.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def bigZero [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.bigZero"
-
-opaque bigZero.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def bigOne [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.bigOne"
-
-opaque bigOne.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def bigThousand [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.bigThousand"
-
-opaque bigThousand.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def big1024 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.big1024"
-
-opaque big1024.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def decZero [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.decZero"
-
-opaque decZero.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def decOne [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.decOne"
-
-opaque decOne.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def maxAllowed [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.maxAllowed"
-
-opaque maxAllowed.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def MaxMilliValue [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.MaxMilliValue"
-
-opaque MaxMilliValue.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrFormatWrong [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.ErrFormatWrong"
-
-opaque ErrFormatWrong.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrNumeric [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.ErrNumeric"
-
-opaque ErrNumeric.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrSuffix [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.ErrSuffix"
-
-opaque ErrSuffix.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.ErrInvalidLengthGenerated"
-
-opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.ErrIntOverflowGenerated"
-
-opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def intPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.intPool"
-
-noncomputable def maxInt64 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.maxInt64"
-
-opaque maxInt64.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def minInt64 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.minInt64"
-
-opaque minInt64.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def quantitySuffixer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/resource.quantitySuffixer"
-
-opaque quantitySuffixer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def widenScale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.widenScale"
@@ -365,6 +271,95 @@ noncomputable def bigToInt64Saturated [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def newSuffixer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/resource.newSuffixer"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `Zero` (`var Zero = int64Amount{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `zeroBytes` (`var // Used by quantity strings - treat as read only zeroBytes = []byte("0")`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `bigTen` (`var // Commonly needed big.Int values-- treat as read only! bigTen = big.NewInt(10)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `bigZero` (`var bigZero = big.NewInt(0)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `bigOne` (`var bigOne = big.NewInt(1)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `bigThousand` (`var bigThousand = big.NewInt(1000)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `big1024` (`var big1024 = big.NewInt(1024)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `decZero` (`var // Commonly needed inf.Dec values-- treat as read only! decZero = inf.NewDec(0, 0)`): Their initializers call, besides literals of constants and other variables' values: `inf.NewDec`
+allocates a decimal of constants. So each terminates, cannot panic and has no effect beyond its
+variable.
+- `decOne` (`var decOne = inf.NewDec(1, 0)`): Their initializers call, besides literals of constants and other variables' values: `inf.NewDec`
+allocates a decimal of constants. So each terminates, cannot panic and has no effect beyond its
+variable.
+- `maxAllowed` (`var // Largest (in magnitude) number allowed. maxAllowed = infDecAmount{inf.NewDec((1<<63)-1, 0)} // == max int64`): Their initializers call, besides literals of constants and other variables' values: `inf.NewDec`
+allocates a decimal of constants. So each terminates, cannot panic and has no effect beyond its
+variable.
+- `MaxMilliValue` (`var // MaxMilliValue is the largest whole number whose value in milli-units fits an // int64. It bounds a value, not a q … [sha256:22c6968815640a5d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrFormatWrong` (`var // Errors that could happen while parsing a string. ErrFormatWrong = errors.New("quantities must match the regular e … [sha256:cf1507fd54e86976]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrNumeric` (`var ErrNumeric = errors.New("unable to parse numeric part of quantity")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrSuffix` (`var ErrSuffix = errors.New("unable to parse quantity's suffix")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrInvalidLengthGenerated` (`var ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrIntOverflowGenerated` (`var ErrIntOverflowGenerated = fmt.Errorf("proto: integer overflow")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `maxInt64` (`var maxInt64 = big.NewInt(math.MaxInt64)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `minInt64` (`var minInt64 = big.NewInt(math.MinInt64)`): Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and
+`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect
+beyond its variable.
+- `quantitySuffixer` (`var quantitySuffixer = newSuffixer()`): Its initializer calls, besides literals of constants and other variables' values: `newSuffixer`
+allocates the suffix tables, filled with constants. So it terminates, cannot panic and has no effect
+beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/api/resource.Zero", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Zero = int64Amount{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.zeroBytes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // Used by quantity strings - treat as read only zeroBytes = []byte(\"0\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.bigTen", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var // Commonly needed big.Int values-- treat as read only! bigTen = big.NewInt(10)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.bigZero", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var bigZero = big.NewInt(0)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.bigOne", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var bigOne = big.NewInt(1)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.bigThousand", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var bigThousand = big.NewInt(1000)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.big1024", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var big1024 = big.NewInt(1024)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.decZero", "Their initializers call, besides literals of constants and other variables' values: `inf.NewDec`\nallocates a decimal of constants. So each terminates, cannot panic and has no effect beyond its\nvariable.", "var // Commonly needed inf.Dec values-- treat as read only! decZero = inf.NewDec(0, 0)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.decOne", "Their initializers call, besides literals of constants and other variables' values: `inf.NewDec`\nallocates a decimal of constants. So each terminates, cannot panic and has no effect beyond its\nvariable.", "var decOne = inf.NewDec(1, 0)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.maxAllowed", "Their initializers call, besides literals of constants and other variables' values: `inf.NewDec`\nallocates a decimal of constants. So each terminates, cannot panic and has no effect beyond its\nvariable.", "var // Largest (in magnitude) number allowed. maxAllowed = infDecAmount{inf.NewDec((1<<63)-1, 0)} // == max int64"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.MaxMilliValue", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // MaxMilliValue is the largest whole number whose value in milli-units fits an // int64. It bounds a value, not a q … [sha256:22c6968815640a5d]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.ErrFormatWrong", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // Errors that could happen while parsing a string. ErrFormatWrong = errors.New(\"quantities must match the regular e … [sha256:cf1507fd54e86976]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.ErrNumeric", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrNumeric = errors.New(\"unable to parse numeric part of quantity\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.ErrSuffix", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrSuffix = errors.New(\"unable to parse quantity's suffix\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.ErrInvalidLengthGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrInvalidLengthGenerated = fmt.Errorf(\"proto: negative length found during unmarshaling\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.ErrIntOverflowGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrIntOverflowGenerated = fmt.Errorf(\"proto: integer overflow\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.maxInt64", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var maxInt64 = big.NewInt(math.MaxInt64)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.minInt64", "Their initializers call, besides literals of constants and other variables' values: `big.NewInt` and\n`(*big.Int).Mul` allocate and multiply constants. So each terminates, cannot panic and has no effect\nbeyond its variable.", "var minInt64 = big.NewInt(math.MinInt64)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/resource.quantitySuffixer", "Its initializer calls, besides literals of constants and other variables' values: `newSuffixer`\nallocates the suffix tables, filled with constants. So it terminates, cannot panic and has no effect\nbeyond its variable.", "var quantitySuffixer = newSuffixer()"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.resource where
   pkgImportedPkgs := []
 
@@ -374,65 +369,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.api.resource)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val quantitySuffixer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val minInt64.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val maxInt64.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrIntOverflowGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrSuffix.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrNumeric.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrFormatWrong.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val MaxMilliValue.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val maxAllowed.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val decOne.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val decZero.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val big1024.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val bigThousand.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val bigOne.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val bigZero.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val bigTen.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val zeroBytes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Zero.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
 abbrev Scale [GooseExts] : Type := w32
 
@@ -902,6 +840,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   listSuffixer_instance : listSuffixer.TypeAssumptions
   suffixHandler_instance : suffixHandler.TypeAssumptions
   fastLookup_instance : fastLookup.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.Scale_instance
   Assumptions.widenedScale_instance
@@ -919,6 +858,7 @@ attribute [instance] Assumptions.Scale_instance
   Assumptions.listSuffixer_instance
   Assumptions.suffixHandler_instance
   Assumptions.fastLookup_instance
+  Assumptions.«init.0_unfold»
 
 end k8s_io.apimachinery.pkg.api.resource
 

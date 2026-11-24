@@ -31,7 +31,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newEncoder.wp_proof
   intro wi prev off h0 h1
   wp_start as #Htab
   iunfold walCrcTable at Htab
-  icases Htab with ⟨%tab, #Hg, #Ht⟩
+  icases Htab with ⟨%tab, #Hg, #Ht, #Hc32⟩
   try wp_auto
   wp_apply (wp_NewPW wi (W64 4096) off (by decide) (by decide) h0 h1) as %pw Hpw
   try wp_auto
@@ -80,8 +80,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newEncoder.wp_proof
     iexists l, tab
     isplitr
     · ipureintro; rfl
-    iframe Hl
-    iexact Ht
+    iframe Hl Ht Hc32
   isplitl [buf]
   · iexact buf
   isplitl [Hb]

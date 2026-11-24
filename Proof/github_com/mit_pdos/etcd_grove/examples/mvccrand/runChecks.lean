@@ -113,20 +113,20 @@ theorem runChecks.wp_proof
   subst Hr
   (try wp_auto)
   -- the store's part of the backend opened; the client's rest
-  have hRB : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.le (2 ^ 38)
-  have hm : receiptBound GF + (sint.nat cfg.Ops' + 2) + 2 ≤ backend.wbInit := by
+  have hRB : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.le (2 ^ 48)
+  have hm : receiptBound GF + (sint.nat cfg.Ops' + 3) + 2 ≤ backend.wbInit := by
     unfold backend.wbInit
     have : sint.nat cfg.Ops' = (sint.Z cfg.Ops').toNat := rfl
     omega
-  imod rc_open hfresh hopen hrest hCR γB b gx bc.BatchLimit' (sint.nat cfg.Ops' + 2) hm
+  imod rc_open hfresh hopen hrest hCR γB b gx bc.BatchLimit' (sint.nat cfg.Ops' + 3) hm
     $$ [Hreg Hnew] with Hbk
   · iframe Hreg Hnew
   iunfold rcBk at Hbk
   icases Hbk with ⟨Hsf, #Hisb, Hhk, Hrbo, Hoh, Hor, Hrt, Hwm, #Hsc, Hcen⟩
-  icases ownToks_add_1 2 (sint.nat cfg.Ops') γB.wb $$ Hwm with ⟨Hwops, Hw2⟩
-  icases ownToks_add_1 1 1 γB.wb $$ Hw2 with ⟨Hw1, Hw1'⟩
-  ihave Hw1 : backend.wbTok (GF := GF) γB $$ [Hw1]
-  · unfold backend.wbTok; iexact Hw1
+  -- (prove-ps2-newlessor3) two for `NewLessor` (`initAndRecover`'s `Unlock` and `ForceCommit`), one
+  -- for the later hook call
+  icases ownToks_add_1 3 (sint.nat cfg.Ops') γB.wb $$ Hwm with ⟨Hwops, Hw2⟩
+  icases ownToks_add_1 1 2 γB.wb $$ Hw2 with ⟨Hw1, Hw1'⟩
   ihave Hw1' : backend.wbTok (GF := GF) γB $$ [Hw1']
   · unfold backend.wbTok; iexact Hw1'
   -- `lease.NewLessor(lg, be, noCluster{}, …)`
@@ -150,7 +150,7 @@ theorem runChecks.wp_proof
       [] (fun _ => W64 0) [] trivial (rcP_lease _) hrecs (by simp) (List.Perm.refl _))
     $$ [Hoh Hw1 Hrbo]
     as %l ⟨Hoh, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, -, #Hexp, #Hguard, Hlrds, Hlown, -, Hever,
-      Hrvk, Hrdo, Hbeon, #Happly, Hstop, -, -, #Hlookup⟩
+      Hrvk, Hrdo, Hbeon, #Happly, Hstop, -, -⟩
   · rw [rcKB_P, rcKB_γB, rcKB_be]
     iframe Hcl Hisb Hoh Hw1
     isplitr
@@ -159,7 +159,9 @@ theorem runChecks.wp_proof
     · ipureintro; simp only; exact Int.le_refl _
     isplitl [Hrbo]
     · iunfold backend.rbOwn at Hrbo; iexact Hrbo
-    imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr
+    · imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+    ipureintro; exact ThreadBoundLe.le_of (2 ^ 29) (by decide)
   try rw [hLe]
   rw [List.map_nil]
   (try wp_auto)

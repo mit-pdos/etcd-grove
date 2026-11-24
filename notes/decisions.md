@@ -6023,6 +6023,9 @@ apply→request handoff is a transfer (the apply thread never touches `ar.Trace`
 `Trigger`).
 
 `LogWithStepThreshold` stays at the trust boundary (`fmt` of `any`/`Duration`, `rand`, zap).
+(*Superseded* 2026-11-23, traceutil-log: proved over Perennial's `fmt`, `strings`, `time` and a
+`rand.Int31` trust-boundary spec; its subtrace merge's aliasing is handled by owning regions,
+`traceutil/LogLemmas.lean`.)
 `InsertStep` (an overlapping `append`) was too until unit P4, which proved it over a lemma of this
 repository, `wp_slice_append_shift` (`traceutil/SliceShift.lean`: `append(s[:a+1], s[a:]...)`
 from Perennial's `wp_slice_copy_within` and `wp_slice_copy`; no Perennial change).
@@ -14698,6 +14701,8 @@ named deposit has not fired (a fired one's index is within the log). `propIdx_ag
 one index") is gone with the single deposit.
 
 ## D26: the bridge is part of the network: trust-boundary specs, its code not verified (2026-10-21 · decided by the user; `notes/client-cut-plan.md` K1)
+
+*Superseded in part* (2026-11-24): `bridge.New`'s spec also consumes `netAddrLeft a` ("`bridge.New` consumes what sets the bridged address's protocols", below).
 
 **Problem.** linkv3p's clients reach their members through a copy of etcd's test bridge
 (`third_party/bridge`): a TCP proxy that accepts at a bridge address `a`, dials the member's client
@@ -41099,6 +41104,8 @@ names root types only.*
   what is trusted and its evidence, and points to the trusted models kept where Perennial's layout
   puts them (`TrustedCode/`, `GooseLang/Ext/*/Impl.lean`). The patches of real packages (gRPC,
   net/http, net/rpc; Q1 of the plan) will live under `models/` too, not `etc/model-patches/`.
+  (*Superseded in part*, 2026-11-20: not patches, but first-class Go packages whose diff is computed;
+  "Models are first-class Go packages", below.)
 
 ## The kits' statement is `Robust` (2026-11-19 · the user's decision · branch `kit-robust`, on `net-kitlib`)
 
@@ -41140,6 +41147,40 @@ echo's `SafeDistLinked.lean` are deleted. A kit's theorem is
   `robust_of_kitBoot`, `#print axioms` Lean's three. It also follows from `echo_crash_robust` by
   `Robust.of_all_crashing` (a run with no crashing machine is a run in which every machine may
   crash, `distCrashNsteps_more_boots`); it goes through the bridge to show the bridge applies.
+
+## Models are first-class Go packages (2026-11-20 · the user's decision · branch `models-rpc-http`)
+
+*Supersedes* Q1 of `notes/dsverify-net-port-plan.md` ("models are patches of the real packages",
+`etc/model-patches/`) and the last sentence of "`models/`: the home of the trusted models" above.
+
+- **The user (2026-11-19/20):** "I'd prefer to have a version of the grpc and http libraries that
+  we've verified in our repo, and we can compute the diff by looking at the final artifacts. But I
+  want to think of 'our grpc model in Go' as the first-class thing."
+- **Decision.** A model of a library is a Go package (or tree of packages) in `models/`, which we
+  write, test and verify, starting from the real library's source and keeping its API (every
+  exported name a program can use), with the real code wherever goose takes it and it is not the
+  hard core. Its difference from the real library is a computed artifact, never stored:
+  `models/diff.py MODEL` prints it against the pinned upstream source (`--stat`, its size, for
+  review and CI). The places a model changes are marked `MODEL:` in its source.
+- **The trusted claim** (each model's doc): every behavior of the real library (Go 1.27.3 for the
+  standard library's), as the program observes it, is a behavior of the model; more behaviors are
+  fine, fewer are unsound. Wire compatibility is not claimed (both ends run the model). Where a
+  model does not model the library it panics with a value that has a `NotModelled` method (the
+  net/http model's server does not recover those as a handler's panic): a proof that the program
+  does not panic shows it never gets there.
+- **Generated parts** follow "Trusted generated code" above: the generator is the trusted artifact
+  (`models/net/rpc/rpcgen.py`, as `models/protobuf/pbgen.py`).
+- **How a standard-library model builds**: the standard library cannot be replaced by a module, so
+  `models/goroot.py` substitutes the model's files for the toolchain's: a `go build -overlay` file
+  for builds and tests, and, for goose, a GOROOT of links (goose loads packages with
+  golang.org/x/tools/go/packages, which reads the files `go list` names from disk, so an overlay in
+  GOFLAGS does not reach it: tried, it type-checks the real files and cannot open added ones). A
+  goose project takes `std_models` (etc/goose.py) to translate against the models. The models'
+  directory `models/net/` is its own (never built) Go module so that `models.lab`'s `./...` does not
+  try to compile standard-library packages.
+- **First instances** (phase 5.2): `models/net/rpc` (gob and reflection replaced by the program's
+  generated Codec) and `models/net/http` (the HTTP/1.x head parser replaced; chunked bodies, TLS,
+  HTTP/2 and the Transport not modelled), `models/README.md`.
 
 ## Import tiers: a proof takes a linked lemma as a law (2026-11-18 · the user's direction · branch `tiers3/2026-11-18`)
 
@@ -41645,3 +41686,705 @@ intersects the regular votes of a candidate checked against the stored set.
 The protocol proof uses this intersection for leader completeness. The etcd
 server uses the separate ordinary Raft implementation, and the witness example
 uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progress.md)
+
+## The encoding/json model is of Go 1.27.3's default build; jsongen as a trusted generator (2026-11-20 · branch `models-json`; the agent's choices under the user's decisions "Trusted generated code" and "Models are first-class Go packages")
+
+- **Which encoding/json.** Go 1.27.3 builds encoding/json with GOEXPERIMENT jsonv2 on by default:
+  the package a program gets is the `v2_*.go` files, the v1 API over encoding/json/v2 with
+  `DefaultOptionsV1()`, not the v1 implementation (`decode.go`, `encode.go`, `stream.go`, ...; only
+  GOEXPERIMENT=nojsonv2 builds those). The model and the generator's claim are of the default build:
+  the model's files are the `v2_*.go` (every exported name kept), the v1 implementation's files are
+  removed in it (they would never build), and the differential tests run against the default build.
+  They differ where it matters: v2's encoder errors past 10000 levels of nesting (a RawMessage's
+  nesting counted), v1's does not; the Decoder is jsontext's (its buffer starts at 64 bytes, grows
+  by throughput up to 4 KiB and doubles when a value fills three quarters of it) where v1's had
+  its own scanner and buffer. dsverify's model and notes described the v1 Decoder, and its model
+  over-approximated the read lengths; this one mirrors jsontext's buffer exactly, so the model's
+  Read calls are the real ones (same lengths, same moments), checked by golden transcripts.
+- **What the generator reproduces exactly, or refuses.** The subset is what the core reproduces
+  byte for byte (encoding) and value for value (decoding), cited to Go's source; everything else
+  is refused by name (`jsongen_core.py`'s doc), including user-defined MarshalJSON/UnmarshalJSON
+  (the old jsongen called them; refusing keeps the core free of their compaction and error rules,
+  and vsr's kit fork has none) and pointers but at the root. Strings stay in jsoncodec's plain
+  subset with a NotModelled panic outside it (escapes, HTML characters, non-ASCII), as before.
+- **One codec per program, registered once** (`SetCodec` panics on a second registration, as the
+  net/rpc model's); unnamed root struct types (vsr's decoding frame) keep their code outside Goose.
+- **Soundness bug found and fixed in the trusted helpers**: `jsoncodec.QuotedUint` (a `,string`
+  field) returned a type error for a string with an escape sequence, which the real Unmarshal
+  unescapes and decodes; it now panics (NotModelled) on any escape there, as `Str` does elsewhere.
+  Found by the mutation tests of the reworked generator; the old per-type tests had no escapes.
+
+## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
+
+`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvnet-proof-plan.md`
+decision A. A replica killed at any instruction must leave its id restartable.
+
+**Ghost state.**
+- Per arm of an id, the crash invariant
+  `nodeCrashInv γ id x := inv (crashN γ id x) ((∃ X, views ½ X ∗ slotX X) ∨ crashed ∗ tok)` holds the
+  six timeless pieces of `raftIdSlot`: `V`'s half, `slotLive 1 g`, and the authorities of
+  terms, wins, lcm and rqm. `x : CrashNames` names the views and the token.
+- `ownRaftGhost`/`ownLogGhost`/`lcmOwn`/`rdOwn` and the client's and run's generation shares hold view
+  halves in their place.
+- The arm's names are carried in `NodeNames`. A stop agrees the run's names with the client's (two
+  armed invariants of one id would both hold the full `terms` authority; the namespace includes the
+  names).
+
+**API.**
+- `nodeVacant_arm`, `nodeCrash`.
+- `StartNode`/`RestartNode` take the armed vacancy `nodeVacantA`, and `node.Stop` gives it back.
+- `readyEnter` and `Ready`'s enter wand are crash-token updates (`ncfupd`).
+
+**Why the token everywhere** (the two gaps found in implementation):
+- The traced win lends the term map's authority across the trace line (f).
+- Ordinary steps (votes, heartbeats, appends, snapshots, read index) read the slot's half of `V`
+  against the entered maps (`slot_open`) (g).
+
+A thread needs `notCrashed` not only to update state a crash may change but also to read state a
+later generation changes (h). So every ghost step takes the token: `ncfupd`,
+`wp_ncfupd`/`wp_ncfupd_post` (`GooseLang/NotCrashed.lean`, proved).
+
+**Rejected.**
+- Fresh names per incarnation (b2): new cross-generation protocol reasoning.
+- A per-generation slot name for `V` (h): it does not remove the token.
+- (b3) deferred.
+
+**Applying it** (2026-11-21, the implementing session):
+- The cut runs inside the `readyc` send's atomic update, where no client step supplies the token
+  (design note (j)). Option 1 was chosen: channel updates that carry `notCrashed`, a Perennial
+  change (branch `nc-chan`). `node.run`'s proof waits for it.
+- "Same `x`" across a stop: `StartNode`/`RestartNode` give a persistent `nodeArm n γ x`, and
+  `node.Stop` gives `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`. `nodeArm_agree` ties the result to the
+  start, so `node.Stop`'s precondition did not change.
+- A client whose crash is `node.Stop`'s arms with `nodeVacant_armD`, which drops the crash token, and
+  keeps `∃ x, nodeVacantA …`. This covers kv, kvreconf, kvdurable and the server.
+- kvdurable enters inside the durable write's update. So the durable `Write.spec` lends the token when
+  the update opens (`wp_atomic_nc` at the extension's atomic step: a new `Language.Atomic` instance
+  for its `"Write"`).
+- A client with its own `[AllG GF]` (kvdurable) names the token by the notation `notCrashedG`,
+  which is the state interpretation's `gooseAllG` instance. A bare `notCrashed` would resolve to the
+  client's own instance and not match raft's.
+
+## Raft's cluster vocabulary independent of machine and generation (2026-11-21 · the coordinating session · branch `raft-cluster-global`)
+
+**Decision.** kvnet's decision B, option 3 of `notes/raft-cluster-global.md`:
+- The node-level predicates take an opaque node handle `nh : NodeH` (location and names), which
+  `StartNode`/`RestartNode` return.
+- The node table (`nodeTabInv`: a ghost map from node locations to names, with `n ↦□` for each)
+  leaves `isCluster` and goes away: the handle carries the names, so the descriptions of one node
+  agree by construction.
+- The shared predicates (`isCluster`, `sentMsg`, `msgCredits`, `raftState`, `nodeVacant`, `confAt`,
+  `isCommittedLogLb`, `snapshotCert`, `confPolicy`, the stores' invariants) and the allocation lemmas
+  are defined in sections with only `{GF} [AllG GF] [ReceiptGS GF] [InvGS GF]`, as the protocol
+  layer's. (First `[G : GooseGlobalGS]` with `gooseInvGS` a local instance; superseded 2026-11-22: a
+  fancy update concluded under `G.gooseInvGS` could not be eliminated by a caller under `HeapGS`,
+  `notes/raft-cluster-global.md` (d).) A client section must not declare its own `[AllG GF]` beside
+  `HeapGS` ("One `AllG`"): the global laws would take that instance and its hypotheses the heap's.
+- The etcd server's pin of its node (a `dghostVar` set after `StartNode`) holds `NodeH.installs`
+  (a `GName`), not the handle, which is not `Pos.Countable`; `nodeInstalledIndex_installs` transfers
+  the server's facts. *Rejected:* a saved predicate per node (another later at the use), and
+  `nodeInstalledIndex` keyed by the storage key (changes raft's snapshot-source laws).
+- `[CrashGS GF]` (per generation) is taken per declaration (`variable [CrashGS GF] in`), not per
+  section. A section variable made every lemma of its file take it.
+
+**Why.**
+- `isCluster` must be allocated in `goose_dist_mixed_crash_adequacy`'s `Hstart` and held by
+  kvnet's checking client on another machine.
+- A global node table cannot keep the heap facts its freshness needs: they are each generation's.
+  Keyed by address, it also breaks when a restarted heap reuses one.
+
+**Rejected.**
+- A registry keyed by a per-generation ghost name: freshness would need heap-name-parametric
+  points-to, a Perennial change.
+- A per-generation table: agreement would need a unique per-generation anchor, which is not
+  available.
+
+## Protobuf stage 0': the schemas generated from `models/pbdesc`, a candidate wire semantics (2026-11-21 · proving session 2, #18 · branch `prove-ps2-pbwire/2026-11-21`; scoped by kaashoek's review, #20 item 2 (b))
+
+**Partly superseded (2026-11-22, proving session 2):** the candidate wire semantics (`PbWire.lean`, `PbWireVectors.lean`, `examples/pbwire`) is deleted. Upamanyu's plan is pbgen with no `reflect` semantics (#20, 2026-11-22), and phase 7 (#24) has no consumer for a descriptor-generic Lean semantics. The schema generation (`etc/gen-pbschema.py`, `PbSchema.lean`) stays: it ties the trusted schemas raft's and the WAL's specs use to the registered descriptors.
+
+- **The schemas** (`PbSchema.lean`: the `FieldSchema` constants and `pbSchemaOf`, trusted) are
+  generated from the registered descriptors by `etc/gen-pbschema.py` (it runs `models/pbdesc` in
+  `examples/`, the one descriptor source pbgen reads), between marker lines of the file, with
+  `--check` in `etc/gates.sh` (`goose` section). The header, the `pbSchemaOf_*` lemmas and the
+  `PbGoType` instances stay hand-written: they are proved, not trusted. Why a region, not a
+  generated module: the file's importers, its RaftNoAx copy (`etc/copy-part.py`) and
+  `etc/PbSchemaDump.lean` (which reads `pbSchemaOf`'s `if ty = X.ty` chain) are unchanged. The
+  generated schemas and `pbSchemaOf` are exactly the hand-written ones (definitions unchanged);
+  only the docstrings changed, from hand-written `raft.proto:LINES` citations to the descriptor's
+  facts (file, syntax, each field's number, name, cardinality and kind), since the dump has no
+  source lines. `etc/pbschema-check.py` stays: it checks the registrations' reach and D1's size
+  bound, which the generator does not.
+- **The candidate wire semantics** `Proof/google_golang_org/protobuf/proto/PbWire.lean`: total,
+  computable `encode`/`decode` of a message value against a descriptor (protobuf-go v1.36.12's
+  `proto.Marshal`/`Unmarshal`, cited per rule), structural recursion (small cases reduce by
+  `rfl`). **Nothing trusts it**: no axiom, spec or proof imports it; pbgen stays the trusted
+  protobuf implementation (2026-11-19) until upamanyus and kaashoek settle #20 item 2 (a). Two
+  protobuf-go facts the plan had not stated: a message's oneofs are written after all its other
+  fields, in the oneofs' declaration order, not by number (`codec_message.go:177-184`, "marshal
+  oneofs last"; found by the vectors: the first draft wrote a oneof at its first member's number);
+  the fast path does not check closed (proto2) enums' values on decode.
+- **Its evidence**: `examples/pbwire` (Go) builds random messages of 24 root types (raftpb,
+  walpb, etcdserverpb with its oneofs, mvccpb, authpb, leasepb, and `xpb`, a copy of
+  `models/internal/pbdifftest/xpb` for the kinds etcd lacks) on the real generated structs,
+  marshals them with protobuf-go and, for the types in pbgen's subset (its own
+  `protobuf.toml`), with pbgen's codec, which must agree; unmarshals the encodings, their
+  concatenations (merges), mutations and crafted records (every wire type at known and unknown
+  numbers, non-minimal tags and varints, overflow, groups, cut values, bad UTF-8); and writes
+  descriptors (from `models/pbdesc`), inputs and outcomes as `PbWireVectors.lean`, whose `#guard`s
+  compare the Lean semantics with every vector at each build, with the recursion limits (10000
+  messages, 10001 groups) as Lean-side constructions. The Go test fails if the committed module is
+  not what it writes (`PBWIRE_UPDATE=1` rewrites it); it runs in `etc/gates.sh`'s `models` section.
+
+## A crash may enter a pending batch: `readyEnter` as live ∧ crash (2026-11-22 · branch `raft-crash-enter`)
+
+**Need.** kvnet's write has two durability points, so after a crash in its window the restarted node may find
+the batch's state on disk. Raft must then let the crash enter the batch as well as discard it (`nodeCrash`).
+
+**Choice.** `readyEnter := readyEnterLive ∧ readyEnterCrash`, an additive conjunction over the hand-out's
+resources, and a law `readyCrashEnter` (`InvNode.lean`). Two alternatives were rejected:
+- a separate crash resource beside `readyEnter`: both halves need the batch's `pendBatch`, which is exclusive,
+  and splitting it would give the live *enter* a fraction it cannot update;
+- a sealed `readyEnter` with the law proved from the hand-out: it hides from the interface which half a client
+  fires, for no gain.
+
+The live half is the old wand, so live clients change by one `icases` and the old guarantees stay as they were.
+The law needs two premises beyond the requested statement: `nodeRunning n γ N q` (the node was not stopped, so the
+batch is of the current generation) and `nodeArm n γ x` (the token is the node's arm's). Without them it is
+false of the ghost model (`notes/raft-crash-law-design.md` (k)). At the protocol level, `raft_enter`'s proof is
+now `raft_enter_core`, generic in how the generation is checked. `raft_crash_enter` checks it against the slot's
+share kept in the arm's crash invariant, which the crash token keeps live, then runs `raft_crash`. No ghost state,
+invariant or fragment meaning changed.
+
+**Also:** `statusOwn_hardState`, read access to `node.Status`'s hard state (`hsOpt`), without promising anything of
+the values, as `node.Status.spec` already says.
+
+## remote's slot library over a service; `Report`'s spec (2026-11-22 · branch `remote-report`)
+
+**Was:** every spec of `examples/lib/remote` (`attempt`, `serveConn`, `Serve`, `ServeClient`,
+`listen`, `Do`, `Run`, `Check`) took a far-side store `R : RBase` (a linearizable base store with
+`sysState`, `Eop`, `lin`, unknown outputs), and the slot handed the far side `slotUpd R i Φ`. `Report`
+(one attempt, no model: a client machine's loop answers its report) had no spec, and could not be an
+instance: a report's output is not a function of the input and a state (`B.step`), and its codec has
+no `IsRead`/`Unknown`/`IsUnknown` (`codecOk` needs them).
+
+**Now:** the wire and the slot's update are a **service** `RSvc GF I O` (`RWire` and `unkAns`, `upd`):
+the functions that only move bytes and the update (`attempt`, `serveConn`, `Serve`, `ServeClient`,
+`listen`, `Report`) are stated over any service, with the codec's wire part `wireOk` and the far
+side's `svcOp`; `Do`/`Run`/`Check`, which need the model, over a store, through `RBase.svc`
+(`remoteAddr R a` is `svcAddr R.svc a`; `codecOk_wireOk`, `opMaybe_svcOp`). A report is
+`reportSvc W P Q`: the update is `P i ∗ ∀ o, Q i o -∗ Φ o` (`P i` what the dialer established for the
+loop; `Q` may be persistent or transferable: the slot hands `Φ o` back once), with no unknown answers; its far side meets `reportOp W P Q tok op`
+(`reportOp_svcOp`). One spec per function: `Report.spec` is stated over any service, a report an
+instance (`unkAns = False` empties its last disjunct).
+
+**Why not** an `unk : I → Option GoInterface` or an output type `O ⊕ I` for the unknown answer: both
+touch `Do`'s proof and `Pend` (the read form's commit), where `unkAns i v := v = unk i` leaves them
+unchanged. **Departure** (TaDa, not HoCAP): `reportSvc`'s `Q` is a caller-provided predicate fixed in
+the address's protocol, as a store's `sysState` already is; the far side must know what it proves
+before any call, and the deployment fixes it once (`remote_start`, now for any service).
+
+## The crash bridge for `[netExt, fsExt]`: obligations per local ghost state, the precondition chosen at start, the legacy file mode (2026-11-22 · etcd-dist D3 · branch `dist-crash-bridge`)
+
+**Context.** D3 of `notes/etcd-dist-plan.md` (branch `etcd-dist`): `Robust crashing stable` for machines
+over the network and Linux files, some crashing and restarting, from per-machine boot WPs, through
+Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge (`robust_of_kitBoot`).
+
+**Decisions** (`notes/dist-crash-bridge.md`):
+
+- `robust_of_netFsBoot` and the deployment premise `NetFsDeploy` (trusted: `KitDeploy` of every machine and
+  `Fs.FsInit` of every machine's files) live in the `Net` part (`Net/Statement/`), beside the kits' bridge,
+  since they use `KitDeploy` and the net protocol library; #22's `GooseLang/Ext/NetFs/` is used, unchanged.
+- A crashing machine's obligation `CrashBootWp e Q` is per generation: from `Q L` and its thread token, the WP
+  and a frame giving `Q L'` from `crashed`, `osInv L'`, `crashRest` and the empty package state. Perennial's
+  precondition parameter is fixed before the start update allocates anything, so the bridge's is
+  `∃ Q, ⌜CrashBootWp e Q⌝ ∗ Q L`, the client choosing `Q` in its start update.
+- The obligations quantify over the local ghost state `L` (the WP at `⟨G, L⟩`), not over a `HeapGS` with an
+  equation on its global part as `KitBootWp` does; a proof substitutes `lctx` by `L`'s context and never
+  destructures `GooseLocalGS` positionally (Perennial's `local-names` adds a field).
+- The file system in its legacy mode at the plain semantics (`kvnetExts`): the shared mode needs each
+  generation's start to reach the extension's local interpretation, which Perennial's distributed theorem
+  does not give (`notes/perennial-changes.md`, 2026-11-22). Recorded, not worked around: D4's call.
+- The minimal instance is echo (server crashing, client stable, over `kvnetExts`), since echo's proofs are
+  over any extensions with the net extension: only the boot programs (a program's syntax is over its
+  extension list) and `wp_boot` are restated.
+
+## The distributed deployment's start and bridge: `Kit*` renamed `Dist*` (2026-11-22 · branch `dist-rename`)
+
+**Decision (the user's, kaashoek):** "kit" is dsverify-lab's word for its examples; the predicates
+`Net/Statement/` states are a distributed deployment's start and its bridge, whatever the program. So
+`KitDeploy.lean`/`KitBridge.lean` are `DistDeploy.lean`/`DistBridge.lean` (`Net.Statement.DistDeploy`,
+`Net.Statement.DistBridge`), and `KitDeploy` → `DistDeploy`, `KitBootWp`/`KitBootWpG` →
+`DistBootWp`/`DistBootWpG`, `nodeWp_of_kitBoot`/`nodeWp_of_kitBootG` → `nodeWp_of_distBoot`/
+`nodeWp_of_distBootG`, `robust_of_kitBoot`/`robust_of_kitProto` (and their `RB` variants) →
+`robust_of_distBoot`/`robust_of_distProto` (`…RB`), and echo's instance `echo_kit_robust` →
+`echo_dist_robust`. Statements, definitions and axioms unchanged. Older entries keep the old names;
+prose about the lab's own kits (its examples, "phase 6's kits") keeps the word.
+
+## prometheus's default registry as a Go model on the heap; `collectorName` over an opaque `collectorDescs`; `PromRegGS` per run (2026-11-22 · branch `prom-registry`; the user's decision on mit-pdos/etcd-grove#15)
+
+**Decided by the user:** replace the registration axioms (`nameFree`, `MustRegister`, `Register`, the
+start rights' names, D16/D19d) by a trusted model of client_golang's default registry on the Go heap,
+so that a crash resets it through the crash adequacy, with no new axiom. **The agent's choices within
+it** (`notes/prom-registry.md` is the full design and plan):
+
+- **The model is Go, translated and verified** (`examples/lib/promreg`, goose project `promreg`), and
+  only a thin glue is trusted (`TrustedCode/github_com/prometheus/client_golang/prometheus.lean`:
+  `Register`, `MustRegister`, `defaultRegistry`'s initializer, `init.0`). Alternatives: (1) a GooseLang
+  model written by hand in `TrustedCode` with a trusted struct layout (as `os`'s `file`): all of
+  `Register`'s logic trusted, and a layout class to state by hand; (2) a model in `models/` (module
+  `models.lab`): its Lean is the part `Net/`, which the main tree does not import. A package of the
+  examples' module, as `examples/lib/durable`, keeps the model in the main tree, testable against
+  the real client_golang in the same module (`model_test.go`).
+- **`collectorName` stays, as a definition over an opaque operation.** The collectors are made by
+  names-only constructors (axioms, which stay), and `Desc`, `Registry` and the collector types are
+  opaque in the translation, so no model can read a descriptor's ID from the heap: something must say
+  what a constructed collector describes, and the constructors' specs already do (`collectorName c n`).
+  The glue's `collectorDescs` (an `opaque val`) is the model's reading of `c.Describe`, and
+  `collectorName c n` becomes the pure statement that, in every instance of the logic, it returns `n`'s
+  one descriptor. Rejected: a trust-boundary spec of `Describe` (a new axiom, which the decision
+  excludes); translating `Desc` and the collectors (their fields name `client_model`'s types: the
+  constructors' axioms would then have to describe heap layouts).
+- **The ghost name is a typeclass instance of the run** (`PromRegGS`, as `WalGS`), allocated by the
+  closed theorem's proof in the universal camera (`AllG`): `nameFree n` cannot name a ghost name
+  stored with the registry (Perennial has no location metadata, `meta`), and a name allocated by the
+  initializer could not be the one the earlier-allocated rights (`ownInitResL`'s list) refer to.
+  The tokens are a ghost map's exclusive elements of the IDs (finite: only the program's names and the
+  builtins are allocated), so `descIdsDistinct` is what splitting them needs, as today.
+- **Why the per-run ghost name is sound across crashes** (the coordinator's request, 2026-11-22):
+  1. *Fresh in every run, by a proof step, not an axiom.* Each run's WP proof (the closed theorem's
+     `Hwp`, under `goose_adequacy*` or a crash adequacy's per-generation WP) allocates a new ghost map
+     in the universal camera (`own_alloc`, `promReg_alloc`) and makes it that run's `PromRegGS`
+     instance. No axiom produces a `PromRegGS`, a token or a `nameFree`: every `nameFree n` of a run is
+     an element of that run's map.
+  2. *Where the rights are before initialization.* The allocation gives, for the run's map `γ`, the
+     exclusive elements of the builtin IDs (`builtinToks`) and of the program's names' IDs
+     (`namesFree Ns`). The init chain carries them (`ownInitResL`): prometheus's entry `builtinToks`,
+     each registering package's `namesFree regNames`. The authority of `γ` and the builtin elements
+     go into the registry invariant when prometheus's initializer runs: `defaultRegistry.init`
+     allocates the heap registry (a fresh `promreg.Registry` at a location of this run's heap) and
+     `init.«0»`'s seeding puts the builtin elements under its mutex. A package's registration moves
+     its element into the invariant.
+  3. *The invariant ties this run's `γ` to this run's heap registry*: `isPkgInit prometheus` is
+     `∃ l, globalAddr defaultRegistry ↦□ l ∗ promreg.isRegistry l γ`, with `γ` the instance's; the
+     mutex invariant owns the maps of `l` and the elements of every ID registered in them.
+     `MustRegister`'s proof combines a `nameFree n` of `γ` with that invariant: the element held twice
+     would be invalid, so `descId n` is not registered in `l`.
+  4. *So a `nameFree` from a crashed run is useless in the next one.* Carried through a crash frame,
+     it is an element of the old run's map `γ₀`; the new run's specs ask for an element of its own
+     `γ₁` (its instance), and nothing converts one into the other. Its registry is a new heap (the
+     crash adequacy's next generation starts from `ownGoState ∅` and an empty heap) built by the new
+     run's initializer, whose invariant names `γ₁`. Double registration across runs is impossible in
+     Go anyway (the registry is process memory), and the logic now says the same without an axiom.
+
+## prometheus's registry: the closed theorems take `promreg.Assumptions`; the rights read the run's name themselves (2026-11-22 · branch `prom-registry`; the user's decision on the blocker, option 1)
+
+**Supersedes in part** the entry above: its third bullet (`PromRegGS`, a typeclass instance of the run) and
+the `builtinToks` of its second point.
+
+**Decided by the user** (kaashoek, 2026-11-22, `notes/prom-registry.md` "Stage 4 started", option 1): the
+glue resolves the model's functions by name (`FuncResolve promreg.NewRegistry`, `MethodResolve
+*promreg.Registry "Register"`), which only `promreg.Assumptions` unfolds, and client_golang does not import
+the model, so `prometheus.Assumptions` does not give it. **Every closed theorem that reaches prometheus
+gains one instance argument, `[promreg_sem : promreg.Assumptions]`**, as they already take `mvcc_sem`,
+`srv_sem`, `cache_sem` for packages their `main` does not import; so do the generated `Init`/`InitLinked`/
+`PkgTable` (`etc/gen-init.py`: `PROMREG_VAR` in every file whose closure has the model), the `Link`s
+(`etc/gen-link.py`) and the generic start theorems between. It is satisfiable (the names are the model's own
+package path, which no other code declares) and is what the trusted model means: the semantics' function
+table holds the model's code. Rejected: (2) client_golang's own names as the model's trusted bodies (the
+verified model would become trusted Lean); (3) a translator option adding an import edge (a Perennial
+change, not available now).
+
+**The agent's choices within it:**
+- **No per-run instance: a right reads the run's ghost name itself.** With Perennial's per-generation name
+  supply (`localName`, perennial#681, manifest `local-names-c14`), `promreg.idTok k` is `⌜k ∉ builtinKeys⌝ ∗
+  ∃ γ, localName regKey γ ∗ k ↪[γ] ()`: two rights to `k` agree on `γ` (`localName_agree`), so they are
+  exclusive (`idTok_excl`) with no `γ` anywhere in a statement; `isRegistry f r` and `regInv` take no `γ`
+  either. `PromRegGS` is gone.
+- **The builtins take no rights.** The registry's invariant holds, for each registered ID, `regTok k :=
+  ⌜k ∈ builtinKeys⌝ ∨ idTok k`; `SeedBuiltins` registers the builtins with the left disjunct, and a right is
+  never a builtin's (its pure part), which is what the builtin tokens excluded. So **prometheus's initializer
+  needs no resource**: it stays an `_lb` form, its fact is `promInit := ∃ l, globalAddr defaultRegistry ↦□ l ∗
+  isRegistry descId l`, and the init chain's resource lists (`ownInitResL`) are unchanged but for what
+  `namesFree` now is (`regFree` of each name). Rejected: prometheus as a resource package (`builtinToks` in
+  `ownInitResL`'s list): every importer of prometheus (52 packages, `lb` forms among them) would change form.
+- **prometheus's dependencies are hand-written** (`PkgInit.lean`, `IsPkgInit`/`GetIsPkgInitWf` with `time`
+  and `promreg`): the glue's `defaultRegistry.init` initializes the model's package, which the translation's
+  `pkgImportedPkgs` does not list. `etc/gen-init.py`'s `EXTRA_DEPS` adds it to the inventory and the package
+  tables, `INST_HAND` names the hand-written instance.
+- **A run's rights** (`promReg_alloc`): from the generation's `ownLocalNames m` with `regKey` unset, a fresh
+  ghost map recorded under `regKey` and `idToks ks` for distinct non-builtin `ks`. The closed theorems get
+  `ownLocalNames ∅` from `goose_adequacy_start`'s WP premise (stage 5, the start model's change).
+
+## prometheus's registry: rights to IDs with a keys component; `Register` proved; the start model's names gone (2026-11-22 · branch `prom-registry`; the coordinator's decisions on #15)
+
+**Decided by the coordinator** (2026-11-22): the rights are to descriptor IDs and collector IDs, not names,
+so the registration rights get a keys component; no pseudo-names (a name standing for an ID would blur what
+a right means). `prometheus.Register` is proved over the model, retiring its axiom. The start model's
+change (no names; `ownLocalNames ∅` in the WP premise) is required.
+
+**The agent's choices within it:**
+- **`regResL` over `(q, names, keys)`**, entry resource `namesFree names ∗ idToks keys`; a package's
+  `regKeys` is `[]` but for `v3rpc`'s (`grpcKeys`, `etc/gen-init.py`'s `REG_KEYS`). The `wp_initialize'`
+  precondition is `regsFree regQs`, one resource per package, rather than two lists (`initNames`,
+  `initKeys`), so the closed proofs decide one fact (`regQsOk regQs`).
+- **`Register.spec` is generic** (any collector with `collectorDescsAre c ds` and `descsOk descId ds`,
+  the rights `idToks (descKeys ds)`, returns `nil`), not about grpc-prometheus's metrics; the server
+  metrics' descriptors are `NewServerMetrics`' clause (`srvDescs`, `grpc_prometheus` `Defs`).
+- **`getServerMetrics`' rights in its lock** (`metricsP`'s `nil` case holds `idToks grpcKeys`, the IDs of
+  both choices of the histogram option, decided at run time); the `metrics` case now records `m ≠ null`
+  so that the `nil` branch's two cases are exclusive.
+- **The generic start theorems take `ownLocalNames ∅` as the initializer's resource** (`progOk`'s `R`),
+  and each closed proof makes the rights with `wp_init_of_localNames _ regQs (by decide +kernel)`: the
+  kernel decision moves from a premise default (`hNsIds`) into the proof, and the generic theorems take no
+  list at all.
+- **`promreg_sem` follows `Register`'s proof** through v3rpc's `Link` to every linking module above it
+  (`etc/gen-link.py`'s `PROMREG_VAR`, the hand-written linking modules), as option 1 said it would.
+
+## The bootstrap contracts give the membership buckets in the table (2026-11-22 · proving session 2, #18 · branch `prove-ps2-members/2026-11-22`)
+
+**The user's decision (2026-11-22):** extend the trusted bootstrap contracts' backend clause (`bootOk`'s and
+`bootOkR`'s `%Hbe`, the posts of `bootstrapContract`/`bootstrapRestartContract`) with
+`d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI`, as item E of the 2026-11-02
+approved restatements did for the alarm and auth buckets.
+
+**What changed:** `membership.RaftCluster.SetBackend` and `schema.membershipBackend.MustDeleteMemberFromBackend`
+(trust-boundary axioms until now, names-only) are translated with their bodies (with `MustCreateBackendBuckets`
+and `BackendMemberKey`) and proved over the backend's specs. Their bucket operations need the buckets in the
+backend's ghost table; the fact travels `bootOk` → `srvSnapRO` → `applySnapshot` → `SetBackend` at the received
+backend (ledger 2026-11-22, "members").
+
+**Why it is true of the code:** the table names the backend's buckets; `bootstrap`'s `cl.SetBackend(be)` creates the
+three (`MustCreateBackendBuckets`), and the contract already says they are present in the boot data (`%HDr`). The
+contract chooses the ghost table, so naming three more buckets in it constrains nothing Go does.
+
+**Why not** derive `P.has` from the data (`D.lookup n = some _`): the table is a free parameter of `KBReal`, and
+the backend's invariants do not tie it to the data's buckets; adding that tie is a backend-internal change (claimed
+by #30 at the time).
+
+## The Antithesis checker's actions take one budget premise, `State.BoundedFor` (2026-11-23 · #33 S3b W0 · branch `antithesis-check`)
+
+**Was:** `ActionSpec` (the spec shape of every action of `Bind`, `Rep.lean`) had no bound: `State.Made.spec`, its one
+proved instance, needs none. **Now:** `ActionSpec` takes `s.BoundedFor ev` (`notes/antithesis-check-design.md`
+§10.2, "Bounds"): the state within a budget `b` (`State.Within b E`: logs and per-report lists no longer than `b`,
+facts than `2 * b`, numbers within `±2^62`, configuration sets within `|initVoters| + b * E`) and room for the report
+(`b + ev.weight < 2^61`, `|initVoters| + (b + ev.weight + 1) * E < 2^61`). `State.Made`'s proof only ignores it.
+
+**Why one premise for every action:** `Bind` dispatches to each action; a family of shapes (bounded, unbounded)
+would split its proof. **Why a budget, not fixed bounds:** an in-flight value (`InMemory`'s leader log, the
+report's entries appended) is longer than any log of the state; with fixed bounds (logs below `2^61`) its length
+is not bounded where `HasFirst`'s premise needs it; with a budget it is `b + ev.size`, and each step's bound is
+local (`ActionWithin`, `OnDiskWithin`, ...: no history). **Why `E` per entry, not a sum over the stream:** a log's
+total of configuration changes has no local bound (a step can splice one log's prefix onto another's suffix), but
+its length times the largest change has. `Run.spec` (no proof yet) takes `Stream.ConfBounded` and a doubled report count in
+`Stream.Bounded` to start the budget and keep it below `2^61`.
+
+## pbgen's subset extended to proto2 and oneofs (2026-11-23 · proving session 2, #18, offered by #24 · branch `ps2-pbgen-proto2/2026-11-23`, not landed: for the user's review)
+
+**Context.** pbgen (`models/protobuf/`, "Trusted generated code: the generator is the trusted
+artifact", above) accepted proto3 messages only. Every raftpb and walpb type (proto2: explicit
+presence, closed enums, unpacked repeated fields) and etcd's transaction and raft-entry requests
+(oneofs: `Compare.target_union`, `RequestOp.request`, `ResponseOp.response`) were refused, which
+blocks replacing the per-type protobuf axioms of raft, the WAL and the apply path by generated
+codecs (`/shared/tmp/ps2/pbgen/triage.md`, item E2 (b) of `notes/dsverify-net-port-plan.md` phase 5).
+
+**Decision.** The trusted core now accepts proto2 and proto3 files with explicit presence
+(proto2 `optional`/`required`, proto3 `optional`), required fields (Marshal and Unmarshal check
+initialization as protobuf-go's `checkInitialized`), explicit defaults (wire-irrelevant: only the
+getters read them), closed enums (decoded as open, as protobuf-go does), packed and unpacked
+repeated scalars per the descriptor, and oneofs (marshaled after the other fields, in declaration
+order, as protobuf-go's `LegacyFieldOrder`; the last member decoded wins; a member decoded again
+goes into the wrapper already there, a message merging into its message). Each rule is cited to protobuf-go v1.36.12 in `pbgen_core.py`'s doc. `pbdesc`
+(trusted with the core) dumps three new facts: each oneof's holder field, each member's wrapper
+type (from the registered `MessageInfo.OneofWrappers`, as protobuf-go's `structInfo`), and the
+presence or lazy state fields of the opaque and hybrid APIs (refused). Still refused: editions,
+maps, groups, float/double, extensions, MessageSet, weak and lazy fields.
+
+**Two new refusals where protobuf-go is not what its descriptors say** (both found while testing,
+shown on protobuf-go by `models/internal/pbgenrand`'s `TestProtobufQuirks`): a message type that
+has no required field of its own, reaches one and lies on a cycle of two or more message types
+(conservatively also when it reaches one outside the cycle; `needsInitCheck`'s cache
+keeps a false for it, depending on which type the program uses first, so its checks are skipped
+nondeterministically); a oneof member other than the oneof's first declared one, of a type with
+required fields (Unmarshal's fast path never consults it: a missing required field there passes
+Unmarshal and fails Marshal). The emitted code could reproduce the second, not the first (it
+depends on the program's history); refusing both keeps the core's required-field check one rule.
+Neither arises in etcd (no etcd message has a required field).
+
+**Evidence.** `pbgenrand`'s random schemas now mix proto2 and proto3 files with all of the above
+(their constructs counted in the test's log), `TestOrders` runs a hand-built schema of required fields in and near cycles, a oneof whose first
+member needs the check and a message of 70 required fields against protobuf-go in 13 orders of its
+lazy type setup (each in a fresh process), `TestRefusals` has one schema per remaining refusal
+and checks the newly accepted constructs are not refused, `examples/models/pbetcd` covers raftpb,
+walpb and the oneof requests (its generated regression test), and the new section of
+`notes/axiom-review/pbgen.md` is the review.
+
+## The protobuf boundary's stage S1: `entryEncC`, `entDecode`, `ccDecodeV2` are concrete; `entryEncC_ok`, `ccDecodeV2_nil` theorems (2026-11-23 · #37 · branch `proto-s1`)
+
+**2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37)**
+
+Until now `entDecode` (an `Entry`'s decoding), `entryEncC` (its encoding) and `ccDecodeV2` (a
+`ConfChangeV2`'s decoding) were `opaque`, and what was known of them were two axioms,
+`entryEncC_ok` (the round trip and the length of an `Entry`'s encoding) and `ccDecodeV2_nil` (the
+empty bytes decode to the empty `ConfChangeV2`), and the trusted specs of `proto.Marshal`/
+`proto.Unmarshal` that name them.
+
+**Decision:** they are definitions, over a generic wire format:
+`Proof/google_golang_org/protobuf/proto/Wire.lean` (varints, tags, length-delimited and fixed
+values, proto2 explicit presence `opt`, unknown fields appended after the known fields; a
+decoder for flat schemas, its tags and values read as protobuf-go reads them: non-minimal
+varints, the 10-byte limit, number ranges, wire types 4, 6, 7 refused, groups skipped up to 10001
+deep, a known field's records in input order and the last scalar winning, the rest kept in the
+unknown fields with its tag re-encoded minimally), and the per-type codecs
+`Proof/go_etcd_io/raft/v3/PbWireRaft.lean` (`entryEncRaw`, `entDecodeRaw`, `cc2DecodeRaw`; an enum
+written sign-extended and read as its low 32 bits). `decode_encode` (records the decoder reads
+back and unknown fields as `ufWire` says decode to themselves) gives `entryEncC_ok` (now a
+theorem, its statement unchanged); `ccDecodeV2_nil` is `simp`. Both axioms left the trust base.
+
+**What it changes in the trust base.** Nothing is weaker, and two trusted specs say more:
+`proto.MarshalPb`/`UnmarshalPb` (at `Entry`) and `proto.MarshalConfChangeV2`/
+`UnmarshalConfChangeV2` now claim byte-exact agreement of protobuf-go with these Lean functions
+(Unmarshal fails exactly where the decoder says `none`, and otherwise gives its result; Marshal's
+bytes, at `Entry`, are `entryEncRaw`'s). That is true, and its evidence is
+`examples/pbschema/wirevectors_test.go`: protobuf-go v1.36.12's `Marshal` of random `Entry`s
+(presence, extreme values, unknown fields) and `Unmarshal`'s outcome on their encodings, on
+encodings with interleaved and adversarial records, on byte mutations of all of them and on edge
+cases (varint limits, number limits, wire types, groups 10001 and 10002 deep), and on
+`ConfChangeV2`s and their mutations: 962 vectors, written as the `#guard`s of
+`Proof/google_golang_org/protobuf/proto/EntryWireVectors.lean` (checked when it builds; the test
+fails if the module is not what it generates; gated in `etc/gates.sh`'s models section). Until stage
+S3 proves the Go model of `proto` against these functions, the vectors are what backs them.
+
+*Not here:* `Message`'s and the WAL record's encoders (`msgEncC_ok`, `recEncC_ok`, stage S2),
+`ccDecodeV1` (still opaque: nothing needed it).
+
+## jsongen's subset extended to embedded structs, pointers and a type's own JSON methods (2026-11-23 · proving session 2, #18, item 1 of #24's split · branch `ps2-jsongen/2026-11-23`, not landed: for Upamanyu's review)
+
+**Context.** jsongen (`models/json/`, "The encoding/json model is of Go 1.27.3's default build; jsongen
+as a trusted generator", above) refused every etcd type the membership axioms need: `membership.Member`
+and `ConfigChangeContext` embed structs, `raftpb.ConfState` has `AutoLeave *bool`, `cluster_util` decodes
+`[]*membership.Member`; and go-vsr's `log.Logs` has its own `MarshalJSON`/`UnmarshalJSON`, so the vr kit had
+no codec (kaashoek's requirement on #24). The design note, `notes/jsongen-extension.md`, was posted on #24
+before the code; upamanyus-agent approved the design, asking for dominance collisions at equal depth in
+the random harness and for the method calls themselves (not only the bytes) to be compared.
+
+**Decision.** The trusted core reproduces encoding/json/v2's own field walk (`makeStructFields`, whose
+errors v1's options ignore) rather than v1's `typeFields`: breadth-first with the `visitChildren =
+!seen[tf]` rule, exact dominance (a name with no dominant field is dropped, silently, as Go), depth-first
+output, case-insensitive matching in breadth-first precedence; this also replaces two old refusals (equal
+and case-equal names in one struct). Pointers `*T` to every accepted non-pointer, non-interface type.
+A type's own `MarshalJSON`/`UnmarshalJSON` are called where Go's `CallMethodsWithLegacySemantics` calls
+them: a pointer receiver only on an addressable value, so the codec gets a second encoder `jencA_<T>(b, p,
+d)` for the types whose encoding depends on it; outputs go through `jencValue` (validated,
+nesting-checked, compacted, as a RawMessage); `UnmarshalJSON` gets `b[j:k:k]` and its error is recorded
+while decoding continues. The default structure of a type with methods is checked only in the direction
+it is used; text methods are accepted only where a JSON method shadows them. jsondesc (trusted with the
+core) now dumps which hook interfaces a type or its pointer implements (reflect's `Implements`) and its
+pointer's exported method names (for the promoted-selector check). Still refused, among others:
+unexported embedded pointers on a used path, embedded types with methods, `**T`, named pointers,
+`,string` on pointers or method types, `MarshalJSONTo`/`UnmarshalJSONFrom`, maps (so map keys and values
+never reach a method). k8s's unexported `storage.continueToken`, `etcd3.etcdHealth` and `controller`'s
+patch structs stay out structurally: a codec in another package cannot name them.
+
+**Evidence.** `models/internal/jsongenrand`: random embedded (exported, unexported, by pointer, repeated,
+self-embedded through a pointer, colliding Go and JSON names at equal and different depths, tagged and
+not), pointer and method types (value and pointer receivers; outputs with whitespace, fixed, invalid,
+nil, empty, failing, nested to the limit; decoders merging, recording their bytes, failing), reached in
+every context, a wrapper `{V M; P *M; S []M; A any}` per method type; the generated test compares bytes,
+values, errors-or-not and the logged method calls in order (`jtCallLog`). Nine mutants of the core (no
+dominance, no addressability, no allocation of embedded pointers, fold order reversed, the seen rule
+dropped, a pointer's null ignored, an `any`'s value addressable, the method's bytes with whitespace, a
+method's nil output taken as null) are each caught by a 12-module run (a tenth, a method's error made a
+NotModelled panic, survives by design: such panics are the model's allowed outcome). `TestRefusals` (one per refusal),
+`TestAccepted` (the formerly refused constructs). Regression codecs: `examples/models/jsonetcd` (Member,
+RaftAttributes, Attributes, ConfigChangeContext, `[]*Member`, DowngradeInfo, Versions, ConfState,
+HashKVRequest/Response) and `models/internal/jsonvsr` (go-vsr's current `log.go`, Logs' methods); the
+dsv-vr kit's own `json.toml` generates (checked in a scratch copy), and so do k8s's `v1.AvoidPods` and
+`metav1.OwnerReference` (`metav1.Time`: both methods, opaque). Goose translates the generated codecs
+(tried on jsonvsr and jsonetcd). The independent review (`notes/axiom-review/jsongen.md`) found three
+divergences: an `UnmarshalJSON` on a slice element ran on a temporary (fixed: decoded in place, the
+slice grown as `reflect.Value.Grow(1)` grows it), pointer cycles (fixed: `NotModelled` from depth 1000,
+where the real encoder's cycle detection starts), and a method's `*jsontext.SyntacticError` stopping the
+real decoding (a stated precondition: only jsontext/v2, outside the model, make one).
+
+## The protobuf boundary's stage S2: `msgEncC`, `msgDecode`, `recDecode` concrete, `irrDecode`'s `AuthUserGrantRole` concrete; `msgEncC_ok`, `recEncC_ok`, `apply.irrDecode_utf8` theorems (2026-11-23 · #37 · branch `proto-s2`)
+
+**2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37; stacked on stage S1)**
+
+**What was trusted.**
+- `msgEncC` (a `raftpb.Message`'s encoding, rafthttp's `PerTypeMessage.lean`), `msgDecode` (its decoding, raft's `PbMessage.lean`) and `recDecode` (a `walpb.Record`'s decoding, `wal/walpb/PbRecord.lean`) were `opaque`.
+- Three axioms said something about them:
+  - `msgEncC_ok`: the round trip and the length of a `Message`'s encoding;
+  - `recEncC_ok`: the round trip of `recEnc`, already a Lean function;
+  - `apply.irrDecode_utf8`: a decoded `InternalRaftRequest`'s `AuthUserGrantRole.role` is valid UTF-8, over the opaque `irrDecode`.
+
+**Decision.**
+- **`Wire.lean`** gains `decodeMerged`: a singular message field's occurrences, merged as `consumeMessageInfo` merges them, which is their records concatenated.
+- **`PbWireRaft.lean`** gains `Message`'s codec:
+  - raw encoders `csEncRaw`, `metaEncRaw`, `snapEncRaw`, `msgEncRaw`, each taking its sub-messages already encoded;
+  - decoders `csDecodeD`, `metaDecodeD`, `snapDecodeD`, `msgDecodeD`, with:
+    - unpacked and packed repeated `uint64`s, a packed record that does not parse failing the message;
+    - merged singular sub-messages;
+    - a `bool` read as non-zero;
+    - `responses` decoded (their failure fails the message) and counted;
+    - protobuf-go's recursion depth: `msgDecodeRaw = msgDecodeD 10000`, each sub-message one level, an empty one included.
+  - round-trip theorems at each level (`msgDecodeD_enc` and the others).
+- **The definitions over them.**
+  - `msgEncC` is `msgEncRaw` composed over `MsgC`, responses included.
+  - `msgDecode` is `msgDecodeRaw` mapped to `MsgWire`.
+  - `msgEncC_ok` is a theorem, its statement unchanged.
+- **`walpb.Record`.**
+  - `WalPbWire.lean` gains `recDecodeRaw`: `int64` read as the low 64 bits, `uint32` as the low 32.
+  - `recDecode` is `recDecodeRaw`, and `recEncC_ok` is a theorem.
+- **`irrDecode` is now a hybrid.** Decoding the whole `InternalRaftRequest` into `IRRModel` would have meant a Lean decoder for every request type (the transactions, the lease and auth requests, ...), well beyond this stage. Only what the axiom needs is concrete:
+  - `apply.irrDecode bs` is `irrDecodeRest bs` (opaque, every field but one) with its `authUserGrantRole` replaced by `IrrWire.irrUgrDecodeRaw bs`, and `none` unless both succeed.
+  - `irrUgrDecodeRaw` is protobuf-go's reading of field 1104 as a Lean function:
+    - the top-level records are read with only field 1104 declared, every other record skipped as `ConsumeFieldValue` skips it;
+    - the `AuthUserGrantRoleRequest` occurrences are merged;
+    - every `string` record must be valid UTF-8 (`utf8ValidB`, Go's `utf8.Valid`), and the last one wins.
+  - **Why the hybrid is sound.** Wherever protobuf-go's `Unmarshal` succeeds, the reader succeeds too and reads the same field: every other field's coder reads the same bytes the skip does, and fails only where the skip fails or later. So the axioms naming `irrDecode` (`proto.MarshalIRR`, `pbutil.MustUnmarshalMessage`'s premise) stay true with `irrDecodeRest` taken to be protobuf-go's decoder.
+  - **The theorem.** `irrDecode_utf8` follows from the definition (`IrrWire.irrUgrDecodeRaw_utf8`).
+
+**What it changes in the trust base.**
+- Three axioms left it (`etc/tcb-baseline.txt` and the collections).
+- Nothing became weaker.
+- **Trusted specs that now say more** (D3):
+  - `proto.MarshalPb`/`UnmarshalPb` at `Message`, and rafthttp's codecs through `MsgWireOk`/`MsgEnc`: protobuf-go's bytes are `msgEncC`'s, and its `Unmarshal` fails exactly where `msgDecodeRaw` says `none`, and otherwise agrees with it;
+  - `proto.UnmarshalWalRecord` and the WAL decoder's spec: the same at `walpb.Record`, with `recDecodeRaw`;
+  - `proto.MarshalIRR` and `MustUnmarshalMessage`: their `irrDecode` includes the concrete `AuthUserGrantRole` reader, and claims agreement only where protobuf-go succeeds.
+- **The claims are pinned** to protobuf-go v1.36.12, `examples/go.mod`'s pin; protobuf-go documents that its output may change between versions.
+- **No map fields** (D3 caution, kaashoek's review on #37): checked in the `.proto` sources at the pins (`raftpb/raft.proto`, `walpb/record.proto`, `etcdserverpb/raft_internal.proto` and `rpc.proto`, `membershippb`, `versionpb`): none has a `map<` field, so the encodings are deterministic.
+
+**Evidence.** `examples/pbschema/wirevectors_s2_test.go` writes three `#guard` modules from protobuf-go v1.36.12, with fixed seeds. `etc/gates.sh` checks them, and the build runs the guards.
+- **`MessageWireVectors.lean`, 1055 guards.**
+  - 150 `Marshal`s of random `Message`s, as the composed raw encoders. They cover every presence combination, enums out of range, entries, a snapshot with or without metadata and conf state, responses, and unknown fields at every level.
+  - 80 re-encodings (D2, kaashoek's note on #37): a message decoded from records with unknown fields interleaved at every level, then `Marshal`ed. protobuf-go writes the known fields in field-number order and the unknown fields, kept in arrival order, after them, and the Lean encoder of the decoded content gives the same bytes (`encode ks uf = encFields ks ++ uf`).
+  - 823 `Unmarshal` outcomes, covering every getter, the conf state's lists and the number of responses, or the error. Inputs:
+    - those encodings;
+    - encodings with unknown fields interleaved;
+    - adversarial encodings, including packed conf states;
+    - mutations of all of these;
+    - edge cases: merged snapshots, metadata and conf states, unparsable packed lists, bools 2 and 5, empty and invalid entries, responses nested 300 deep.
+- **`TestMessageDepthLimit`, in Go only.** It checks that 10000 nested messages decode and 10001 do not, with an entry or a conf state counting as a level. The Lean decoder's cost is quadratic in the nesting, so the guards stop at 300.
+- **`RecordWireVectors.lean`, 578 guards.** `recEnc` against `Marshal`, `recDecodeRaw` against `Unmarshal` (including int64/uint32 truncation), and 69 decoded records with interleaved unknown fields re-encoded (D2).
+- **`IrrWireVectors.lean`, 504 guards.**
+  - `irrUgrDecodeRaw` on every input protobuf-go decodes: random requests with other fields set, records with invalid UTF-8, merged and repeated records, and mutations.
+  - 252 further inputs protobuf-go rejects are not guarded, since the reader claims nothing there.
+- **The S1 caveat stands.** Zeldovich asked on #37 to run the 17.7M-input D1 harness with the Lean decoders as oracle; that is not done.
+
+## encoding/json per-type dispatch (J3) and the model's bodies (J2) (2026-11-23 · proving session 2, #24 · branch `prove-ps2-jsonj2/2026-11-23`)
+
+**Context.** The model's `Marshal`/`Unmarshal` were `getCodec().X(v)`: with bodies, every call needs a
+registered codec covering its type, a resource (`codecSetWith`) to thread through every spec from
+membership up to `etcdstart`, and a codec package cannot name k8s's unexported `storage.continueToken`
+(the design note on #24, issuecomment-7103223894).
+
+**Decision** (Upamanyu: J3 = (b); the exact statements, issuecomment-7113354607, approved by his
+coordinator). Per-type dispatch, the JSON twin of #37's D1: jsongen's same-package mode emits
+`JSONModelMarshal` (on `T`), `JSONModelMarshalPtr`, `JSONModelUnmarshal` (on `*T`) into each root's own
+package, under `goose || netmodel`, through goose's `-overlay`; the model calls them by the value's
+method set (`marshalAny`), the registered codec otherwise (nil, unnamed types: vr's frames). Each body
+accepts exactly `T`/`*T` and is not modelled otherwise (a type embedding `T` has the methods by
+promotion). In Lean the contract a call meets is an explicit `J : JsonCodec GF`, chosen per route:
+`typeCodecOk J F T` is a theorem of `T`'s package, the codec route `codecSetWith fm fu ∗ codecOkWith F
+fm fu`; `marshalVia`/`unmarshalVia` say which by `typeSetContains` of the dynamic type, a pure fact of
+the caller's `Assumptions`. `codecSetWith` gains `codecMu`'s mutex (`getCodec` locks it) and the
+registry follows net/rpc's (`codecInv`, `codecUnset` from a deployment's boot). Recursion (vr's `Logs`)
+needs no new form: every codec fact is persistent and used under a `WP`, so Löb cuts it. One overlay
+per project (`etc/goose.py`'s `model_overlay`, generators merged), shared with #37's pbmodel files.
+
+**Why not** a stronger `MarshalMember`: Upamanyu's decision (#24): `bootstrap`'s `ctxs = json.Marshal`
+of each member comes from `Marshal`'s proof at membership's own contract.
+
+## Two protobuf enums' `String` trusted over their name tables; etcdserver's `expvar` inits trusted no-ops (2026-11-23 · claim #39 · branch `etcd-small-3`)
+
+**Decision.** `etcdserverpb.AlarmType.String` and `mvccpb.Event_EventType.String` follow raftpb's
+`MessageType.String` (Q9, 2026-11-09): trusted models (`TrustedCode/go_etcd_io/etcd/api/v3/{etcdserverpb,
+mvccpb}.lean`) that look the value up in the generated `_name` table, else `strconv.Itoa`, as protobuf-go's
+`EnumStringOf` does (neither enum declares `allow_alias`); the tables are translated (no longer `[[skip]]`) and
+held read-only by the packages' facts (`etcdserverpb.alarmTypeNames` in `etcdserverpbInit`, a new
+`mvccpbInit` with `mvccpb.eventTypeNames`, `cache/v3/Base.lean`). Their specs are unchanged and proved over
+the models (`AlarmType.String`'s ASCII post from the table's names and `fmtInt`'s digits); the pointer calls
+step through goose's `ptr_String_unfold`. Evidence: `examples/premisefix/enumstring` (the real methods
+against the model, by value and through a pointer, and the tables against the descriptors). So that the
+model's `strconv.Itoa` is initialized, protobuf's `internal/impl` (which imports `strconv` in Go, for
+`EnumStringOf`) now has `strconv` among its translated imports. Trust base: −2 axioms
+(`etcdserverpb.AlarmType.String.wp_proof`, `mvccpb.Event_EventType.StringPtr.wp_proof`), +2 trusted models.
+
+etcdserver's `init.1`/`init.2` (`expvar.Publish` of `"raft.status"`, `"file_descriptor_limit"`) are trusted
+no-op models (`TrustedCode/go_etcd_io/etcd/server/v3/etcdserver.lean`: `Publish` panics only on a reused
+name; the closures run only when `expvar`'s registry is served, which no translated code or example does).
+`init.0` (the metrics' registration) is not: it calls `runtime.Version`, which Perennial does not name
+(`notes/perennial-changes.md`, 2026-11-23), so `initFuncsOk` stays, narrowed to `init.«0»`. The plan for it
+(etcdserver into `PRE_RES`, its 19 names added to the closed theorems' `namesUnclaimed` lists) was approved
+by the coordinator under the user's delegation; review requested (#39).
+
+## The net laws' read-deadline token and dead witness: variants, not new statements (2026-11-23 · #24 · branch `net-sticky-read`)
+
+Supersedes nothing. `notes/net-sticky-read.md`'s plan had the read-deadline token `rdlTok` "given at
+dial and accept". Adding it to `dial_au`'s and the `accept_*au` laws' results would change the
+statement every kit restates as its `Dial`/`Accept` post (twenty-odd files); instead the laws gain
+variants (`dial_rdl_au`, `accept_rdl_au`, `accept_shared_rdl_au`) whose results add the token, and
+the old laws are derived from them by dropping it, so only the proofs that set a read deadline (or,
+later, need no timeout) use the variants. `deadline_au` takes the token (anyone holding the
+connection could otherwise change the deadline the token records); a write deadline does not touch
+it, so `deadline_w_au` needs only `connIs`. `readDead` also covers a closed end (a counter per end,
+`c s`): a reader whose end may be closed by another thread has no exclusive knowledge that it is
+not, and `closed` is as sticky as EOF, so the witness says "reads nothing more" for either reason.
+
+## `bridge.New` consumes what sets the bridged address's protocols (2026-11-24 · the coordinator, trust-shrinking, the owner informed · branch `bridge-new-addrleft/2026-11-24`)
+
+**Problem.** D26's `bridge.New` took only the listener (`netListenerAt l a`). Since phase 7 S2's interface,
+`net.Listen` also returns `netAddrLeft a`, from which a program sets `a`'s protocols itself (`addr_set_proto_tok`;
+`grpc.start'` sets a grpc table that way). So a program could listen at `a`, give `a` a grpc table of its choosing,
+and bridge `a` to a server that meets none of its specs; a client axiom over the table then proves a false result.
+Found against etcd-dist's interim `Client_Get_dist` (review 4 of `notes/putget-dist-plan.md` §12; Go: a `Get` through
+the bridge returns a value the real store lacks, and the program's check panics, 5/5 runs).
+
+**Choice.** `New` also consumes `netAddrLeft a`: a bridged address's protocols are its target's, so the program that
+bridges `a` keeps nothing to set them with. Trust-shrinking (a stronger precondition of an axiom); its one caller,
+`cluster3.StartBridge`, passes `Listen`'s `netAddrLeft`, its own spec unchanged. A second review found the hole on
+`lean` itself, with no interim axiom: the table set to etcd's own KV entries at fabricated read names, and the proved
+`client_Get_own` (over `grpc.ClientConn.Invoke`) promises a value the real store lacks (`examples/axiomcx/bridgeinvoke/`);
+with the fix it found no route (`notes/axiom-review/bridge-addrleft.md`).
+
+
+## Go's process exit stays angelic, and checkers panic (2026-11-24 · branch `angelic-exit-doc/2026-11-24`)
+
+**The user's approval** (2026-11-24): Go's process exit (`os.Exit` → `syscall.Exit`, so `log.Fatal` and
+zap's and klog's `Fatal`) stays modelled as `AngelicExit` (Perennial `ca6df841b`:
+`Exit.impl := λ: "code", AngelicExit #()`, Perennial's `TrustedCode/syscall.lean` and this
+repository's), on the condition that the consequence is documented.
+
+**The consequence.** `AngelicExit` steps to itself forever: the exiting goroutine is neither stuck nor
+panicking, and the machine's other goroutines keep running (Go ends the process). So under `Robust`
+(`Robustness/Statement.lean`) an exit of any status is a safe run, not "the program ends with a
+failure": a program that checks a property and reports a violation with `os.Exit(1)` or `log.Fatal`
+proves nothing about the property. A check must panic. Go's run of a machine that exits is, up to the
+exit, an execution of the model, and after it is like a machine the scheduler stops picking; the
+model's extra executions (the other goroutines running on) only add to what the proof must show safe.
+
+**Documented** in `Robust`'s docstring and the header of `Robustness/Statement.lean`,
+`notes/robustness.md` ("An exit is a safe run, so a checker panics"), CLAUDE.md's `Robustness/` bullet,
+and Perennial's `docs/KNOWN_LIMITATIONS.md` (branch `angelic-exit-doc`).
+
+**Enforced** by a gate, `etc/exit-check.py` (in `etc/gates.sh` and CI), untrusted tooling: for every
+program a `TopLevelDefs.lean` boots (`<X>.initialize'`, resolved to its Go package through the
+translations' `go!"..."` package names), `etc/exitcheck` type-checks the program's own packages (its
+`go list -deps` closure under `examples/`; dependencies such as raft and etcd are not checked) and
+lists every use of an exit (`os.Exit`, `syscall.Exit`, `runtime.Goexit`, `log.Fatal*`, zap's, klog's,
+glog's, logrus's and zerolog's `Fatal`, `testing`'s `Fatal`/`FailNow`/`Skip*`), calls and function
+values, and of every wrapper of its own that forwards a parameter to one (callers decide what it
+reports). Each needs an entry in `etc/exit-allow.txt` with its reason; a stale entry fails.
+
+**What it found at landing** (36 `TopLevelDefs.lean`, 108 program packages, 206 own packages): no
+exit in any check written in this repository. Thirty exits, all in the Dsverify kits' forked protocols
+(`examples/dsverify/{epaxos,swiftpaxos,quepaxa}`), none reporting a check's failure: SwiftPaxos's
+`dlog.Logger.Fatal` (exits only for a nil or verbose logger, and every deployment's logger is the kits'
+`&dlog.Logger{}`, so the protocol's `r.Fatal(...)` self-checks return, in Go as in the model), and
+QuePaxa's exits on a failed `grpc.Dial` or debug-dump file (environment failures). Two
+`TopLevelDefs.lean` name no program (`etcd/dist`'s draft, `etcdstart`'s shared definitions).
+
+Not done: a whole-program analysis (an exit in a dependency, or a wrapper that decides by itself whose
+callers' conditions matter, is not followed); the gate is a review aid for the checks' own code, which
+is where a vacuous check would be written.

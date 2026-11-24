@@ -61,7 +61,7 @@ theorem etcd_leasecatchup.wp_listed : etcd_leasecatchup.listed.spec (GF := GF) (
 /-- **`run` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/run.lean`),
 under the semantic premise of its callees' linked results: the client's `dialWithBalancer` body
 (`DialWithBalancerBody`). -/
-theorem etcd_leasecatchup.wp_run
+theorem etcd_leasecatchup.wp_run [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leasecatchup.run.spec (GF := GF) (hG := hG) :=
@@ -72,7 +72,7 @@ theorem etcd_leasecatchup.wp_run
 /-- **The multi-member lease example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/Main.lean`), under `run`'s
 semantic premises. -/
-theorem etcd_leasecatchup.wp_Main
+theorem etcd_leasecatchup.wp_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leasecatchup.Main.spec (GF := GF) (hG := hG) :=

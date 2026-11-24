@@ -11,7 +11,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.keepalive
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
@@ -337,7 +337,7 @@ noncomputable instance Step_access_load_Delay (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Step_access_store_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (Delay' : time.Duration) :
+noncomputable instance Step_access_store_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (Delay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) Delay' (DFrac.own 1))

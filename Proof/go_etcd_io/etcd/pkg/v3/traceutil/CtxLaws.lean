@@ -66,7 +66,9 @@ Perennial's `WithCancel` (`wp_WithCancel_gen`, whose post gives the new context'
 `trace.spanCtxOk_cancelCtx_background`: what `EtcdServer.Compact` takes); the auto-compactor's constructors use it in place of
 `context.WithCancelBackground.wp_proof` (a trust-boundary axiom when this lemma was written, proved the same
 way since k8s 7f-4's Addendum T-i). (Sweep repairs 1, B2) Its start time too
-(`context.startTimeOk`: `nil`, by Perennial's `ctxValueFrom`). -/
+(`context.startTimeOk`: `nil`, by Perennial's `ctxValueFrom`). (prove-ps2-srvgoroutines, 2026-11-24) And its
+values from `Background()`'s (`ctxValueFrom`), from which a deadline child's facts follow (the server's
+`publishV3`, `srvLeadCheckOk`). -/
 theorem traceutil.wp_WithCancelBackground_noTrace :
     {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
       (App (Val (@! _root_.Perennial.context.WithCancel))
@@ -77,7 +79,8 @@ theorem traceutil.wp_WithCancelBackground_noTrace :
         _root_.Perennial.context.isContext ctx'
           { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
         traceutil.ctxTraceIs ctx' none ∗ trace.spanCtxOk ctx' ∗ context.startTimeOk ctx' ∗
-        context.libCtxOk ctx' }} := by
+        context.libCtxOk ctx' ∗
+        _root_.Perennial.context.ctxValueFrom _root_.Perennial.context.backgroundCtxVal ctx' }} := by
   iintro %Φ #Hpkg HΦ
   ihave #Hcci := _root_.Perennial.context.isClosedchanInit_of_init $$ Hpkg
   iapply _root_.Perennial.context.wp_WithCancel_gen
@@ -88,7 +91,7 @@ theorem traceutil.wp_WithCancelBackground_noTrace :
   · iframe #
     isplitl []
     · itrivial
-    unfold _root_.Perennial.context.isParentCtx; ileft; ipureintro; rfl
+    unfold _root_.Perennial.context.isParentCtx; ileft; ipureintro; exact Or.inl rfl
   inext
   iintro %c %γ %cancel ⟨#Hcancel, #Hc, #Hf⟩
   ihave #Hdl := _root_.Perennial.context.deadlineSpec_background (GF := GF)
@@ -112,9 +115,12 @@ theorem traceutil.wp_WithCancelBackground_noTrace :
     iapply _root_.Perennial.context.ctxValueFrom_cancel c
     iexact Hf
   -- (premise-fixes-8) its library values: `nil`, as its start time's
+  isplitl []
   · iapply context.libCtxOk_bgFrom
     iframe #
     iapply _root_.Perennial.context.ctxValueFrom_cancel c
+    iexact Hf
+  · iapply _root_.Perennial.context.ctxValueFrom_cancel c
     iexact Hf
 
 end lemmas

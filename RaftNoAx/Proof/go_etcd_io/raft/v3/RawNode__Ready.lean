@@ -46,7 +46,7 @@ theorem RawNode.Ready.wp_proof
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs q g Hsteps0 Hunp0 HtrG
+  intro γ rn id x rs q g Hsteps0 Hunp0 HtrG
   wp_start as H
   iNamed H
   wp_auto
@@ -55,9 +55,14 @@ theorem RawNode.Ready.wp_proof
   iNamed H
   -- (2026-11-01, durability stage II (k)) the hand-out is the cut: the batch queued in `g`
   ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
-  imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
-    $$ HhardO Hlive Hfree Hrn
-    with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, #Hsrcs, -⟩
+  iapply (wp_ncfupd _ _ rfl)
+  unfold ncfupd
+  iintro Hnc
+  imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L x q g h CoPset.subseteq_top CoPset.subseteq_top
+    $$ HhardO Hnc Hlive Hfree Hrn
+    with ⟨Hnc, %W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, #Hsrcs, -⟩
+  imodintro
+  iframe Hnc
   wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L (fun h => absurd HtrG h) $$ [$Hrn $HhardO]
     as %steps %ss H
   iNamed H
@@ -71,12 +76,12 @@ theorem RawNode.Ready.wp_proof
   isplitl [Hrn]
   · iExactEq Hrn; rfl
   isplitl [Hpb]
-  · iintro %E %q' %HE ⟨Hd, Hl⟩
-    imod raft_enter E γ id rs.dur q' g (readyDurable rs.dur (phsNext rs.phs h) L es) W HE
-      (RaftState.next_wcommit _ _ _ _ _ _) $$ Hd Hl Hpb
-      with ⟨Hd, Hl, Hf, #Hfr⟩
+  · iintro %E %q' %HE Hnc ⟨Hd, Hl⟩
+    imod raft_enter E γ id rs.dur x q' g (readyDurable rs.dur (phsNext rs.phs h) L es) W HE
+      (RaftState.next_wcommit _ _ _ _ _ _) $$ Hnc Hd Hl Hpb
+      with ⟨Hnc, Hd, Hl, Hf, #Hfr⟩
     imodintro
-    iframe Hd Hl Hf Hfr
+    iframe Hnc Hd Hl Hf Hfr
     iapply bigSepL_wand_pers (durFrags (GF := GF) γ id W) (fun q : QMsg => isRaftMsg γ id q.st) ms
       $$ Hmw Hfr
   isplitr

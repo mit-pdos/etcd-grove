@@ -33,12 +33,12 @@ variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
 /-- The phase's half of the claim. -/
-theorem kdPhaseInv_claim (γ : KdNames) (id : w64) (n : Loc) (g : GName) (S : RaftState)
+theorem kdPhaseInv_claim (γ : KdNames) (id : w64) (n : NodeH) (g : GName) (S : RaftState)
     (M : StorFile) (pz : KdPhase) :
     kdPhaseInv γ id n g S M pz ⊢
       ∃ v : Option GName × RaftState, ghostVar g (1 : Qp).half v ∗

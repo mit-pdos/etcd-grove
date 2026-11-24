@@ -1,6 +1,6 @@
 /-
 `ConditionsAwareDecisionConditionsMap(deny, noOpinion, allow)` (`conditionsmap.go`): a well-formed
-decision (a conditions map of copies of the slices, or an unconditional decision when the map
+leaf decision (depth `0`: a conditions map of copies of the slices, or an unconditional decision when the map
 would be empty, too large, without Allow and Deny conditions, or invalid), for conditions that can
 be called. Lean-first (no Rocq counterpart).
 -/
@@ -33,7 +33,7 @@ abbrev ConditionsAwareDecisionConditionsMap.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ sd ↦*{qd} dn ∗ sn ↦*{qn} no ∗ sa ↦*{qa} al ∗
       [∗list] c ∈ dn ++ no ++ al, isCondition c }}
     (App (App (App (Val (@! ConditionsAwareDecisionConditionsMap)) (Val #sd)) (Val #sn)) (Val #sa))
-  {{ (d : ConditionsAwareDecision), RET #d; isWFDecision d ∗ sd ↦*{qd} dn ∗ sn ↦*{qn} no ∗ sa ↦*{qa} al }}
+  {{ (d : ConditionsAwareDecision), RET #d; isWFDecisionLe 0 d ∗ sd ↦*{qd} dn ∗ sn ↦*{qn} no ∗ sa ↦*{qa} al }}
 
 end spec
 

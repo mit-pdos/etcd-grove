@@ -42,12 +42,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
 /-- **`run`'s loop invariant** (see the file header), `pp` and `sp` its `pending` and `snapIndex`. -/
-def runInv (γr : RNames) (id : w64) (r n st : Loc) (ρ : RepNames) (pp sp : Loc) : IProp GF :=
+def runInv (γr : RNames) (id : w64) (r : Loc) (n : NodeH) (st : Loc) (ρ : RepNames) (pp sp : Loc) : IProp GF :=
   iprop(∃ (D : List LogEntry) (hd hs : HardStateM) (csp mA : Loc) (m : Membership)
       (A : GMap (List w8) (List w8)) (snapIndex : w64) (c : Nat)
       (pv : GoSlice) (ps : List ReadState) (S : RaftState) (role : StateType),
@@ -72,7 +72,7 @@ def runInv (γr : RNames) (id : w64) (r n st : Loc) (ρ : RepNames) (pp sp : Loc
     "#Hps" ∷ [∗list] v ∈ ps, rsOk γr.cluster v)
 
 /-- The invariant at the start (`runStart`, `pending` nil, `snapIndex` zero). -/
-theorem runInv_init (γr : RNames) (vs : List w64) (id : w64) (r n st : Loc) (ρ : RepNames)
+theorem runInv_init (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st : Loc) (ρ : RepNames)
     (pp sp : Loc) :
     runStart (GF := GF) γr vs id r n st ρ ∗ pp ↦ slice.nil ∗ sp ↦ W64 0 ⊢
       runInv γr id r n st ρ pp sp := by

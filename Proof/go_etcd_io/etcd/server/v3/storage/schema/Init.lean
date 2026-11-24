@@ -7,12 +7,14 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `AuthUsers` and
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
-(`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
-2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
+(`auth.go`; the auth plan's S1, 2026-10-23), the lessor's `Lease` bucket (leases T3,
+2026-10-25), the membership's `Members`, `MembersRemoved` and `Cluster` buckets (prove-ps2-members,
+2026-11-22) and the alarm store's `Alarm` bucket (prove-ps2-v3alarm, 2026-11-24). Its initializer allocates and sets those translated variables (with the buckets'
 names), initializes its imports and runs its other variables' initializers, all translated
 (prove-initleft, 2026-11-21: `schemaChanges`, a map literal keyed by `version`'s versions, and the
-interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated
-`init` function (`bucket.go`), which the trust-boundary axiom `initFuncsOk` says returns.
+interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its `init` function
+(`bucket.go`), whose trusted model does nothing (`TrustedCode/go_etcd_io/etcd/server/v3/storage/schema.lean`,
+etcd-grove#32; until 2026-11-23 the trust-boundary axiom `initFuncsOk` said it returns).
 -/
 module
 
@@ -23,6 +25,7 @@ public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.version.Init
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_etcd_io.etcd.server.v3.auth.Init
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasepb.Init
@@ -49,37 +52,14 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace go_etcd_io.etcd.server.v3.storage.schema
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.schema`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.etcd.server.v3.storage.schema
-end opaqueInits
-
 namespace go_etcd_io.etcd.server.v3.storage.schema
 
 /-- The packages of this package's import closure (itself included) whose initializers
-register metrics, with their names: their registration rights are its initializer's
-resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
-def regQs : List (GoString × List GoString) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames)]
-
-/-- The metric names its initializer registers, with those of its import closure: its
-`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
-def initNames : List GoString := regQs.flatMap (·.2)
+register metrics, with their names and other IDs: their registration rights (keyed by ID,
+`EtcdGrove.prometheus.regRes`) are its initializer's resources (`ownInitResL`,
+`Proof/runtime/PkgInitRes.lean`; its `wp_initialize'`'s precondition: `regsFree regQs`). -/
+def regQs : List (GoString × List GoString × List w64) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys)]
 
 end go_etcd_io.etcd.server.v3.storage.schema
 

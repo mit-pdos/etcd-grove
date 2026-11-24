@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.apiserver.pkg.audit
 
 @[expose] public section
 
@@ -70,36 +71,6 @@ opaque subsystem [GooseExts] [GoGlobalContext] : val
 opaque maxUserAgentLength [GooseExts] [GoGlobalContext] : val
 
 opaque userAgentTruncateSuffix [GooseExts] [GoGlobalContext] : val
-
-noncomputable def eventCounter [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/audit.eventCounter"
-
-opaque eventCounter.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errorCounter [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/audit.errorCounter"
-
-opaque errorCounter.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def levelCounter [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/audit.levelCounter"
-
-opaque levelCounter.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ApiserverAuditDroppedCounter [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/audit.ApiserverAuditDroppedCounter"
-
-opaque ApiserverAuditDroppedCounter.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Scheme [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/audit.Scheme"
-
-opaque Scheme.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Codecs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/audit.Codecs"
-
-opaque Codecs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddAuditAnnotation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.AddAuditAnnotation"
@@ -182,6 +153,47 @@ noncomputable def init.«1» [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Union [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.Union"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `eventCounter` (`var eventCounter = metrics.NewCounter( &metrics.CounterOpts{ Subsystem: subsystem, Name: "event_total", Help: "Counter o … [sha256:3b8377e1d566368b]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `errorCounter` (`var errorCounter = metrics.NewCounterVec( &metrics.CounterOpts{ Subsystem: subsystem, Name: "error_total", Help: "Counte … [sha256:2fa7f0fd632d3f4f]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `levelCounter` (`var levelCounter = metrics.NewCounterVec( &metrics.CounterOpts{ Subsystem: subsystem, Name: "level_total", Help: "Counte … [sha256:e4d875f27039dbe4]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `ApiserverAuditDroppedCounter` (`var ApiserverAuditDroppedCounter = metrics.NewCounter( &metrics.CounterOpts{ Subsystem: subsystem, Name: "requests_rejec … [sha256:b6cb3ce2bdd7e74a]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `Scheme` (`var Scheme = runtime.NewScheme()`): Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewScheme` allocates an empty `*Scheme` and registers the default conversions into it
+(`utilruntime.Must` panics only if those fixed registrations fail, which Go would do at every
+start). So it terminates, cannot panic and has no effect beyond its variable.
+- `Codecs` (`var Codecs = serializer.NewCodecFactory(Scheme)`): Its initializer calls, besides literals of constants and other variables' values:
+`serializer.NewCodecFactory` allocates the serializers over the given scheme. So it terminates,
+cannot panic and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/audit.eventCounter", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var eventCounter = metrics.NewCounter( &metrics.CounterOpts{ Subsystem: subsystem, Name: \"event_total\", Help: \"Counter o … [sha256:3b8377e1d566368b]"⟩,
+  ⟨"k8s.io/apiserver/pkg/audit.errorCounter", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var errorCounter = metrics.NewCounterVec( &metrics.CounterOpts{ Subsystem: subsystem, Name: \"error_total\", Help: \"Counte … [sha256:2fa7f0fd632d3f4f]"⟩,
+  ⟨"k8s.io/apiserver/pkg/audit.levelCounter", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var levelCounter = metrics.NewCounterVec( &metrics.CounterOpts{ Subsystem: subsystem, Name: \"level_total\", Help: \"Counte … [sha256:e4d875f27039dbe4]"⟩,
+  ⟨"k8s.io/apiserver/pkg/audit.ApiserverAuditDroppedCounter", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var ApiserverAuditDroppedCounter = metrics.NewCounter( &metrics.CounterOpts{ Subsystem: subsystem, Name: \"requests_rejec … [sha256:b6cb3ce2bdd7e74a]"⟩,
+  ⟨"k8s.io/apiserver/pkg/audit.Scheme", "Its initializer calls, besides literals of constants and other variables' values:\n`runtime.NewScheme` allocates an empty `*Scheme` and registers the default conversions into it\n(`utilruntime.Must` panics only if those fixed registrations fail, which Go would do at every\nstart). So it terminates, cannot panic and has no effect beyond its variable.", "var Scheme = runtime.NewScheme()"⟩,
+  ⟨"k8s.io/apiserver/pkg/audit.Codecs", "Its initializer calls, besides literals of constants and other variables' values:\n`serializer.NewCodecFactory` allocates the serializers over the given scheme. So it terminates,\ncannot panic and has no effect beyond its variable.", "var Codecs = serializer.NewCodecFactory(Scheme)"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.audit where
   pkgImportedPkgs := []
 
@@ -192,28 +204,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.audit)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Codecs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Scheme.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ApiserverAuditDroppedCounter.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val levelCounter.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errorCounter.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val eventCounter.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))))
 
 abbrev key [GooseExts] : Type := w64
 
@@ -362,6 +356,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Sink_instance : Sink.TypeAssumptions
   Backend_instance : Backend.TypeAssumptions
   union_instance : union.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
 
 attribute [instance] Assumptions.key_instance
   Assumptions.AuditContext_instance
@@ -370,6 +366,8 @@ attribute [instance] Assumptions.key_instance
   Assumptions.Sink_instance
   Assumptions.Backend_instance
   Assumptions.union_instance
+  Assumptions.«init.0_unfold»
+  Assumptions.«init.1_unfold»
 
 end k8s_io.apiserver.pkg.audit
 

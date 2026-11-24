@@ -94,6 +94,31 @@ def peerURLsDir (dir : w64 → List GoString) (id : w64) (uvs : List _root_.Pere
     Prop :=
   uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ go!"http://" ++ u.Host' ∈ dir id
 
+/-- **A member's URL list within etcd's URL bounds** (fmt stage 1, 2026-11-24; #9's decision
+7126397740, 2; a premise of `NewServer.spec`, of the caller's configuration, for its peer and its
+client URLs): at most `etcdURLCountMax` URLs, each of only the scheme `http` and a plain host,
+`http://host` at most `etcdURLLenMax` bytes (`plainURLsFit`). The server joins their strings
+(`strings.Join`: `publishV3`'s log lines of the client URLs, kept in the server's attributes,
+`srvAttrsRO`; the transport's `setPeerURLsHeader` of the peer URLs), which must stay below
+`Join`'s length bound. -/
+def etcdURLsFit (uvs : List _root_.Perennial.net.url.URL) : Prop :=
+  uvs.length ≤ etcdURLCountMax ∧ plainURLsFit uvs
+
+/-- The strings of URLs within etcd's URL bounds (`types.URLs.StringSlice`'s, `http://host` of each)
+are at most `etcdURLCountMax`, of at most `etcdURLLenMax` bytes each (`srvAttrsRO`'s bound). -/
+theorem etcdURLsFit.strings {us : List _root_.Perennial.net.url.URL} {ss : List GoString}
+    (hf : etcdURLsFit us) (hl : ss.length = us.length)
+    (hs : ∀ (j : Nat) (u : _root_.Perennial.net.url.URL), us[j]? = some u → http.urlRootPlain u →
+      ss[j]? = some (go!"http://" ++ u.Host')) :
+    ss.length ≤ etcdURLCountMax ∧ ∀ s ∈ ss, s.length ≤ etcdURLLenMax := by
+  refine ⟨by rw [hl]; exact hf.1, fun s hs' => ?_⟩
+  obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hs'
+  have hju : j < us.length := hl ▸ hj
+  have hu := hs j us[j] (List.getElem?_eq_getElem hju) (hf.2 _ (List.getElem_mem hju)).1
+  rw [List.getElem?_eq_getElem hj] at hu
+  rw [Option.some.inj hu]
+  exact (hf.2 _ (List.getElem_mem hju)).2
+
 /-- A one-member directory is well formed, of a member other than `0` with a plain URL. -/
 theorem dirOne_ok (id : w64) (url : GoString) (hid : id ≠ W64 0) (hpl : types.plainPeerURL url) :
     netDirOk (dirOne id url) := by
@@ -134,10 +159,12 @@ omit [MemStorReg GF] in
 /-- **The transport's configured peer URLs are its member's** (D22 J-T, W8): from the directory. -/
 theorem trURLsOk_of_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
     (hd : netDirOk dir) (ps : List w64) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps) (id : w64)
-    (hid : id ∈ ps) (uvs : List _root_.Perennial.net.url.URL) (hu : peerURLsDir dir id uvs) :
+    (hid : id ∈ ps) (uvs : List _root_.Perennial.net.url.URL) (hu : peerURLsDir dir id uvs)
+    (hf : etcdURLsFit uvs) :
     trURLsOk (netRh γn) id uvs := by
   obtain ⟨-, hpl, hown, -⟩ := addPeer_dir γn dir hγ hd ps hps id hid (dir id) rfl
-  exact ⟨hu.1, fun u hu' => ⟨(hu.2 u hu').1, hpl _ (hu.2 u hu').2, hown _ (hu.2 u hu').2⟩⟩
+  exact ⟨hu.1, fun u hu' => ⟨(hu.2 u hu').1, hpl _ (hu.2 u hu').2, hown _ (hu.2 u hu').2,
+    (hf.2 u hu').2⟩⟩
 
 omit [MemStorReg GF] in
 /-- The members' loop's coverage, a step further: the ids added so far (`L`, within `L'`), and
@@ -232,7 +259,7 @@ def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
 
 /-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
-2026-10-17: what the backend has, within its `2 ^ 40` bound, `backend.bgOk`: `N` for the applied
+2026-10-17: what the backend has, within its `2 ^ 62` bound, `backend.bgOk`: `N` for the applied
 entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvcc.New` two,
 `NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one, `SetTxPostLockInsideApplyHook` one;
 until then `2 ^ 64 + 3`, which no backend has); the post-lock hook unset (nil). -/
@@ -315,6 +342,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "Hfresh" ∷ memStorFresh bv.storage' γs 0 memSnapEmpty ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
     -- the cluster
+    -- (prove-ps2-bootstage1, 2026-11-23, #34 stage 1, I1-I2: the approved interim claim) `Hrc`'s lock
+    -- invariant now holds the cluster's version slot (`rcVerSlot`: `c.version` nil, or read-only and
+    -- known); at boot `NewCluster` leaves it nil (`rcLockInv_boot`)
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
     -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, a zap logger (sweep
@@ -346,21 +376,19 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       WP (App (Val (bc.cl' @!! go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members"))
         (Val #())) {{ Φ }}) ∗
-    -- the cluster's contracts (unit N4, 2026-10-17): the lessor's (`Version()`), and the apply
-    -- package's at the backend's batch lock and any frozen hook (its writes: one write-back
-    -- each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the stores', D14f); (D22,
-    -- 2026-10-23: the backend over every bucket) its writes' effect on the tracked buckets and
-    -- its in-memory members (`srvRestOwn`), `SetDowngradeInfo` with the write right
-    -- (`srvRestRW`)
-    "#Hclok" ∷ lease.clusterOk (interface.mkOk (go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) #bc.cl') ∗
-    -- (srvBuildGap's rows, 2026-10-17) its `Version()` monotone, for `start`'s
-    -- `clusterVersionOk`
-    "#Hcvm" ∷ (∃ γcv : GName, clusterVersionMono bc.cl' γcv) ∗
-    -- (D22 receiver epochs, S7e, 2026-10-23) on whichever backend its `be` field names, which
-    -- `bootstrap` set to the boot backend and gives owned (`clusterBeOn`: no lock guards it, the
-    -- apply thread is its only user); until then for the boot backend's batch lock only
-    "#Hisc" ∷ clusterApplyOk bc.cl' ∗
+    -- the cluster's apply contract (unit N4, 2026-10-17) at the backend's batch lock and any frozen
+    -- hook (its writes: one write-back each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the
+    -- stores', D14f); (D22, 2026-10-23: the backend over every bucket) its writes' effect on the
+    -- tracked buckets and its in-memory members (`srvRestOwn`), `SetDowngradeInfo` with the write
+    -- right (`srvRestRW`); (D22 receiver epochs, S7e, 2026-10-23) on whichever backend its `be` field
+    -- names, which `bootstrap` set to the boot backend and gives owned (`clusterBeOn`: no lock guards
+    -- it, the apply thread is its only user); until then for the boot backend's batch lock only.
+    -- (prove-ps2-bootstage1, 2026-11-23, #34 stage 1, `notes/bootstrap-proof-plan.md` §7.1 I3) Only
+    -- its rows not yet proved (`clusterApplyRest`: `SetVersion`, `UpdateAttributes`,
+    -- `SetDowngradeInfo`, the cluster not nil); its `Version`/`ID` rows, the lessor's contract
+    -- (`lease.clusterOk`, until then `Hclok`) and the monotone `Version()` (`clusterVersionMono`,
+    -- until then `Hcvm`) are proved of `Hrc` (the lock's version slot) and `Hcid`: `ClusterLaws.lean`
+    "#Hisc" ∷ clusterApplyRest bc.cl' ∗
     "HclBe" ∷ clusterBeOn bc.cl' d.be ∗
     -- (D22, 2026-10-23; option (i) of "D22c decided") the cluster's in-memory members, as
     -- `bootstrap` made them: the boot log's (`memBoot`, the members whose JSON the bootstrap
@@ -416,7 +444,13 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       -- `MustCreateBackendBuckets`' `AllBuckets`): what `NewAlarmStore` and `NewAuthStore` take of
       -- the buckets they create, so that they are among the backend's ghost names
       d.P.has mvcc.alarmBI ∧ d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧
-      d.P.has mvcc.authRolesBI⌝ ∗
+      d.P.has mvcc.authRolesBI ∧
+      -- (2026-11-22, the user's approval, branch `prove-ps2-members`) the membership's buckets in the
+      -- table (schema's `Members`, `MembersRemoved`, `Cluster`, which `bootstrap`'s `cl.SetBackend`
+      -- creates, `MustCreateBackendBuckets`, and `%HDr` says present): what `RaftCluster.SetBackend`
+      -- and `MustDeleteMemberFromBackend` take of them since they were proved, so that they are among
+      -- the backend's ghost names
+      d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI⌝ ∗
     -- (2026-11-02, the user's approval, branch `snap-window`) the backend's hooks are the server's
     -- `s.beHooks` (`bootstrapBackend`'s `OpenBackend(cfg, beHooks)`: `bcfg.Hooks = hooks`, which
     -- `New` stores in `b.hooks`): what the merged snapshot's window needs of its commit

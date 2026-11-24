@@ -5,3 +5,37 @@ imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+# (etcd-grove#32, 2026-11-22) the `init` functions trusted: a model that does nothing
+# (TrustedCode/k8s_io/apiserver/pkg/audit.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0", "init.1"]
+
+[[skip]]
+names = ["eventCounter", "errorCounter", "levelCounter", "ApiserverAuditDroppedCounter"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable."""
+
+[[skip]]
+names = ["Scheme"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewScheme` allocates an empty `*Scheme` and registers the default conversions into it
+(`utilruntime.Must` panics only if those fixed registrations fail, which Go would do at every
+start). So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["Codecs"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`serializer.NewCodecFactory` allocates the serializers over the given scheme. So it terminates,
+cannot panic and has no effect beyond its variable."""
+# --- end of skipped package variables ---

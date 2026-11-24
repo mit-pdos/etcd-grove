@@ -147,6 +147,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newLogUnaryIn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newStreamInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newUnaryInterceptor
 public import Proof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.NewServerHandler
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.NewServerMetrics
 public import Proof.github_com.prometheus.client_golang.prometheus.Register
@@ -192,6 +193,7 @@ public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Perennial.Proof.errors.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
@@ -220,7 +222,7 @@ theorem errors.wp_Is :
 
 theorem errors.wp_IsDeadlineExceeded :
     EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsDeadlineExceeded.wp_proof
+  EtcdGrove.errors.IsDeadlineExceeded.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem status.wp_Error :
     EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
@@ -250,9 +252,13 @@ theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
@@ -671,7 +677,7 @@ theorem grpc_prometheus.wp_WithServerHandlingTimeHistogram :
 
 theorem prometheus.wp_Register :
     EtcdGrove.prometheus.Register.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.prometheus.Register.wp_proof
+  EtcdGrove.prometheus.Register.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof
 
 theorem wp_getServerMetrics :
     EtcdGrove.v3rpc.getServerMetrics.spec (GF := GF) (hG := hG) :=
@@ -875,7 +881,7 @@ theorem authMaintenanceServer.wp_Status :
 
 theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsCtxErr.wp_proof
+  EtcdGrove.errors.IsCtxErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=

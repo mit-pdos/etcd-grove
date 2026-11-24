@@ -172,7 +172,8 @@ def read(c, s, n, r, W):
     open end is a cut point: the successor's `a` is 0 (gamma: cut here, keeping everything).
       - bytes: a prefix of the direction (cut or not); no cut needed (gamma covers the cut ones);
       - EOF: as it is if empty and FIN (or CUT); else a cut keeping nothing;
-      - sys: a cut keeping every byte (or the cut direction as it is);
+      - sys: a cut keeping nothing (v3.5: a sys error needs nothing unread; the cut direction
+        as it is if it is empty);
       - timeout: with the read deadline, as it is.
     """
     st = c[s]
@@ -207,7 +208,7 @@ def read(c, s, n, r, W):
             nd = ((), 0, CUT, None)
         return [(set_dir(c, 1 - s, nd), None)], None
     if r == M.R_ERR(SYS):
-        return [(set_dir(c, 1 - s, (segs, ln, CUT, None)), None)], None
+        return [(set_dir(c, 1 - s, ((), 0, CUT, None)), None)], None
     if r == M.R_ERR(TIMEOUT):
         if not st.rdl:
             return _none("a read timeout with no read deadline set (ReadAvail: `st.rdl = true`)")
@@ -367,7 +368,7 @@ def deadline(c, s, kind, set_, res):
 # "Calls cut short"); the search may also leave them out (lincheck's optional operations).
 
 def read_pending(c, s, n, more_reads):
-    """A Read that never returned. Successors: a sys error (a cut keeping everything); with the
+    """A Read that never returned. Successors: a sys error (a cut keeping nothing, v3.5); with the
     read deadline, a timeout; EOF of an empty FIN direction; and, if another Read of the same end
     may still be linearized after it (`more_reads`), each count of bytes it could have taken."""
     st = c[s]
@@ -377,7 +378,7 @@ def read_pending(c, s, n, more_reads):
         return [(c, {"code": 0, "k": 0})], None
     d = c[2 + (1 - s)]
     segs, ln, stat, a = d
-    out = [(set_dir(c, 1 - s, (segs, ln, CUT, None)), {"code": M.ERR_CODE[SYS]})]
+    out = [(set_dir(c, 1 - s, ((), 0, CUT, None)), {"code": M.ERR_CODE[SYS]})]
     if st.rdl:
         out.append((set_dir(c, 1 - s, _after_read(d, segs, ln)), {"code": M.ERR_CODE[TIMEOUT]}))
     if ln == 0 and stat == FIN:

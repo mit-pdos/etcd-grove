@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.etcd.server.v3.etcdserver
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.encoding.base64
 public import GeneratedProof.encoding.json
@@ -20,6 +21,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.featuregate
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.idutil
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.notify
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.pbutil
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.runtime
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.schedule
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
@@ -60,6 +62,7 @@ public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
 public import GeneratedProof.net.http
 public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time
@@ -149,7 +152,7 @@ noncomputable instance raftNode_access_load_latestTickTs (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance raftNode_access_store_latestTickTs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (latestTickTs' : time.Time) :
+noncomputable instance raftNode_access_store_latestTickTs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (latestTickTs' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"latestTickTs" l) v.latestTickTs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"latestTickTs" l) latestTickTs' (DFrac.own 1))

@@ -32,13 +32,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KvrStor GF]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KvrStor GF]
 
 attribute [local instance] kvrStorageModel
 
 /-- See the file header. -/
 abbrev Replica.request.spec : Prop :=
-  ∀ (γr : RNames) (vs : List w64) (id : w64) (r n st sts : Loc) (ρ : RepNames)
+  ∀ (γr : RNames) (vs : List w64) (id : w64) (r : Loc) (n : NodeH) (st sts : Loc) (ρ : RepNames)
     (ap : List LogEntry) (csp : Loc) (m : Membership) (mA : Loc) (A : GMap (List w8) (List w8))
     (D : List LogEntry) (c : Nat) (snapIndex : w64) (snap compact : Bool),
   ap <+: D → c ≤ uint.nat snapIndex →

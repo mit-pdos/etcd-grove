@@ -1,15 +1,15 @@
 /-
 What the proofs of `examples/osfs/walfs`'s `seglog.go` and `dirswap.go` share (over the file
-extension v2): the data, paths in a root directory, the history's fractions, and the specs of
-`readNames` and `newData`.
+extension's shared view): the data (`DSClaims.lean`), paths in a root directory, and the specs of
+`readNames` (exact on the names of a claim the caller shows a fraction of) and `newData`.
 -/
 module
 
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs
-public import Proof.os.Ns
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DSClaims
+public import Proof.os.NsS
 public import Proof.os.Off
 public import Proof.os.CrashWrite
-public import GooseLang.Ext.Fs.TreeSpecsMeta
 
 @[expose] public section
 
@@ -27,9 +27,6 @@ open Fs
   github_com.mit_pdos.etcd_grove.examples.osfs.walfs
 
 /-! ## The data and lists -/
-
-/-- The data of a committed segment (`newData`). -/
-def dataC : List w8 := [W8 0xde, W8 0xad, W8 0xbe, W8 0xef, W8 0x01, W8 0x23, W8 0x45, W8 0x67]
 
 theorem not_mem_take_of_nodup {α : Type} {l : List α} (h : l.Nodup) {i : Nat} {b : α}
     (hb : l[i]? = some b) : b ∉ l.take i := by
@@ -71,47 +68,12 @@ theorem lookupH_child_dir {R : Roots} (hR : RootsOk R) {V : Hist} {d : GoString}
   rw [histSt_tree] at h
   exact h
 
-/-! ## The history's fractions -/
+/-! ## Bytes -/
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable [go.BasicIntoValInj]
-
-theorem tree_agree (dq1 dq2 : DFrac) (R R' : Roots) (V V' : Hist) :
-    ⊢ osTree (L := L) dq1 R V -∗ osTree (L := L) dq2 R' V' -∗ ⌜R = R' ∧ V = V'⌝ := by
-  unfold osTree; iintro A B
-  icases gElem_valid_2 _ _ _ _ _ _ _ $$ A B with %hv
-  ipureintro
-  simp only [Prod.mk.injEq] at hv
-  exact hv.2
-
-theorem tree_halves (q : Qp) (R : Roots) (V : Hist) :
-    osTree (L := L) (DFrac.own q) R V ⊣⊢
-      osTree (L := L) (DFrac.own q.half) R V ∗ osTree (L := L) (DFrac.own q.half) R V := by
-  have h := osTree_split (L := L) q.half q.half R V
-  rw [Qp.half_add_half] at h
-  exact h
-
-theorem tree_combine (q1 q2 : Qp) (R R' : Roots) (V V' : Hist) :
-    ⊢ osTree (L := L) (DFrac.own q1) R V -∗ osTree (L := L) (DFrac.own q2) R' V' -∗
-      ⌜R = R' ∧ V = V'⌝ ∗ osTree (L := L) (DFrac.own (q1 + q2)) R V := by
-  iintro A B
-  icases tree_agree _ _ R R' V V' $$ A B with %h
-  obtain ⟨rfl, rfl⟩ := h
-  isplitr
-  · ipureintro; exact ⟨rfl, rfl⟩
-  ihave H := (osTree_split (L := L) q1 q2 R V).2 $$ [A B]
-  · iframe
-  iexact H
-
-theorem tree_unhalf (q : Qp) (R : Roots) (V : Hist) :
-    osTree (L := L) (DFrac.own (q.half + q.half)) R V ⊢ osTree (L := L) (DFrac.own q) R V := by
-  rw [Qp.half_add_half]
-
-theorem tree_half (q : Qp) (R : Roots) (V : Hist) :
-    osTree (L := L) (DFrac.own q) R V ⊢ osTree (L := L) (DFrac.own (q.half + q.half)) R V := by
-  rw [Qp.half_add_half]
 
 theorem osBytes_take_drop' (i : Ino) (off n : Nat) (dq : DFrac) (bs : List ByteG)
     (hn : n ≤ bs.length) :
@@ -120,17 +82,6 @@ theorem osBytes_take_drop' (i : Ino) (off n : Nat) (dq : DFrac) (bs : List ByteG
   have A := bytesG_append (gooseOsGS (L := L)) i dq off (bs.take n) (bs.drop n)
   rw [List.take_append_drop, List.length_take, show min n bs.length = n by omega] at A
   exact A
-
-/-- A directory's view given back (`rdBack`), with the rest of the history: the history. -/
-theorem tree_back (q1 q2 : Qp) (R : Roots) (V : Hist) (x : Ino × DirPh) (hq : x.2.q = q2) :
-    ⊢ osTree (L := L) (DFrac.own q1) R V -∗ rdBack (L := L) x -∗
-      osTree (L := L) (DFrac.own (q1 + q2)) R V := by
-  subst hq
-  iintro A B
-  unfold rdBack osDir
-  icases B with ⟨%R', %V', B, -⟩
-  icases tree_combine q1 x.2.q R R' V V' $$ A B with ⟨-, H⟩
-  iexact H
 
 end res
 
@@ -144,21 +95,24 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
 variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
 
-/-- `readNames(d)`, `d` the directory `j`, with a fraction of the history: the names of `j` now,
-each once, or `ok = false`. -/
-theorem wp_readNamesT (d : GoString) (q : Qp) (R : Roots) (V : Hist) (j : Ino)
-    (hl : lookupH R V d = some (.dir j)) :
-    {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own q) R V }}
+/-- `readNames(d)`, `d` the directory `j` (a spine to it), with a fraction of the call permission
+and of a claim on names `N` of `j`: every name returned is valid, a name of `N` is returned iff it is
+there, at most once; or `ok = false`. -/
+theorem wp_readNamesS (d : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (N : NameSet)
+    (dqn : DFrac) (h : NamesH) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+        osNames j N dqn h }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.readNames)) (Val #d))
-    {{ (sl : GoSlice) (ok : Bool), RET (PairV #sl #ok); osTree (DFrac.own q) R V ∗
-        (⌜ok = false⌝ ∨ ∃ names : List GoString, ⌜ok = true ∧ names.Nodup ∧
-          ∀ b, b ∈ names ↔ (V.now.entry j b).isSome⌝ ∗ sl ↦* names) }} := by
-  wp_start as ⟨#Hinv, Hh⟩
-  ihave Hh := tree_half (L := hG.goose_localGS) q R V $$ Hh
+    {{ (sl : GoSlice) (ok : Bool), RET (PairV #sl #ok); osPathS R d dq j ∗
+        osCallPerm (callKey R d) qc ∗ osNames j N dqn h ∗
+        (⌜ok = false⌝ ∨ ∃ names : List GoString, ⌜ok = true ∧ (∀ b ∈ names, NameOk b) ∧
+          (∀ b, N.Mem b → ((h.cur !! b).isSome ↔ b ∈ names)) ∧
+          (∀ b, N.Mem b → names.count b ≤ 1)⌝ ∗ sl ↦* names) }} := by
+  wp_start as ⟨#Hinv, #Hsi, Hp, Hperm, Hn⟩
   (try wp_auto)
-  wp_apply os.Open.wp_dir d q.half q.half R V j hl $$ [Hinv Hh] as %f %err Hr
-  · iframe; iexact Hinv
-  icases Hr with (⟨%fd, %herr, Hf, Hh, Hfd⟩ | ⟨%herr, Hh⟩)
+  wp_apply os.Open.wp_dirS d R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
+  · iframe; isplitl [] <;> iassumption
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
   rotate_left
   · obtain ⟨herr, rfl⟩ := herr
     cases err with
@@ -166,42 +120,36 @@ theorem wp_readNamesT (d : GoString) (q : Qp) (R : Roots) (V : Hist) (j : Ino)
     | ok ie =>
     (try wp_auto)
     iapply HΦ
-    isplitl [Hh]
-    · iapply tree_unhalf; iexact Hh
+    iframe
     ileft; ipureintro; rfl
   subst herr
   (try wp_auto)
-  wp_apply os.File.Readdirnames.wp_dir f fd d (DFrac.own 1) j q.half (dview V j) _ (by decide)
-    $$ [Hinv Hf Hfd] as %sl %err ⟨Hf, Hr⟩
-  · iframe; iexact Hinv
-  icases Hr with (⟨%names, %hn, Hsl, Hfd⟩ | ⟨%herr, %rs, Hfd⟩)
-  · obtain ⟨rfl, hnd, hmem⟩ := hn
+  wp_apply os.File.Readdirnames.wp_dirS f fd d (DFrac.own 1) R j N dqn h _ (by decide)
+    $$ [Hinv Hsi Hf Hfd Hn] as %sl %err ⟨Hf, Hn, Hr⟩
+  · iframe; isplitl [] <;> iassumption
+  icases Hr with (⟨%names, %hn, Hsl, Hfd⟩ | ⟨⟨%e, %he, Hpe⟩, %r0, %rs, Hfd⟩)
+  · obtain ⟨rfl, hok, hmem, hcnt, -⟩ := hn
     (try wp_auto)
-    wp_apply os.File.Close.wp_dir f fd d (j, .done (dview V j) q.half) $$ [Hinv Hf Hfd] as %e Hb
+    wp_apply os.File.Close.wp_dirS f fd d j _ $$ [Hinv Hf Hfd] as %e -
     · iframe; iexact Hinv
-    ihave Hh := tree_back (L := hG.goose_localGS) q.half q.half R V _ rfl $$ Hh Hb
     (try wp_auto)
     iapply HΦ
-    isplitl [Hh]
-    · iapply tree_unhalf; iexact Hh
+    iframe
     iright
     iexists names
     iframe
     ipureintro
-    refine ⟨rfl, hnd, fun b => ?_⟩
-    rw [hmem, dview_now, entsOf_lookup]
+    exact ⟨rfl, hok, hmem, hcnt⟩
   · (try wp_auto)
-    wp_apply os.File.Close.wp_dir f fd d (j, .reading rs (dview V j) q.half) $$ [Hinv Hf Hfd]
-      as %e Hb
+    wp_apply os.File.Close.wp_dirS f fd d j _ $$ [Hinv Hf Hfd] as %e' -
     · iframe; iexact Hinv
-    ihave Hh := tree_back (L := hG.goose_localGS) q.half q.half R V _ rfl $$ Hh Hb
+    icases os.errnoPathErr_ne err e $$ Hpe with %herr
     cases err with
     | nil => exact absurd rfl herr
     | ok ie =>
     (try wp_auto)
     iapply HΦ
-    isplitl [Hh]
-    · iapply tree_unhalf; iexact Hh
+    iframe
     ileft; ipureintro; rfl
 
 theorem wp_newData :

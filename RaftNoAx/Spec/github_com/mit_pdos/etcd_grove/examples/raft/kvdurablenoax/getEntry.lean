@@ -3,9 +3,10 @@
 
 `getEntry(b)` (storage.go): what `putEntry` wrote at the start of `b` (`encEntry e`, of a known
 type, `EntWf`), read back into a fresh entry (`entOwn`: its fields owned, its cells and data
-read-only), the rest, and `ok`. The bytes are read-only for good (`↦*□`): the entry's data is a
-slice of `b`, and a log entry's data is read-only (`entPts`). Stated of bytes `putEntry` wrote, so
-`ok` is `true`.
+read-only), the rest, and `ok`. The bytes are held at any fraction `dq`, the rest given back at it;
+the entry's data, a slice of `b`, is made read-only for good (a log entry's data is read-only,
+`entPts`), so that part of `b` is not given back (ledger 2026-11-21: until then the bytes were
+persistent, `↦*□`). Stated of bytes `putEntry` wrote, so `ok` is `true`.
 -/
 module
 
@@ -32,12 +33,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurableno
 
 /-- See the file header. -/
 abbrev getEntry.spec : Prop :=
-  ∀ (b : GoSlice) (e : EntryM) (r : List w8),
+  ∀ (b : GoSlice) (dq : DFrac) (e : EntryM) (r : List w8),
   EntWf e →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax ∗ b ↦*□ (encEntry e ++ r) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax ∗ b ↦*{dq} (encEntry e ++ r) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.getEntry)) (Val #b))
   {{ (l : Loc) (rest : GoSlice), RET (PairV (PairV #l #rest) #true);
-      entOwn l e ∗ rest ↦*□ r }}
+      entOwn l e ∗ rest ↦*{dq} r }}
 
 end spec
 

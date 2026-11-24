@@ -1,0 +1,10 @@
+# remote (examples/lib/remote, notes/remote-port-plan.md): clients on machines of their own, in the
+# part Net/: the library's linked results (Net/Proof/.../lib/remote/Link.lean: wp_Check,
+# wp_ServeClient, wp_Serve, wp_Do, ...) and the counter instance's closed theorem
+# `counter_remote_robust` (Net/Proof/.../lib/remote/counter/TopLevelRobustness.lean, R4: four
+# machines, Robust [] under DistDeploy). `#print axioms` of each lists Lean's three only.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/remote-counter.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/remote-counter.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/remote-counter.txt --check --update
+roots ^Net/Proof/github_com/mit_pdos/etcd_grove/examples/lib/remote/

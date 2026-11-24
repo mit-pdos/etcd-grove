@@ -31,37 +31,37 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- The apply side's half of the running token with a view `dv`, `True` without. -/
-def srvRunH (γs : ServerRaftNames) (dv : Option Loc) : IProp GF :=
+def srvRunH (γs : ServerRaftNames) (dv : Option NodeH) : IProp GF :=
   match dv with
   | none => iprop(True)
   | some n => (letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half)
 
 theorem srvRunH_none (γs : ServerRaftNames) : srvRunH (GF := GF) γs none = iprop(True) := rfl
 
-theorem srvRunH_some (γs : ServerRaftNames) (n : Loc) :
+theorem srvRunH_some (γs : ServerRaftNames) (n : NodeH) :
     srvRunH (GF := GF) γs (some n) =
       (letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) := rfl
 
-theorem srvRunH_apply_spec (γs : ServerRaftNames) (dv : Option Loc) :
+theorem srvRunH_apply_spec (γs : ServerRaftNames) (dv : Option NodeH) :
     _root_.Perennial.EtcdGrove.EtcdServer.apply.specAt.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
       (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) =
       srvRunH γs dv := by
   cases dv <;> rfl
 
-theorem srvRunH_applyEntries_spec (γs : ServerRaftNames) (dv : Option Loc) :
+theorem srvRunH_applyEntries_spec (γs : ServerRaftNames) (dv : Option NodeH) :
     _root_.Perennial.EtcdGrove.EtcdServer.applyEntries.specBatchAt.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
       (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) =
       srvRunH γs dv := by
   cases dv <;> rfl
 
-theorem srvRunH_applyAll_spec (γs : ServerRaftNames) (dv : Option Loc) :
+theorem srvRunH_applyAll_spec (γs : ServerRaftNames) (dv : Option NodeH) :
     _root_.Perennial.EtcdGrove.EtcdServer.applyAll.specBatch.match_1 (fun _ => IProp GF) dv (fun _ => iprop(True))
       (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) =
       srvRunH γs dv := by
   cases dv <;> rfl
 
 /-- `dvView_cc` over `srvRunH`. -/
-theorem dvView_ccR (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid : w64)
+theorem dvView_ccR (s : Loc) (γs : ServerRaftNames) (dv : Option NodeH) (kc0 lid : w64)
     (L rest : List EntryModel) (m : EntryModel) (cm : ConfChangeM)
     (Hty : m.typ = W32 1) (Hdec : ccDecodeV1 m.data = some cm)
     (Hdyn : ∀ n, dv = some n → ccApplyOkR γs.raft cm ∧ lid ∈ γs.raft.cfg ∧

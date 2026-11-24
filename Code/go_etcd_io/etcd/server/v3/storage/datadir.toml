@@ -1,0 +1,8 @@
+# The data directory's layout (datadir.go), with bodies: `ToMemberDir`, `ToSnapDir`, `ToWALDir`,
+# `ToWalDir`, `ToBackendFileName`, each a `filepath.Join` of the data directory and constant
+# elements (bkarea, 2026-11-22: `config.ServerConfig.BackendPath` proved over them).
+translate = ["*"]
+imports = ["*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

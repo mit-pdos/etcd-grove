@@ -161,7 +161,7 @@ variable [sem : go.Semantics]
 `HookGate` (an update at `⊤`, run at the hook, giving the logger field), for the `n` events in a row
 the hook logs (`TraceFireN`, one per normal entry of the batch). -/
 def HookGateN (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (n : Nat) (Q : IProp GF) : IProp GF :=
-  iprop(|={⊤}=> ∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ TraceFireN tr tl E n Q)
+  iprop(notCrashed -∗ |={⊤}=> notCrashed ∗ ∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ TraceFireN tr tl E n Q)
 
 /-- An untraced caller's gate: the struct's nil logger and `Q`. -/
 theorem hookGateN_none (r : Loc) (E : TraceEv → Prop) (n : Nat) (tl : GoInterface) (Q : IProp GF)
@@ -169,7 +169,9 @@ theorem hookGateN_none (r : Loc) (E : TraceEv → Prop) (n : Nat) (tl : GoInterf
     (r.[raft, go!"traceLogger"] ↦□ tl ∗ Q : IProp GF) ⊢ HookGateN none r E n Q := by
   iintro ⟨#Htl, HQ⟩
   iunfold HookGateN
+  iintro Hnc
   imodintro
+  iframe Hnc
   iexists tl
   iframe Htl
   iapply traceFireN_of_none rfl tl E hok Q n $$ HQ

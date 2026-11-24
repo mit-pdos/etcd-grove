@@ -2,20 +2,18 @@
 `(*WAL).renameWAL` over `fsExt`: the proof (W4 of `notes/wal-fsext-plan.md`, sixteenth session; spec
 `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`). No `sorry`. The callees'
 specs are its hypotheses: `os.RemoveAll.specAbsentN` (`CreateCallees.lean`), `os.Rename.specDirSnc`,
-`newFilePipeline.spec`, `fileutil.OpenDir.spec`, `errors.AsLinkError.spec` (`Spec/errors/
-AsLinkError.lean`: `os.Rename`'s error is a `*LinkError`, `os.renameErrOk`, so `errors.As` matches it)
-and `renameWALUnlock.spec` (a hypothesis: W4 log, sixteenth session, on why it is not provable as
-stated). `RemoveAll`'s error exit commits the update with no effect (`osAUnc_none`) for the post's
+`newFilePipeline.spec`, `fileutil.OpenDir.spec`. The rename's error branch (`errors.As`, then
+`renameWALUnlock`) is unreachable under the spec's premise that the file system does not fail on the WAL's
+name and both names fit (`os.Rename.specDirSnc`'s error witness; ledger 2026-11-21: `renameWALUnlock.spec`,
+a hypothesis until then, was false as stated). `RemoveAll`'s error exit commits the update with no effect (`osAUnc_none`) for the post's
 `U none`; the spine law runs at the step after a committed rename. Lean-first.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWAL
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWALUnlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.CreateCallees
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir
-public import Spec.errors.AsLinkError
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 
 @[expose] public section
@@ -64,11 +62,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     (wp_RmAbsN : os.RemoveAll.specAbsentN (GF := GF) (hG := hG))
     (wp_Rename : os.Rename.specDirSnc (GF := GF) (hG := hG))
     (wp_nfp : go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.spec (GF := GF) (hG := hG))
-    (wp_OpenDir : go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec (GF := GF) (hG := hG))
-    (wp_As : errors.AsLinkError.spec (GF := GF) (hG := hG))
-    (wp_unlock : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWALUnlock.spec (W := W) P Mr) :
+    (wp_OpenDir : go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr := by
   intro R jr J r dir nm tmp N h lb qp dq w lg mds md e lt f snapi enti fd fname d c off U Sp SpR UH hok
+    hnoerr
   have hok' := hok
   obtain ⟨hin, hdl, hnm, htmp, hne, hNnm, hNt, htJ, hnmA, hSp, hU⟩ := hok
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, #Hlb, HN, Hau, HSp, Htmps, Hpre, Hlk, Hfp, Hdf⟩
@@ -118,26 +115,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   · iframe; iframe #
   cases err
   case ok ei =>
-    -- the rename failed: `errors.As` matches its `*LinkError`, `renameWALUnlock`
-    obtain ⟨le, hle⟩ := ho.2.resolve_left (by intro hc; cases hc)
-    cases hle
-    try wp_auto
-    wp_apply wp_As le _ null $$ [$linkErr] as Hl
-    try wp_auto
-    wp_apply wp_unlock R jr J r (child r nm) nm tmp N h lb qp dq w lg mds md e lt f snapi enti fd fname
-      d c off U Sp SpR UH o hok' $$ [Hp Hperm HU Hout HSp Htmps Hlg Hdir Hpre Hlk Hfp Hdf] as %w' %err' Hpost
-    · iframe; iframe #
-      iunfold walPreIn
-      iexists locks
-      iframe; iframe #
-    try wp_auto
-    iapply HΦ $$ Hpost
+    -- the rename failed: impossible, the file system does not fail on the WAL's name (the retry,
+    -- `renameWALUnlock`, is unreachable)
+    exact absurd hnoerr (ho.2.2 (by intro hc; cases hc))
   obtain ⟨x, rfl⟩ := Option.isSome_iff_exists.1 (ho.1 rfl)
   -- committed: the spine law at a step after the rename
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
   ihave Hlaw := hSp
-  imod Hlaw $$ %x HSp Hnc HU Hout with ⟨Hnc, HU, Hs1, Hs2, HSpR⟩
+  imod Hlaw $$ %x HSp Hnc HU Hout with ⟨Hnc, HU, Hs1, Hs2, HSpR, #Hwk⟩
   iframe Hnc
   imodintro
   ihave #Hwi : (wal.walInit : IProp GF) $$ []
@@ -150,7 +136,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   icases (osCallPerm_split _ _ _).1 $$ Hperm with ⟨Hperm1, Hperm2⟩
   icases osCallPerm_halfSplit _ (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm3⟩
   try wp_auto
-  have hdl' : (child r nm).length < 2 ^ 61 := by omega
+  have hdl' : (child r nm).length < 2 ^ 60 := by omega
   wp_apply wp_nfp lg (child r nm) (W64 64000000) R dq J (by decide) (by decide) hdl' (by decide)
     $$ [Hperm1 Hs1 Ht0] as %fp ⟨%hfp, %γ, Hpipe, Hmain⟩
   · iframe; iframe #; unfold pipeRes; rw [hkc nm]; iframe

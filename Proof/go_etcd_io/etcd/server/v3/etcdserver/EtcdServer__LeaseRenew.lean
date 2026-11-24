@@ -446,6 +446,9 @@ theorem EtcdServer.LeaseRenew.wp_proof
   intro s E ρ γr γl ctx cd tok id n m
   wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, Hetok, #Hlib, #HtokC, #Hnet, #Hcause, HRD, #Hpool,
     Htok, Hlgr, Hrrd, %Hbound, #Hprt⟩
+  -- `errors.IsCtxErr` takes `context`'s initialization (errors-is-axioms, 2026-11-22)
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
   ihave #Hr' := Hr
   iunfold isServerReadM at Hr'
   icases Hr' with ⟨%w, #Hw⟩
@@ -524,7 +527,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
       (⌜v = returnVal #()⌝ ∗ ∃ (ttl : w64) (err : GoInterface), «$res0_ptr» ↦ ttl ∗
         «$res1_ptr» ↦ err ∗ E.RD ∗ levelTok lease.lessorLvl ∗ levelTok v3rpc.ctxErrLvl ∗ srvLgReader s ∗
         srvReadReader s γr ∗
-        ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E tok n
+        ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom (srvTLSId s) E tok n
             (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)))))
     with [«$res0» «$res1» s id ctx HRD Htok Hetok Hlgr Hrrd]

@@ -77,7 +77,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE
   · iexact Hmu
   try wp_auto
   iunfold ownDecCrc at Hdig
-  icases Hdig with ⟨%l, %tab, %Hh, Hl, #Htab⟩
+  icases Hdig with ⟨%l, %tab, %Hh, Hl, #Htab, #Hc32⟩
   subst Hh
   ihave #Hdd := recBytes_recOf _ _ _ _ $$ Hd
   try wp_auto
@@ -170,7 +170,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE
       · iunfold ownDecCrc
         iexists l, tab
         iframe
-        iframe Htab
+        iframe Htab Hc32
         ipureintro; rfl
       ipureintro
       exact ⟨Hb, u64Le_length _⟩
@@ -263,7 +263,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE
       · iunfold ownDecCrc
         iexists l, tab
         iframe
-        iframe Htab
+        iframe Htab Hc32
         ipureintro; rfl
       ipureintro
       exact ⟨⟨hbl, hbc⟩, u64Le_length _⟩

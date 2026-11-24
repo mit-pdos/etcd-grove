@@ -39,7 +39,7 @@ theorem newQueue.wp_proof [EtcdGrove.MutexLitSemantics] : newQueue.spec (GF := G
     as %pm Hpm
   wp_alloc_anon
   rename_i mu
-  irename : (mu ↦ (false : sync.Mutex) : IProp GF) => Hmu
+  irename : (mu ↦ (zero_val sync.Mutex) : IProp GF) => Hmu
   wp_auto
   wp_apply sync.wp_NewCond as %cv #Hcv
   wp_apply chan.wp_make1 (V := Unit) as %ch %γch ⟨#Hch, %_, Hoc⟩

@@ -1,7 +1,9 @@
 /-
 `PartiallyEvaluateConditionsAwareDecision(ctx, d, data, fn)` (`evaluate.go`): a well-formed
-decision, for a well-formed `d` and a partial evaluation function that can be called (recursively
-through `d`'s unions). Lean-first (no Rocq counterpart).
+decision no deeper and no larger (`Dec.size`) than `d`, its names `d`'s, for a well-formed `d` and a partial
+evaluation function that can be called (recursively through `d`'s unions). `d` fits `strings.Join`
+(`Dec.foldFits`): its unions are rebuilt with `ToDecision` (fmt stage 1). Lean-first (no Rocq
+counterpart).
 -/
 module
 
@@ -28,11 +30,13 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 /-- See the file header. -/
 abbrev PartiallyEvaluateConditionsAwareDecision.spec : Prop :=
-  ∀ (ctx : GoInterface) (d : ConditionsAwareDecision) (m : Dec) (data : GoInterface) (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ isDecision d m ∗ ⌜m.WF⌝ ∗ maybeEvalFnOk f }}
+  ∀ (ctx : GoInterface) (d : ConditionsAwareDecision) (m : Dec) (data : GoInterface) (f : GoFunc)
+    (N : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ isDecision d m ∗ ⌜m.WF⌝ ∗
+      decNames N d m ∗ ⌜Dec.foldFits N m⌝ ∗ maybeEvalFnOk f }}
     (App (App (App (App (Val (@! PartiallyEvaluateConditionsAwareDecision)) (Val #ctx)) (Val #d))
       (Val #data)) (Val #f))
-  {{ (d' : ConditionsAwareDecision), RET #d'; isWFDecision d' }}
+  {{ (d' : ConditionsAwareDecision), RET #d'; isWFDecisionBnd m.depth m.size N d' }}
 
 end spec
 

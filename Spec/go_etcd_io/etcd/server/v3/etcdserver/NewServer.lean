@@ -225,6 +225,11 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2) the member's peer and client URLs within
+  -- etcd's URL bounds (`etcdURLsFit`: at most `etcdURLCountMax` URLs of at most `etcdURLLenMax`
+  -- bytes, each `http://host`), for the `strings.Join`s of their strings (`publishV3`'s log lines,
+  -- the transport's `X-PeerURLs`)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
   -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
   -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
@@ -287,7 +292,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- credits (`srvMemberBoot_alloc`)
       -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
       -- the member's key registering its store's index (the claim facts' parameter)
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+      "#Hpfxi" ∷ idPfxInv ρ.ids.gen ρ.ids.pfx ∗
       "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
@@ -365,7 +371,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- `monitorDowngrade`'s `lgMu` reader slot
           srvMonitorCfg srv cfg ∗
           -- (2026-10-23) the right to close `readych`, for `publishV3`
-          srvReadyCloser srv ∗
+          srvReadyCloser srv E ∗
           -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
           -- started there: what `RaftHandler` takes, to serve the member's raft handler;
           -- (2026-10-24, rafthttp stage 6d) a reader's token of the transport (`CutPeer`,

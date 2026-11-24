@@ -3,7 +3,13 @@ module
 
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
+public import Perennial.Proof.math.Base
+public import Perennial.Proof.sync.atomic.Base
 public import Perennial.Proof.time.Base
+public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_model.go
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.sync.Base
 
 @[expose] public section
 noncomputable section

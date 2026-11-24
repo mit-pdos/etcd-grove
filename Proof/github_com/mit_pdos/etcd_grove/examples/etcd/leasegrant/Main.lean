@@ -117,7 +117,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leasegrant" go!"127.0.0.1:23966" go!"127.0.0.1:23956" lg
       (LogEntry.toEntries boot 0) ctxs (leasegrantDir id) id γ ρ E₀ Φs γn .mono Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasegrantDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [leasegrantDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
@@ -207,7 +207,7 @@ theorem Main.wp_proof
       (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt (mvcc.api.mvccLeases E.γ) i m.id)) gctx gcd) as %gr %gerr Hgr
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseGrantSpec
+    iunfold etcdLeaseGrantSpec, etcdLeaseGrantSpecW
     iintro %m - - Hgi
     iexact Hgi
   -- `gcancel()`
@@ -234,7 +234,7 @@ theorem Main.wp_proof
       (fun m => iprop(⌜mg.id ∈ m.ids⌝)) lctx lcd) as %lsr %lerr Hls
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseLeasesSpec
+    iunfold etcdLeaseLeasesSpec, etcdLeaseLeasesSpecW
     iexists [mg.id]
     isplitl
     · iapply BigSepL.bigSepL_cons.2

@@ -188,7 +188,15 @@ theorem Cluster.app.wp_proof
     iunfold readySnap at Hsnap
     icases Hsnap with ⟨%Hnull, Happ, -, %Hidx⟩
     iunfold readyEnter at Henter
-    imod Henter $$ %⊤ %(1 : Qp) %(by simp) [$Hrs $Hrun] with ⟨Hrs, Hrun, Hdrv, #Hmsgs⟩
+    icases Henter with ⟨Henter, -⟩
+    iunfold readyEnterLive at Henter
+    -- (2026-11-21, the crash invariant) *enter* is a crash-token update: at a step
+    iapply (wp_ncfupd _ _ (by rfl))
+    unfold ncfupd
+    iintro Hnc
+    imod Henter $$ %⊤ %(1 : Qp) %(by simp) Hnc [$Hrs $Hrun] with ⟨Hnc, Hrs, Hrun, Hdrv, #Hmsgs⟩
+    imodintro
+    iframe Hnc
     simp only [NodeDriverState.afterReady]
     try wp_auto
     obtain ⟨Lx, -, HL1, -, HL2⟩ := Hbnd

@@ -93,11 +93,16 @@ public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__NumRequeue
 public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__ShutDown
 public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__ShutDownWithDrain
 public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__ShuttingDown
+public import Proof.golang_org.x.time.rate.Limit__durationFromTokens
+public import Proof.golang_org.x.time.rate.Limit__tokensFromDuration
 public import Proof.golang_org.x.time.rate.Limiter__Reserve
+public import Proof.golang_org.x.time.rate.Limiter__advance
+public import Proof.golang_org.x.time.rate.Limiter__reserveN
 public import Proof.golang_org.x.time.rate.NewLimiter
 public import Proof.golang_org.x.time.rate.Reservation__Delay
 public import Proof.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger
 public import Proof.time.Duration__Nanoseconds_ptr
+public import Proof.time.Duration__Seconds_ptr
 public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Len
 public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Less
 public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Peek
@@ -129,6 +134,10 @@ theorem time.Duration.wp_Nanoseconds_ptr :
 theorem math.wp_Pow :
     EtcdGrove.math.Pow.spec (GF := GF) (hG := hG) :=
   EtcdGrove.math.Pow.wp_proof
+
+theorem time.Duration.wp_Seconds_ptr :
+    EtcdGrove.time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.time.Duration.Seconds_ptr.wp_proof
 
 theorem heap.wp_down :
     EtcdGrove.heap.down.spec (GF := GF) (hG := hG) :=
@@ -165,7 +174,7 @@ theorem wp_DefaultQueue :
     EtcdGrove.workqueue.DefaultQueue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.DefaultQueue.wp_proof
 
-theorem TypedItemExponentialFailureRateLimiter.wp_When [EtcdGrove.UntypedIntToFloat64Semantics] :
+theorem TypedItemExponentialFailureRateLimiter.wp_When :
     EtcdGrove.workqueue.TypedItemExponentialFailureRateLimiter.When.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.TypedItemExponentialFailureRateLimiter.When.wp_proof time.Duration.wp_Nanoseconds_ptr math.wp_Pow
 
@@ -177,7 +186,7 @@ theorem TypedItemExponentialFailureRateLimiter.wp_NumRequeues :
     EtcdGrove.workqueue.TypedItemExponentialFailureRateLimiter.NumRequeues.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.TypedItemExponentialFailureRateLimiter.NumRequeues.wp_proof
 
-theorem wp_NewTypedItemExponentialFailureRateLimiter [EtcdGrove.UntypedIntToFloat64Semantics] :
+theorem wp_NewTypedItemExponentialFailureRateLimiter :
     EtcdGrove.workqueue.NewTypedItemExponentialFailureRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTypedItemExponentialFailureRateLimiter.wp_proof TypedItemExponentialFailureRateLimiter.wp_When TypedItemExponentialFailureRateLimiter.wp_Forget TypedItemExponentialFailureRateLimiter.wp_NumRequeues
 
@@ -201,9 +210,25 @@ theorem wp_NewTypedMaxOfRateLimiter :
     EtcdGrove.workqueue.NewTypedMaxOfRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTypedMaxOfRateLimiter.wp_proof TypedMaxOfRateLimiter.wp_When TypedMaxOfRateLimiter.wp_Forget TypedMaxOfRateLimiter.wp_NumRequeues
 
+theorem rate.Limit.wp_tokensFromDuration :
+    EtcdGrove.rate.Limit.tokensFromDuration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rate.Limit.tokensFromDuration.wp_proof time.Duration.wp_Seconds_ptr
+
+theorem rate.Limiter.wp_advance :
+    EtcdGrove.rate.Limiter.advance.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rate.Limiter.advance.wp_proof _root_.Perennial.time.Time.wp_Before _root_.Perennial.time.Time.wp_Sub rate.Limit.wp_tokensFromDuration
+
+theorem rate.Limit.wp_durationFromTokens :
+    EtcdGrove.rate.Limit.durationFromTokens.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rate.Limit.durationFromTokens.wp_proof
+
+theorem rate.Limiter.wp_reserveN :
+    EtcdGrove.rate.Limiter.reserveN.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rate.Limiter.reserveN.wp_proof _root_.Perennial.time.Time.wp_Add rate.Limiter.wp_advance rate.Limit.wp_durationFromTokens
+
 theorem rate.Limiter.wp_Reserve :
     EtcdGrove.rate.Limiter.Reserve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.rate.Limiter.Reserve.wp_proof
+  EtcdGrove.rate.Limiter.Reserve.wp_proof _root_.Perennial.time.wp_Now rate.Limiter.wp_reserveN
 
 theorem rate.Reservation.wp_Delay :
     EtcdGrove.rate.Reservation.Delay.spec (GF := GF) (hG := hG) :=
@@ -221,11 +246,11 @@ theorem TypedBucketRateLimiter.wp_NumRequeues :
     EtcdGrove.workqueue.TypedBucketRateLimiter.NumRequeues.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.TypedBucketRateLimiter.NumRequeues.wp_proof
 
-theorem wp_DefaultTypedControllerRateLimiter [EtcdGrove.UntypedIntToFloat64Semantics] :
+theorem wp_DefaultTypedControllerRateLimiter :
     EtcdGrove.workqueue.DefaultTypedControllerRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.DefaultTypedControllerRateLimiter.wp_proof wp_NewTypedItemExponentialFailureRateLimiter rate.wp_NewLimiter wp_NewTypedMaxOfRateLimiter TypedBucketRateLimiter.wp_When TypedBucketRateLimiter.wp_Forget TypedBucketRateLimiter.wp_NumRequeues
 
-theorem wp_DefaultTypedItemBasedRateLimiter [EtcdGrove.UntypedIntToFloat64Semantics] :
+theorem wp_DefaultTypedItemBasedRateLimiter :
     EtcdGrove.workqueue.DefaultTypedItemBasedRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.DefaultTypedItemBasedRateLimiter.wp_proof wp_NewTypedItemExponentialFailureRateLimiter
 

@@ -48,7 +48,7 @@ lease_lessor__isPrimary:
 # zap's Debug (over the trust boundary's `Logger.check` and `CheckedEntry.Write`), Int64, Duration,
 # and `time.Duration.Seconds`, as the server's `Link.lean` links them
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Int64:
 zap_Duration:
@@ -60,7 +60,38 @@ binary_bigEndian__PutUint64:
 schema_leaseIDToBytes: binary_bigEndian__PutUint64
 schema_UnsafeDeleteLease: schema_leaseIDToBytes
 lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease backend__BatchTx =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccBackend_isBackend_law_holds =mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds
-lease_NewLessor:
+batchTxBuffered__LockInsideApply: @
+batchTxBuffered__UnsafePut: @
+batchTxBuffered__Unlock: @
+batchTxBuffered__LockOutsideApply: @
+batchTxBuffered__UnsafeCreateBucket: @
+backend__ForceCommit: @
+heap_Init_: heap_down
+schema_MustUnsafeGetAllLeases:
+schema_UnsafeCreateLeaseBucket:
+schema_bucket__ID:
+schema_bucket__Name:
+schema_bucket__IsSafeRangeBucket:
+lease_LeaseExpiredNotifier__Init: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Init_
+lease_lessor__initAndRecover: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket schema_UnsafeCreateLeaseBucket schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket schema_MustUnsafeGetAllLeases batchTxBuffered__Unlock lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Init_ lease_LeaseExpiredNotifier__Init backend__ForceCommit
+lease_newLeaseExpiredNotifier:
+# (prove-ps2-newlessor5, 2026-11-21) `NewLessor` proved over the real code: `newLessor` (the lessor's
+# ghost state, `le.mu`, the backend's contract `lessorApplyOk_real`) and its expiry loop; the loop's
+# expiry payload is `Lease.expired`'s trust boundary (an axiom, `Lease__expired.lean`).
+lease_NewLessor: lease_newLessor
+lease_newLessor: lease_newLeaseExpiredNotifier lease_lessor__initAndRecover lease_lessor__runLoop backend__BatchTx batchTxBuffered__LockInsideApply batchTxBuffered__UnsafePut batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+lease_lessor__runLoop: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop lease_lessor__revokeExpiredLeases lease_lessor__checkpointScheduledLeases
+lease_lessor__revokeExpiredLeases: lease_lessor__isPrimary lease_lessor__findExpiredLeases
+lease_lessor__findExpiredLeases: lease_lessor__expireExists lease_Lease__expired
+lease_Lease__expired:
+lease_lessor__expireExists: lease_LeaseExpiredNotifier__Len lease_LeaseExpiredNotifier__Peek lease_LeaseExpiredNotifier__Unregister lease_LeaseExpiredNotifier__RegisterOrUpdate
+lease_LeaseExpiredNotifier__Len:
+lease_LeaseExpiredNotifier__Peek: lease_LeaseExpiredNotifier__Len
+lease_LeaseExpiredNotifier__Unregister: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push lease_LeaseQueue__Pop heap_Pop
+lease_LeaseQueue__Pop:
+heap_Pop: heap_down
+lease_lessor__checkpointScheduledLeases: lease_lessor__isPrimary lease_lessor__findDueScheduledCheckpoints
+lease_lessor__findDueScheduledCheckpoints:
 #
 # the tester's functions (`examples/mvccrand/mvccrand.go`)
 check:
@@ -109,3 +140,6 @@ runChecks: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =
 # the top level (2026-11-08, for the closed theorem): `Run` closes what `runChecks` opened
 Run: runChecks lease_lessor__Stop backend__Close check
 Main: Run
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

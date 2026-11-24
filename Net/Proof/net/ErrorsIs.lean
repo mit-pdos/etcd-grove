@@ -123,7 +123,7 @@ theorem errors_Is_deadline (Is_spec : errors.Is.spec (GF := GF) (hG := hG))
     wp_apply Is_spec (fun x => x = interface.mkOk (go.GoType.PointerType OpError.ty) #pe ∨
         x = closedErr) (fun _ b => b = false) (fun ii cs => cs = fU ii)
         (interface.mkOk (go.GoType.PointerType OpError.ty) #pe) ed
-        htarg htyped $$ []
+        (_root_.Perennial.errors.comparableTarget_pointer _ _ htarg htyped) $$ []
       as %b ⟨-, %Hb⟩
     · iframe #
       isplitl
@@ -192,7 +192,7 @@ theorem errors_Is_deadline (Is_spec : errors.Is.spec (GF := GF) (hG := hG))
     wp_apply Is_spec (fun x => x = interface.mkOk (go.GoType.PointerType OpError.ty) #pe ∨
         x = ed) (fun _ b => b = false) (fun ii cs => cs = fU ii)
         (interface.mkOk (go.GoType.PointerType OpError.ty) #pe) ed
-        htarg htyped $$ []
+        (_root_.Perennial.errors.comparableTarget_pointer _ _ htarg htyped) $$ []
       as %b ⟨-, %Hb⟩
     · iframe #
       isplitl

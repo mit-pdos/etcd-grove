@@ -1,0 +1,117 @@
+/-
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/Member.lean` (2026-11-23,
+`notes/putget-dist-plan.md` section 10). Lean-first (no Rocq counterpart).
+
+The in-process putget's `Main` up to `Serve` (`Proof/.../examples/etcd/putget/Main.lean`), on a machine of its
+own: `zap.NewNop()`; the
+member's start bundle from `ETCD_VERIFY` off (the precondition's `envVerifyOff`) and the fresh data directory and WAL area
+(`etcdstart.memberStartRes_one`); `etcdstart.StartServer` from the named premises (`etcdstart.wp_StartServer1`,
+shared with the in-process `Main`: `alloc1` inside); the client's putget invariant allocated from the
+bootstrap log's KV state (`client.putGetInv_alloc_log`, as the in-process `Main`); `etcdstart.Serve` in S2's
+form (`S2Draft.Serve_s2`, PLACEHOLDER), publishing the member's view with `Pub` (from the invariant by
+`memberPubOk`); `holdForever()`, which does not return. Every step's error ends `Member` (`return`).
+-/
+module
+
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.holdForever
+public import Spec.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartOne
+public import Proof.go_etcd_io.etcd.client.v3.PutGetInvAlloc
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace etcd_putget_dist
+
+open Iris Iris.BI Iris.ProofMode Net go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
+
+set_option maxHeartbeats 800000 in
+theorem Member.wp_proof
+    (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
+    (wp_StartServer : etcdstart.StartServer.spec (GF := GF) (hG := hG))
+    (wp_holdForever : holdForever.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) :
+    Member.spec (GF := GF) (hG := hG) := by
+  intro CS π TB RB S peer client id ctxs boot γE Pub Hbf hpl Hpf Hcf HLv Haf Hbuq Hrf Hdbo Hms
+  have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
+  have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
+  have HrbN : receiptBound GF ≤ 2 ^ 28 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
+  have HwbN : 2 ^ 28 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
+  wp_start as ⟨Htok, #Hprem, #Hvoff, Hdd, Hwa, Hshare, #Hpub⟩
+  iunfold memberShare at Hshare
+  icases Hshare with ⟨#Haddr, Hhalf, #Hinv⟩
+  -- the imports' package facts
+  ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  ihave #Pes : isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
+  · iPkgInit
+  ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
+  (try wp_auto)
+  -- `zap.NewNop()`
+  wp_apply wp_NewNop as %lg #Hlgz
+  (try wp_auto)
+  -- `StartServer(Name, peer, client, lg)`
+  ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hdd Hwa]
+  · iframe; iframe #
+  wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne (2 ^ 28) name peer client lg id ctxs boot Hbf hpl
+      (by decide) (by decide) Hpf Hcf Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
+  · iframe; iframe #
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, Hetcd⟩)
+  · cases err with
+    | nil => exact absurd rfl Herr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; itrivial
+  subst Herr
+  wp_auto
+  -- the client's invariant, at the bootstrap log's KV state
+  imod (EtcdGrove.client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)))
+      go!"k" go!"v" ⊤) $$ Hetcd with ⟨%γf, #Hpg⟩
+  -- `Serve(s, client)`, in S2's form: the member's view published at `γE`, with `Pub`
+  wp_apply (S.Serve_s2 hG rfl srv client ρ E₀ lg γn id γE Pub) $$ [Hup Hhalf] as %serr Hs
+  · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨Hms, Hbuq, Hrf, Htb, HLv, Hrb48⟩
+    iintro %ν %Hν
+    imodintro
+    iunfold memberPubOk at Hpub
+    imodintro
+    iapply Hpub
+    rw [Hν]
+    iexact Hpg
+  icases Hs with (%Hserr | ⟨%Hserr, -⟩)
+  · cases serr with
+    | nil => exact absurd rfl Hserr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; itrivial
+  subst Hserr
+  wp_auto
+  -- `holdForever()`: it does not return
+  wp_apply wp_holdForever as HF
+  iexfalso
+  iexact HF
+
+end proof
+
+end etcd_putget_dist
+end EtcdGrove
+end Perennial

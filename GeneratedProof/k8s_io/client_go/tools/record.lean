@@ -41,25 +41,6 @@ noncomputable instance CorrelatorOptions_into_val_typed :
 end def_
 end CorrelatorOptions
 
-namespace EventRecorderLogger
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
-
-noncomputable instance EventRecorderLogger_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventRecorderLogger :=
-  sorry -- axiomatized type
-
-noncomputable instance EventRecorderLogger_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventRecorderLogger k8s_io.client_go.tools.record.EventRecorderLogger.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventRecorderLogger
-
 namespace EventRecorderAdapter
 section def_
 
@@ -300,7 +281,7 @@ noncomputable instance eventLog_access_load_firstTimestamp (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance eventLog_access_store_firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (firstTimestamp' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance eventLog_access_store_firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (firstTimestamp' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) firstTimestamp' (DFrac.own 1))

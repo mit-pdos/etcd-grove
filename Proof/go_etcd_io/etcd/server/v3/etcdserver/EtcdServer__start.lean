@@ -219,7 +219,7 @@ theorem EtcdServer.start.wp_proof
   -- (R8, 2026-11-07) with its trace and span facts (`traceutil.wp_WithCancelBackground_noTrace`:
   -- the revocation's `LeaseRevoke` takes the span fact, `srvRevokeCtx`)
   wp_apply traceutil.wp_WithCancelBackground_noTrace $$ [] as %cctx %γcx %cancel
-    ⟨#Hcancel, #Hcctx, -, #Hcspan, #Hcst, #Hclib⟩
+    ⟨#Hcancel, #Hcctx, -, #Hcspan, #Hcst, #Hclib, #Hcfrom⟩
   iunfold context.cancelSpec at Hcancel
   icases Hctx with ⟨%ctx0, Hctx⟩
   icases Hcancel0 with ⟨%cn0, Hcancel0⟩
@@ -304,7 +304,7 @@ theorem EtcdServer.start.wp_proof
   · iPkgInit
   ihave #Hpsemver : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
   · iPkgInit
-  ihave #Hpprom : isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
+  ihave #Hpprom : isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   wp_join at next with [s lg]
   · wp_bind (App (Val #(methods (go.GoType.PointerType EtcdServer.ty) go!"ClusterVersion" #s))
@@ -325,7 +325,7 @@ theorem EtcdServer.start.wp_proof
       start_info
       wp_join_done
     -- known: the log line with the cluster's id and version, and the gauge
-    icases Hcvr with (%Hcv0 | ⟨-, #Hcvk⟩)
+    icases Hcvr with (%Hcv0 | ⟨-, -, #Hcvk⟩)
     · exact absurd Hcv0.1 Hif
     wp_apply hMID s fv.memberID $$ []
     · iframe Hmidf
@@ -344,10 +344,10 @@ theorem EtcdServer.start.wp_proof
     · simp only [↓reduceIte]; iexact Hcvk
     inext
     iintro %cv1 Hcv1
-    icases Hcv1 with (%Hcv1 | ⟨%Hcv1, -⟩)
+    icases Hcv1 with (%Hcv1 | ⟨%Hcv1, ⟨%xv1, #Hxv1⟩, -⟩)
     · exact absurd Hcv1.2 (by decide)
-    wp_apply hVS cv1 $$ [] as %vs1 -
-    · ipureintro; exact Hcv1
+    wp_apply hVS cv1 DFrac.discard xv1 $$ [] as -
+    · iframe #
     wp_apply hVC as %cvs1 -
     wp_apply hZS as %f3 -
     start_info
@@ -357,10 +357,11 @@ theorem EtcdServer.start.wp_proof
     · simp only [↓reduceIte]; iexact Hcvk
     inext
     iintro %cv2 Hcv2
-    icases Hcv2 with (%Hcv2 | ⟨%Hcv2, -⟩)
+    icases Hcv2 with (%Hcv2 | ⟨%Hcv2, ⟨%xv2, #Hxv2⟩, -⟩)
     · exact absurd Hcv2.2 (by decide)
-    wp_apply hVS cv2 $$ [] as %vs2 %Hvs2
-    · ipureintro; exact Hcv2
+    wp_apply hVS cv2 DFrac.discard xv2 $$ [] as -
+    · iframe #
+    have Hvs2 := semver.semverStr_render xv2
     wp_apply hVC as %cvs2 %Hcvs2
     wp_apply wp_map_make1 (K := GoString) (V := GoString) as %lm Hlm
     wp_apply wp_mapInsert go.string lm _ go!"cluster_version" cvs2 $$ [$Hlm] as Hlm
@@ -450,11 +451,11 @@ theorem EtcdServer.start.wp_proof
     ipureintro; exact ⟨Hscu1, Hkv0⟩
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
-  icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩
+  icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hssi, #Hltg⟩
   ihave #Hrf : srvRunFieldsAt s γr γg γcx ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩
       (srvStopReq s E ρ cfgk.DataDir') $$ []
   · iunfold srvRunFieldsAt
-    iframe Hltg Hstf Hcpo Hcpf Herb Herf Hgok Hlc Hlcn Hcancel0 Hstop Hdone Hstb Hci'
+    iframe Hltg Hstf Hssi Hcpo Hcpf Herb Herf Hgok Hlc Hlcn Hcancel0 Hstop Hdone Hstb Hci'
     iunfold context.cancelSpec
     iexact Hcancel
   -- the apply thread's resources
@@ -556,7 +557,7 @@ theorem EtcdServer.start.wp_proof
   · ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
     iapply srvLeadCheckOk_of hSt s Er γn cctx _
-    iframe Hpraft Hrn Hctx Hcctx
+    iframe Hpraft Hrn Hctx Hcctx Hcfrom
   ihave #Hrd : isServerReadM C.isOn s E γr $$ []
   · iunfold isServerReadM
     iexists ({ vd with read := rd, aw := awi, lc := lcn, stopping := sgc } : ReadFields)

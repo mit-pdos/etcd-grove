@@ -715,7 +715,12 @@ theorem raftNode.start.wp_proof
           ihave Hwt : rnWalTok γ r (1 : Qp).half $$ [Hwo]
           · iunfold rnWalTok; iexists _; iframe Hst Hwo
           -- (2026-11-03, R2b-3) *enter*, after the `Save`: the busy driver, the messages' sends
-          imod rn_enterS γ L' A' es p p' l S S' ro r' qms $$ Hpend Hrun with ⟨Hbdrv, Hrun, #Hsent⟩
+          iapply (wp_ncfupd _ _ (by rfl))
+          unfold ncfupd
+          iintro Hnc
+          imod rn_enterS γ L' A' es p p' l S S' ro r' qms $$ Hnc Hpend Hrun with ⟨Hnc, Hbdrv, Hrun, #Hsent⟩
+          imodintro
+          iframe Hnc
           wp_auto
           -- `if !raft.IsEmptyHardState(rd.HardState) { proposalsCommitted.Set(..) }`
           wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs -
@@ -1529,7 +1534,12 @@ theorem raftNode.start.wp_proof
         ihave Hwt : rnWalTok γ r (1 : Qp).half $$ [Hwo]
         · iunfold rnWalTok; iexists _; iframe Hst Hwo
         -- (2026-11-03, R2b-3) *enter*, after the `Save`: the busy driver, the messages' sends
-        imod rn_enter γ L' ce es p p' S S' ro r' qms $$ Hpend Hrun with ⟨Hbusy, Hrun, #Hsent⟩
+        iapply (wp_ncfupd _ _ (by rfl))
+        unfold ncfupd
+        iintro Hnc
+        imod rn_enter γ L' ce es p p' S S' ro r' qms $$ Hnc Hpend Hrun with ⟨Hnc, Hbusy, Hrun, #Hsent⟩
+        imodintro
+        iframe Hnc
         wp_auto
         -- `if !raft.IsEmptyHardState(rd.HardState) { proposalsCommitted.Set(..) }`
         wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs -

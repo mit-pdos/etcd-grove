@@ -70,7 +70,7 @@ theorem Serve.wp_proof
     rw [Htos]
     iapply ownSlice_nil
   -- the server option: the keepalive policy, neutral (D28; D-T5)
-  wp_apply wp_KEP as %kv %Hkv
+  wp_apply wp_KEP as %kv #Hkv
   wp_apply wp_slice_literal (V := GoInterface) [kv]
   try (isplitr; (ipureintro; rfl))
   iintro %gslp ⟨Hgsl, -⟩
@@ -85,15 +85,13 @@ theorem Serve.wp_proof
   · iframe; iframe #
     isplitr
     · ipureintro; rw [Hwpi]; simp
-    ipureintro; intro v hv
-    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
-    subst hv; exact Hkv
+    iapply BigSepL.bigSepL_nil.2; iempintro
   -- the registrations' old form (`serverRegsOk`, exact since auth-mediation M1)
   replace Hregs := v3rpc.serverRegsOk_sub Hregs
   -- `net.Listen("tcp", addr)`
   wp_apply (wp_Listen go!"tcp" addr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
-  icases Hlis with (⟨%Hlerr, Hlis⟩ | %Hlerr)
+  icases Hlis with (⟨%Hlerr, Hlis, Hleft⟩ | %Hlerr)
   rotate_left
   · cases lerr with
     | nil => exact absurd rfl Hlerr
@@ -109,16 +107,16 @@ theorem Serve.wp_proof
     iexists ql, pl, lcid, lmid
     iframe #
     ipureintro; exact Hregs.2.2.2.1
-  ihave Hup : grpcUpM E.authOn s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hlis]
+  ihave Hup : grpcUpM E.authOn s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hlis Hleft]
   · iunfold grpcUpM
     iexists C, q, p, pw, pa, il, im, iu, ims, is, svcs, regs, sregs
     iframe; iframe #
     ipureintro
     exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.2.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ, Hregs.2.2.2.2.2⟩
-  imod HG $$ %gs %lis %cid %mid %R Hup with ⟨⟨%γ, Hserv⟩, HQ⟩
+  imod HG $$ %gs %lis %cid %mid %R Hup with ⟨⟨%Svc, Hserv⟩, HQ⟩
   -- `go gs.Serve(l)`
   wp_apply wp_fork $$ [Hserv]
-  · wp_apply (wp_Serve gs lis γ) $$ [$Hserv] as %serr -
+  · wp_apply (wp_Serve gs lis addr Svc) $$ [$Hserv] as %serr -
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   iapply HΦ

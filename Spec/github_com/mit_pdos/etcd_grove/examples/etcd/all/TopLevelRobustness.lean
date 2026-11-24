@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/all`: the one closed etcd theorem, stated
+# `etcd/all`: the single-process closed etcd theorem, stated
 
-`etcd_robust`: the closed theorem of `examples/etcd/all` (`notes/etcd-unified-scope.md`, the user's
+`etcd_robust_single_process`: the closed theorem of `examples/etcd/all` (`notes/etcd-unified-scope.md`, the user's
 decisions D1-D6 and N1-N7 of 2026-11-21) as an instance of the generic robustness statement
 (`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the machines
 that may crash and restart and of those that never crash, each a fresh Go process, of fewer than `bound`
@@ -33,9 +33,20 @@ premise `lease.leasesNoExpiry` (about every lessor of the process) excludes; it 
 That premise is true of every run of this program, however long: authlease and leasecatchup, its only
 drivers that grant leases, grant them with etcd's `MaxLeaseTTL` (9000000000 s, about 285 years).
 
-**What the file semantics assumes** (`etcdFsExts`, `Proof/.../examples/lib/etcdstart/FsExts.lean`, and
-the file extension's `GooseLang/Ext/Fs/Impl.lean`; not premises of the statement, part of the
-semantics it is stated over): no file operation fails with an I/O error (no `ENOSPC`, no `EIO`), and at
+**The single-process theorem** (2026-11-23, etcd-grove#28, `notes/single-process-restore.md`): retired at
+the net swap (2026-11-22) as `etcd_robust`, whose name the distributed theorem took
+(`Spec/.../examples/etcd/dist/`), and restored under this name. Since the swap `net` is the net extension's
+(`GooseLang/Ext/Net`): the program runs over `etcdNetExts` (`[idIssueExt, fsExt, netExt]`,
+`Proof/.../examples/lib/etcdstart/NetExts.lean`), the network starting with no connection and no listener
+(`Robust`'s premises on the extensions' initial states), and the statement takes Net's hand-stated field
+facts of `net`'s structs (`net.FieldAssumptions`, a semantic premise as `os.file.FieldAssumptions`).
+`HAs` (`addrsUnclaimed`) is as before the swap: (a) no other process binds or dials the addresses (the
+models' gRPC and HTTP traffic does not go through the net extension, so its closed network does not
+cover it), (b) the program's own connections to them are its verified or trust-boundary clients'.
+
+**What the file semantics assumes** (`etcdNetExts`, `Proof/.../examples/lib/etcdstart/NetExts.lean` and
+`FsExts.lean`, and the file extension's `GooseLang/Ext/Fs/Impl.lean`; not premises of the statement, part
+of the semantics it is stated over): no file operation fails with an I/O error (no `ENOSPC`, no `EIO`), and at
 every `open(2)` the process holds fewer descriptors than its `RLIMIT_NOFILE`. At the bounds the process
 runs up to 2,210 members in one process, so a deployment the theorem describes has room for every
 member's WAL (each preallocates a 64 MB segment, `wal.SegmentSizeBytes`: about 141 GB at the bounds,
@@ -51,8 +62,8 @@ This file only states it (to audit); the proof is to be in
 bootstrap log (`BootFacts`; authlease's ids also apart in 15 bits, `Hap`), the server's opaque workload and
 environment premises once (`Haf`, `Hbuq`, `Hrf`, `Hdbo`), the lease premises of leaseN, authlease and
 leasecatchup once (`Hlp`, `Hlne`), the three workloads' bounds, the schedules' lengths, the program's
-metric names, addresses and data directories (all clusters', concatenated), `ETCD_VERIFY` off, each
-cluster's named premises (`Hprem…`, at every step bound `n` with `n + 12 ≤ 2 ^ 40`, the bound the proof
+addresses and data directories (all clusters', concatenated), `ETCD_VERIFY` off, each
+cluster's named premises (`Hprem…`, at every step bound `n` with `n + 1 ≤ 2 ^ 48`, the bound the proof
 uses), the file system's initial state and the
 members' WAL areas (`HWal`, all clusters'); and one premise of the composition, `Hlow`: the 16 low bits of
 the ids of the process's every member (all eleven clusters') are distinct, the precondition of the
@@ -104,22 +115,21 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 section adequacy
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 variable [go_gctx : GoGlobalContext]
 
-/-- **`etcd_safe` as a robustness statement** (`Robustness.Robust`, `Robustness/Statement.lean`; see
+/-- **`etcd_safe_single_process` as a robustness statement** (`Robustness.Robust`, `Robustness/Statement.lean`; see
 the file header): the program alone on one machine that never crashes, a fresh Go process (`Robust`'s
-premise), under `etcd_safe`'s other hypotheses: in every execution of fewer than `2 ^ 40 - 11` steps
+premise), under `etcd_safe_single_process`'s other hypotheses: in every execution of fewer than `2 ^ 48` steps
 along which fewer than `2 ^ 28` threads are live, no thread is stuck and none has an unrecovered
 panic. -/
-def etcd_robust.spec : Prop :=
+def etcd_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
-    [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [_root_.Perennial.net.FieldAssumptions]
     -- (wal-nostorageok, 2026-11-21: for the premise `rnNewStorageOk`) `os`'s field steps
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC etcdGF, ContextReadErrs (GF := etcdGF) (hG := etcdHeapAt hG lctx))
@@ -178,44 +188,42 @@ def etcd_robust.spec : Prop :=
     -- cache's workload
     (cnw cnops : w64) (Hcnw0 : 0 ≤ sint.Z cnw) (Hcnw31 : sint.Z cnw < 2 ^ 31)
     (Hcnops : 0 ≤ sint.Z cnops) (Hcmul : sint.Z cnw * sint.Z cnops < 2 ^ 62)
-    -- the program's metric names, addresses, data directories and environment
-    (HNs : prometheus.namesUnclaimed
-      (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅) etcdNames)
+    -- the program's addresses, data directories and environment
     (HAs : addrsUnclaimed (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
       (etcdAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
       (etcdDirs k₁ k₂ k₃ k₄ k₅))
     (HEnv : verifyEnvOff (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅))
     -- each cluster's named premises
-    (Hprem₁ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₁ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_txnlinfaultsN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₁ n ids₁ ps₁ ctxs₁ boot₁)
-    (HpremP : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremP : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_partition.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n pid₁ pid₂ pid₃ psP ctxsP
           bootP)
-    (HpremCW : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremCW : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_compactwatch.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n cwId ctxsCW bootCW)
-    (HpremC : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremC : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_compacted.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n cId ctxsC bootC)
-    (HpremK : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremK : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_cache.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n kvId ctxsK bootK)
-    (Hprem₂ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₂ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_authN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₂ n ids₂ ps₂ ctxs₂ boot₂)
-    (Hprem₃ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₃ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_authlease.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₃ n ids₃ ps₃ ctxs₃ boot₃)
-    (Hprem₄ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₄ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_leaseN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₄ n ids₄ ps₄ ctxs₄ boot₄)
-    (HpremL : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremL : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ cluster3.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) etcd_leasecatchup.clusterCfg n
           lid₁ lid₂ lid₃ psL ctxsL bootL)
-    (Hprem₅ : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (Hprem₅ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₅ n ids₅ ps₅ ctxs₅ boot₅)
-    (HpremR : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC etcdGF,
+    (HpremR : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_restart1.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n rId ctxsR bootR)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdDirs k₁ k₂ k₃ k₄ k₅)),
     Robustness.Robust [] [(etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅, σ)] g
-      (threads := 2 ^ 28) (bound := 2 ^ 40 - 11)
+      (threads := 2 ^ 28) (bound := 2 ^ 48)
 
 end adequacy
 end EtcdGrove

@@ -51,6 +51,29 @@ abbrev os.File.ReadAt.spec : Prop :=
            err ≠ interface.nil)⌝ ∗
         fmtErrorOkOrNil err }}
 
+/-- **`spec` for a buffer of any length** (2026-11-22, for `durable`'s files past 1 GiB:
+`notes/kvnet-part.md`, "`persist`" item 2): the model reads in `pread`s of at most `maxRW` bytes, each
+followed by the next from where it stopped (`File.ReadAt.impl`), so the loop is the same. `spec` is its
+instance. -/
+abbrev os.File.ReadAt.specLong : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
+    (off : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG),
+  d.readable = true → 0 ≤ off.toInt → off.toNat + vs.length < 2 ^ 63 →
+  off.toNat + vs.length ≤ m.size → xs.length = vs.length →
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino dqm m ∗
+      osBytes (GF := GF) d.ino off.toNat dqb xs }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
+      (Val #off))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osMeta d.ino dqm m ∗
+      osBytes d.ino off.toNat dqb xs ∗
+      ∃ vs' : List w8, sl ↦* vs' ∗
+        ⌜vs'.length = vs.length ∧
+          ((n = W64 vs.length ∧ err = interface.nil ∧ vs' = xs.map Prod.fst) ∨
+           err ≠ interface.nil)⌝ ∗
+        fmtErrorOkOrNil err }}
+
 /-- A racing `f.ReadAt(b, off)` (minibolt's `Snapshot`, which reads while the writer may write
 past what it knows, or a meta page it does not hold): no `OsMeta`, and bytes of the file held at
 any fractions, in ranges `rs` (each `(off, dq, xs)`: `osBytes path off dq xs`). The model makes

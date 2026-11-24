@@ -9,7 +9,7 @@ names, moved here unchanged out of `Adequacy.lean` so that the statement
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.PkgTable
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 
@@ -31,8 +31,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 /-- The functors (putget3's `putget3GF`; putgetN's, moved here unchanged when putgetN's closed theorem
 retired, 2026-11-21). -/
@@ -61,10 +61,6 @@ variable [go_gctx : GoGlobalContext]
 def leaseexpiryNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main) #(W64 (k : Int))
-
-/-- The metric names the program's initialization registers (its closure's `PRE_RES` packages', D16;
-mustreg, 2026-11-20, until then the read package's two, `readRegPerm`): its `initNames`. -/
-def leaseexpiryNNames : List GoString := _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initNames
 
 end adequacy
 end EtcdGrove

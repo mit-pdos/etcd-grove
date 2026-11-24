@@ -27,7 +27,7 @@ abbrev grpc.MaxSendMsgSize.spec : Prop :=
   ∀ (n : w64),
   {{ (True : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.MaxSendMsgSize)) (Val #n))
-  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v .neutral⌝ }}
+  {{ (v : GoInterface), RET #v; grpcSrvOpt v .neutral }}
 
 end spec
 

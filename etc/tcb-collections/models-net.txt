@@ -1,0 +1,11 @@
+# The net/rpc and net/http models (`models/net/{rpc,http}`, Go 1.27.3's packages with gob,
+# reflection and the HTTP/1.x head parser replaced; project models-net, in the part Net/;
+# notes/dsverify-net-port-plan.md, phase 5.2): the proved specs of net/rpc's wire, reads and codec
+# registry in Net/Proof/net/rpc/Results.lean. No axiom of this repository: the translation, the net
+# extension's trusted `net` (Net/TrustedCode/net.lean), go/token's trusted `IsExported`
+# (Net/TrustedCode/go/token.lean, a choice point; not reached yet) and Lean's.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/models-net.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/models-net.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/models-net.txt --check --update
+roots ^Net/Proof/net/rpc/

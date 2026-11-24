@@ -34,6 +34,8 @@ public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_uber_org.zap.String
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.context
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -190,26 +192,6 @@ theorem keeper_reset (k : Loc) (token : GoString) :
   (try wp_auto)
   iapply HΦ
   iunfold keeperMap; iexists km, tm, ttl; iframe #; iexact Htm
-
-theorem IntArgValue_uniq_uint64 [go.IntoValInj w64] (n : w64) :
-    ∀ z', fmt.IntArgValue (interface.mk go.uint64 #n) z' → z' = uint.Z n := by
-  intro z' h
-  obtain ⟨n', hv, rfl⟩ := fmt.IntArgValue.of_uint64 h
-  rw [go.intoVal_inj hv]
-
-/-- `Sprintf("%s.%d", pre, idx)` for a string and a `uint64` is the simple provider's token. -/
-theorem sprintfOut_simpleTok [go.IntoValInj GoString] [go.IntoValInj w64]
-    (x : GoString) (n : w64) (out : GoString)
-    (h : fmt.SprintfOut go!"%s.%d" [interface.mkOk go.string #x, interface.mkOk go.uint64 #n] out) :
-    out = simpleTok x n := by
-  have hfmt : go!"%s.%d" = W8 37 :: W8 115 :: W8 46 :: W8 37 :: [W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := fmt.SprintfOut.str_inv h
-  obtain ⟨o2, rfl, h2⟩ := fmt.SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := fmt.SprintfOut.int_inv (w := 0) (rest := []) (by decide)
-    (fmt.IntArgValue.uint64 n) (IntArgValue_uniq_uint64 n) h2
-  rw [fmt.SprintfOut.done_inv h3, fmt.decimalPad_zero]
-  simp [simpleTok]
 
 /-- `tm.addSimpleToken(token)`: the keeper's map, kept. -/
 theorem keeper_add (k : Loc) (token : GoString) :
@@ -431,10 +413,11 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
       (interface.mkOk go.uint64 #idx) = [interface.mkOk go.string #pre, interface.mkOk go.uint64 #idx] := by
     rfl
   rw [hl]
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf go!"%s.%d" _ _ _
-      (fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_int (interface.mk go.uint64 #idx) _ _
-        (fmt.IntArgValue.uint64 idx) fmt.ArgsWf.nil))) $$ [$Hasl] as %tok ⟨-, %Htok⟩
-  have htok := sprintfOut_simpleTok pre idx tok Htok
+  wp_apply (fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s.%d"
+      [.dir none fmt.verb_s, .lit go!".", .dir none fmt.verb_d] _ _ _ _ (by fmt_encode) (by fmt_fits)
+      (.str _ _ _ (.int _ _ _ _ (.uint64 idx) .nil))) $$ [$Hasl] as %tok ⟨-, %Htok⟩
+  have htok : tok = simpleTok pre idx := by
+    simp (config := { decide := true }) [Htok, simpleTok, fmt.render, fmt.dirOutFn, fmt.decimalPad_zero]
   subst htok
   (try wp_auto)
   wp_apply (tokenSimple_assignToUser p γt γf γa hγt hγf user (simpleTok pre idx) ⟨pre, idx, rfl, Hpre⟩)

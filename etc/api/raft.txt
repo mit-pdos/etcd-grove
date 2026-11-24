@@ -1,11 +1,10 @@
 # Raft's importable modules: what proofs outside raft's tree may import (`etc/api-check.py
-# etc/api/raft.txt --check`). Every other module of raft's tree is internal. What each importable
-# module exposes, as a client sees it, is `etc/gen-interface.py`'s output under `interface/`.
+# etc/api/raft.txt --check`). Every other module of raft's tree is internal.
 #
 # Started 2026-10-26 from what clients imported then (and the raft modules those publicly
 # import), grouped by what it is. The last group is debt: proof internals that clients reach
 # today, to be taken out of the list (a law in an API module instead, or the client's import
-# dropped). Adding a module here is an API change: review its interface.
+# dropped). Adding a module here is an API change.
 
 inside Proof/go_etcd_io/raft/
 inside Spec/go_etcd_io/raft/
@@ -19,6 +18,9 @@ importable Spec.go_etcd_io.raft.v3.Api
 # their laws; its pure vocabulary `NodeApiVocab`; the specs in the per-function spec files below
 importable Proof.go_etcd_io.raft.v3.InvNode
 importable Proof.go_etcd_io.raft.v3.NodeApiVocab
+# (2026-11-22, kvnet's checker) `readCtxAfter_agree`: a read context's log is unique (a law of
+# `InvNode`'s sealed `readCtxAfter`, in a module of its own so that it rebuilds no importer)
+importable Proof.go_etcd_io.raft.v3.ReadCtxLaws
 # (2026-10-28, stage U1) the unified API's configuration vocabulary: `ConfDecision`, `ConfRule`,
 # `SnapRec`, with their laws (over `InvNode`'s sealed `Valid`/`applyChange`); (the decision switch)
 # `Membership.fold`, `RaftLeave`, `opsOfRule` gone
@@ -101,6 +103,9 @@ importable Spec.go_etcd_io.raft.v3.raftpb.*
 # (Q9 of notes/trace-validation-plan.md, 2026-11-09) `MessageType.String`'s result
 # (`raftpb.msgTypeString`, the names) and the law giving rafthttp its `fmt.stringMethodSpec`
 importable Proof.go_etcd_io.raft.v3.raftpb.MsgTypeName
+# (#25, 2026-11-23) `ConfChangeType.String`'s and `ConfChangeTransition.String`'s results
+# (`raftpb.ccTypeString`, `raftpb.ccTransitionString`), which their spec files name
+importable Proof.go_etcd_io.raft.v3.raftpb.CCEnumName
 importable Proof.go_etcd_io.raft.v3.PbModel
 importable Proof.go_etcd_io.raft.v3.InvPb
 importable Proof.go_etcd_io.raft.v3.InvPbLog
@@ -222,3 +227,7 @@ importable Proof.go_etcd_io.raft.v3.InvPbCore
 importable Proof.go_etcd_io.raft.v3.PbContentCore
 importable Proof.go_etcd_io.raft.v3.PbContentOwnCore
 importable Proof.go_etcd_io.raft.v3.PbEntryTypeCore
+# (2026-11-23, protobuf stage S1, #37) the pure wire codecs of `Entry` and `ConfChangeV2` that
+# `entryEncC`/`entDecode` (`PbEntryTypeCore`) and `ccDecodeV2` (`CCModel`) are
+importable Proof.go_etcd_io.raft.v3.PbWireRaft
+importable Proof.go_etcd_io.raft.v3.NodeInstalls

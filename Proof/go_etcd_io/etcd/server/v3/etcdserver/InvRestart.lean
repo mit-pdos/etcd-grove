@@ -100,6 +100,24 @@ def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
   iprop((∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗ walFiles a id cid σ true) ∗
     backend.fileHolds (config.backendPathOf dd) D)
 
+/-- (bkarea, 2026-11-22) **The data directory of the server's files is shorter than `2^60` bytes**: the
+WAL area's directory `srvWalDirOf dd` fits (`WalA.fits`), and it holds all of `dd` past `dataBase`. -/
+theorem srvFiles_dataDir_len (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
+    srvFiles (GF := GF) dd id σ D ⊢ ⌜dd.length < 2 ^ 60⌝ ∗ srvFiles dd id σ D := by
+  unfold srvFiles
+  iintro ⟨⟨%a, %cid, %ha, Hw⟩, Hb⟩
+  have hf := a.fits
+  rw [ha] at hf
+  have hl : (srvWalDirOf dd).length < 3800 := hf.1
+  simp only [srvWalDirOf, walAreaOf, List.length_append, List.length_drop] at hl
+  have hdb : dataBase.length = 20 := by decide
+  isplitr
+  · ipureintro; omega
+  iframe Hb
+  iexists a, cid
+  iframe Hw
+  ipureintro; exact ha
+
 /-- **`cs` is a conf state `buildConfStateFromV3store` builds from the `members` bucket of `D`**
 (R2c's draft opaque `v3ConfState`, defined 2026-11-04, the restart plan's R2b-3d gap 3; R2c review
 F4: from the bucket, not the in-memory members): the bucket's entries are those of some members
@@ -165,7 +183,7 @@ directory `config.snapDirOf dd`, no snapshotter in it: `notes/snapdir-crossworld
 def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
     (σ : StorContents) (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership)
     (M : GMap Loc MemStorNamesRec) : IProp GF :=
-  iprop(nodeVacant γ.cl id ∗ raftState γ.cl id S ∗
+  iprop((∃ x, nodeVacantA γ.cl id x) ∗ raftState γ.cl id S ∗
     ⌜ρ.rd.raft.raft = γ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗ srvRLogLb ρ.rd.raft A ∗
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
       imageRestAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) D ∧
@@ -485,6 +503,9 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "%Hγsz" ∷ ⌜γs.sz = true⌝ ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗
     -- the cluster
+    -- (prove-ps2-bootstage1, 2026-11-23, #34 stage 1, I1-I2: the approved interim claim) `Hrc`'s lock
+    -- invariant now holds the cluster's version slot (`rcVerSlot`: `c.version` nil, or read-only and
+    -- known); at boot `NewCluster` leaves it nil (`rcLockInv_boot`)
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
     -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, not nil
@@ -511,21 +532,19 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
       WP (App (Val (bc.cl' @!! go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members"))
         (Val #())) {{ Φ }}) ∗
-    -- the cluster's contracts (unit N4, 2026-10-17): the lessor's (`Version()`), and the apply
-    -- package's at the backend's batch lock and any frozen hook (its writes: one write-back
-    -- each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the stores', D14f); (D22,
-    -- 2026-10-23: the backend over every bucket) its writes' effect on the tracked buckets and
-    -- its in-memory members (`srvRestOwn`), `SetDowngradeInfo` with the write right
-    -- (`srvRestRW`)
-    "#Hclok" ∷ lease.clusterOk (interface.mkOk (go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) #bc.cl') ∗
-    -- (srvBuildGap's rows, 2026-10-17) its `Version()` monotone, for `start`'s
-    -- `clusterVersionOk`
-    "#Hcvm" ∷ (∃ γcv : GName, clusterVersionMono bc.cl' γcv) ∗
-    -- (D22 receiver epochs, S7e, 2026-10-23) on whichever backend its `be` field names, which
-    -- `bootstrap` set to the boot backend and gives owned (`clusterBeOn`: no lock guards it, the
-    -- apply thread is its only user); until then for the boot backend's batch lock only
-    "#Hisc" ∷ clusterApplyOk bc.cl' ∗
+    -- the cluster's apply contract (unit N4, 2026-10-17) at the backend's batch lock and any frozen
+    -- hook (its writes: one write-back each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the
+    -- stores', D14f); (D22, 2026-10-23: the backend over every bucket) its writes' effect on the
+    -- tracked buckets and its in-memory members (`srvRestOwn`), `SetDowngradeInfo` with the write
+    -- right (`srvRestRW`); (D22 receiver epochs, S7e, 2026-10-23) on whichever backend its `be` field
+    -- names, which `bootstrap` set to the boot backend and gives owned (`clusterBeOn`: no lock guards
+    -- it, the apply thread is its only user); until then for the boot backend's batch lock only.
+    -- (prove-ps2-bootstage1, 2026-11-23, #34 stage 1, `notes/bootstrap-proof-plan.md` §7.1 I3) Only
+    -- its rows not yet proved (`clusterApplyRest`: `SetVersion`, `UpdateAttributes`,
+    -- `SetDowngradeInfo`, the cluster not nil); its `Version`/`ID` rows, the lessor's contract
+    -- (`lease.clusterOk`, until then `Hclok`) and the monotone `Version()` (`clusterVersionMono`,
+    -- until then `Hcvm`) are proved of `Hrc` (the lock's version slot) and `Hcid`: `ClusterLaws.lean`
+    "#Hisc" ∷ clusterApplyRest bc.cl' ∗
     "HclBe" ∷ clusterBeOn bc.cl' d.be ∗
     -- [R2c] the cluster's in-memory members, recovered from the backend's buckets (`Finalize`'s `cl.Recover`), the image's
     -- members at its committed log `L` (`bkRestAt`), in place of the boot log's
@@ -578,7 +597,13 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
       -- `MustCreateBackendBuckets`' `AllBuckets`): what `NewAlarmStore` and `NewAuthStore` take of
       -- the buckets they create, so that they are among the backend's ghost names
       d.P.has mvcc.alarmBI ∧ d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧
-      d.P.has mvcc.authRolesBI⌝ ∗
+      d.P.has mvcc.authRolesBI ∧
+      -- (2026-11-22, the user's approval, branch `prove-ps2-members`) the membership's buckets in the
+      -- table (schema's `Members`, `MembersRemoved`, `Cluster`, which a restart's `bootstrap`'s
+      -- `cl.SetBackend` creates again, `MustCreateBackendBuckets`): what `RaftCluster.SetBackend`
+      -- and `MustDeleteMemberFromBackend` take of them since they were proved, so that they are among
+      -- the backend's ghost names
+      d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI⌝ ∗
     -- (2026-11-02, the user's approval, branch `snap-window`) the backend's hooks are the server's
     -- `s.beHooks` (`bootstrapBackend`'s `OpenBackend(cfg, beHooks)`: `bcfg.Hooks = hooks`, which
     -- `New` stores in `b.hooks`): what the merged snapshot's window needs of its commit

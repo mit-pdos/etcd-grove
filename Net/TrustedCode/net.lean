@@ -55,8 +55,9 @@ word (`model.sysErr`), the system call's error as `wrapSyscallError` and `os.New
 it (`error_posix.go`, `fd_unix.go`): `name` is Go's, `"read"`, `"write"` (`readSyscallName`,
 `writeSyscallName`), `"shutdown"` (`CloseWrite`), `"accept4"` (`poll.FD.Accept`'s `errcall`), and
 arbitrary for `Dial` and `Listen` (`"connect"`, `"getsockopt"`, `"socket"`, `"bind"`, `"listen"`,
-`"setsockopt"`: whichever call failed). `Error()` is arbitrary (`AnyString`: Go's message is made of
-the addresses' and the system error's strings); `Timeout()` and `Temporary()` are `false` for
+`"setsockopt"`: whichever call failed). `Error()` is `Op`, then an arbitrary string, `": "` and
+another (`AnyString`: Go's message is made of the network's, the addresses' and the system error's
+strings); `Timeout()` and `Temporary()` are `false` for
 `errNetClosing` (its methods), `true` for `*DeadlineExceededError` and `*timeoutError` (theirs),
 and arbitrary otherwise: an `Errno`'s are `true` for `ETIMEDOUT`, `EAGAIN` (and `Temporary` for
 `EINTR`, `EMFILE`, `ENFILE`, and in `Accept` `ECONNRESET`, `ECONNABORTED`: `isConnError`), which a
@@ -598,10 +599,22 @@ not explain: an arbitrary string. -/
 noncomputable def TCPAddr.String.impl : val :=
   λ: "a" <>, ExternalOp Net.netExt.name "AnyString" #()
 
-/-- `(*OpError).Error() string` (`net.go`): Go's message names the operation, the addresses and
-the system's error, which the model does not explain: an arbitrary string. -/
+/-- `(*OpError).Error() string` (`net.go`): Go's message is `e.Op`, then the network and the
+addresses (each after a space or `"->"`), then `": "` and `e.Err`'s message; the model does not
+explain the network's, the addresses' and the system error's parts: `e.Op ++ s1 ++ ": " ++ s2`
+for arbitrary strings `s1`, `s2` (Go's form, which `TestErrorsAreOpErrors` checks: it starts with
+the operation and holds `": "`; so never empty). `"<nil>"` for a `nil` receiver, as Go's.
+TRUSTED CHANGE (net-rpc-errors, for review): before, an arbitrary non-empty string. A program may
+rely on the form: net/rpc's server answers a request whose body read fails with an error response
+of that message (`"read …: …"`), which a service's own error messages can then be told from
+(`net.rpc.srvErrMsg`). -/
 noncomputable def OpError.Error.impl : val :=
-  λ: "e" <>, ExternalOp Net.netExt.name "AnyString" #()
+  λ: "e" <>,
+    if: "e" =⟨go.PointerType model.OpError⟩ #null then #(go!"<nil>") else
+    let: "s1" := ExternalOp Net.netExt.name "AnyString" #() in
+    let: "s2" := ExternalOp Net.netExt.name "AnyString" #() in
+    ![go.string] (StructFieldRef model.OpError go!"Op" "e") +⟨go.string⟩ "s1" +⟨go.string⟩
+      #(go!": ") +⟨go.string⟩ "s2"
 
 /-- `true` for an `Err` of the dynamic type `*poll.DeadlineExceededError` or `*timeoutError`,
 `false` for `poll.errNetClosing` (their `Timeout` and `Temporary` methods, constants: `fd.go`,

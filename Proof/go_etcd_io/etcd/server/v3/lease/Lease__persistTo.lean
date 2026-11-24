@@ -54,8 +54,8 @@ theorem lease.Lease.persistTo.wp_proof
   (try wp_auto)
   wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease))
     (Val #(GoInterface.ok tx))) (Val #lpb_ptr))
-  iapply (hPut tx lpb_ptr _ bk iprop(Lk iprop(Post ∗ R) ∗ Rb rb)
-      iprop(Lk iprop(Post ∗ R) ∗
+  iapply (hPut tx lpb_ptr _ bk iprop(Lk false iprop(Post ∗ R) ∗ Rb rb)
+      iprop(Lk true iprop(Post ∗ R) ∗
         Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id t r)))) $$ [lpb HLk HRb] [-]
   · iframe Hschema Hbkv lpb HLk HRb
     isplitr
@@ -68,7 +68,7 @@ theorem lease.Lease.persistTo.wp_proof
   iintro ⟨-, HLk, HRb⟩
   (try wp_auto)
   wp_bind (App (Val #(methods tx.ty go!"Unlock" tx.v)) (Val #()))
-  iapply HUnlock $$ [HLk] [-]
+  iapply HUnlock $$ %true [HLk] [-]
   · iexact HLk
   inext
   iintro ⟨HPost, HR⟩

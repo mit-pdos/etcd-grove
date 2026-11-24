@@ -1,5 +1,6 @@
 /-
-`version.Cluster(v)` (`api/v3/version`): names-only (the server's `start` logs it). Lean-first (the request path's unit 4c).
+`version.Cluster(v)` (`api/v3/version`; the server's `start` logs it): translated with its body since
+2026-11-22 (prove-ps2-client), proved over `semver.NewVersion`'s spec. Lean-first (the request path's unit 4c).
 -/
 module
 
@@ -21,7 +22,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `version.Cluster(v)` returns a string (names-only: the major and minor of `v`), ASCII if `v`
+/-- `version.Cluster(v)` returns a string (the major and minor of `v`), ASCII if `v`
 starts with two decimal numbers each followed by a dot (`semverStr`, a `semver.Version`'s
 `String()`): `"%d.%d"` of the parsed version, or else the first two of `strings.Split(v, ".")`
 joined by a dot (`version.go`; D19l (iii), 2026-10-18: until then some string). -/

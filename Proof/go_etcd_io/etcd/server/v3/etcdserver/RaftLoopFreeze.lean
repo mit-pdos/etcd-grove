@@ -316,7 +316,7 @@ theorem rn_freeze_receipt [MemStorReg GF] (ms : Loc) (γs : MemStorNames) (n : N
 
 /-- The node's running token from its two halves (the loop's and the apply side's, which
 `stopped` brings back: `raftNode.onStop` takes the whole). -/
-theorem rnRun_join [StorageModel GF] (n : Loc) (γ : Cluster) (N : Namespace) :
+theorem rnRun_join [StorageModel GF] (n : NodeH) (γ : Cluster) (N : Namespace) :
     nodeRunning (GF := GF) n γ N (1 : Qp).half ∗ nodeRunning n γ N (1 : Qp).half ⊢
       nodeRunning n γ N 1 := by
   iintro ⟨H1, H2⟩

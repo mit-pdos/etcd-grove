@@ -76,6 +76,9 @@ structure IdNames where
   fs : GName
   /-- (R2c stage 2) the incarnation's pending ids (counted by `Next`'s increment, not yet issued) -/
   pend : GName
+  /-- (etcd-dist D7, 2026-11-23) the cluster's map of each prefix's names (`idPfxTok`, `idPfxInv`):
+  its ids' issuers and its generators, kept on the prefix's member's machine -/
+  gen : GName
 
 /-- **A member incarnation's key** (R2c, 2026-11-02, `notes/restart-plan.md`): its prefix and its
 incarnation number. The cluster's id state is per key: each incarnation has its own list of issued
@@ -297,9 +300,36 @@ theorem idCred_supply (γi : IdNames) (Hb : receiptBound GF ≤ 2 ^ 48) :
   ipureintro
   exact Hb
 
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The right to claim the id `id`** (exclusive). -/
 def idUnclaimed (γi : IdNames) (id : w64) : IProp GF :=
   id ↪[γi.issued] (none : Option IdClaimV)
+
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The id `id` was claimed by this incarnation** for the data `d`, with the claimer's ghost name
 `γf` (persistent; agreeing): the claim records the claimer's key (R2c, 2026-11-02). What the
@@ -320,6 +350,15 @@ instance idClaimAny_persistent (γi : IdNames) (id : w64) (d : List w8) (γf : G
     Persistent (idClaimAny (GF := GF) γi id d γf) := by
   unfold idClaimAny; infer_instance
 
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+
 /-- An incarnation's claim is a claim. -/
 theorem idClaimAny_of (γi : IdNames) (id : w64) (d : List w8) (γf : GName) :
     idClaim (GF := GF) γi id d γf ⊢ idClaimAny γi id d γf := by
@@ -327,6 +366,15 @@ theorem idClaimAny_of (γi : IdNames) (id : w64) (d : List w8) (γf : GName) :
   iintro #H
   iexists γi.key
   iexact H
+
+end ghost
+
+section ghostG3
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **No request claims the id `0`** (persistent; D19c): the issued ids' map holds `0 ↦ none`,
 read-only. The cluster's allocation gives it (`idCluster_alloc`, D21e (A); until stage M4
@@ -348,6 +396,24 @@ def idKeyFactAt {X : Type} [Pos.Countable X] (fs : GName) (k : IdKey) (x : X) : 
 instance idKeyFactAt_persistent {X : Type} [Pos.Countable X] (fs : GName) (k : IdKey) (x : X) :
     Persistent (idKeyFactAt (GF := GF) fs k x) := by
   unfold idKeyFactAt; infer_instance
+
+end ghostG3
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- The claimer's fact of the id `id`'s entry `v` (nothing if unclaimed): the family at its key's
 parameter. -/
@@ -371,6 +437,15 @@ instance idClaimsFacts_persistent {X : Type} [Pos.Countable X]
     (Φs : X → w64 → List w8 → GName → IProp GF) (fs : GName) (I : GMap w64 (Option IdClaimV)) :
     Persistent (idClaimsFacts (GF := GF) Φs fs I) := by
   unfold idClaimsFacts; infer_instance
+
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
 
 /-- The id's slot in the wait registry (exclusive): `Register(id)` takes it. -/
 def idSlot (γi : IdNames) (id : w64) : IProp GF :=
@@ -414,49 +489,154 @@ abbrev IdKeyEntry := List w64 × Option Loc
 /-- **The cluster's ids** (D21e (A); by key since R2c): the issued ids' map `I` holds the reserved
 `0` and exactly the ids the keys' lists `C` hold; every key's prefix good, and its ids of it; the
 keys' entries, registries' cells `R` and facts `Fm` of one domain; (stage 2) one generator per key,
-distinct keys' generators distinct, and a key's ids issued only once it has one. Two incarnations of
-one prefix are two keys: their ids are kept apart by the issue record (`idIssueFragD`, in
-`idClusterInv`), not by the prefix. -/
+distinct keys' generators distinct (etcd-dist D7: among the keys of one prefix, one machine's), and a
+key's ids issued only once it has one. Two incarnations of one prefix are two keys: their ids are kept
+apart by the issue record (`idIssueFragD`, in the prefix's `idPfxInv`), not by the prefix. -/
 def idClusterOk {X : Type} (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey IdKeyEntry)
     (R : GMap IdKey GName) (Fm : GMap IdKey X) : Prop :=
   (∀ id, (I !! id).isSome ↔ id = W64 0 ∨ ∃ k e, C !! k = some e ∧ id ∈ e.1) ∧
   (∀ k e, C !! k = some e → idPfxOk k.1 ∧ ∀ id ∈ e.1, idPfx id = k.1) ∧
-  (∀ k k' e e' g, C !! k = some e → C !! k' = some e' → e.2 = some g → e'.2 = some g → k = k') ∧
+  (∀ k k' e e' g, C !! k = some e → C !! k' = some e' → e.2 = some g → e'.2 = some g → k.1 = k'.1 →
+    k = k') ∧
   (∀ k e, C !! k = some e → e.1 ≠ [] → e.2.isSome) ∧
   (∀ k, (C !! k).isSome ↔ (R !! k).isSome) ∧ (∀ k, (C !! k).isSome ↔ (Fm !! k).isSome)
 
-/-- **A key's generator's resources in the cluster's claims** (persistent; stage 2): the generator's
-`prefix` field (its address one generator's: `NewGenerator` owns a new one's whole), and for every
-id the key issued, the issue record's fact that this generator issued it. -/
-def idKeyGenFacts (k : IdKey) (e : IdKeyEntry) : IProp GF :=
+end ghost
+
+section ghostG3
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+/-- **A key's generator's resources in the cluster's claims** (persistent; stage 2; heap-free since
+etcd-dist D7, 2026-11-23): its prefix's names `(γip, γgp)` (`gen`'s), its generator registered in the
+prefix's generators' map, and every id the key issued registered with its issuer in the prefix's ids'
+map. The facts these maps stand for (the generator's `prefix` field, the issue record's) are on the
+prefix's member's machine, in `idPfxInv`. (Until D7: those facts themselves, here.) -/
+def idKeyGenFacts (gen : GName) (k : IdKey) (e : IdKeyEntry) : IProp GF :=
   match e.2 with
-  | some g => iprop(structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ k.1 ∗
-      [∗list] id ∈ e.1, idIssueFragD id g)
+  | some g => iprop(∃ γip γgp : GName, k.1 ↪[gen]□ (γip, γgp) ∗ g ↪[γgp]□ k ∗
+      [∗list] id ∈ e.1, id ↪[γip]□ g)
   | none => iprop(True)
 
-instance idKeyGenFacts_persistent (k : IdKey) (e : IdKeyEntry) :
-    Persistent (idKeyGenFacts (GF := GF) k e) := by
+instance idKeyGenFacts_persistent (gen : GName) (k : IdKey) (e : IdKeyEntry) :
+    Persistent (idKeyGenFacts (GF := GF) gen k e) := by
   unfold idKeyGenFacts; split <;> infer_instance
 
-instance idKeyGenFacts_timeless (k : IdKey) (e : IdKeyEntry) :
-    Timeless (idKeyGenFacts (GF := GF) k e) := by
+instance idKeyGenFacts_timeless (gen : GName) (k : IdKey) (e : IdKeyEntry) :
+    Timeless (idKeyGenFacts (GF := GF) gen k e) := by
   unfold idKeyGenFacts; split <;> infer_instance
+
+/-- (etcd-dist D7) **A prefix's names, fresh** (exclusive): the prefix's entry of `gen`, and its ids'
+and generators' maps, empty; `idPfxInv_alloc` makes `idPfxInv` of it on the member's machine. -/
+def idPfxTok (gen : GName) (p : w64) : IProp GF :=
+  iprop(∃ γip γgp : GName, p ↪[gen]□ (γip, γgp) ∗ ghostMapAuth γip 1 (∅ : GMap w64 Loc) ∗
+    ghostMapAuth γgp 1 (∅ : GMap Loc IdKey))
 
 /-- **The cluster's claims** (persistent; D21e (A), stage M4; by key since R2c): the issued ids'
 map, the keys' entries, the registries' cells and the keys' facts, with the claimers' facts of the
-claimed ids, and (stage 2) each key's generator's facts. Allocated once for the cluster
-(`idCluster_alloc`); every incarnation's generator (`idGen`) and claim (`idClaim`) is over it. -/
-def idClusterInv {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
+claimed ids, and (stage 2) each key's generator's facts (heap-free since etcd-dist D7, at the
+prefixes' names `gen`). Allocated once for the cluster (`idCluster_alloc`); every incarnation's
+generator (`idGen`) and claim (`idClaim`) is over it. -/
+def idClusterInv {X : Type} [Pos.Countable X] (issued cnt wn fs gen : GName)
     (Φs : X → w64 → List w8 → GName → IProp GF) : IProp GF :=
   inv idClusterN iprop(∃ (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey IdKeyEntry)
       (R : GMap IdKey GName) (Fm : GMap IdKey X),
     ghostMapAuth issued 1 I ∗ ghostMapAuth cnt 1 C ∗ ghostMapAuth wn 1 R ∗ ghostMapAuth fs 1 Fm ∗
-    ⌜idClusterOk I C R Fm⌝ ∗ idClaimsFacts Φs fs I ∗ [∗map] k ↦ e ∈ C, idKeyGenFacts k e)
+    ⌜idClusterOk I C R Fm⌝ ∗ idClaimsFacts Φs fs I ∗ [∗map] k ↦ e ∈ C, idKeyGenFacts gen k e)
 
-instance idClusterInv_persistent {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
+instance idClusterInv_persistent {X : Type} [Pos.Countable X] (issued cnt wn fs gen : GName)
     (Φs : X → w64 → List w8 → GName → IProp GF) :
-    Persistent (idClusterInv (GF := GF) issued cnt wn fs Φs) := by
+    Persistent (idClusterInv (GF := GF) issued cnt wn fs gen Φs) := by
   unfold idClusterInv; infer_instance
+
+end ghostG3
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+
+/-- (etcd-dist D7) The namespace of a prefix's generators' facts. -/
+def idPfxN : Namespace := nroot .@ "idutil_pfx"
+
+@[simp] theorem idPfxN_idClusterN : (↑idPfxN : CoPset) ⊆ ⊤ \ ↑idClusterN :=
+  mask_ndot_ne' nroot "idutil_pfx" "idutil_cluster" (by decide)
+@[simp] theorem idPfxN_idN : (↑idPfxN : CoPset) ⊆ ⊤ \ ↑idN :=
+  mask_ndot_ne' nroot "idutil_pfx" "idutil" (by decide)
+@[simp] theorem idPfxN_idN_idClusterN : (↑idPfxN : CoPset) ⊆ (⊤ \ ↑idN) \ ↑idClusterN :=
+  mask_ndot_ne2 nroot "idutil_pfx" "idutil" "idutil_cluster" (by decide) (by decide)
+
+/-- (etcd-dist D7) **A prefix's generators' facts**, on its member's machine: the ids issued under the
+prefix, each with the issue record's fact that its generator issued it, and the prefix's generators,
+each's `prefix` field (its address one generator's), both maps' elements persisted. -/
+def idPfxBody (γip γgp : GName) : IProp GF :=
+  iprop(∃ (Ip : GMap w64 Loc) (Gp : GMap Loc IdKey),
+    ghostMapAuth γip 1 Ip ∗ ghostMapAuth γgp 1 Gp ∗
+    ([∗map] id ↦ g ∈ Ip, idIssueFragD id g ∗ id ↪[γip]□ g) ∗
+    [∗map] g ↦ k ∈ Gp,
+      structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ k.1 ∗ g ↪[γgp]□ k)
+
+/-- (etcd-dist D7, 2026-11-23) **The prefix `p`'s generators' facts** (persistent; heap-level): its names
+(`gen`'s) and the invariant of its generators' facts on the machine of the member of prefix `p`, where
+its generators run and its issue record is. `NewGenerator` and `Next` open it with the cluster's
+claims. -/
+def idPfxInv (gen : GName) (p : w64) : IProp GF :=
+  iprop(∃ γip γgp : GName, p ↪[gen]□ (γip, γgp) ∗ inv idPfxN (idPfxBody γip γgp))
+
+instance idPfxInv_persistent (gen : GName) (p : w64) : Persistent (idPfxInv (GF := GF) gen p) := by
+  unfold idPfxInv; infer_instance
+
+/-- (etcd-dist D7) **A prefix's facts' invariant, allocated** on its member's machine from its names. -/
+theorem idPfxInv_alloc (gen : GName) (p : w64) (E : CoPset) :
+    ⊢ idPfxTok (GF := GF) gen p ={E}=∗ idPfxInv gen p := by
+  iintro Ht
+  iunfold idPfxTok at Ht
+  icases Ht with ⟨%γip, %γgp, #Hp, Hi, Hg⟩
+  imod (inv_alloc idPfxN E (idPfxBody (GF := GF) γip γgp)) $$ [Hi Hg] with #Hinv
+  · inext
+    iunfold idPfxBody
+    iexists ∅, ∅
+    iframe Hi Hg
+    isplitl
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+  imodintro
+  iunfold idPfxInv
+  iexists γip, γgp
+  iframe Hp Hinv
+
+/-- (etcd-dist D7) **Every prefix's facts' invariant, allocated** (one process: every member's here). -/
+theorem idPfxInvs_alloc {A : Type} (gen : GName) (f : A → w64) (E : CoPset) :
+    ∀ l : List A, ⊢ ([∗list] x ∈ l, idPfxTok (GF := GF) gen (f x)) ={E}=∗
+      [∗list] x ∈ l, idPfxInv gen (f x)
+  | [] => by
+    iintro -
+    imodintro
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+    itrivial
+  | a :: l => by
+    iintro Hs
+    ihave Hs := BigSepL.bigSepL_cons.1 $$ Hs
+    icases Hs with ⟨Ha, Hs⟩
+    imod (idPfxInv_alloc gen (f a) E) $$ Ha with #Ha
+    imod (idPfxInvs_alloc gen f E l) $$ Hs with Hs
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    iframe Ha Hs
+
+end ghost
+
+section ghostG2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **An incarnation's share of the cluster's ids** (D21e (A), stage M4; by key since R2c): its
 key's entry of the keys' map, no id issued and no generator yet, its wait slots' map and (stage 2)
@@ -464,6 +644,15 @@ its pending ids' map, empty. `NewGenerator` takes it. -/
 def idShare (γi : IdNames) : IProp GF :=
   iprop(γi.key ↪[γi.cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
     ghostMapAuth γi.slot 1 (∅ : GMap w64 Unit) ∗ ghostMapAuth γi.pend 1 (∅ : GMap w64 Unit))
+
+end ghostG2
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
 
 /-- **The generator `g`** (persistent): its `prefix` field fixed at the member's prefix `γi.pfx`
 (its 48 low bits 0: the member id shifted by 48, so ids of distinct suffixes differ), its `suffix`
@@ -488,11 +677,21 @@ def idGen (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF
       ⌜∀ id, ((id ∈ L ∨ (P !! id).isSome) ↔ idIssued γi.pfx s0 k id) ∧
         ((S !! id).isSome ↔ idIssued γi.pfx s0 k id) ∧ (id ∈ L → P !! id = none)⌝) ∗
     ∃ (X : Type) (_ : Pos.Countable X) (Φs : X → w64 → List w8 → GName → IProp GF) (x : X),
-      ⌜Φs x = Φ⌝ ∗ idKeyFactAt γi.fs γi.key x ∗ idClusterInv γi.issued γi.cnt γi.wn γi.fs Φs)
+      ⌜Φs x = Φ⌝ ∗ idKeyFactAt γi.fs γi.key x ∗ idClusterInv γi.issued γi.cnt γi.wn γi.fs γi.gen Φs ∗
+      idPfxInv γi.gen γi.pfx)
 
 instance idGen_persistent (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) :
     Persistent (idGen (GF := GF) γi g Φ) := by
   unfold idGen; infer_instance
+
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **A key's entry of the registries' map, not yet set** (exclusive; linkv-txn stage B1,
 2026-10-20; by key since R2c): the map's (persistent) element of the key names a cell the
@@ -503,6 +702,24 @@ def idWaitTokAt (wn : GName) (k : IdKey) : IProp GF :=
 /-- `idWaitTokAt` at the incarnation's names. -/
 abbrev idWaitTok (γi : IdNames) : IProp GF := idWaitTokAt γi.wn γi.key
 
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The incarnation of key `k` registers its requests in the wait registry `W`** (persistent;
 linkv-txn stage B1; by key since R2c): the cell of `k`'s element of the registries' map, set to
 `W`. -/
@@ -512,6 +729,15 @@ def idWaitIs (γi : IdNames) (k : IdKey) (W : GName) : IProp GF :=
 instance idWaitIs_persistent (γi : IdNames) (k : IdKey) (W : GName) :
     Persistent (idWaitIs (GF := GF) γi k W) := by
   unfold idWaitIs; infer_instance
+
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
 
 /-- A key's registry is unique. -/
 theorem idWaitIs_agree (γi : IdNames) (k : IdKey) (W W' : GName) :
@@ -534,6 +760,15 @@ theorem idWaitTok_set (γi : IdNames) (W : GName) :
   imodintro
   iexists γp
   iframe Hp Hc
+
+end ghost
+
+section ghostG2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **A new key** (R2c): into maps without it, the key's empty entry (no id, no generator), its
 unset registry cell and its facts' parameter `x`. -/
@@ -558,20 +793,57 @@ theorem idKey_insert {X : Type} [Pos.Countable X] (cnt wn fs : GName) (C : GMap 
   · iunfold idWaitTokAt; iexists γp; iframe Hp Hc
   · iunfold idKeyFactAt; iexact Hxk
 
+/-- (etcd-dist D7) **Each prefix's names, allocated** (`idCluster_alloc`'s): for distinct prefixes not
+yet in `gen`'s map, each's `idPfxTok`. -/
+theorem idPfxToks_alloc (gen : GName) (ps : List w64) (Gn : GMap w64 (GName × GName))
+    (Hnd : ps.Nodup) (Hfr : ∀ p ∈ ps, Gn !! p = none) :
+    ⊢ ghostMapAuth (GF := GF) gen 1 Gn ==∗ ∃ Gn' : GMap w64 (GName × GName),
+      ghostMapAuth gen 1 Gn' ∗ [∗list] p ∈ ps, idPfxTok gen p := by
+  induction ps generalizing Gn with
+  | nil =>
+    iintro H
+    imodintro
+    iexists Gn
+    iframe H
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+    itrivial
+  | cons q qs ih =>
+    iintro H
+    have hnd := List.nodup_cons.1 Hnd
+    imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc)) with ⟨%γip, Hi⟩
+    imod (ghost_map_alloc_empty (GF := GF) (K := Loc) (V := IdKey)) with ⟨%γgp, Hg⟩
+    imod (ghost_map_insert_persist q (γip, γgp) (Hfr q (List.mem_cons_self ..))) $$ H with ⟨H, #Hq⟩
+    imod (ih (Gn.insert q (γip, γgp)) hnd.2 (fun p hp => by
+        rw [GMap.lookup_insert_ne _ _ (fun h => hnd.1 (by subst h; exact hp))]
+        exact Hfr p (List.mem_cons_of_mem _ hp))) $$ H with ⟨%Gn', H, Hqs⟩
+    imodintro
+    iexists Gn'
+    iframe H
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hqs
+    iunfold idPfxTok
+    iexists γip, γgp
+    iframe Hq Hi Hg
+
 /-- **The cluster's claims, allocated** (D21e (A), stage M4; by key since R2c) for the members'
 prefixes `ps`, under the pure premise that they are good and distinct
 (`nonissues/etcd-request-id-member-prefix.md`): the claims invariant at the facts' family `Φs` (the
 caller's choice), the reserved id `0` (`idNoZero`, D19c) and each member's first incarnation's key
 `(p, 0)` -- its entry of the keys' map, empty (with its slots and pending map, the caller's,
-`idShare`), its unset registry cell and its facts' parameter `xs p` (the caller's choice). -/
+`idShare`), its unset registry cell and its facts' parameter `xs p` (the caller's choice); (etcd-dist D7)
+and each prefix's names (`idPfxTok`), from which its member's machine makes its `idPfxInv`. -/
 theorem idCluster_alloc {X : Type} [Pos.Countable X] (ps : List w64)
     (Φs : X → w64 → List w8 → GName → IProp GF) (xs : w64 → X)
     (E : CoPset) (Hnd : ps.Nodup) (Hok : ∀ p ∈ ps, idPfxOk p) :
-    ⊢ |={E}=> ∃ issued cnt wn fs : GName, idClusterInv (GF := GF) issued cnt wn fs Φs ∗
+    ⊢ |={E}=> ∃ issued cnt wn fs gen : GName, idClusterInv (GF := GF) issued cnt wn fs gen Φs ∗
       (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
-      [∗list] p ∈ ps, (p, 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
-        idWaitTokAt wn (p, 0) ∗ idKeyFactAt fs (p, 0) (xs p) := by
+      ([∗list] p ∈ ps, (p, 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
+        idWaitTokAt wn (p, 0) ∗ idKeyFactAt fs (p, 0) (xs p)) ∗
+      [∗list] p ∈ ps, idPfxTok gen p := by
   istart
+  imod (ghost_map_alloc_empty (K := w64) (V := GName × GName)) with ⟨%γG, HG0⟩
+  imod (idPfxToks_alloc (GF := GF) γG ps ∅ Hnd (fun p _ => GMap.lookup_empty _)) $$ HG0
+    with ⟨%Gn, -, Htoks⟩
   imod (ghost_map_alloc_empty (K := w64) (V := Option IdClaimV)) with ⟨%γI, HI⟩
   imod (ghost_map_alloc_empty (K := IdKey) (V := IdKeyEntry)) with ⟨%γC, HC⟩
   imod (ghost_map_alloc_empty (K := IdKey) (V := GName)) with ⟨%γR, HR⟩
@@ -650,15 +922,15 @@ theorem idCluster_alloc {X : Type} [Pos.Countable X] (ps : List w64)
       (fun k => by simp [GMap.lookup_empty]) (fun k e h => by simp [GMap.lookup_empty] at h)) $$ HC HR HF
     with ⟨%C, %R, %Fm, HC, HR, HF, %HCok, Hps⟩
   obtain ⟨hR, hF, hCe⟩ := HCok
-  have hG : (emp : IProp GF) ⊢ [∗map] k ↦ e ∈ C, idKeyGenFacts (GF := GF) k e :=
+  have hG : (emp : IProp GF) ⊢ [∗map] k ↦ e ∈ C, idKeyGenFacts (GF := GF) γG k e :=
     BigSepM.bigSepM_intro (fun {k e} hke => by
       rw [(hCe k e hke).2]; unfold idKeyGenFacts; exact true_intro)
-  ihave #HG : iprop([∗map] k ↦ e ∈ C, idKeyGenFacts (GF := GF) k e) $$ []
+  ihave #HG : iprop([∗map] k ↦ e ∈ C, idKeyGenFacts (GF := GF) γG k e) $$ []
   · iapply hG; iempintro
   imod (inv_alloc idClusterN E iprop(∃ (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey IdKeyEntry)
       (R : GMap IdKey GName) (Fm : GMap IdKey X),
       ghostMapAuth γI 1 I ∗ ghostMapAuth γC 1 C ∗ ghostMapAuth γR 1 R ∗ ghostMapAuth γF 1 Fm ∗
-      ⌜idClusterOk I C R Fm⌝ ∗ idClaimsFacts Φs γF I ∗ [∗map] k ↦ e ∈ C, idKeyGenFacts k e))
+      ⌜idClusterOk I C R Fm⌝ ∗ idClaimsFacts Φs γF I ∗ [∗map] k ↦ e ∈ C, idKeyGenFacts γG k e))
     $$ [HI HC HR HF] with #Hinv
   · inext
     iexists ((∅ : GMap w64 (Option IdClaimV)).insert (W64 0) none), C, R, Fm
@@ -678,7 +950,7 @@ theorem idCluster_alloc {X : Type} [Pos.Countable X] (ps : List w64)
       · intro k e hke
         refine ⟨(hCe k e hke).1, ?_⟩
         rw [(hCe k e hke).2]; simp
-      · intro k k' e e' g hke _ he _
+      · intro k k' e e' g hke _ he _ _
         rw [(hCe k e hke).2] at he; cases he
       · intro k e hke hne
         rw [(hCe k e hke).2] at hne; exact absurd rfl hne
@@ -691,10 +963,19 @@ theorem idCluster_alloc {X : Type} [Pos.Countable X] (ps : List w64)
     iapply BigSepM.bigSepM_empty.2
     itrivial
   imodintro
-  iexists γI, γC, γR, γF
-  iframe H0 Hps
+  iexists γI, γC, γR, γF, γG
+  iframe H0 Hps Htoks
   iunfold idClusterInv
   iexact Hinv
+
+end ghostG2
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
 
 /-- An incarnation number above every key's of a finite map. -/
 theorem idKey_fresh_inc {V : Type} (C : GMap IdKey V) : ∃ n : Nat, ∀ k v, C !! k = some v → k.2 < n := by
@@ -714,14 +995,23 @@ theorem idKey_fresh_inc {V : Type} (C : GMap IdKey V) : ∃ n : Nat, ∀ k v, C 
   have := hmax _ k.2 hmem
   omega
 
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A new incarnation's key** (the restart plan's R2c stage 2: a member's restart): for the good
 prefix `p`, a key `(p, inc)` no key of the cluster has, with its empty entry, its unset registry cell
 and its facts' parameter `x`. The number is chosen above every key's: nothing is handed from one
 incarnation to the next. -/
-theorem idIncarnation_alloc {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
+theorem idIncarnation_alloc {X : Type} [Pos.Countable X] (issued cnt wn fs gen : GName)
     (Φs : X → w64 → List w8 → GName → IProp GF) (p : w64) (x : X) (E : CoPset)
     (HE : ↑idClusterN ⊆ E) (Hp : idPfxOk p) :
-    ⊢ idClusterInv (GF := GF) issued cnt wn fs Φs ={E}=∗ ∃ inc : Nat,
+    ⊢ idClusterInv (GF := GF) issued cnt wn fs gen Φs ={E}=∗ ∃ inc : Nat,
       (p, inc) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
       idWaitTokAt wn (p, inc) ∗ idKeyFactAt fs (p, inc) x := by
   iintro #Hcl
@@ -750,7 +1040,7 @@ theorem idIncarnation_alloc {X : Type} [Pos.Countable X] (issued cnt wn fs : GNa
     obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hok
     isplitr
     · ipureintro
-      refine ⟨fun id => ?_, fun k e hke => ?_, fun k k' e e' g hke hke' he he' => ?_,
+      refine ⟨fun id => ?_, fun k e hke => ?_, fun k k' e e' g hke hke' he he' hkk => ?_,
         fun k e hke hne => ?_, fun k => ?_, fun k => ?_⟩
       · rw [h1 id]
         apply or_congr Iff.rfl
@@ -772,20 +1062,29 @@ theorem idIncarnation_alloc {X : Type} [Pos.Countable X] (issued cnt wn fs : GNa
           · subst hk'; rw [GMap.lookup_insert] at hke'; cases hke'; cases he'
           · rw [GMap.lookup_insert_ne _ _ hk] at hke
             rw [GMap.lookup_insert_ne _ _ hk'] at hke'
-            exact h3 k k' e e' g hke hke' he he'
+            exact h3 k k' e e' g hke hke' he he' hkk
       · by_cases hk : (p, n) = k
         · subst hk; rw [GMap.lookup_insert] at hke; cases hke; exact absurd rfl hne
         · rw [GMap.lookup_insert_ne _ _ hk] at hke; exact h4 k e hke hne
       · rw [GMap.lookup_insert_is_Some, GMap.lookup_insert_is_Some, h5 k]
       · rw [GMap.lookup_insert_is_Some, GMap.lookup_insert_is_Some, h6 k]
     iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := C)
-      (Φ := fun k e => idKeyGenFacts (GF := GF) k e) hC).2
+      (Φ := fun k e => idKeyGenFacts (GF := GF) gen k e) hC).2
     iframe HG
     iunfold idKeyGenFacts
     itrivial
   imodintro
   iexists n
   iframe Hk Hw Hf
+
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
 
 end ghost
 

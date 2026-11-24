@@ -14,7 +14,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.features
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.keepalive
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import GeneratedProof.net.http
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.sync
@@ -359,7 +359,7 @@ noncomputable instance Writes_access_load_Mu (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writes_access_store_Mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes) (Mu' : sync.Mutex) :
+noncomputable instance Writes_access_store_Mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes) (Mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" l) v.Mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" l) Mu' (DFrac.own 1))

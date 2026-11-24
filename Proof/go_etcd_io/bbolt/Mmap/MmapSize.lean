@@ -181,7 +181,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
     try wp_auto
     rw [mmapSizeOf_big _ hbig]
     wp_if_destruct
-    · wp_apply errors.wp_New_errorString as %x #Hx
+    · wp_apply errors.wp_New_errorString as %x ⟨#_, #Hx⟩
       try wp_auto
       iapply HΦ
       have hgt : sint.nat size > 0xFFFFFFFFFFFF := by word

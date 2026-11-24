@@ -219,6 +219,44 @@ theorem durableFiles_write_au (γ : GName) (N : Namespace) (E : CoPset) (HN : �
   imodintro
   iexact HΦ
 
+/-- (2026-11-21) `durableFiles_write_au` with a resource `R` handed back when the update opens (the
+crash token, for a client whose ghost step runs at the write's step: kvdurable's *enter*). -/
+theorem durableFiles_write_au_frame (γ : GName) (N : Namespace) (E : CoPset) (HN : ↑N ⊆ E)
+    (f data : GoString) (R Φ : IProp GF) :
+    ⊢ durableFilesInv γ N -∗
+      (|={E \ ↑N,∅}=> R ∗ ∃ o : Option GoString, dfile γ f o ∗
+        (dfile γ f (some data) ={∅,E \ ↑N}=∗ Φ)) -∗
+      |={E,∅}=> R ∗ ∃ fs : DurableState, durableOwn (L := L) fs ∗
+        (durableOwn (<[f := data]> fs) ={∅,E}=∗ Φ) := by
+  iintro #Hinv HAU
+  unfold durableFilesInv
+  iinv Hinv with Hi Hclose
+  unfold durableFilesBody
+  icases Hi with ⟨%fs, %m, >Hown, >Hauth, >%Hag⟩
+  imod HAU with ⟨HR, %o, Hf, Hcl⟩
+  imodintro
+  iframe HR
+  iexists fs
+  iframe Hown
+  iintro Hown
+  unfold dfile
+  imod ghost_map_update (some data) $$ Hauth Hf with ⟨Hauth, Hf⟩
+  have Hag' : DurableFilesAgree (<[f := data]> fs) (m.insert f (some data)) := by
+    intro g o' hg
+    change (if f = g then some (some data) else m.lookup g) = some o' at hg
+    change (if f = g then some data else fs !! g) = o'
+    by_cases hfg : f = g
+    · rw [if_pos hfg] at hg ⊢; exact Option.some.inj hg
+    · rw [if_neg hfg] at hg ⊢; exact Hag g o' hg
+  imod Hcl $$ Hf with HΦ
+  imod Hclose $$ [Hown Hauth] with -
+  · inext
+    iexists (<[f := data]> fs), m.insert f (some data)
+    iframe Hown Hauth
+    ipureintro; exact Hag'
+  imodintro
+  iexact HΦ
+
 end files
 
 end Perennial

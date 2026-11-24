@@ -36,7 +36,9 @@ theorem lease.newLeaseExpiredNotifier.wp_proof :
   iStructNamed Hn
   iapply HΦ
   iunfold notifierAt
-  iexists mp, s, ∅, []
+  iexists ∅
+  iunfold notifierAtM
+  iexists mp, s, []
   iframe
   iunfold queueAt
   simp only [List.map_nil, List.replicate_zero]

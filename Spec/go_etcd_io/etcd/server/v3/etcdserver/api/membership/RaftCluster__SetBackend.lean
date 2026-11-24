@@ -1,7 +1,8 @@
 /-
-`membership.RaftCluster.SetBackend(be)` (`cluster.go`): names-only. Lean-first (no Rocq
-counterpart); D22 receiver epochs, S8c (2026-10-24), for `applySnapshot`; an axiom at the trust
-boundary (`Proof/.../membership/RaftCluster__SetBackend.lean`), why it is true of the Go code below.
+`membership.RaftCluster.SetBackend(be)` (`cluster.go`). Lean-first (no Rocq counterpart); D22 receiver
+epochs, S8c (2026-10-24), for `applySnapshot`; until 2026-11-22 names-only, an axiom at the trust
+boundary; since then translated with its body and proved (prove-ps2-members), over
+`MustCreateBackendBuckets`' proof.
 -/
 module
 
@@ -31,6 +32,11 @@ fields, a logger): the cluster on `d`, the three membership buckets of `d` alrea
 (created again, unchanged), at one write-back token; **a part of any bucket set `S` containing
 them comes back idle** (`rbPart d.γB S r` in, `rbOwnIn d.γB S r` out: 2026-11-01, the
 backend-auth-split stage; until then the whole writer's half `rbOwn`, in and out).
+(prove-ps2-members, 2026-11-22, when it was proved) The three buckets are in the backend's table
+(`d.P.has`: what the backend's `UnsafeCreateBucket` takes, so that they are among its ghost names; the
+server's backends' parameters, `bootOk`'s, the user's approval of 2026-11-22) and schema is initialized
+(`isPkgInit` of `schema`, whose methods and bucket variables it calls: membership does not import
+schema, its caller does); until then neither, the axiom's statement.
 
 Why it is true of the Go code (`cluster.go:247-250` and `schema/membership.go:171-178` at the etcd
 pin): `SetBackend` stores `be` into `c.be` (no lock: the apply thread is the field's only reader and
@@ -48,7 +54,9 @@ abbrev membership.RaftCluster.SetBackend.spec : Prop :=
   ∀ (c oldbe mbl lg : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
     (S : GoString → Prop) (r : GMap GoString backend.BktData),
   (∀ n, membership.clusterBkts n → S n) →
+  d.P.has mvcc.membersBI → d.P.has mvcc.membersRemovedBI → d.P.has mvcc.clusterBI →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       clusterBeOn c oldbe ∗ ⌜lg ≠ null⌝ ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" mbl ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)

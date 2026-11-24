@@ -2,13 +2,18 @@
 
 # `etcd/leaseexpiryN`: the top-level robustness result, stated
 
-`etcd_leaseexpiryN_robust`: the example's closed theorem as an instance of the generic robustness statement
+`etcd_leaseexpiryN_robust_single_process`: the example's closed theorem as an instance of the generic robustness statement
 (`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
 fewer than `bound` steps along which every machine keeps fewer than `threads` threads,
 no thread is stuck and none has an unrecovered panic). This file only
 states it (to audit); the proof is in
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/TopLevelRobustness.lean`.
+
+(2026-11-23, etcd-grove#28, `notes/single-process-restore.md`: retired at the net swap, tag
+`single-process-final`, and restored over the net extension, `etcdNetExts`, under the `_single_process`
+name; against the tag the statement gains the instance argument `[net.FieldAssumptions]`, and its
+semantics the net extension; the network's initial state is `Robust`'s own premise.)
 -/
 module
 
@@ -39,21 +44,21 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 section adequacy
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 variable [go_gctx : GoGlobalContext]
 
-/-- **`etcd_leaseexpiryN_safe` as a robustness statement** (`Robustness.Robust`,
+/-- **`etcd_leaseexpiryN_safe_single_process` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_leaseexpiryN_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 40 - 11` steps along which fewer than `2 ^ 28` threads are
+a fresh Go process (`Robust`'s premise), under `etcd_leaseexpiryN_safe_single_process`'s other hypotheses: in every
+execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are
 live, no thread is stuck and none has an unrecovered panic. -/
-def etcd_leaseexpiryN_robust.spec : Prop :=
+def etcd_leaseexpiryN_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     -- (wal-nostorageok, 2026-11-21: for the premise `rnNewStorageOk`) `os`'s field steps
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC putgetNGF, ContextReadErrs (GF := putgetNGF) (hG := heapAtN hG lctx))
@@ -62,7 +67,6 @@ def etcd_leaseexpiryN_robust.spec : Prop :=
     (boot : List LogEntry) (Hlen : ids.length = k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
     (Hap : leaseIdsApart ids) (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
     (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk) (Hlp : leasePeersOk)
-    (HNs : prometheus.namesUnclaimed (leaseexpiryNProgram k) leaseexpiryNNames)
     (HAs : addrsUnclaimed (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNAddrs k))
     (HDs : dataDirsAbsent (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNDirs k))
     (HEnv : verifyEnvOff (leaseexpiryNProgram k))
@@ -72,7 +76,7 @@ def etcd_leaseexpiryN_robust.spec : Prop :=
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_leaseexpiryN.leaseexpiryNDirs k)),
     Robustness.Robust [] [(leaseexpiryNProgram k, σ)] g (threads := 2 ^ 28)
-      (bound := 2 ^ 40 - 11)
+      (bound := 2 ^ 48)
 
 end adequacy
 end EtcdGrove

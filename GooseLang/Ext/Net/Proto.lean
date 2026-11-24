@@ -22,21 +22,44 @@ The vocabulary (`[π : NetProtoGS]`, the library's global ghost names, made once
   from `s`: it has written `W`, which meets `P` up to extension), `recvTok cn s P R` (the reader of
   the direction towards `s`: it has read `R`, which was written and meets `P` up to extension:
   `recvTok_proto`, `recvTok_sentLb`), `connEnd cn s Pout Pin W R` (both), `sentLb cn s W`
-  (persistent: the direction from `s` was written at least `W`), `connFresh cn s` (exclusive, once
-  per end: `connFresh_excl`), `connIs cn` (persistent: the connection is the library's; what
-  `Close`, `CloseWrite`, the deadlines and the socket options need).
+  (persistent: the direction from `s` was written at least `W`; `sentLb_le`, `sentLb_agree`),
+  `connFresh cn s` (exclusive, once per end: `connFresh_excl`), `connIs cn` (persistent: the
+  connection is the library's; what `Close`, `CloseWrite`, the deadlines and the socket options
+  need).
 * `recvTokL cn s P R`: `recvTok` with its protocol fact one step later (`▷ protoPrefix`), what a
   `Read` gives (`read_au`): the fact comes out of an invariant. A later credit or any program step
-  turns it back into `recvTok` (`recvTokL_elim`, `recvTokL_later`).
+  turns it back into `recvTok` (`recvTokL_elim`, `recvTokL_later`); `recvTokL_sentLb`.
 * `lisInv l a` (persistent): this node's listener `l` at `a`, shared between threads (the lab's
   persistent listener), for `accept_shared_au` and `lisClose_au`.
+* D21, a listener at `la`, a wildcard (`":p"`, `"0.0.0.0:p"`, `"[::]:p"`) or a valid address:
+  `lisUnset la` (exclusive), every valid address `la` takes (`lisAccepts`: every valid address with
+  the port `p` for a wildcard) unset, from the start resources (`addrs_lis_start`, beside a list of
+  single addresses); `lis_set_proto` sets one pair of protocols for all of them: `lisProto la P Q`
+  (persistent), which gives each address's `addrProto a P Q` (`lisProto_addr`: a dialer dials any
+  of them, `dial_au`) and the right to listen at `la` (`listen_lis_au`). In the model a wildcard
+  listener takes a connection dialed to any valid address with its port (on any machine, D21:
+  more than Linux, where it takes only its machine's), so its acceptor learns the protocols of the
+  address the connection was dialed to, not that it was one of its machine's.
 
 The laws: `dial_au` (`net.Dial.spec` and `net.DialTimeout.spec`'s update: the dialer's end and
 tokens, the acceptor's deposited at the address), `accept_au` and `accept_shared_au`
-(`Listener.Accept.spec`: the acceptor's end and tokens), `write_acc` with `writeP`
+(`Listener.Accept.spec_addrOk`, the canonical spec at a valid address: the acceptor's end and
+tokens), `accept_lis_au` and `accept_lis_shared_au` (`Listener.Accept.spec`, for a wildcard
+listener or any other: the same, for the address the connection was dialed to), `listen_au` and
+`listen_lis_au` (`net.Listen.spec_addrOk`, `net.Listen.spec`), `write_acc` with `writeP`
 (`Conn.Write.spec`'s writer predicate and accessor: each step's bytes extend `sendTok`, the whole
 write meeting the protocol), `read_au` (`Conn.Read.spec`), `close_au`, `closeWrite_au`,
 `deadline_au`, `sockopt_au`, `lisClose_au`.
+
+**Sticky reads and read deadlines** (D1 v3.5, `notes/net-sticky-read.md`): `readDead cn s`
+(persistent: the end `s` reads nothing more, its direction dead or the end closed), from
+`read_dead_au` (`read_au` with the end's `rdlTok`, when the read returns EOF, `sys` or `closed`),
+and `read_after_dead_au` (a read then returns no byte); `rdlTok cn s b` (exclusive: the end's read
+deadline is `b`), given by `dial_rdl_au`, `accept_rdl_au` and `accept_shared_rdl_au` (`dial_au` and
+the `accept_*au` laws are the same without it), taken and given back by `deadline_au` (and
+`deadline_dead_au`, which also gives `readDead` when the setting fails on a closed end); with
+`b = false` a read does not time out (`readOutcome_no_timeout`). `deadline_w_au` sets the write
+deadline only, without the token.
 
 **How it is built.** The connections' states are in one invariant (`regInv`, timeless): for each
 connection `cn` the library knows, with its ghost names `γ` (a persistent entry `connElem cn γ`),
@@ -67,6 +90,7 @@ public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.Token
+public import Perennial.Ghost.MonoNat
 
 @[expose] public section
 
@@ -150,7 +174,10 @@ class NetProtoGS where
 
 /-- The ghost names of a connection: its address `addr` and the name of that address's map of
 connections (`am`); for each direction `s` (from the end `s`), the writer's monotone list `w s`
-and the reader's ghost variable `r s`; the ends' fresh tokens `f s`. -/
+and the reader's ghost variable `r s`; the ends' fresh tokens `f s`; for each direction `s`, the
+monotone counter `x s` (at least 1 once a read of it returned EOF or a `sys` error: it is dead,
+`readDead`); for each end `s`, the ghost variable `d s` of its read deadline (`rdlTok`) and the
+monotone counter `c s` (at least 1 once a read at it returned `closed`: it is closed, `readDead`). -/
 structure ConnPNames where
   addr : GoString
   am : GName
@@ -160,16 +187,22 @@ structure ConnPNames where
   r1 : GName
   f0 : GName
   f1 : GName
+  x0 : GName
+  x1 : GName
+  d0 : GName
+  d1 : GName
+  c0 : GName
+  c1 : GName
 deriving DecidableEq
 
 def ConnPNames.enc (γ : ConnPNames) :=
-  (γ.addr, γ.am, γ.w0, γ.w1, γ.r0, γ.r1, γ.f0, γ.f1)
+  (γ.addr, γ.am, γ.w0, γ.w1, γ.r0, γ.r1, γ.f0, γ.f1, γ.x0, γ.x1, γ.d0, γ.d1, γ.c0, γ.c1)
 
 instance ConnPNames.countable : Pos.Countable ConnPNames :=
   .ofInjective (fun γ => Pos.Countable.encode γ.enc) (fun a b h => by
     have h' := Pos.encode_inj h
     cases a; cases b; simp only [ConnPNames.enc, Prod.mk.injEq] at h'
-    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
+    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
 
 def ConnPNames.w (γ : ConnPNames) : Bool → GName
   | false => γ.w0
@@ -182,6 +215,18 @@ def ConnPNames.r (γ : ConnPNames) : Bool → GName
 def ConnPNames.f (γ : ConnPNames) : Bool → GName
   | false => γ.f0
   | true => γ.f1
+
+def ConnPNames.x (γ : ConnPNames) : Bool → GName
+  | false => γ.x0
+  | true => γ.x1
+
+def ConnPNames.d (γ : ConnPNames) : Bool → GName
+  | false => γ.d0
+  | true => γ.d1
+
+def ConnPNames.c (γ : ConnPNames) : Bool → GName
+  | false => γ.c0
+  | true => γ.c1
 
 /-- The registry's invariant. -/
 def regN : Namespace := nroot.@"netproto_reg"
@@ -255,20 +300,25 @@ instance connElem_timeless cn γ : Timeless (connElem (Gg := Gg) cn γ) := by
 instance connElem_persistent cn γ : Persistent (connElem (Gg := Gg) cn γ) := by
   unfold connElem; infer_instance
 
-/-- The end `s`'s state. -/
-def endSt (cn : Nat) (s : Bool) : IProp GF := iprop(∃ st, netEnd NG cn s st)
+/-- The end `s`'s state, a half of its read deadline's ghost variable (the other half is the
+end's `rdlTok`), and its counter `c`, at least 1 only once the end is closed (which no step
+undoes). -/
+def endSt (cn : Nat) (γ : ConnPNames) (s : Bool) : IProp GF :=
+  iprop(∃ st c, netEnd NG cn s st ∗ ghostVar (γ.d s) (1 : Qp).half st.rdl ∗
+    monoNatAuthOwn (γ.c s) 1 c ∗ ⌜1 ≤ c → st.closed = true⌝)
 
 /-- The direction from the end `s`: its unread bytes, what its writer wrote (a quarter) and its
-reader read (a half), agreeing. -/
+reader read (a half), agreeing; and its counter `x`, at least 1 only once it is dead (D1 v3.5:
+nothing unread and not open, which no step undoes). -/
 def dirSt (cn : Nat) (γ : ConnPNames) (s : Bool) : IProp GF :=
-  iprop(∃ (d : NetDir) (W R : List w8), netDir NG cn s d ∗ wQ (γ.w s) W ∗ rHalf (γ.r s) R ∗
-    ⌜DirOk d W R⌝)
+  iprop(∃ (d : NetDir) (W R : List w8) (x : Nat), netDir NG cn s d ∗ wQ (γ.w s) W ∗
+    rHalf (γ.r s) R ∗ monoNatAuthOwn (γ.x s) 1 x ∗ ⌜DirOk d W R ∧ (1 ≤ x → d.dead)⌝)
 
 /-- A connection's state. -/
 def connState (cn : Nat) (γ : ConnPNames) : IProp GF :=
-  iprop(endSt cn false ∗ endSt cn true ∗ dirSt cn γ false ∗ dirSt cn γ true)
+  iprop(endSt cn γ false ∗ endSt cn γ true ∗ dirSt cn γ false ∗ dirSt cn γ true)
 
-instance endSt_timeless cn s : Timeless (endSt (Gg := Gg) cn s) := by
+instance endSt_timeless cn γ s : Timeless (endSt (Gg := Gg) cn γ s) := by
   unfold endSt; infer_instance
 instance dirSt_timeless cn γ s : Timeless (dirSt (Gg := Gg) cn γ s) := by
   unfold dirSt; infer_instance
@@ -295,10 +345,12 @@ def protoSt (cn : Nat) (γ : ConnPNames) (P Q : Proto GF) : IProp GF :=
   iprop(dirProto cn γ false P ∗ dirProto cn γ true Q)
 
 /-- The acceptor's share of the connection `cn` dialed to `a` (deposited by its dialer): its
-names, its writer's half (nothing written) and its reader's (nothing read), its fresh token. -/
+names, its writer's half (nothing written) and its reader's (nothing read), its fresh token, its
+read deadline's half (not set). -/
 def pendRes (a : GoString) (γa : GName) (cn : Nat) : IProp GF :=
   iprop(∃ γ, connElem cn γ ∗ ghostMapElem γa cn .discard γ ∗ ⌜γ.addr = a ∧ γ.am = γa⌝ ∗
-    wHalf (γ.w true) [] ∗ rHalf (γ.r false) [] ∗ token (γ.f true))
+    wHalf (γ.w true) [] ∗ rHalf (γ.r false) [] ∗ token (γ.f true) ∗
+    ghostVar (γ.d true) (1 : Qp).half false)
 
 instance pendRes_timeless a γa cn : Timeless (pendRes (Gg := Gg) a γa cn) := by
   unfold pendRes; infer_instance
@@ -331,14 +383,55 @@ def addrUnset (a : GoString) : IProp GF := iprop(netPend NG a ∅ ∗ addrTok a 
 /-- The namespace of the invariant of `a`'s listening token. -/
 def lisTokN (a : GoString) : Namespace := (nroot.@"netproto_listok").@a
 
+/-- The namespace of the invariant of the right to listen at `la` (`lisProto`). -/
+def lisToksN (la : GoString) : Namespace := (nroot.@"netproto_listoks").@la
+
+/-- Where `a`'s listening token is: in an invariant of its own (`addr_set_proto`), or in that of the
+right to listen at an `la` that takes `a` (`lisProto la`, `lis_set_proto`: a wildcard). -/
+def lisTokInv (a : GoString) : IProp GF :=
+  iprop(inv (lisTokN a) (netLisTok NG a) ∨
+    ∃ la, ⌜lisAccepts la a⌝ ∗ inv (lisToksN la) (lisToks NG la))
+
+instance lisTokInv_persistent a : Persistent (lisTokInv (Gg := Gg) a) := by
+  unfold lisTokInv; infer_instance
+
 /-- `a`'s protocols: `P` for what its dialers write, `Q` for what its acceptors write, and its
 listening token in an invariant (persistent: whoever has it may listen at `a`, `listen_au`). -/
 def addrProto (a : GoString) (P Q : Proto GF) : IProp GF :=
-  iprop(∃ γa, inv (addrN a) (addrInvP a γa P Q) ∗ inv (lisTokN a) (netLisTok NG a) ∗ addrTok a ∗
-    regCtx)
+  iprop(∃ γa, inv (addrN a) (addrInvP a γa P Q) ∗ lisTokInv a ∗ addrTok a ∗ regCtx)
 
 instance addrProto_persistent a P Q : Persistent (addrProto (Gg := Gg) a P Q) := by
   unfold addrProto; infer_instance
+
+/-- D21. The addresses a listener at `la` takes are unset (exclusive): for each valid address `la`
+takes (`lisAccepts`: `la` itself if it is valid, every valid address with its port if it is a
+wildcard), its pending set, empty, and its listening token. From the extension's start resources
+(`addrs_lis_start`). -/
+def lisUnset (la : GoString) : IProp GF :=
+  [∗map] a ↦ _u ∈ addrSpace (), iprop(⌜lisAccepts la a⌝ → netPend NG a ∅ ∗ netLisTok NG a)
+
+/-- D21. The protocols of every valid address a listener at `la` takes, the same for all: `P` for
+what dialers write, `Q` for what acceptors write (each address's `addrProto`, `lisProto_addr`: a
+dialer dials any of them as usual, `dial_au`), and the right to listen at `la` in an invariant
+(`listen_lis_au`). Persistent. What a wildcard listener's `Accept` needs (`accept_lis_au`). -/
+def lisProto (la : GoString) (P Q : Proto GF) : IProp GF :=
+  iprop(□ (∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto a P Q) ∗
+    inv (lisToksN la) (lisToks NG la) ∗ ⌜listenOk la = true⌝)
+
+instance lisProto_persistent la P Q : Persistent (lisProto (Gg := Gg) la P Q) := by
+  unfold lisProto; infer_instance
+
+/-- D21. `lisProto` with protocols per address: `P a` for what dialers of `a` write, `Q a` for what
+its acceptors write, for every valid address `a` the listener at `la` takes, and the right to listen
+at `la` in an invariant (`lis_set_protoD`, `lisProtoD_addr`, `listen_lisD_au`). Persistent. A
+listener's acceptor then learns the protocols of the address a connection was dialed to (the
+connection's `Qok a cn` of `Listener.Accept.spec`), as from `addrProto a (P a) (Q a)`. -/
+def lisProtoD (la : GoString) (P Q : GoString → Proto GF) : IProp GF :=
+  iprop(□ (∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto a (P a) (Q a)) ∗
+    inv (lisToksN la) (lisToks NG la) ∗ ⌜listenOk la = true⌝)
+
+instance lisProtoD_persistent la P Q : Persistent (lisProtoD (Gg := Gg) la P Q) := by
+  unfold lisProtoD; infer_instance
 
 /-- The handle of the connection `cn` with names `γ`, dialed to an address with protocols `Pd`,
 `Pa` (persistent). -/
@@ -391,6 +484,24 @@ def connFresh (cn : Nat) (s : Bool) : IProp GF :=
 
 instance connFresh_timeless cn s : Timeless (connFresh (Gg := Gg) cn s) := by
   unfold connFresh; infer_instance
+
+/-- The end `s` of `cn`'s read deadline is set (`b`) (exclusive: what sets the read deadline,
+`deadline_au`; given, with `b = false`, by `dial_rdl_au` and the `accept_*rdl_au` laws). With
+`b = false` a read at the end does not time out (`read_dead_au`). -/
+def rdlTok (cn : Nat) (s : Bool) (b : Bool) : IProp GF :=
+  iprop(∃ γ, connElem cn γ ∗ regCtx ∗ ghostVar (γ.d s) (1 : Qp).half b)
+
+/-- The end `s` of `cn` reads nothing more (persistent; D1 v3.5): a read at it returned EOF or a
+`sys` error (the direction towards it is dead: nothing unread, its writer done, for good) or
+`closed` (the end is closed, for good). Every later read at `s` returns no byte
+(`read_after_dead_au`). -/
+def readDead (cn : Nat) (s : Bool) : IProp GF :=
+  iprop(∃ γ, connElem cn γ ∗ (monoNatLbOwn (γ.x (!s)) 1 ∨ monoNatLbOwn (γ.c s) 1))
+
+instance readDead_persistent cn s : Persistent (readDead (Gg := Gg) cn s) := by
+  unfold readDead; infer_instance
+instance readDead_timeless cn s : Timeless (readDead (Gg := Gg) cn s) := by
+  unfold readDead; infer_instance
 
 end defs
 
@@ -513,6 +624,18 @@ theorem addrProto_tok (a : GoString) (P Q : Proto GF) [NetProtoGS] :
     addrProto (Gg := Gg) a P Q ⊢ addrTok a := by
   unfold addrProto; iintro ⟨%γa, -, -, $, -⟩
 
+/-- The protocols of an address `la` takes, from `la`'s. -/
+theorem lisProto_addr [NetProtoGS] (la a : GoString) (P Q : Proto GF) (hok : addrOk a = true)
+    (hacc : lisAccepts la a) : lisProto (Gg := Gg) la P Q ⊢ addrProto a P Q := by
+  unfold lisProto
+  iintro ⟨#H, -, -⟩
+  iapply H
+  ipureintro; exact ⟨hok, hacc⟩
+
+theorem lisProto_ok [NetProtoGS] (la : GoString) (P Q : Proto GF) :
+    lisProto (Gg := Gg) la P Q ⊢ ⌜listenOk la = true⌝ := by
+  unfold lisProto; iintro ⟨-, -, $⟩
+
 theorem addrProto_regCtx (a : GoString) (P Q : Proto GF) [NetProtoGS] :
     addrProto (Gg := Gg) a P Q ⊢ regCtx := by
   unfold addrProto; iintro ⟨%γa, -, -, -, $⟩
@@ -521,8 +644,45 @@ theorem addrProto_regCtx (a : GoString) (P Q : Proto GF) [NetProtoGS] :
 back. -/
 theorem listen_au (a : GoString) (P Q : Proto GF) [NetProtoGS] :
     addrProto (Gg := Gg) a P Q ⊢ |={⊤,∅}=> netLisTok NG a ∗ (netLisTok NG a ={∅,⊤}=∗ True) := by
-  unfold addrProto
-  iintro ⟨%γa, -, #Htok, -, -⟩
+  unfold addrProto lisTokInv addrTok
+  iintro ⟨%γa, -, #Htok, %Hok, -⟩
+  icases Htok with (#Htok | ⟨%la, %Hacc, #Htok⟩)
+  · iinv Htok with >Ht Hclose
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    iframe Ht
+    iintro Ht
+    imod Hmask
+    imod Hclose $$ [Ht] with -
+    · inext; iexact Ht
+    imodintro
+    itrivial
+  · -- the token is in the invariant of `la`'s right to listen
+    iinv Htok with >Ht Hclose
+    have hl : PartialMap.get? (addrSpace ()) a = some () := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok () Hok
+    unfold lisToks
+    icases (BigSepM.bigSepM_lookup_acc hl).1 $$ Ht with ⟨Ha, Hrest⟩
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    isplitl [Ha]
+    · iapply Ha; ipureintro; exact Hacc
+    iintro Ht
+    imod Hmask
+    imod Hclose $$ [Ht Hrest] with -
+    · inext
+      iapply Hrest
+      iintro %_
+      iexact Ht
+    imodintro
+    itrivial
+
+/-- `Listen` of `la` (`net.Listen.spec`'s update, D21): the right to listen at `la`, given at the
+step and put back. -/
+theorem listen_lis_au (la : GoString) (P Q : Proto GF) [NetProtoGS] :
+    lisProto (Gg := Gg) la P Q ⊢ |={⊤,∅}=> lisToks NG la ∗ (lisToks NG la ={∅,⊤}=∗ True) := by
+  unfold lisProto
+  iintro ⟨-, #Htok, -⟩
   iinv Htok with >Ht Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
@@ -538,14 +698,11 @@ theorem listen_au (a : GoString) (P Q : Proto GF) [NetProtoGS] :
 theorem addrTok_ok (a : GoString) : addrTok (GF := GF) a ⊢ ⌜addrOk a = true⌝ := by
   unfold addrTok; iintro $
 
-/-- Set the protocols of an address, once: `P` for what its dialers write, `Q` for what its
-acceptors write. -/
-theorem addr_set_proto [NetProtoGS] (E : CoPset) (a : GoString) (P Q : Proto GF) :
-    ⊢ regCtx (Gg := Gg) -∗ addrUnset a ={E}=∗ addrProto a P Q := by
-  unfold addrUnset
-  iintro #Hreg ⟨Hp, #Ht, Htk⟩
-  imod inv_alloc (lisTokN a) E (netLisTok (NG (Gg := Gg)) a) $$ [Htk] with #Htok
-  · inext; iexact Htk
+/-- Set the protocols of the address `a`, once, from its pending set (empty) and the invariant its
+listening token is in. -/
+theorem addr_set_proto_tok [NetProtoGS] (E : CoPset) (a : GoString) (P Q : Proto GF) :
+    ⊢ regCtx (Gg := Gg) -∗ netPend NG a ∅ -∗ addrTok a -∗ lisTokInv a ={E}=∗ addrProto a P Q := by
+  iintro #Hreg Hp #Ht #Htok
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := ConnPNames) with ⟨%γa, Ha⟩
   imod inv_alloc (addrN a) E (addrInvP (Gg := Gg) a γa P Q) $$ [Hp Ha] with #Hinv
   · inext
@@ -561,6 +718,161 @@ theorem addr_set_proto [NetProtoGS] (E : CoPset) (a : GoString) (P Q : Proto GF)
   unfold addrProto
   iexists γa
   iframe Hinv Htok Ht Hreg
+
+/-- Set the protocols of an address, once: `P` for what its dialers write, `Q` for what its
+acceptors write. -/
+theorem addr_set_proto [NetProtoGS] (E : CoPset) (a : GoString) (P Q : Proto GF) :
+    ⊢ regCtx (Gg := Gg) -∗ addrUnset a ={E}=∗ addrProto a P Q := by
+  unfold addrUnset
+  iintro #Hreg ⟨Hp, #Ht, Htk⟩
+  imod inv_alloc (lisTokN a) E (netLisTok (NG (Gg := Gg)) a) $$ [Htk] with #Htok
+  · inext; iexact Htk
+  iapply addr_set_proto_tok E a P Q $$ Hreg Hp Ht
+  unfold lisTokInv
+  ileft; iexact Htok
+
+/-- D21. Set the protocols of every valid address a listener at `la` takes, once, the same for all:
+`P` for what its dialers write, `Q` for what its acceptors write. -/
+theorem lis_set_proto [NetProtoGS] (E : CoPset) (la : GoString) (P Q : Proto GF)
+    (hla : listenOk la = true) :
+    ⊢ regCtx (Gg := Gg) -∗ lisUnset la ={E}=∗ lisProto la P Q := by
+  iintro #Hreg Hu
+  unfold lisUnset
+  ihave ⟨Hp, Ht⟩ : ([∗map] a ↦ _u ∈ addrSpace (),
+      iprop(⌜lisAccepts la a⌝ → netPend (NG (Gg := Gg)) a ∅)) ∗ lisToks (NG (Gg := Gg)) la $$ [Hu]
+  · unfold lisToks
+    rw [← BigSepM.bigSepM_sep_eq]
+    iapply BigSepM.bigSepM_mono ?_ $$ Hu
+    intro k v _
+    iintro H
+    by_cases hp : lisAccepts la k
+    · ihave ⟨Hp, Ht⟩ := H $$ %hp
+      isplitl [Hp]
+      · iintro %_; iexact Hp
+      · iintro %_; iexact Ht
+    · isplitl []
+      · iintro %h; exact absurd h hp
+      · iintro %h; exact absurd h hp
+  imod inv_alloc (lisToksN la) E (lisToks (NG (Gg := Gg)) la) $$ [Ht] with #Htok
+  · inext; iexact Ht
+  ihave Hps : [∗map] a ↦ _u ∈ addrSpace (), |={E}=>
+      iprop(⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto (Gg := Gg) a P Q) $$ [Hp]
+  · iapply BigSepM.bigSepM_impl $$ Hp
+    imodintro
+    iintro %k %v %hk H
+    by_cases hp : lisAccepts la k
+    · have hok : addrOk k = true := by
+        have := addrSpace_lookup_isSome () k
+        rw [← gmap_get?_eq, hk] at this; exact this.symm
+      ihave Hp := H $$ %hp
+      imod addr_set_proto_tok E k P Q $$ Hreg Hp [] [] with #Hk
+      · unfold addrTok; ipureintro; exact hok
+      · unfold lisTokInv; iright; iexists la; iframe Htok; ipureintro; exact hp
+      imodintro
+      iintro %_
+      iexact Hk
+    · imodintro
+      iintro %h; exact absurd h.2 hp
+  imod BigSepM.bigSepM_fupd E _ _ $$ Hps with #Hps
+  imodintro
+  unfold lisProto
+  iframe Htok
+  isplitl
+  · imodintro
+    iintro %a %ha
+    have hl : PartialMap.get? (addrSpace ()) a = some () := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok () ha.1
+    ihave H := BigSepM.bigSepM_lookup hl $$ Hps
+    iapply H
+    ipureintro; exact ha
+  · ipureintro; exact hla
+
+/-- D21. Set the protocols of every valid address a listener at `la` takes, once, per address: `P a`
+for what the dialers of `a` write, `Q a` for what its acceptors write (`lis_set_proto` with the same
+protocols for all). -/
+theorem lis_set_protoD [NetProtoGS] (E : CoPset) (la : GoString) (P Q : GoString → Proto GF)
+    (hla : listenOk la = true) :
+    ⊢ regCtx (Gg := Gg) -∗ lisUnset la ={E}=∗ lisProtoD la P Q := by
+  iintro #Hreg Hu
+  unfold lisUnset
+  ihave ⟨Hp, Ht⟩ : ([∗map] a ↦ _u ∈ addrSpace (),
+      iprop(⌜lisAccepts la a⌝ → netPend (NG (Gg := Gg)) a ∅)) ∗ lisToks (NG (Gg := Gg)) la $$ [Hu]
+  · unfold lisToks
+    rw [← BigSepM.bigSepM_sep_eq]
+    iapply BigSepM.bigSepM_mono ?_ $$ Hu
+    intro k v _
+    iintro H
+    by_cases hp : lisAccepts la k
+    · ihave ⟨Hp, Ht⟩ := H $$ %hp
+      isplitl [Hp]
+      · iintro %_; iexact Hp
+      · iintro %_; iexact Ht
+    · isplitl []
+      · iintro %h; exact absurd h hp
+      · iintro %h; exact absurd h hp
+  imod inv_alloc (lisToksN la) E (lisToks (NG (Gg := Gg)) la) $$ [Ht] with #Htok
+  · inext; iexact Ht
+  ihave Hps : [∗map] a ↦ _u ∈ addrSpace (), |={E}=>
+      iprop(⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto (Gg := Gg) a (P a) (Q a)) $$ [Hp]
+  · iapply BigSepM.bigSepM_impl $$ Hp
+    imodintro
+    iintro %k %v %hk H
+    by_cases hp : lisAccepts la k
+    · have hok : addrOk k = true := by
+        have := addrSpace_lookup_isSome () k
+        rw [← gmap_get?_eq, hk] at this; exact this.symm
+      ihave Hp := H $$ %hp
+      imod addr_set_proto_tok E k (P k) (Q k) $$ Hreg Hp [] [] with #Hk
+      · unfold addrTok; ipureintro; exact hok
+      · unfold lisTokInv; iright; iexists la; iframe Htok; ipureintro; exact hp
+      imodintro
+      iintro %_
+      iexact Hk
+    · imodintro
+      iintro %h; exact absurd h.2 hp
+  imod BigSepM.bigSepM_fupd E _ _ $$ Hps with #Hps
+  imodintro
+  unfold lisProtoD
+  iframe Htok
+  isplitl
+  · imodintro
+    iintro %a %ha
+    have hl : PartialMap.get? (addrSpace ()) a = some () := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok () ha.1
+    ihave H := BigSepM.bigSepM_lookup hl $$ Hps
+    iapply H
+    ipureintro; exact ha
+  · ipureintro; exact hla
+
+/-- The protocols of an address `la` takes, from `la`'s (per-address protocols). -/
+theorem lisProtoD_addr [NetProtoGS] (la a : GoString) (P Q : GoString → Proto GF)
+    (hok : addrOk a = true) (hacc : lisAccepts la a) :
+    lisProtoD (Gg := Gg) la P Q ⊢ addrProto a (P a) (Q a) := by
+  unfold lisProtoD
+  iintro ⟨#H, -, -⟩
+  iapply H
+  ipureintro; exact ⟨hok, hacc⟩
+
+theorem lisProtoD_ok [NetProtoGS] (la : GoString) (P Q : GoString → Proto GF) :
+    lisProtoD (Gg := Gg) la P Q ⊢ ⌜listenOk la = true⌝ := by
+  unfold lisProtoD; iintro ⟨-, -, $⟩
+
+/-- `Listen` of `la` (`net.Listen.spec`'s update, D21), from per-address protocols: as
+`listen_lis_au`. -/
+theorem listen_lisD_au (la : GoString) (P Q : GoString → Proto GF) [NetProtoGS] :
+    lisProtoD (Gg := Gg) la P Q ⊢ |={⊤,∅}=> lisToks NG la ∗ (lisToks NG la ={∅,⊤}=∗ True) := by
+  unfold lisProtoD
+  iintro ⟨-, #Htok, -⟩
+  iinv Htok with >Ht Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iframe Ht
+  iintro Ht
+  imod Hmask
+  imod Hclose $$ [Ht] with -
+  · inext; iexact Ht
+  imodintro
+  itrivial
 
 /-- Set the protocols of every address of a list, `P a` and `Q a` for the address `a`. -/
 theorem addrs_set_proto [NetProtoGS] (E : CoPset) (P Q : GoString → Proto GF) :
@@ -659,6 +971,34 @@ theorem sendTok_sentLb_prefix (cn : Nat) (s : Bool) (P : Proto GF) (W W0 : List 
   subst h
   iapply wHalf_wLb_prefix $$ Hw Hlb
 
+/-- A prefix of what was written was written (`wLb_le`). -/
+theorem sentLb_le (cn : Nat) (s : Bool) {W : List w8} (W' : List w8) (h : W' <+: W) :
+    sentLb (Gg := Gg) cn s W ⊢ sentLb cn s W' := by
+  unfold sentLb
+  iintro ⟨%γ, #He, #Hlb⟩
+  iexists γ
+  iframe He
+  iapply wLb_le _ W' h $$ Hlb
+
+/-- Two lower bounds of what the direction from `s` was written are comparable. -/
+theorem sentLb_agree (cn : Nat) (s : Bool) (A B : List w8) :
+    sentLb (Gg := Gg) cn s A ∗ sentLb cn s B ⊢ ⌜A <+: B ∨ B <+: A⌝ := by
+  unfold sentLb wLb
+  iintro ⟨⟨%γ1, #He1, #H1⟩, ⟨%γ2, #He2, #H2⟩⟩
+  icases connElem_agree cn γ1 γ2 $$ He1 He2 with %h
+  subst h
+  iapply mono_list_lb_valid $$ H1 H2
+
+/-- What a reader has read was written (`recvTok_sentLb`, for `recvTokL`, keeping it: dsv-rabia,
+#24, with `bufio.ownBufReader_fact`). -/
+theorem recvTokL_sentLb (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
+    recvTokL (Gg := Gg) cn s P R ⊢ recvTokL cn s P R ∗ sentLb cn (!s) R := by
+  refine persistent_entails_left ?_
+  unfold recvTokL recvCore sentLb connH
+  iintro ⟨⟨%γ, %Pd, %Pa, ⟨#He, -⟩, -, -, #Hlb⟩, -⟩
+  iexists γ
+  iframe He Hlb
+
 theorem recvTok_L (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
     recvTok (Gg := Gg) cn s P R ⊢ recvTokL cn s P R := by
   unfold recvTok recvTokL
@@ -666,6 +1006,15 @@ theorem recvTok_L (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
   iframe H
   inext
   iexact Hp
+
+/-- What a reader has read meets its protocol, up to extension, one step later (`recvTokL`'s
+protocol fact is under a later; dsv-bufio, review C2 on #24: with `bufio.ownBufReader_fact`, the
+protocol fact of what a `*bufio.Reader` over a connection has returned, `net.connReader_proto`). -/
+theorem recvTokL_proto (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
+    recvTokL (Gg := Gg) cn s P R ⊢ recvTokL cn s P R ∗ ▷ protoPrefix P cn R := by
+  unfold recvTokL
+  iintro ⟨H, #Hp⟩
+  iframe H Hp
 
 /-- `recvTokL` is `recvTok` one step later: a program step makes it `recvTok`. -/
 theorem recvTokL_later (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
@@ -691,7 +1040,7 @@ instance regInv_timeless : Timeless (regInv (Gg := Gg)) := by
 
 theorem connState_acc (cn : Nat) (γ : ConnPNames) (se sd : Bool) :
     connState (Gg := Gg) cn γ ⊣⊢
-      endSt cn se ∗ dirSt cn γ sd ∗ (endSt cn (!se) ∗ dirSt cn γ (!sd)) := by
+      endSt cn γ se ∗ dirSt cn γ sd ∗ (endSt cn γ (!se) ∗ dirSt cn γ (!sd)) := by
   unfold connState
   cases se <;> cases sd <;> simp only [Bool.not_false, Bool.not_true] <;> constructor <;>
     iintro ⟨H1, H2, H3, H4⟩ <;> iframe
@@ -703,14 +1052,20 @@ theorem protoSt_acc (cn : Nat) (γ : ConnPNames) (P Q : Proto GF) (s : Bool) :
   cases s <;> simp only [Bool.not_false, Bool.not_true, sel_false, sel_true] <;> constructor <;>
     iintro ⟨H1, H2⟩ <;> iframe
 
-/-- Open the registry at the connection `cn` (names `γ`): the end `se`'s state and the direction
-`sd`'s, and the way back. -/
-theorem reg_open (cn : Nat) (γ : ConnPNames) (se sd : Bool) :
+/-- Open the registry at the connection `cn` (names `γ`): the end `se`'s state, its read
+deadline's half and its closed counter, the direction `sd`'s state and its dead counter, and the
+way back. -/
+theorem reg_open_full (cn : Nat) (γ : ConnPNames) (se sd : Bool) :
     ⊢ regCtx (Gg := Gg) -∗ connElem cn γ -∗
-      |={⊤, ⊤ \ ↑regN}=> ∃ st d W R, netEnd NG cn se st ∗ netDir NG cn sd d ∗ wQ (γ.w sd) W ∗
-        rHalf (γ.r sd) R ∗ ⌜DirOk d W R⌝ ∗
-        ∀ st' d' W' R', netEnd NG cn se st' -∗ netDir NG cn sd d' -∗ wQ (γ.w sd) W' -∗
-          rHalf (γ.r sd) R' -∗ ⌜DirOk d' W' R'⌝ ={⊤ \ ↑regN, ⊤}=∗ True := by
+      |={⊤, ⊤ \ ↑regN}=> ∃ st d W R x c, netEnd NG cn se st ∗ netDir NG cn sd d ∗ wQ (γ.w sd) W ∗
+        rHalf (γ.r sd) R ∗ ghostVar (γ.d se) (1 : Qp).half st.rdl ∗ monoNatAuthOwn (γ.x sd) 1 x ∗
+        monoNatAuthOwn (γ.c se) 1 c ∗
+        ⌜DirOk d W R ∧ (1 ≤ x → d.dead) ∧ (1 ≤ c → st.closed = true)⌝ ∗
+        ∀ st' d' W' R' x' c', netEnd NG cn se st' -∗ netDir NG cn sd d' -∗ wQ (γ.w sd) W' -∗
+          rHalf (γ.r sd) R' -∗ ghostVar (γ.d se) (1 : Qp).half st'.rdl -∗
+          monoNatAuthOwn (γ.x sd) 1 x' -∗ monoNatAuthOwn (γ.c se) 1 c' -∗
+          ⌜DirOk d' W' R' ∧ (1 ≤ x' → d'.dead) ∧ (1 ≤ c' → st'.closed = true)⌝
+          ={⊤ \ ↑regN, ⊤}=∗ True := by
   iintro #Hreg #He
   unfold regCtx
   iinv Hreg with Hi Hclose
@@ -722,15 +1077,15 @@ theorem reg_open (cn : Nat) (γ : ConnPNames) (se sd : Bool) :
     $$ Hcs
   icases (connState_acc cn γ se sd).1 $$ Hc with ⟨He1, Hd1, Hrest⟩
   unfold endSt dirSt
-  icases He1 with ⟨%st, Hend⟩
-  icases Hd1 with ⟨%d, %W, %R, Hdir, HwQ, Hr, %Hok⟩
+  icases He1 with ⟨%st, %c, Hend, Hrd, Hcc, %Hokc⟩
+  icases Hd1 with ⟨%d, %W, %R, %x, Hdir, HwQ, Hr, Hx, %Hok⟩
   imodintro
-  iexists st, d, W, R
-  iframe Hend Hdir HwQ Hr
+  iexists st, d, W, R, x, c
+  iframe Hend Hdir HwQ Hr Hrd Hx Hcc
   isplitr
-  · ipureintro; exact Hok
-  iintro %st' %d' %W' %R' Hend Hdir HwQ Hr %Hok'
-  imod Hclose $$ [Ha Hcs Hrest Hend Hdir HwQ Hr]
+  · ipureintro; exact ⟨Hok.1, Hok.2, Hokc⟩
+  iintro %st' %d' %W' %R' %x' %c' Hend Hdir HwQ Hr Hrd Hx Hcc %Hok'
+  imod Hclose $$ [Ha Hcs Hrest Hend Hdir HwQ Hr Hrd Hx Hcc]
   · inext
     iexists cm
     iframe Ha
@@ -738,13 +1093,42 @@ theorem reg_open (cn : Nat) (γ : ConnPNames) (se sd : Bool) :
     iapply (connState_acc cn γ se sd).2
     unfold endSt dirSt
     iframe Hrest
-    isplitl [Hend]
-    · iexists st'; iexact Hend
-    · iexists d', W', R'
-      iframe Hdir HwQ Hr
-      ipureintro; exact Hok'
+    isplitl [Hend Hrd Hcc]
+    · iexists st', c'
+      iframe Hend Hrd Hcc
+      ipureintro; exact Hok'.2.2
+    · iexists d', W', R', x'
+      iframe Hdir HwQ Hr Hx
+      ipureintro; exact ⟨Hok'.1, Hok'.2.1⟩
   imodintro
   itrivial
+
+/-- Open the registry at the connection `cn` (names `γ`): the end `se`'s state and the direction
+`sd`'s, and the way back, for an operation that keeps the end's read deadline, a closed end
+closed and a dead direction dead. -/
+theorem reg_open (cn : Nat) (γ : ConnPNames) (se sd : Bool) :
+    ⊢ regCtx (Gg := Gg) -∗ connElem cn γ -∗
+      |={⊤, ⊤ \ ↑regN}=> ∃ st d W R, netEnd NG cn se st ∗ netDir NG cn sd d ∗ wQ (γ.w sd) W ∗
+        rHalf (γ.r sd) R ∗ ⌜DirOk d W R⌝ ∗
+        ∀ st' d' W' R', netEnd NG cn se st' -∗ netDir NG cn sd d' -∗ wQ (γ.w sd) W' -∗
+          rHalf (γ.r sd) R' -∗
+          ⌜DirOk d' W' R' ∧ st'.rdl = st.rdl ∧ (d.dead → d'.dead) ∧
+            (st.closed = true → st'.closed = true)⌝
+          ={⊤ \ ↑regN, ⊤}=∗ True := by
+  iintro #Hreg #He
+  imod reg_open_full cn γ se sd $$ Hreg He
+    with ⟨%st, %d, %W, %R, %x, %c, Hend, Hdir, HwQ, Hr, Hrd, Hx, Hcc, %Hok, Hcl⟩
+  imodintro
+  iexists st, d, W, R
+  iframe Hend Hdir HwQ Hr
+  isplitr
+  · ipureintro; exact Hok.1
+  iintro %st' %d' %W' %R' Hend Hdir HwQ Hr %Hok'
+  obtain ⟨h1, h2, h3, h4⟩ := Hok'
+  have hp : DirOk d' W' R' ∧ (1 ≤ x → d'.dead) ∧ (1 ≤ c → st'.closed = true) :=
+    ⟨h1, fun hx => h3 (Hok.2.1 hx), fun hc => h4 (Hok.2.2 hc)⟩
+  rw [← h2]
+  iapply Hcl $$ Hend Hdir HwQ Hr Hrd Hx Hcc %hp
 
 end access
 
@@ -839,7 +1223,7 @@ theorem write_acc (cn : Nat) (s : Bool) (P : Proto GF) (W0 bs : List w8) :
       ((List.prefix_append_right_inj w).2 (List.take_prefix k rs))
   imod Hcl2 $$ HwQ2 Hpp' with -
   imod Hcl $$ Hend Hdir HwQ Hr [] with -
-  · ipureintro; exact dirOk_write Hok Hwo
+  · ipureintro; exact ⟨dirOk_write Hok Hwo, rfl, fun hd => writeOutcome_dead hd Hwo, id⟩
   imodintro
   iexists γ, Pd, Pa
   rw [← List.append_assoc]
@@ -879,7 +1263,7 @@ theorem read_au (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) (n : Nat) :
     iexact Hpp
   imod Hcl2 $$ HwQ2 Hpp with -
   imod Hcl $$ Hend Hdir HwQ Hr0 [] with -
-  · ipureintro; exact Hok'
+  · ipureintro; exact ⟨Hok', rfl, fun hd => (readOutcome_dead hd Hro).1, id⟩
   imodintro
   isplitl [Hr]
   · isplitl [Hr]
@@ -888,6 +1272,139 @@ theorem read_au (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) (n : Nat) :
       ipureintro; exact hP
     · rw [← hP]; iexact Hpp'
   · ipureintro; exact ⟨st, d, d', Hro⟩
+
+/-- `read_au` with the end's `rdlTok` (D1 v3.5): the outcome is one at an end whose read deadline is
+`b` (with `b = false`, no timeout: `readOutcome_no_timeout`), and a read that returns EOF, a `sys`
+error or `closed` leaves the end's reading dead for good (`readDead`). -/
+theorem read_dead_au (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) (n : Nat) (b : Bool) :
+    recvTokL (Gg := Gg) cn s P R ∗ rdlTok cn s b ⊢
+      |={⊤,∅}=> ∃ st d, netEnd NG cn s st ∗ netDir NG cn (!s) d ∗
+        ∀ r d', ⌜ReadOutcome st d n r d'⌝ -∗ netEnd NG cn s st -∗ netDir NG cn (!s) d' ={∅,⊤}=∗
+          recvTokL cn s P (R ++ r.got) ∗ rdlTok cn s b ∗
+          ⌜∃ st d d', st.rdl = b ∧ ReadOutcome st d n r d'⌝ ∗
+          (⌜r = .eof ∨ r = .err .sys ∨ r = .err .closed⌝ -∗ readDead cn s) := by
+  unfold recvTokL recvCore connH rdlTok
+  iintro ⟨⟨⟨%γ, %Pd, %Pa, ⟨#He, #Hreg, #Hai, #Hm⟩, %hP, Hr, #Hlb⟩, -⟩, ⟨%γ', #He', -, Hb⟩⟩
+  icases connElem_agree cn γ γ' $$ He He' with %hγ
+  subst hγ
+  imod reg_open_full cn γ s (!s) $$ Hreg He
+    with ⟨%st, %d, %W, %R0, %x, %c, Hend, Hdir, HwQ, Hr0, Hrd, Hx, Hcc, %Hok, Hcl⟩
+  icases ghostVar_agree (γ.d s) _ _ _ _ $$ Hb Hrd with %hb
+  imod addr_open (⊤ \ ↑regN) γ.addr γ.am Pd Pa cn γ (!s) (addrN_regN γ.addr) $$ Hai Hm
+    with ⟨%W2, HwQ2, Hpp, Hcl2⟩
+  icases w_agree_qq (γ.w (!s)) _ _ $$ HwQ HwQ2 with %h1
+  icases r_agree (γ.r (!s)) _ _ $$ Hr Hr0 with %h2
+  subst h1 h2
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists st, d
+  iframe Hend Hdir
+  iintro %r %d' %Hro Hend Hdir
+  imod Hmask
+  have Hok' := dirOk_read Hok.1 Hro
+  imod r_update (γ.r (!s)) _ _ (R ++ r.got) $$ Hr Hr0 with ⟨Hr, Hr0⟩
+  ihave #Hlb' := wQ_lb (γ.w (!s)) W $$ HwQ
+  ihave #Hlb' := wLb_le (γ.w (!s)) (R ++ r.got) (dirOk_prefix Hok') $$ Hlb'
+  ihave #Hpp' : ▷ protoPrefix (sel (!s) Pd Pa) cn (R ++ r.got) $$ [Hpp]
+  · iapply later_mono (protoPrefix_le (dirOk_prefix Hok'))
+    iexact Hpp
+  imod Hcl2 $$ HwQ2 Hpp with -
+  imod mono_nat_own_update (GF := GF) (max x (if r = .eof ∨ r = .err .sys then 1 else 0))
+    (Nat.le_max_left _ _) $$ Hx with ⟨Hx, #Hxlb⟩
+  imod mono_nat_own_update (GF := GF) (max c (if r = .err .closed then 1 else 0))
+    (Nat.le_max_left _ _) $$ Hcc with ⟨Hcc, #Hclb⟩
+  have hp : DirOk d' W (R ++ r.got) ∧
+      (1 ≤ max x (if r = .eof ∨ r = .err .sys then 1 else 0) → d'.dead) ∧
+      (1 ≤ max c (if r = .err .closed then 1 else 0) → st.closed = true) := by
+    refine ⟨Hok', fun hx => ?_, fun hc => ?_⟩
+    · by_cases hr : r = .eof ∨ r = .err .sys
+      · exact readOutcome_dead_of Hro hr
+      · simp only [hr, ↓reduceIte, Nat.max_zero] at hx
+        exact (readOutcome_dead (Hok.2.1 hx) Hro).1
+    · by_cases hr : r = .err .closed
+      · subst hr; exact readOutcome_closed_of Hro
+      · simp only [hr, ↓reduceIte, Nat.max_zero] at hc
+        exact Hok.2.2 hc
+  imod Hcl $$ Hend Hdir HwQ Hr0 Hrd Hx Hcc %hp with -
+  imodintro
+  isplitl [Hr]
+  · isplitl [Hr]
+    · iexists γ, Pd, Pa
+      iframe He Hreg Hai Hm Hr Hlb'
+      ipureintro; exact hP
+    · rw [← hP]; iexact Hpp'
+  isplitl [Hb]
+  · iexists γ
+    iframe He Hreg Hb
+  isplitr
+  · ipureintro; exact ⟨st, d, d', hb.symm, Hro⟩
+  · iintro %hr
+    unfold readDead
+    iexists γ
+    iframe He
+    by_cases hc : r = .err .closed
+    · iright
+      iapply monoNatLbOwn_le 1 ?_ $$ Hclb
+      rw [if_pos hc]; exact Nat.le_max_right _ _
+    · ileft
+      iapply monoNatLbOwn_le 1 ?_ $$ Hxlb
+      have hr' : r = .eof ∨ r = .err .sys := by
+        rcases hr with h | h | h
+        · exact .inl h
+        · exact .inr h
+        · exact absurd h hc
+      rw [if_pos hr']; exact Nat.le_max_right _ _
+
+theorem lb_or_valid (γ1 γ2 : GName) (x c : Nat) :
+    ⊢ monoNatAuthOwn (GF := GF) γ1 1 x -∗ monoNatAuthOwn γ2 1 c -∗
+      (monoNatLbOwn γ1 1 ∨ monoNatLbOwn γ2 1) -∗ ⌜1 ≤ x ∨ 1 ≤ c⌝ := by
+  iintro H1 H2 (#H | #H)
+  · icases monoNatLbOwn_valid γ1 1 x 1 $$ H1 H with %hv
+    ipureintro; exact .inl hv.2
+  · icases monoNatLbOwn_valid γ2 1 c 1 $$ H2 H with %hv
+    ipureintro; exact .inr hv.2
+
+/-- A read at the end `s` once its reading is dead (`readDead`, D1 v3.5: the direction towards it
+is dead, or the end is closed): it returns no byte (an error or EOF; nothing for `n = 0`), and the
+reader's position stays. -/
+theorem read_after_dead_au (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) (n : Nat) :
+    recvTokL (Gg := Gg) cn s P R ∗ readDead cn s ⊢
+      |={⊤,∅}=> ∃ st d, netEnd NG cn s st ∗ netDir NG cn (!s) d ∗
+        ∀ r d', ⌜ReadOutcome st d n r d'⌝ -∗ netEnd NG cn s st -∗ netDir NG cn (!s) d' ={∅,⊤}=∗
+          recvTokL cn s P R ∗ ⌜r.got = [] ∧ (n ≠ 0 → ∀ bs, r ≠ .bytes bs)⌝ := by
+  unfold readDead recvTokL recvCore connH
+  iintro ⟨⟨⟨%γ, %Pd, %Pa, ⟨#He, #Hreg, #Hai, #Hm⟩, %hP, Hr, #Hlb⟩, Hpp⟩, ⟨%γ', #He', #Hxlb⟩⟩
+  icases connElem_agree cn γ γ' $$ He He' with %hγ
+  subst hγ
+  imod reg_open_full cn γ s (!s) $$ Hreg He
+    with ⟨%st, %d, %W, %R0, %x, %c, Hend, Hdir, HwQ, Hr0, Hrd, Hx, Hcc, %Hok, Hcl⟩
+  icases lb_or_valid (γ.x (!s)) (γ.c s) x c $$ Hx Hcc Hxlb with %hv
+  have hdc : d.dead ∨ st.closed = true := hv.imp Hok.2.1 Hok.2.2
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists st, d
+  iframe Hend Hdir
+  iintro %r %d' %Hro Hend Hdir
+  imod Hmask
+  obtain ⟨hd', hgot, hnb⟩ : (1 ≤ x → d'.dead) ∧ r.got = [] ∧ (n ≠ 0 → ∀ bs, r ≠ .bytes bs) := by
+    rcases hdc with hd | hc
+    · obtain ⟨h1, h2, h3⟩ := readOutcome_dead hd Hro
+      exact ⟨fun _ => h1, h2, h3⟩
+    · obtain ⟨rfl, rfl⟩ := readOutcome_closed hc Hro
+      exact ⟨Hok.2.1, rfl, fun _ _ h => by cases h⟩
+  have hp : DirOk d' W R0 ∧ (1 ≤ x → d'.dead) ∧ (1 ≤ c → st.closed = true) := by
+    refine ⟨?_, hd', Hok.2.2⟩
+    have := dirOk_read Hok.1 Hro
+    rwa [hgot, List.append_nil] at this
+  imod Hcl $$ Hend Hdir HwQ Hr0 Hrd Hx Hcc %hp with -
+  imodintro
+  isplitl [Hr Hpp]
+  · isplitl [Hr]
+    · iexists γ, Pd, Pa
+      iframe He Hreg Hai Hm Hr Hlb
+      ipureintro; exact hP
+    · iexact Hpp
+  · ipureintro; exact ⟨hgot, hnb⟩
 
 end access2
 
@@ -909,7 +1426,7 @@ theorem reg_fresh (cm : GMap Nat ConnPNames) (cn : Nat) (d : NetDir) :
     ihave Hc := BigSepM.bigSepM_lookup h $$ Hcs
     icases (connState_acc cn γ true true).1 $$ Hc with ⟨-, Hd', -⟩
     unfold dirSt
-    icases Hd' with ⟨%d', %W, %R, Hd', -⟩
+    icases Hd' with ⟨%d', %W, %R, %x, Hd', -⟩
     iapply netDir_excl $$ Hd Hd'
 
 /-- A connection the registry does not have is not in an address's map of connections. -/
@@ -933,7 +1450,7 @@ acceptor's fresh), in the registry and in the address's map: its names, its stat
 facts (nothing written), the acceptor's share deposited, and the dialer's share. -/
 theorem conn_register (a : GoString) (γa : GName) (P Q : Proto GF) (cn : Nat)
     (cm cmA : GMap Nat ConnPNames) (S : GSet Nat) (st0 : NetEnd) (d0 : NetDir)
-    (hd0 : DirOk d0 [] []) (hcS : cn ∉ S) :
+    (hd0 : DirOk d0 [] []) (hst0 : st0.rdl = false) (hcS : cn ∉ S) :
     ⊢ ghostMapAuth NetProtoGS.reg 1 cm -∗ ([∗map] k ↦ γ ∈ cm, connState (Gg := Gg) k γ) -∗
       ghostMapAuth γa 1 cmA -∗ ([∗map] k ↦ γ ∈ cmA, connElem k γ) -∗
       ([∗map] k ↦ _u ∈ setMap S, pendRes a γa k) -∗
@@ -946,7 +1463,8 @@ theorem conn_register (a : GoString) (γa : GName) (P Q : Proto GF) (cn : Nat)
         ([∗map] k ↦ _u ∈ setMap (S ∪ {[cn]}), pendRes a γa k) ∗
         ⌜PartialMap.get? cmA cn = none⌝ ∗ protoSt cn γ P Q ∗
         connElem cn γ ∗ ghostMapElem γa cn .discard γ ∗ wHalf (γ.w false) [] ∗
-        rHalf (γ.r true) [] ∗ wLb (γ.w true) [] ∗ token (γ.f false) := by
+        rHalf (γ.r true) [] ∗ wLb (γ.w true) [] ∗ token (γ.f false) ∗
+        ghostVar (γ.d false) (1 : Qp).half false := by
   iintro Ha Hcs HaA Hes Hdeps Hend0 Hdir0 Hfa
   unfold netFresh
   icases Hfa with ⟨Hend1, Hdir1⟩
@@ -958,11 +1476,22 @@ theorem conn_register (a : GoString) (γa : GName) (P Q : Proto GF) (cn : Nat)
   imod r_alloc (Gg := Gg) with ⟨%r1, Hr1, Hr1a⟩
   imod token_alloc (GF := GF) with ⟨%f0, Hf0⟩
   imod token_alloc (GF := GF) with ⟨%f1, Hf1⟩
-  obtain ⟨γ, hw0, hw1, hr0, hr1, hf0, hf1, hga, hgam⟩ : ∃ γ : ConnPNames, γ.w false = w0 ∧
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%x0, Hx0, -⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%x1, Hx1, -⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%c0, Hc0, -⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%c1, Hc1, -⟩
+  imod ghostVar_alloc (GF := GF) false with ⟨%dl0, Hdl0⟩
+  icases (ghostVar_split_half dl0 1 false).mp $$ Hdl0 with ⟨Hdl0, Hdl0a⟩
+  imod ghostVar_alloc (GF := GF) false with ⟨%dl1, Hdl1⟩
+  icases (ghostVar_split_half dl1 1 false).mp $$ Hdl1 with ⟨Hdl1, Hdl1a⟩
+  obtain ⟨γ, hw0, hw1, hr0, hr1, hf0, hf1, hx0, hx1, hdl0, hdl1, hc0, hc1, hga, hgam⟩ :
+      ∃ γ : ConnPNames, γ.w false = w0 ∧
       γ.w true = w1 ∧ γ.r false = r0 ∧ γ.r true = r1 ∧ γ.f false = f0 ∧ γ.f true = f1 ∧
-      γ.addr = a ∧ γ.am = γa :=
-    ⟨⟨a, γa, w0, w1, r0, r1, f0, f1⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
-  subst hw0 hw1 hr0 hr1 hf0 hf1
+      γ.x false = x0 ∧ γ.x true = x1 ∧ γ.d false = dl0 ∧ γ.d true = dl1 ∧
+      γ.c false = c0 ∧ γ.c true = c1 ∧ γ.addr = a ∧ γ.am = γa :=
+    ⟨⟨a, γa, w0, w1, r0, r1, f0, f1, x0, x1, dl0, dl1, c0, c1⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  subst hw0 hw1 hr0 hr1 hf0 hf1 hx0 hx1 hdl0 hdl1 hc0 hc1
   imod ghost_map_insert_persist (V := ConnPNames) (γ := NetProtoGS.reg) cn γ
     (by rw [← gmap_get?_eq]; exact hcm)
     $$ Ha with ⟨Ha, #He⟩
@@ -974,37 +1503,45 @@ theorem conn_register (a : GoString) (γa : GName) (P Q : Proto GF) (cn : Nat)
   iexists γ
   isplitr
   · ipureintro; exact ⟨hga, hgam⟩
-  isplitl [Ha Hcs Hend0 Hdir0 Hend1 Hdir1 Hw0a Hr0 Hw1a Hr1]
+  isplitl [Ha Hcs Hend0 Hdir0 Hend1 Hdir1 Hw0a Hr0 Hw1a Hr1 Hx0 Hx1 Hdl0 Hdl1 Hc0 Hc1]
   · iexists PartialMap.insert cm cn γ
     iframe Ha
     iapply (BigSepM.bigSepM_insert hcm).2
     iframe Hcs
     unfold connState endSt dirSt
-    isplitl [Hend0]
-    · iexists st0; iexact Hend0
-    isplitl [Hend1]
-    · iexists NetEnd.fresh; iexact Hend1
-    isplitl [Hdir0 Hw0a Hr0]
-    · iexists d0, [], []
-      iframe Hdir0 Hw0a Hr0
-      ipureintro; exact hd0
-    · iexists NetDir.fresh, [], []
-      iframe Hdir1 Hw1a Hr1
-      ipureintro; exact dirOk_fresh
+    isplitl [Hend0 Hdl0 Hc0]
+    · iexists st0, 0
+      iframe Hend0 Hc0
+      isplitl [Hdl0]
+      · rw [hst0]; iexact Hdl0
+      · ipureintro; intro h; omega
+    isplitl [Hend1 Hdl1 Hc1]
+    · iexists NetEnd.fresh, 0
+      iframe Hend1 Hc1
+      isplitl [Hdl1]
+      · rw [show NetEnd.fresh.rdl = false from rfl]; iexact Hdl1
+      · ipureintro; intro h; omega
+    isplitl [Hdir0 Hw0a Hr0 Hx0]
+    · iexists d0, [], [], 0
+      iframe Hdir0 Hw0a Hr0 Hx0
+      ipureintro; exact ⟨hd0, fun h => absurd h (by omega)⟩
+    · iexists NetDir.fresh, [], [], 0
+      iframe Hdir1 Hw1a Hr1 Hx1
+      ipureintro; exact ⟨dirOk_fresh, fun h => absurd h (by omega)⟩
   iframe HaA
   isplitl [Hes]
   · iapply (BigSepM.bigSepM_insert hcmA).2
     iframe Hes
     unfold connElem
     iexact He
-  isplitl [Hdeps Hw1 Hr0a Hf1]
+  isplitl [Hdeps Hw1 Hr0a Hf1 Hdl1a]
   · rw [setMap_insert]
     iapply (BigSepM.bigSepM_insert (setMap_lookup_none hcS)).2
     iframe Hdeps
     unfold pendRes
     iexists γ
     unfold connElem
-    iframe He Hm Hw1 Hr0a Hf1
+    iframe He Hm Hw1 Hr0a Hf1 Hdl1a
     ipureintro; exact ⟨hga, hgam⟩
   isplitr
   · ipureintro; exact hcmA
@@ -1014,21 +1551,23 @@ theorem conn_register (a : GoString) (γa : GName) (P Q : Proto GF) (cn : Nat)
     · iexists []; iframe Hw0b; iapply protoPrefix_nil
     · iexists []; iframe Hw1b; iapply protoPrefix_nil
   unfold connElem
-  iframe He Hm Hw0 Hr1a Hlb1 Hf0
+  iframe He Hm Hw0 Hr1a Hlb1 Hf0 Hdl0a
 
 /-! ### `Dial` -/
 
 /-- The update `net.Dial.spec` (and `net.DialTimeout.spec`) takes, with `Qfail := True`, for an
 address with protocols `P` and `Q`: a new connection's dialer gets its end's tokens (writing with
-`P`, reading with `Q`) and its fresh token; its acceptor's are deposited at the address (also when
-the dial fails and leaves the connection pending, abandoned: D16). The validity the spec needs
-is in `addrProto` (`addrProto_tok`). -/
-theorem dial_au (a : GoString) (P Q : Proto GF) :
+`P`, reading with `Q`), its fresh token and its `rdlTok` (its read deadline not set); its
+acceptor's are deposited at the address (also when the dial fails and leaves the connection
+pending, abandoned: D16). The validity the spec needs is in `addrProto` (`addrProto_tok`).
+`dial_au` is the same without the `rdlTok`. -/
+theorem dial_rdl_au (a : GoString) (P Q : Proto GF) :
     addrProto (Gg := Gg) a P Q ⊢
       |={⊤,∅}=> ∃ S, netPend NG a S ∗
         ∀ cn, ⌜cn ∉ S⌝ -∗ netPend NG a (S ∪ {[cn]}) -∗ netConnAt NG cn a -∗
           netFresh NG cn true -∗
-          ((netFresh NG cn false ={∅,⊤}=∗ connEnd cn false P Q [] [] ∗ connFresh cn false) ∧
+          ((netFresh NG cn false ={∅,⊤}=∗ connEnd cn false P Q [] [] ∗ connFresh cn false ∗
+              rdlTok cn false false) ∧
            (netEnd NG cn false { NetEnd.fresh with closed := true } -∗
             netDir NG cn false ⟨[], .fin⟩ ={∅,⊤}=∗ True)) := by
   unfold addrProto
@@ -1051,9 +1590,9 @@ theorem dial_au (a : GoString) (P Q : Proto GF) :
     imod Hmask
     iunfold netFresh at Hfd
     icases Hfd with ⟨Hend0, Hdir0⟩
-    imod conn_register a γa P Q cn cm cmA S NetEnd.fresh NetDir.fresh dirOk_fresh HcS
+    imod conn_register a γa P Q cn cm cmA S NetEnd.fresh NetDir.fresh dirOk_fresh rfl HcS
       $$ Ha Hcs HaA Hes Hdeps Hend0 Hdir0 Hfa
-      with ⟨%γ, %hγ, Hreg', HaA, Hes, Hdeps, %hcmA, Hpst, #He, #Hm, Hw0, Hr1, #Hlb1, Hf0⟩
+      with ⟨%γ, %hγ, Hreg', HaA, Hes, Hdeps, %hcmA, Hpst, #He, #Hm, Hw0, Hr1, #Hlb1, Hf0, Hd0⟩
     obtain ⟨hγa, hγm⟩ := hγ
     imod Hclose' $$ [Hreg'] with -
     · inext; unfold regInv; iexact Hreg'
@@ -1065,7 +1604,7 @@ theorem dial_au (a : GoString) (P Q : Proto GF) :
       iapply (BigSepM.bigSepM_insert hcmA).2
       iframe Hpst Hps
     imodintro
-    unfold connEnd sendTok recvTok recvCore connFresh connH regCtx
+    unfold connEnd sendTok recvTok recvCore connFresh connH rdlTok regCtx
     simp only [Bool.not_false]
     subst hγa hγm
     isplitl [Hw0 Hr1]
@@ -1078,11 +1617,15 @@ theorem dial_au (a : GoString) (P Q : Proto GF) :
           iframe He Hreg Hai Hm Hr1 Hlb1
           ipureintro; rfl
         · iapply protoPrefix_nil
-    · iexists γ
-      iframe He Hf0
+    · isplitl [Hf0]
+      · iexists γ
+        iframe He Hf0
+      · iexists γ
+        iframe He Hreg Hd0
   · iintro Hend0 Hdir0
     imod Hmask
-    imod conn_register a γa P Q cn cm cmA S _ _ dirOk_abandoned HcS
+    imod conn_register a γa P Q cn cm cmA S { NetEnd.fresh with closed := true } ⟨[], .fin⟩
+      dirOk_abandoned rfl HcS
       $$ Ha Hcs HaA Hes Hdeps Hend0 Hdir0 Hfa
       with ⟨%γ, %-, Hreg', HaA, Hes, Hdeps, %hcmA, Hpst, -⟩
     imod Hclose' $$ [Hreg'] with -
@@ -1097,19 +1640,46 @@ theorem dial_au (a : GoString) (P Q : Proto GF) :
     imodintro
     itrivial
 
+/-- The update `net.Dial.spec` (and `net.DialTimeout.spec`) takes: `dial_rdl_au` without the
+dialer's `rdlTok`. -/
+theorem dial_au (a : GoString) (P Q : Proto GF) :
+    addrProto (Gg := Gg) a P Q ⊢
+      |={⊤,∅}=> ∃ S, netPend NG a S ∗
+        ∀ cn, ⌜cn ∉ S⌝ -∗ netPend NG a (S ∪ {[cn]}) -∗ netConnAt NG cn a -∗
+          netFresh NG cn true -∗
+          ((netFresh NG cn false ={∅,⊤}=∗ connEnd cn false P Q [] [] ∗ connFresh cn false) ∧
+           (netEnd NG cn false { NetEnd.fresh with closed := true } -∗
+            netDir NG cn false ⟨[], .fin⟩ ={∅,⊤}=∗ True)) := by
+  iintro #Ha
+  imod dial_rdl_au a P Q $$ Ha with ⟨%S, Hp, Hk⟩
+  imodintro
+  iexists S
+  iframe Hp
+  iintro %cn %HcS Hp #Hat Hfa
+  ispecialize Hk $$ %cn %HcS Hp Hat Hfa
+  isplit
+  · icases Hk with ⟨Hk, -⟩
+    iintro Hfd
+    imod Hk $$ Hfd with ⟨Hc, Hf, -⟩
+    imodintro
+    iframe Hc Hf
+  · icases Hk with ⟨-, Hk⟩
+    iexact Hk
+
+
 /-! ### `Accept` -/
 
 /-- The acceptor's share of a pending connection, as its end's tokens. -/
 theorem pendRes_take (a : GoString) (γa : GName) (P Q : Proto GF) (cn : Nat) :
     ⊢ inv (addrN a) (addrInvP (Gg := Gg) a γa P Q) -∗ regCtx -∗ pendRes a γa cn ==∗
-      connEnd cn true Q P [] [] ∗ connFresh cn true := by
+      connEnd cn true Q P [] [] ∗ connFresh cn true ∗ rdlTok cn true false := by
   iintro #Hai #Hreg Hd
   unfold pendRes
-  icases Hd with ⟨%γ, #He, #Hm, %hγ, Hw1, Hr0, Hf1⟩
+  icases Hd with ⟨%γ, #He, #Hm, %hγ, Hw1, Hr0, Hf1, Hd1⟩
   obtain ⟨hγa, hγm⟩ := hγ
   imod wLb_nil (Gg := Gg) (γ.w false) with #Hlb0
   imodintro
-  unfold connEnd sendTok recvTok recvCore connFresh connH
+  unfold connEnd sendTok recvTok recvCore connFresh connH rdlTok
   simp only [Bool.not_true]
   subst hγa hγm
   isplitl [Hw1 Hr0]
@@ -1122,20 +1692,25 @@ theorem pendRes_take (a : GoString) (γa : GName) (P Q : Proto GF) (cn : Nat) :
         iframe He Hreg Hai Hm Hr0 Hlb0
         ipureintro; rfl
       · iapply protoPrefix_nil
-  · iexists γ
-    iframe He Hf1
+  · isplitl [Hf1]
+    · iexists γ
+      iframe He Hf1
+    · iexists γ
+      iframe He Hreg Hd1
 
-/-- The update `net.Listener.Accept.spec` takes, for this node's listener `l` at the address `a`
-(protocols `P`, `Q`), which the thread owns (`netLis`), with `Qfail _ := netLis hL l a o`: a
-failure gives the listener back; a connection, the listener and the acceptor's end's tokens
-(writing with `Q`, reading with `P`) and its fresh token. -/
-theorem accept_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64) (o : Bool) :
-    ⊢ addrProto (Gg := Gg) a P Q -∗ netLis hL l a o -∗
-      |={⊤,∅}=> ∃ o' S, netLis hL l a o' ∗ netPend NG a S ∗
-        ((netLis hL l a o' -∗ netPend NG a S ={∅,⊤}=∗ netLis hL l a o) ∧
-          (⌜o' = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l a o' -∗ netPend NG a (S \ {[cn]}) -∗
+/-- The update for a connection dialed to the address `a` (protocols `P`, `Q`) accepted by this
+node's listener `l` at `la`, which the thread owns (`netLis`): a failure gives the listener back;
+a connection, the listener and the acceptor's end's tokens (writing with `Q`, reading with `P`) and
+its fresh token. -/
+theorem accept_au_at (la a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64)
+    (o : Bool) :
+    ⊢ addrProto (Gg := Gg) a P Q -∗ netLis hL l la o -∗
+      |={⊤,∅}=> ∃ o' S, netLis hL l la o' ∗ netPend NG a S ∗
+        ((netLis hL l la o' -∗ netPend NG a S ={∅,⊤}=∗ netLis hL l la o) ∧
+          (⌜o' = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l la o' -∗ netPend NG a (S \ {[cn]}) -∗
             netConnAt NG cn a ={∅,⊤}=∗
-              netLis hL l a o ∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
+              netLis hL l la o ∗ connEnd cn true Q P [] [] ∗ connFresh cn true ∗
+                rdlTok cn true false)) := by
   unfold addrProto
   iintro ⟨%γa, #Hai, -, #Ht, #Hreg⟩ Hl
   iinv Hai with Hj Hclose
@@ -1166,7 +1741,77 @@ theorem accept_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64)
       unfold addrInvP
       iexists S \ {[cn]}, cmA
       iframe Hp HaA Hdeps Hes Hps
-    imod pendRes_take a γa P Q cn $$ Hai Hreg Hd with ⟨Hc, Hf⟩
+    imod pendRes_take a γa P Q cn $$ Hai Hreg Hd with ⟨Hc, Hf, Hdl⟩
+    imodintro
+    iframe Hl Hc Hf Hdl
+
+/-- The update `net.Listener.Accept.spec_addrOk` takes, for this node's listener `l` at the
+address `a` (protocols `P`, `Q`), which the thread owns (`netLis`), with `Qfail _ := netLis hL l a o`:
+a failure gives the listener back; a connection, the listener and the acceptor's end's tokens
+(writing with `Q`, reading with `P`) and its fresh token. -/
+theorem accept_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64) (o : Bool) :
+    ⊢ addrProto (Gg := Gg) a P Q -∗ netLis hL l a o -∗
+      |={⊤,∅}=> ∃ o' S, netLis hL l a o' ∗ netPend NG a S ∗
+        ((netLis hL l a o' -∗ netPend NG a S ={∅,⊤}=∗ netLis hL l a o) ∧
+          (⌜o' = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l a o' -∗ netPend NG a (S \ {[cn]}) -∗
+            netConnAt NG cn a ={∅,⊤}=∗
+              netLis hL l a o ∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
+  iintro #Ha Hl
+  imod accept_au_at a a P Q hL l o $$ Ha Hl with ⟨%o', %S, Hl, Hp, Hk⟩
+  imodintro
+  iexists o', S
+  iframe Hl Hp
+  isplit
+  · icases Hk with ⟨Hk, -⟩
+    iexact Hk
+  · icases Hk with ⟨-, Hk⟩
+    iintro %ho %cn %HcS Hl Hp #Hat
+    imod Hk $$ %ho %cn %HcS Hl Hp Hat with ⟨Hl, Hc, Hf, -⟩
+    imodintro
+    iframe Hl Hc Hf
+
+/-- `accept_au`, with the acceptor's `rdlTok` (its read deadline not set). -/
+theorem accept_rdl_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64) (o : Bool) :
+    ⊢ addrProto (Gg := Gg) a P Q -∗ netLis hL l a o -∗
+      |={⊤,∅}=> ∃ o' S, netLis hL l a o' ∗ netPend NG a S ∗
+        ((netLis hL l a o' -∗ netPend NG a S ={∅,⊤}=∗ netLis hL l a o) ∧
+          (⌜o' = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l a o' -∗ netPend NG a (S \ {[cn]}) -∗
+            netConnAt NG cn a ={∅,⊤}=∗
+              netLis hL l a o ∗ connEnd cn true Q P [] [] ∗ connFresh cn true ∗
+                rdlTok cn true false)) :=
+  accept_au_at a a P Q hL l o
+
+/-- D21. The updates `net.Listener.Accept.spec` takes, for this node's listener `l` at `la` (a
+wildcard, or a valid address), which the thread owns (`netLis`), from the protocols of the
+addresses `la` takes (`lisProto`), with `Qfail _ := netLis hL l la o` and `Qok a cn` the listener,
+the acceptor's end's tokens of `cn` (dialed to `a`: writing with `Q`, reading with `P`) and its
+fresh token. -/
+theorem accept_lis_au (la : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64) (o : Bool) :
+    ⊢ lisProto (Gg := Gg) la P Q -∗ netLis hL l la o -∗
+      ((|={⊤,∅}=> ∃ o', netLis hL l la o' ∗ (netLis hL l la o' ={∅,⊤}=∗ netLis hL l la o)) ∧
+        ∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ -∗
+          |={⊤,∅}=> ∃ o' S, netLis hL l la o' ∗ netPend NG a S ∗
+            (⌜o' = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l la o' -∗ netPend NG a (S \ {[cn]}) -∗
+              netConnAt NG cn a ={∅,⊤}=∗
+                netLis hL l la o ∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
+  iintro #Hp Hl
+  isplit
+  · iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    iexists o
+    iframe Hl
+    iintro Hl
+    imod Hmask
+    imodintro
+    iexact Hl
+  · iintro %a %ha
+    ihave #Ha := lisProto_addr la a P Q ha.1 ha.2 $$ Hp
+    imod accept_au_at la a P Q hL l o $$ Ha Hl with ⟨%o', %S, Hl, Hpend, -, Hk⟩
+    imodintro
+    iexists o', S
+    iframe Hl Hpend
+    iintro %ho %cn %HcS Hl Hp #Hat
+    imod Hk $$ %ho %cn %HcS Hl Hp Hat with ⟨Hl, Hc, Hf, -⟩
     imodintro
     iframe Hl Hc Hf
 
@@ -1189,14 +1834,16 @@ theorem lisInv_alloc (E : CoPset) (hL : NetLocalGS GF) (l : w64) (a : GoString) 
   iexists o
   iexact Hl
 
-/-- The update `net.Listener.Accept.spec` takes for a shared listener (`Qfail _ := True`): a
-connection gives the acceptor's end's tokens and its fresh token. -/
-theorem accept_shared_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64) :
-    ⊢ addrProto (Gg := Gg) a P Q -∗ lisInv hL l a -∗
-      |={⊤,∅}=> ∃ o S, netLis hL l a o ∗ netPend NG a S ∗
-        ((netLis hL l a o -∗ netPend NG a S ={∅,⊤}=∗ True) ∧
-          (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l a o -∗ netPend NG a (S \ {[cn]}) -∗
-            netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
+/-- The update for a connection dialed to the address `a` (protocols `P`, `Q`) accepted by the
+shared listener `l` at `la` (`Qfail _ := True`): a connection gives the acceptor's end's tokens and
+its fresh token. -/
+theorem accept_shared_au_at (la a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64) :
+    ⊢ addrProto (Gg := Gg) a P Q -∗ lisInv hL l la -∗
+      |={⊤,∅}=> ∃ o S, netLis hL l la o ∗ netPend NG a S ∗
+        ((netLis hL l la o -∗ netPend NG a S ={∅,⊤}=∗ True) ∧
+          (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l la o -∗ netPend NG a (S \ {[cn]}) -∗
+            netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true Q P [] [] ∗ connFresh cn true ∗
+              rdlTok cn true false)) := by
   unfold addrProto
   iintro ⟨%γa, #Hai, -, #Ht, #Hreg⟩ #Hli
   iinv Hai with Hj Hclose
@@ -1235,7 +1882,146 @@ theorem accept_shared_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l
       unfold addrInvP
       iexists S \ {[cn]}, cmA
       iframe Hp HaA Hdeps Hes Hps
-    imod pendRes_take a γa P Q cn $$ Hai Hreg Hd with ⟨Hc, Hf⟩
+    imod pendRes_take a γa P Q cn $$ Hai Hreg Hd with ⟨Hc, Hf, Hdl⟩
+    imodintro
+    iframe Hc Hf Hdl
+
+/-- The update `net.Listener.Accept.spec_addrOk` takes for a shared listener at the address `a`
+(`Qfail _ := True`): a connection gives the acceptor's end's tokens and its fresh token. -/
+theorem accept_shared_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64) :
+    ⊢ addrProto (Gg := Gg) a P Q -∗ lisInv hL l a -∗
+      |={⊤,∅}=> ∃ o S, netLis hL l a o ∗ netPend NG a S ∗
+        ((netLis hL l a o -∗ netPend NG a S ={∅,⊤}=∗ True) ∧
+          (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l a o -∗ netPend NG a (S \ {[cn]}) -∗
+            netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
+  iintro #Ha #Hli
+  imod accept_shared_au_at a a P Q hL l $$ Ha Hli with ⟨%o, %S, Hl, Hp, Hk⟩
+  imodintro
+  iexists o, S
+  iframe Hl Hp
+  isplit
+  · icases Hk with ⟨Hk, -⟩
+    iexact Hk
+  · icases Hk with ⟨-, Hk⟩
+    iintro %ho %cn %HcS Hl Hp #Hat
+    imod Hk $$ %ho %cn %HcS Hl Hp Hat with ⟨Hc, Hf, -⟩
+    imodintro
+    iframe Hc Hf
+
+/-- `accept_shared_au`, with the acceptor's `rdlTok` (its read deadline not set). -/
+theorem accept_shared_rdl_au (a : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64) :
+    ⊢ addrProto (Gg := Gg) a P Q -∗ lisInv hL l a -∗
+      |={⊤,∅}=> ∃ o S, netLis hL l a o ∗ netPend NG a S ∗
+        ((netLis hL l a o -∗ netPend NG a S ={∅,⊤}=∗ True) ∧
+          (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l a o -∗ netPend NG a (S \ {[cn]}) -∗
+            netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true Q P [] [] ∗ connFresh cn true ∗
+              rdlTok cn true false)) :=
+  accept_shared_au_at a a P Q hL l
+
+/-- D21. The updates `net.Listener.Accept.spec` takes for a shared listener at `la` (a wildcard, or a
+valid address), from the protocols of the addresses `la` takes (`lisProto`; `Qfail _ := True`, and
+`Qok a cn` the acceptor's end's tokens of `cn`, dialed to `a`, and its fresh token). -/
+theorem accept_lis_shared_au (la : GoString) (P Q : Proto GF) (hL : NetLocalGS GF) (l : w64) :
+    ⊢ lisProto (Gg := Gg) la P Q -∗ lisInv hL l la -∗
+      ((|={⊤,∅}=> ∃ o, netLis hL l la o ∗ (netLis hL l la o ={∅,⊤}=∗ True)) ∧
+        ∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ -∗
+          |={⊤,∅}=> ∃ o S, netLis hL l la o ∗ netPend NG a S ∗
+            (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l la o -∗ netPend NG a (S \ {[cn]}) -∗
+              netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true Q P [] [] ∗ connFresh cn true)) := by
+  iintro #Hp #Hli
+  isplit
+  · unfold lisInv
+    iinv Hli with Hk Hclose
+    icases Hk with ⟨%o, >Hl⟩
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    iexists o
+    iframe Hl
+    iintro Hl
+    imod Hmask
+    imod Hclose $$ [Hl] with -
+    · inext; iexists o; iexact Hl
+    imodintro
+    itrivial
+  · iintro %a %ha
+    ihave #Ha := lisProto_addr la a P Q ha.1 ha.2 $$ Hp
+    imod accept_shared_au_at la a P Q hL l $$ Ha Hli with ⟨%o, %S, Hl, Hpend, -, Hk⟩
+    imodintro
+    iexists o, S
+    iframe Hl Hpend
+    iintro %ho %cn %HcS Hl Hp #Hat
+    imod Hk $$ %ho %cn %HcS Hl Hp Hat with ⟨Hc, Hf, -⟩
+    imodintro
+    iframe Hc Hf
+
+/-- D21. `accept_lis_shared_au` with protocols per address (`P a`, `Q a` for a connection dialed to
+`a`), from each address's `addrProto` (`lisProtoD_addr` gives them; at a valid `la`, `la`'s alone), and
+the acceptor's `rdlTok` (its read deadline not set). `accept_addrs_shared_au` is the same without it. -/
+theorem accept_addrs_shared_rdl_au (la : GoString) (P Q : GoString → Proto GF) (hL : NetLocalGS GF)
+    (l : w64) :
+    ⊢ □ (∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto (Gg := Gg) a (P a) (Q a)) -∗
+      lisInv hL l la -∗
+      ((|={⊤,∅}=> ∃ o, netLis hL l la o ∗ (netLis hL l la o ={∅,⊤}=∗ True)) ∧
+        ∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ -∗
+          |={⊤,∅}=> ∃ o S, netLis hL l la o ∗ netPend NG a S ∗
+            (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l la o -∗ netPend NG a (S \ {[cn]}) -∗
+              netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true (Q a) (P a) [] [] ∗ connFresh cn true ∗
+                rdlTok cn true false)) := by
+  iintro #Hp #Hli
+  isplit
+  · unfold lisInv
+    iinv Hli with Hk Hclose
+    icases Hk with ⟨%o, >Hl⟩
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    iexists o
+    iframe Hl
+    iintro Hl
+    imod Hmask
+    imod Hclose $$ [Hl] with -
+    · inext; iexists o; iexact Hl
+    imodintro
+    itrivial
+  · iintro %a %ha
+    ihave #Ha := Hp $$ %a %ha
+    imod accept_shared_au_at la a (P a) (Q a) hL l $$ Ha Hli with ⟨%o, %S, Hl, Hpend, -, Hk⟩
+    imodintro
+    iexists o, S
+    iframe Hl Hpend Hk
+
+/-- `accept_addrs_shared_rdl_au` without the `rdlTok`. -/
+theorem accept_addrs_shared_au (la : GoString) (P Q : GoString → Proto GF) (hL : NetLocalGS GF)
+    (l : w64) :
+    ⊢ □ (∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto (Gg := Gg) a (P a) (Q a)) -∗
+      lisInv hL l la -∗
+      ((|={⊤,∅}=> ∃ o, netLis hL l la o ∗ (netLis hL l la o ={∅,⊤}=∗ True)) ∧
+        ∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ -∗
+          |={⊤,∅}=> ∃ o S, netLis hL l la o ∗ netPend NG a S ∗
+            (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l la o -∗ netPend NG a (S \ {[cn]}) -∗
+              netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true (Q a) (P a) [] [] ∗ connFresh cn true)) := by
+  iintro #Hp #Hli
+  isplit
+  · unfold lisInv
+    iinv Hli with Hk Hclose
+    icases Hk with ⟨%o, >Hl⟩
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    iexists o
+    iframe Hl
+    iintro Hl
+    imod Hmask
+    imod Hclose $$ [Hl] with -
+    · inext; iexists o; iexact Hl
+    imodintro
+    itrivial
+  · iintro %a %ha
+    ihave #Ha := Hp $$ %a %ha
+    imod accept_shared_au_at la a (P a) (Q a) hL l $$ Ha Hli with ⟨%o, %S, Hl, Hpend, -, Hk⟩
+    imodintro
+    iexists o, S
+    iframe Hl Hpend
+    iintro %ho %cn %HcS Hl Hp #Hat
+    imod Hk $$ %ho %cn %HcS Hl Hp Hat with ⟨Hc, Hf, -⟩
     imodintro
     iframe Hc Hf
 
@@ -1282,7 +2068,8 @@ theorem close_au (cn : Nat) (s : Bool) :
   iintro %res %st' %d' %Hc Hend Hdir
   imod Hmask
   imod Hcl $$ Hend Hdir HwQ Hr [] with -
-  · ipureintro; exact dirOk_close Hok Hc
+  · ipureintro; exact ⟨dirOk_close Hok Hc, closeOutcome_rdl Hc, fun hd => closeOutcome_dead hd Hc,
+      fun _ => closeOutcome_closed Hc⟩
   imodintro
   ipureintro; exact ⟨st, d, Hc⟩
 
@@ -1302,16 +2089,88 @@ theorem closeWrite_au (cn : Nat) (s : Bool) :
   iintro %res %d' %Hc Hend Hdir
   imod Hmask
   imod Hcl $$ Hend Hdir HwQ Hr [] with -
-  · ipureintro; exact dirOk_closeWrite Hok Hc
+  · ipureintro; exact ⟨dirOk_closeWrite Hok Hc, rfl, fun hd => closeWriteOutcome_dead hd Hc, id⟩
   imodintro
   ipureintro; exact ⟨d, Hc⟩
 
-/-- The update `net.Conn.SetDeadline.spec` takes (and the read and write deadlines': kind `k`). -/
-theorem deadline_au (cn : Nat) (s : Bool) (k : w64) (set : Bool) :
-    connIs (Gg := Gg) cn ⊢
+/-- The update `net.Conn.SetDeadline.spec` takes (and the read and write deadlines': kind `k`), from
+the end's `rdlTok` (whoever sets the end's read deadline holds it), which it gives back with the
+read deadline after. -/
+theorem deadline_au (cn : Nat) (s : Bool) (k : w64) (set : Bool) (b : Bool) :
+    rdlTok (Gg := Gg) cn s b ⊢
       |={⊤,∅}=> ∃ st, netEnd NG cn s st ∗
         ∀ res st', ⌜DeadlineOutcome st k set res st'⌝ -∗ netEnd NG cn s st' ={∅,⊤}=∗
-          ⌜∃ st, DeadlineOutcome st k set res st'⌝ := by
+          ⌜∃ st, DeadlineOutcome st k set res st'⌝ ∗ rdlTok cn s st'.rdl := by
+  unfold rdlTok
+  iintro ⟨%γ, #He, #Hreg, Hb⟩
+  imod reg_open_full cn γ s s $$ Hreg He
+    with ⟨%st, %d, %W, %R, %x, %c, Hend, Hdir, HwQ, Hr, Hrd, Hx, Hcc, %Hok, Hcl⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists st
+  iframe Hend
+  iintro %res %st' %Hc Hend
+  imod Hmask
+  imod ghostVar_update_halves st'.rdl (γ.d s) _ _ $$ Hb Hrd with ⟨Hb, Hrd⟩
+  have hp : DirOk d W R ∧ (1 ≤ x → d.dead) ∧ (1 ≤ c → st'.closed = true) :=
+    ⟨Hok.1, Hok.2.1, fun h => (deadlineOutcome_closed Hc).trans (Hok.2.2 h)⟩
+  imod Hcl $$ Hend Hdir HwQ Hr Hrd Hx Hcc %hp with -
+  imodintro
+  isplitr
+  · ipureintro; exact ⟨st, Hc⟩
+  · iexists γ
+    iframe He Hreg Hb
+
+/-- `deadline_au`, and a setting that fails because the end is closed (`DeadlineOutcome`: the end
+then stays as it was, closed) leaves the end's reading dead (`readDead`: closed, for good). So a
+caller that clears the read deadline has the token at `false`, or a dead end. -/
+theorem deadline_dead_au (cn : Nat) (s : Bool) (k : w64) (set : Bool) (b : Bool) :
+    rdlTok (Gg := Gg) cn s b ⊢
+      |={⊤,∅}=> ∃ st, netEnd NG cn s st ∗
+        ∀ res st', ⌜DeadlineOutcome st k set res st'⌝ -∗ netEnd NG cn s st' ={∅,⊤}=∗
+          ⌜∃ st, DeadlineOutcome st k set res st'⌝ ∗ rdlTok cn s st'.rdl ∗
+          (⌜st'.closed = true⌝ -∗ readDead cn s) := by
+  unfold rdlTok
+  iintro ⟨%γ, #He, #Hreg, Hb⟩
+  imod reg_open_full cn γ s s $$ Hreg He
+    with ⟨%st, %d, %W, %R, %x, %c, Hend, Hdir, HwQ, Hr, Hrd, Hx, Hcc, %Hok, Hcl⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists st
+  iframe Hend
+  iintro %res %st' %Hc Hend
+  imod Hmask
+  imod ghostVar_update_halves st'.rdl (γ.d s) _ _ $$ Hb Hrd with ⟨Hb, Hrd⟩
+  imod mono_nat_own_update (GF := GF) (max c (if st'.closed = true then 1 else 0))
+    (Nat.le_max_left _ _) $$ Hcc with ⟨Hcc, #Hclb⟩
+  have hp : DirOk d W R ∧ (1 ≤ x → d.dead) ∧
+      (1 ≤ max c (if st'.closed = true then 1 else 0) → st'.closed = true) := by
+    refine ⟨Hok.1, Hok.2.1, fun hc => ?_⟩
+    by_cases hcl : st'.closed = true
+    · exact hcl
+    · exact (deadlineOutcome_closed Hc).trans (Hok.2.2 (by simpa [hcl] using hc))
+  imod Hcl $$ Hend Hdir HwQ Hr Hrd Hx Hcc %hp with -
+  imodintro
+  isplitr
+  · ipureintro; exact ⟨st, Hc⟩
+  isplitl [Hb]
+  · iexists γ
+    iframe He Hreg Hb
+  · iintro %hcl
+    unfold readDead
+    iexists γ
+    iframe He
+    iright
+    iapply monoNatLbOwn_le 1 ?_ $$ Hclb
+    rw [if_pos hcl]; exact Nat.le_max_right _ _
+
+/-- The update `net.Conn.SetWriteDeadline.spec` takes (the write deadline, kind `2`, which leaves
+the read deadline as it is: no `rdlTok`). -/
+theorem deadline_w_au (cn : Nat) (s : Bool) (set : Bool) :
+    connIs (Gg := Gg) cn ⊢
+      |={⊤,∅}=> ∃ st, netEnd NG cn s st ∗
+        ∀ res st', ⌜DeadlineOutcome st (W64 2) set res st'⌝ -∗ netEnd NG cn s st' ={∅,⊤}=∗
+          ⌜∃ st, DeadlineOutcome st (W64 2) set res st'⌝ := by
   unfold connIs
   iintro ⟨%γ, #He, #Hreg⟩
   imod reg_open cn γ s s $$ Hreg He with ⟨%st, %d, %W, %R, Hend, Hdir, HwQ, Hr, %Hok, Hcl⟩
@@ -1322,7 +2181,7 @@ theorem deadline_au (cn : Nat) (s : Bool) (k : w64) (set : Bool) :
   iintro %res %st' %Hc Hend
   imod Hmask
   imod Hcl $$ Hend Hdir HwQ Hr [] with -
-  · ipureintro; exact Hok
+  · ipureintro; exact ⟨Hok, deadlineOutcome_w_rdl Hc, id, fun h => (deadlineOutcome_closed Hc).trans h⟩
   imodintro
   ipureintro; exact ⟨st, Hc⟩
 
@@ -1342,7 +2201,7 @@ theorem sockopt_au (cn : Nat) (s : Bool) (v : Option Bool) :
   iintro %res %Hc Hend
   imod Hmask
   imod Hcl $$ Hend Hdir HwQ Hr [] with -
-  · ipureintro; exact Hok
+  · ipureintro; exact ⟨Hok, rfl, id, id⟩
   imodintro
   ipureintro; exact ⟨st, Hc⟩
 
@@ -1409,6 +2268,136 @@ theorem addrs_start (g : NetGlobal) (addrs : List GoString) (hnd : addrs.Nodup)
   iframe Hp Ht
   ipureintro
   exact hok a (List.mem_of_getElem? hk)
+
+/-- The valid addresses `q` holds of, unset: their pending sets, empty, and their listening
+tokens. -/
+def unsetWhere (q : GoString → Prop) : IProp GF :=
+  [∗map] a ↦ _u ∈ addrSpace (),
+    iprop(⌜q a⌝ → netPend (NG (Gg := Gg)) a ∅ ∗ netLisTok (NG (Gg := Gg)) a)
+
+/-- The extension's start resources: every valid address unset. -/
+theorem start_unset (g : NetGlobal) :
+    netStart (NG (Gg := Gg)) g ⊢ unsetWhere (Gg := Gg) (fun _ => True) := by
+  unfold netStart unsetWhere
+  iintro ⟨Hpends, Htoks⟩
+  ihave Hp : ([∗map] a ↦ _u ∈ addrSpace (), netPend (NG (Gg := Gg)) a ∅) $$ [Hpends]
+  · ihave ⟨Hp, -⟩ := BigSepM.bigSepM_impl_strong (Φ := fun a S => netPend (NG (Gg := Gg)) a S)
+      (Ψ := fun a (_ : Unit) => netPend (NG (Gg := Gg)) a ∅) (m₁ := pendInit)
+      (m₂ := addrSpace ()) $$ [Hpends]
+    · isplitl [Hpends]
+      · iexact Hpends
+      imodintro
+      iintro %k %y
+      by_cases hok : addrOk k = true
+      · have hp : PartialMap.get? pendInit k = some ∅ := by
+          rw [gmap_get?_eq]; exact addrSpace_lookup_ok ∅ hok
+        rw [hp]
+        simp only [Option.elim]
+        iintro H %_
+        iexact H
+      · iintro - %hk
+        have := addrSpace_lookup_isSome () k
+        rw [← gmap_get?_eq, hk] at this
+        exact absurd this.symm hok
+    iexact Hp
+  ihave Hb : ([∗map] a ↦ _u ∈ addrSpace (),
+      iprop(netPend (NG (Gg := Gg)) a ∅ ∗ netLisTok (NG (Gg := Gg)) a)) $$ [Hp Htoks]
+  · rw [BigSepM.bigSepM_sep_eq]
+    iframe Hp Htoks
+  iapply BigSepM.bigSepM_mono ?_ $$ Hb
+  intro k v _
+  iintro H %_
+  iexact H
+
+theorem unsetWhere_mono {q q' : GoString → Prop} (h : ∀ a, q' a → q a) :
+    unsetWhere (Gg := Gg) q ⊢ unsetWhere (Gg := Gg) q' := by
+  unfold unsetWhere
+  apply BigSepM.bigSepM_mono
+  intro k v _
+  iintro H %hq
+  iapply H
+  ipureintro; exact h k hq
+
+/-- Split the unset addresses by `p`. -/
+theorem unsetWhere_split (q p : GoString → Prop) :
+    unsetWhere (Gg := Gg) q ⊢
+      unsetWhere (Gg := Gg) (fun a => q a ∧ ¬ p a) ∗ unsetWhere (Gg := Gg) (fun a => q a ∧ p a) := by
+  unfold unsetWhere
+  rw [← BigSepM.bigSepM_sep_eq]
+  apply BigSepM.bigSepM_mono
+  intro k v _
+  iintro H
+  by_cases hp : p k
+  · isplitl []
+    · iintro %h; exact absurd hp h.2
+    · iintro %h; iapply H; ipureintro; exact h.1
+  · isplitl [H]
+    · iintro %h; iapply H; ipureintro; exact h.1
+    · iintro %h; exact absurd h.2 hp
+
+/-- Take out of the unset addresses those of the listeners at `las`, which take no address in
+common (`lisUnset`). -/
+theorem unsetWhere_lis : ∀ (las : List GoString) (q : GoString → Prop),
+    (∀ la ∈ las, ∀ a, lisAccepts la a → q a) →
+    las.Pairwise (fun l1 l2 => ∀ a, lisAccepts l1 a → ¬ lisAccepts l2 a) →
+    unsetWhere (Gg := Gg) q ⊢ ([∗list] la ∈ las, lisUnset (Gg := Gg) la) ∗
+      unsetWhere (Gg := Gg) (fun a => q a ∧ ∀ la ∈ las, ¬ lisAccepts la a)
+  | [], q, _, _ => by
+    iintro H
+    isplitr
+    · iapply BigSepL.bigSepL_nil.2; iempintro
+    · iapply unsetWhere_mono (fun a h => h.1) $$ H
+  | la :: las, q, hq, hpw => by
+    iintro H
+    icases unsetWhere_split q (lisAccepts la) $$ H with ⟨Hrest, Hla⟩
+    have hq' : ∀ la' ∈ las, ∀ a, lisAccepts la' a → q a ∧ ¬ lisAccepts la a := by
+      intro la' hla' a ha
+      refine ⟨hq la' (List.mem_cons_of_mem _ hla') a ha, fun h => ?_⟩
+      exact (List.pairwise_cons.1 hpw).1 la' hla' a h ha
+    icases unsetWhere_lis las _ hq' (List.pairwise_cons.1 hpw).2 $$ Hrest with ⟨Hlas, Hrest⟩
+    isplitl [Hla Hlas]
+    · iapply BigSepL.bigSepL_cons.2
+      isplitl [Hla]
+      · unfold unsetWhere lisUnset
+        iapply BigSepM.bigSepM_mono ?_ $$ Hla
+        intro k v _
+        iintro H %ha
+        iapply H
+        ipureintro; exact ⟨hq la List.mem_cons_self k ha, ha⟩
+      · iexact Hlas
+    · iapply unsetWhere_mono ?_ $$ Hrest
+      intro a ⟨hqa, hall⟩
+      exact ⟨⟨hqa, hall la List.mem_cons_self⟩, fun la' h => hall la' (List.mem_cons_of_mem _ h)⟩
+
+/-- The extension's start resources: every address of a list of distinct valid addresses, unset,
+and the addresses of each listener of a list (wildcards, or valid addresses), unset (`lisUnset`), if
+no two of the listeners take an address in common and none takes an address of the list. -/
+theorem addrs_lis_start (g : NetGlobal) (addrs las : List GoString) (hnd : addrs.Nodup)
+    (hok : ∀ a ∈ addrs, addrOk a = true)
+    (hlas : las.Pairwise (fun l1 l2 => ∀ a, lisAccepts l1 a → ¬ lisAccepts l2 a))
+    (hdisj : ∀ a ∈ addrs, ∀ la ∈ las, ¬ lisAccepts la a) :
+    netStart (NG (Gg := Gg)) g ⊢
+      ([∗list] a ∈ addrs, addrUnset (Gg := Gg) a) ∗ [∗list] la ∈ las, lisUnset (Gg := Gg) la := by
+  iintro H
+  ihave H := start_unset g $$ H
+  icases unsetWhere_lis las (fun _ => True) (fun _ _ _ _ => trivial) hlas $$ H with ⟨Hlas, H⟩
+  iframe Hlas
+  unfold unsetWhere
+  ihave H := bigSepM_take_list (fun a (_ : Unit) => iprop(⌜True ∧ ∀ la ∈ las, ¬ lisAccepts la a⌝ →
+      netPend (NG (Gg := Gg)) a ∅ ∗ netLisTok (NG (Gg := Gg)) a)) (fun _ => ())
+    (addrSpace ()) addrs hnd (fun a ha => addrSpace_lookup_ok _ (hok a ha)) $$ H
+  iapply BigSepL.bigSepL_mono (Φ := fun _ a => iprop(⌜True ∧ ∀ la ∈ las, ¬ lisAccepts la a⌝ →
+      netPend (NG (Gg := Gg)) a ∅ ∗ netLisTok (NG (Gg := Gg)) a)) ?_ $$ H
+  intro k a hk
+  have ha := List.mem_of_getElem? hk
+  have hq : True ∧ ∀ la ∈ las, ¬ lisAccepts la a := ⟨trivial, hdisj a ha⟩
+  iintro H
+  ihave ⟨Hp, Ht⟩ := H $$ %hq
+  unfold addrUnset addrTok
+  iframe Hp Ht
+  ipureintro
+  exact hok a ha
+
 
 end start
 

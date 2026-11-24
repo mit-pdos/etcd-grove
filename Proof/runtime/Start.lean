@@ -1,4 +1,21 @@
 /-
+**The address part, restored for the single-process theorems** (2026-11-23, etcd-grove#28,
+`notes/single-process-restore.md`): removed at the net swap (etcd-dist D2, 2026-11-22), when its only users,
+the single-process closed theorems, retired; restored, narrowed, for them (`etcd_safe_single_process`,
+`k8s_safe_single_process`, `etcd_leaseexpiryN_safe_single_process`). Since the swap `net` is the part
+`Net/`'s, over the net extension, and `netAddrFree a` a definition: `addrClaim a` (axiomatized), the net
+extension's listening token `netLisTok a` and `addrOk a` (`Proof/net/InvNet.lean`). Program start now hands
+out, for each address of `As`, only the two axiomatized rights nothing else produces: `addrClaim a` (where it
+handed out `netAddrFree a`) and `httpProtoFree a`, as before. The listening token is never this axiom's: it
+is the net extension's, from its start resources (`extsGlobalStart`, `netStart`), so the axiom and the
+extension hand out disjoint rights. Below, "`netAddrFree a`" handed out by start reads `addrClaim a`.
+
+**The names part is gone** (prom-registry, route (b), 2026-11-22,
+mit-pdos/etcd-grove#15; `notes/prom-registry.md`): program start no longer hands out `prometheus.nameFree n`
+for names `Ns` (with `hNs`, `hNsFree`, `hNsIds` and the axiom `nameUnclaimed`/`namesUnclaimed`): the default
+registry is client_golang's real code, and each closed proof allocates the registration rights itself, as
+ghost state of its run. The paragraphs below about names describe the removed part.
+
 Program start's rights (decision D19d, 2026-10-18): the right to register each of some metric
 names with prometheus's default registry (`prometheus.nameFree`, D16) and to listen on each of
 some network addresses (`netAddrFree`, item 4). Both are abstract exclusive resources the
@@ -70,7 +87,6 @@ module
 
 public import Perennial.GooseLang.Adequacy
 public import Perennial.GooseLang.AdequacyAlong
-public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.net.InvNet
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
@@ -84,60 +100,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Language.Notation
-
-/-- **The name `n` is the verified code's to register** (`prometheus.namesUnclaimed`'s claim of one
-name). -/
-axiom prometheus.nameUnclaimed [GooseExts] (e : Expr) (n : GoString) : Prop
-
-/-- **The names `Ns` are the verified code's to register** (a fact of the Go program `e`
-translates, checked from its source): no collector the default registry holds at start
-(client_golang's `go_*` and `process_*`), and no code of the program whose behaviour this
-repository does not verify (an untranslated initializer, a names-only function, the runtime),
-registers with prometheus's default registry a collector with a descriptor named `n ∈ Ns`, or
-with `n`'s label-free descriptor's ID, or with that collector ID. (2026-11-08: stated name by name,
-`prometheus.nameUnclaimed`, the same claim, so that a program with no names has it; until then an
-axiomatized proposition of the list.) -/
-def prometheus.namesUnclaimed [GooseExts] (e : Expr) (Ns : List GoString) : Prop :=
-  ∀ n ∈ Ns, prometheus.nameUnclaimed e n
-
-/-- **The address `a` is the program's** (`addrsUnclaimed`'s claim of one address: no other
-process binds it or connects to it, and the program's own connections to it are the ones
-`addrsUnclaimed` lists). -/
-axiom addrUnclaimed [GooseExts] (e : Expr) (a : GoString) : Prop
-
-/-- **The addresses `As` are the program's** (a fact of the environment a run of `e` is in, and
-of `e`'s unverified code): while `e` runs, no other process binds an address of `As`, nor a socket
-overlapping one (a wildcard bind of its port, `0.0.0.0:p` or `[::]:p`), and no code of `e` whose
-behaviour this repository does not verify binds one. (2026-11-14, the network fault review; the
-connect clause reworded after the independent review the same day) Two parts:
-(a) **the world assumption** (the user accepted it, 2026-11-14): no other process connects to an
-address of `As` (a local process can dial `127.0.0.1:p` and send requests,
-`examples/premisefix/foreignconn`);
-(b) **what `e` itself does** (a fact of its code, checked against the source): every connection to
-an address of `As` is made by `e`, and its requests are either sent through operations this
-repository verifies or specifies at a trust boundary (clientv3 over grpc's `ClientConn`, rafthttp's
-pipeline, stream and snapshot senders over `http.Transport`, `http.roundTripperOk`; the cluster
-programs' bridge, `bridge.New`'s spec), or are etcd's own names-only peer requests: the prober's
-`GET /raft/probing` (`probing.NewProber`, rafthttp `transport.go:146-147`), the version monitor's
-`GET /version` (`cluster_util.go:257`), bootstrap's `GET /members` (`cluster_util.go:81`), and
-leasehttp's forwarded `POST /leases` and `POST /leases/internal` (a follower's `RenewHTTP` and
-`TimeToLiveHTTP` to the leader, `v3_server.go:553,682`), at the pinned etcd. Those reach no handler
-whose protocol needs knowledge: the peer port's handler is
-the `RaftHandler` mux (`EtcdServer.RaftHandler`, `server.go:646`), which routes only `/raft`,
-`/raft/stream/`, `/raft/snapshot` and `/raft/probing` (`transport.go:163-166`), so it answers
-`/version`, `/members`, `/leases` and `/leases/internal` with `404` (`http.mux_handlerOk_spec`),
-and the raft protocol's request knowledge holds of all of them with no premise (`raftProto.req`, `Proof/go_etcd_io/etcd/server/v3/
-etcdserver/api/rafthttp/Stream.lean:464`: its premises are only on `POST /raft`, `POST
-/raft/snapshot` and `GET`s under `/raft/stream/`); the `GET`s' handler runs get no ticket
-(`http.reqTicketOnce`), and the lease `POST`s' runs, which do (`onceOnly`, a ticket no `RoundTrip`
-minted), reach only the mux's `404`, which takes no ticket. `examples/premisefix/peerreqs` records them in a three-member cluster.
-The boundaries' closed world (`InvNet.lean`) rests on (a) and (b). (Sweep repairs 1, W5) `As`'s
-strings are
-numeric loopback literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`; loopback since
-2026-11-14: never proxied), so "an address of `As`" is the
-one socket the literal names. (2026-11-08: stated address by address, `addrUnclaimed`, the same
-claim; until then an axiomatized proposition of the list.) -/
-def addrsUnclaimed [GooseExts] (e : Expr) (As : List GoString) : Prop := ∀ a ∈ As, addrUnclaimed e a
 
 /-- **The data directory `d` is the program's, fresh, and untouched by anything else**
 (`dataDirsAbsent`'s clauses 1-3 of one directory; 2026-11-08, stated directory by directory, so that
@@ -178,13 +140,60 @@ evidence: `examples/sweeprepairs/wal` (`TestW3Counterexample`, `TestW4StaleBacke
 def dataDirsAbsent [GooseExts] (e : Expr) (Ds : List GoString) : Prop :=
   (∀ d ∈ Ds, dataDirAbsent e d) ∧ Ds.Pairwise dataDirsApart
 
-/-- The rights program start gives: the right to register each name of `Ns` and to listen on
-each address of `As`, and (D39a, 2026-10-23) to fix each address's HTTP protocol
-(`httpProtoFree`); and (2026-11-03; sweep repairs 1, W3/W4) each data directory of `Ds` fresh
+/-- **The address `a` is the program's** (`addrsUnclaimed`'s claim of one address: no other
+process binds it or connects to it, and the program's own connections to it are the ones
+`addrsUnclaimed` lists). (Removed at the net swap, 2026-11-22; restored 2026-11-23 for the single-process
+theorems, `notes/single-process-restore.md`.) -/
+axiom addrUnclaimed [GooseExts] (e : Expr) (a : GoString) : Prop
+
+/-- **The addresses `As` are the program's** (a fact of the environment a run of `e` is in, and
+of `e`'s unverified code): while `e` runs, no other process binds an address of `As`, nor a socket
+overlapping one (a wildcard bind of its port, `0.0.0.0:p` or `[::]:p`), and no code of `e` whose
+behaviour this repository does not verify binds one. (2026-11-14, the network fault review; the
+connect clause reworded after the independent review the same day) Two parts:
+(a) **the world assumption** (the user accepted it, 2026-11-14): no other process connects to an
+address of `As` (a local process can dial `127.0.0.1:p` and send requests,
+`examples/premisefix/foreignconn`). (2026-11-23) Still needed over the net extension: the gRPC and
+HTTP traffic of the programs' models (grpc's `ClientConn`, `http.Transport`) does not go through the
+extension (`grpc.start`, `http.register` rest on `addrClaim` until phase 7's S2/S5), so the extension's
+closed network does not exclude a foreign connection to a gRPC or HTTP listener;
+(b) **what `e` itself does** (a fact of its code, checked against the source): every connection to
+an address of `As` is made by `e`, and its requests are either sent through operations this
+repository verifies or specifies at a trust boundary (clientv3 over grpc's `ClientConn`, rafthttp's
+pipeline, stream and snapshot senders over `http.Transport`, `http.roundTripperOk`; the cluster
+programs' bridge, `bridge.New`'s spec), or are etcd's own names-only peer requests: the prober's
+`GET /raft/probing` (`probing.NewProber`, rafthttp `transport.go:146-147`), the version monitor's
+`GET /version` (`cluster_util.go:257`), bootstrap's `GET /members` (`cluster_util.go:81`), and
+leasehttp's forwarded `POST /leases` and `POST /leases/internal` (a follower's `RenewHTTP` and
+`TimeToLiveHTTP` to the leader, `v3_server.go:553,682`), at the pinned etcd. Those reach no handler
+whose protocol needs knowledge: the peer port's handler is
+the `RaftHandler` mux (`EtcdServer.RaftHandler`, `server.go:646`), which routes only `/raft`,
+`/raft/stream/`, `/raft/snapshot` and `/raft/probing` (`transport.go:163-166`), so it answers
+`/version`, `/members`, `/leases` and `/leases/internal` with `404` (`http.mux_handlerOk_spec`),
+and the raft protocol's request knowledge holds of all of them with no premise (`raftProto.req`, `Proof/go_etcd_io/etcd/server/v3/
+etcdserver/api/rafthttp/Stream.lean`: its premises are only on `POST /raft`, `POST
+/raft/snapshot` and `GET`s under `/raft/stream/`); the `GET`s' handler runs get no ticket
+(`http.reqTicketOnce`), and the lease `POST`s' runs, which do (`onceOnly`, a ticket no `RoundTrip`
+minted), reach only the mux's `404`, which takes no ticket. `examples/premisefix/peerreqs` records them in a three-member cluster.
+(b) is what `addrClaim a` stands for (`InvNet.lean`), which program start hands out on its strength.
+The boundaries' closed world (`InvNet.lean`) rests on (a) and (b). (Sweep repairs 1, W5) `As`'s
+strings are
+numeric loopback literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`; loopback since
+2026-11-14: never proxied), so "an address of `As`" is the
+one socket the literal names. (2026-11-08: stated address by address, `addrUnclaimed`, the same
+claim; until then an axiomatized proposition of the list.) -/
+def addrsUnclaimed [GooseExts] (e : Expr) (As : List GoString) : Prop := ∀ a ∈ As, addrUnclaimed e a
+
+/-- The rights program start gives (until prom-registry, 2026-11-23, also the right to register each
+name of `Ns`): for each address
+of `As` the program's claim on it (`addrClaim`; until the net swap, 2026-11-22, `netAddrFree`, whose
+listening token is now the net extension's) and the right to fix its HTTP protocol (`httpProtoFree`,
+D39a, 2026-10-23; the address part removed at the swap and restored 2026-11-23 for the single-process
+theorems); and (2026-11-03; sweep repairs 1, W3/W4) each data directory of `Ds` fresh
 (`dataDirFresh`), which a member's first start consumes; and (sweep repairs 1, B4) `ETCD_VERIFY` off
 for the run (`envVerifyOff`, persistent). -/
-def startRights {GF : BundledGFunctors} [GooseExts] (Ns As Ds : List GoString) : IProp GF :=
-  iprop(([∗list] n ∈ Ns, prometheus.nameFree n) ∗ ([∗list] a ∈ As, netAddrFree a) ∗
+def startRights {GF : BundledGFunctors} [GooseExts] (As Ds : List GoString) : IProp GF :=
+  iprop(([∗list] a ∈ As, addrClaim a) ∗
     ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     envVerifyOff)
@@ -194,8 +203,8 @@ variable [GooseExts] [GooseInterp]
 variable [GooseSemantics] [GoGlobalContext]
 variable {GF : BundledGFunctors}
 
-/-- **The trust boundary: program start owns the free names and addresses, once** (see the file
-header). `goose_adequacy`, with the WP proof also given `startRights Ns As Ds`. (S3e, 2026-11-17:
+/-- **The trust boundary: program start owns the addresses' claims, once** (see the
+file header). `goose_adequacy`, with the WP proof also given `startRights As Ds`. (S3e, 2026-11-17:
 the axiom again; from 2026-11-08 a corollary of `goose_adequacy_start_files`, which also handed out
 `fileHolds f ∅` for fresh database files: since `fileHolds` is the concrete claim on a name in the
 tree's shared mode, an axiom handing it out beside `extsLocalStart`'s tree could contradict the
@@ -209,9 +218,9 @@ execution; the satisfiability argument of the file header carries over (rights r
 axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
-    (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
+    (As Ds : List GoString) (hAs : As.Nodup) (hDs : Ds.Nodup)
     (hAsLit : ∀ a ∈ As, netAddrLit a = true)
-    (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
+    (hAsFree : addrsUnclaimed e As)
     (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
@@ -219,7 +228,7 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
       hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
       ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
         extsLocalStart (GF := GF) σ.world -∗
-        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As Ds ={⊤}=∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) As Ds ={⊤}=∗
         WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -232,9 +241,9 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
 theorem goose_adequacy_start_all [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
-    (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
+    (As Ds : List GoString) (hAs : As.Nodup) (hDs : Ds.Nodup)
     (hAsLit : ∀ a ∈ As, netAddrLit a = true)
-    (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
+    (hAsFree : addrsUnclaimed e As)
     (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
@@ -242,16 +251,15 @@ theorem goose_adequacy_start_all [hPre : GooseGpreS GF] (N T : Nat)
       hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
       ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
         extsLocalStart (GF := GF) σ.world -∗
-        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As Ds ={⊤}=∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) As Ds ={⊤}=∗
         WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hbound : n < N) (Hthreads : σ.threads = 1)
-    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState)))
-    (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) :
+    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState))) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  goose_adequacy_start N T e σ g φ hφ Hinitg Hinit Ns As Ds hNs hAs hDs hAsLit hNsFree hAsFree
+  goose_adequacy_start N T e σ g φ hφ Hinitg Hinit As Ds hAs hDs hAsLit hAsFree
     hDsFree hEnv Hwp n κs t2 σ2 (RealNstepsBelow.of_threadsBelow Hsteps Hlive) Hbound Hthreads
 
 end adequacy
