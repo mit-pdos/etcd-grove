@@ -1076,6 +1076,7 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
                                           spec_file=f'Dsverify/Spec/{pp}/TopLevelRobustness.lean'))
     # the fixed files: the statement, TopLevelDefs, the premise classes' modules, non-vacuity
     fixed = [f'Dsverify/Spec/{pp}/TopLevelRobustness.lean', f'Dsverify/Proof/{pp}/TopLevelDefs.lean']
+    fixed += sorted(mod_path(m) for m, why in allow.items() if why == 'statement' and mod_path(m) not in fixed)
     for _, _, cls in premises(kg['statement']):
         for c in cls:
             w = find_class(c)
