@@ -141,7 +141,7 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
   iintro Htok
   isplitl [Htok]
   · wp_apply (wp_Serve (drvWorld γid reg) httpAddr net.rpc.defaultRPCPath hv hl
-      net.rpc.litPattern_rpc) $$ [Htok] as %e3 Htok
+      net.rpc.litPattern_rpc net.rpc.defaultRPCPath_short) $$ [Htok] as %e3 Htok
     · iframe Hhttp Hsenv Hhli Hhon Hhinv Htok
       isplitr
       · ipureintro; exact Hb

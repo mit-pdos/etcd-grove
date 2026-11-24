@@ -18,6 +18,9 @@ namespace net.rpc
 theorem litPattern_rpc : net.http.litPattern defaultRPCPath := by
   unfold net.http.litPattern defaultRPCPath; decide
 
+theorem defaultRPCPath_short : defaultRPCPath.length ≤ 2 ^ 20 := by
+  unfold defaultRPCPath; decide
+
 theorem litPattern_debug : net.http.litPattern defaultDebugPath := by
   unfold net.http.litPattern defaultDebugPath; decide
 

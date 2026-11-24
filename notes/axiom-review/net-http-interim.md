@@ -30,3 +30,12 @@ under `/shared/tmp/ps2/s5/muxtest/`), against Go 1.27.3. Two statements found fa
 
 Other parts of the axioms: no other finding. S5's own `Serve.spec` will imply `Serve.spec_rpc`;
 `MuxDefs` will be refined there (the reader-slot pools, `use121`).
+
+**2026-11-24: `Serve.spec_rpc` was false for a path longer than the server's read limit** (found by
+zeldovich-proving-2 while naming `readRequestLimit`'s errors, S5 batch 8; agreed on #24,
+issuecomment-7139755664). The server reads a request with the limit `DefaultMaxHeaderBytes + 4096`
+(`1 << 20` plus `bufio` slop, `Server.initialReadLimitSize`); net/rpc's `DialHTTPPath` sends
+`"CONNECT " + path + " HTTP/1.0\n\n"`, so for a path beyond the limit the server answers
+`431 Request Header Fields Too Large`, which the rpc handler contract (`respProto`) does not allow.
+**Fix:** the premise `path.length ≤ 2 ^ 20` (the request line is then at most `2 ^ 20 + 19` bytes,
+within the limit). rpcdriver discharges it for `/_goRPC_` (`net.rpc.defaultRPCPath_short`, `decide`).
