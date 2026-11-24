@@ -34,6 +34,7 @@ public import Dsverify.Proof.log.slog.Logger
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.encoding.json.Results
 public import Net.Proof.models_lab.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Registered
 
 @[expose] public section
 
@@ -72,6 +73,14 @@ theorem vsrScanOk :
     ⊢ models_lab.jsoncodec.scanOk (GF := GF) examples.vsrnet.scanF models_lab.jsoncodec.scanFn :=
   models_lab.jsoncodec.scanOk_scanF
 
+/-- The kit's registered codec meets `codecPart vsrnet.jsonCodec`
+(`vsrnet.registeredCodecOk_of`, over `jsoncodec`'s helpers' proofs). -/
+theorem vsrRegisteredCodecOk : examples.vsrnet.registeredCodecOk (GF := GF) (hG := hG) :=
+  examples.vsrnet.registeredCodecOk_of models_lab.jsoncodec.AppendRaw.wp
+    models_lab.jsoncodec.AppendQuotedUint.wp models_lab.jsoncodec.AppendString.wp
+    models_lab.jsoncodec.At.wp models_lab.jsoncodec.Empty.wp models_lab.jsoncodec.Member.wp
+    models_lab.jsoncodec.Next.wp models_lab.jsoncodec.String.wp models_lab.jsoncodec.QuotedUint.wp
+
 theorem wp_Orch (h : LibHyps (GF := GF) (hG := hG)) : Orch.spec (GF := GF) (hG := hG) :=
   Orch.wp_proof EtcdGrove.remote.wp_Check CfgAddrs.wp_proof
     (Configure.wp_proof net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
@@ -83,9 +92,9 @@ theorem wp_Server (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
   Server.wp_proof CfgAddrs.wp_proof
     (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof
       net.Conn.Close.wp_proof h.conn_readerOk)
-    (runReplica.wp_proof log.slog.New.wp_proof log.slog.DiscardHandler.load_proof (j.codecOk (vsrScanOk (GF := GF) (hG := hG)))
+    (runReplica.wp_proof log.slog.New.wp_proof log.slog.DiscardHandler.load_proof (j.codecOk (vsrRegisteredCodecOk (GF := GF) (hG := hG)) (vsrScanOk (GF := GF) (hG := hG)))
       (wp_RegisterJSON encoding.json.SetCodec.wp)
-      (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame encoding.json.Unmarshal.wp (j.codecOk (vsrScanOk (GF := GF) (hG := hG)))))
+      (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame encoding.json.Unmarshal.wp (j.codecOk (vsrRegisteredCodecOk (GF := GF) (hG := hG)) (vsrScanOk (GF := GF) (hG := hG)))))
       (pkg.network.TCP.Run.wp log.slog.Debug.wp_proof j.newDecoder)
       pkg.network.TCP.Recv.wp
       examples.vsrkv.New.wp examples.vsrkv.Store.Handle_value.wp
@@ -93,18 +102,18 @@ theorem wp_Server (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
       (pkg.replica.Replica.Run.wp log.slog.Logger.Debug.wp_proof log.slog.Logger.Info.wp_proof
         log.slog.Logger.Warn.wp_proof log.slog.Logger.Error.wp_proof
         (pkg.network.TCP.Send.wp log.slog.Debug.wp_proof j.newDecoder)
-        (pkg.events.Event.ToWriter.wp j.NewEncoder j.Encode_conn (j.codecOk (vsrScanOk (GF := GF) (hG := hG)))))
+        (pkg.events.Event.ToWriter.wp j.NewEncoder j.Encode_conn (j.codecOk (vsrRegisteredCodecOk (GF := GF) (hG := hG)) (vsrScanOk (GF := GF) (hG := hG)))))
       pkg.replica.Replica.Submit.wp)
 
 theorem wp_Client (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) :=
-  Client.wp_proof (j.codecOk (vsrScanOk (GF := GF) (hG := hG)))
+  Client.wp_proof (j.codecOk (vsrRegisteredCodecOk (GF := GF) (hG := hG)) (vsrScanOk (GF := GF) (hG := hG)))
     (Op.wp_proof
       (pkg.client.Client.Request.wp (pkg.network.TCP.Send.wp log.slog.Debug.wp_proof j.newDecoder)
-        (fun jc => pkg.events.Event.ToWriter.wp (C := jc) j.NewEncoder j.Encode_conn (j.codecOk (vsrScanOk (GF := GF) (hG := hG)))))
+        (fun jc => pkg.events.Event.ToWriter.wp (C := jc) j.NewEncoder j.Encode_conn (j.codecOk (vsrRegisteredCodecOk (GF := GF) (hG := hG)) (vsrScanOk (GF := GF) (hG := hG)))))
       (pkg.client.Client.Submit.wp log.slog.Logger.Error.wp_proof)
       (pkg.client.Client.Run.wp (pkg.network.TCP.Send.wp log.slog.Debug.wp_proof j.newDecoder)
-        (fun jc => pkg.events.Event.ToWriter.wp (C := jc) j.NewEncoder j.Encode_conn (j.codecOk (vsrScanOk (GF := GF) (hG := hG))))
+        (fun jc => pkg.events.Event.ToWriter.wp (C := jc) j.NewEncoder j.Encode_conn (j.codecOk (vsrRegisteredCodecOk (GF := GF) (hG := hG)) (vsrScanOk (GF := GF) (hG := hG))))
         log.slog.Logger.Error.wp_proof log.slog.Logger.Debug.wp_proof)
       pkg.network.TCP.Recv.wp pkg.client.Client.CheckResult.wp)
     EtcdGrove.remote.wp_ServeClient
@@ -113,7 +122,7 @@ theorem wp_Client (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
       net.Conn.Close.wp_proof h.conn_readerOk)
     (mkClient.wp_proof
       (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame encoding.json.Unmarshal.wp
-        (j.codecOk (vsrScanOk (GF := GF) (hG := hG)))))
+        (j.codecOk (vsrRegisteredCodecOk (GF := GF) (hG := hG)) (vsrScanOk (GF := GF) (hG := hG)))))
       log.slog.New.wp_proof log.slog.DiscardHandler.load_proof (wp_RegisterJSON encoding.json.SetCodec.wp)
       pkg.time.NewReal.wp pkg.client.New.wp)
     Codec.wp_proof

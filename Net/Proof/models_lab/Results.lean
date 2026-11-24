@@ -6,7 +6,8 @@ notes/dsverify-net-port-plan.md), restated, with `#print axioms` of each (none b
   initialization; `Error_errAny` (a kept `*jsoncodec.Error` is some error); the scanner
   `SkipSpace`, `Scan` (`JsonScan.scanF`, `jsoncodec/Scan/Def.lean`) and the codec obligation
   `scanOk JsonScan.scanF scanFn` (`scanOk_scanF`); the decoding helpers `ValueEnd`, `At`, `Next`,
-  `Empty`, `Str`, `Member`, `Digits`, `Uint`, `QuotedUint`, `String` (at valid input);
+  `Empty`, `Str`, `Member`, `Digits`, `Uint`, `QuotedUint`, `String` (at valid input); the
+  encoding helpers `AppendUint`, `AppendQuotedUint`, `AppendString` (its plain subset);
 * `pbcodec`: `(*Error).Error`, its package initialization, and `Error_errAny`.
 
 The codec obligations (`pbcodec.PbCodec`, `marshalOk`, `unmarshalOk`; `jsoncodec.JsonCodec`,
@@ -26,6 +27,9 @@ public import Net.Proof.models_lab.jsoncodec.Error__Error
 public import Net.Proof.models_lab.jsoncodec.SkipSpace
 public import Net.Proof.models_lab.jsoncodec.Scan
 public import Net.Proof.models_lab.jsoncodec.ScanOk
+public import Net.Proof.models_lab.jsoncodec.AppendUint
+public import Net.Proof.models_lab.jsoncodec.AppendQuotedUint
+public import Net.Proof.models_lab.jsoncodec.AppendString
 public import Net.Proof.models_lab.jsoncodec.ValueEnd
 public import Net.Proof.models_lab.jsoncodec.At
 public import Net.Proof.models_lab.jsoncodec.Next
@@ -120,6 +124,18 @@ theorem jsoncodec.String.wp [jsoncodec.Assumptions] :
     jsoncodec.String.spec (GF := GF) (hG := hG) :=
   jsoncodec.String.wp_proof jsoncodec.At.wp jsoncodec.Str.wp
 
+theorem jsoncodec.AppendUint.wp [jsoncodec.Assumptions] :
+    jsoncodec.AppendUint.spec (GF := GF) (hG := hG) :=
+  jsoncodec.AppendUint.wp_proof
+
+theorem jsoncodec.AppendQuotedUint.wp [jsoncodec.Assumptions] :
+    jsoncodec.AppendQuotedUint.spec (GF := GF) (hG := hG) :=
+  jsoncodec.AppendQuotedUint.wp_proof jsoncodec.AppendUint.wp
+
+theorem jsoncodec.AppendString.wp [jsoncodec.Assumptions] :
+    jsoncodec.AppendString.spec (GF := GF) (hG := hG) :=
+  jsoncodec.AppendString.wp_proof
+
 /-- `jsoncodec.Scan` computes `JsonScan.scanF` (`jsoncodec.scanOk_of`, linked). -/
 theorem jsoncodec.scanOk_scanF [jsoncodec.Assumptions] :
     ⊢ jsoncodec.scanOk (GF := GF) JsonScan.scanF jsoncodec.scanFn :=
@@ -154,6 +170,9 @@ end Perennial
 #print axioms Perennial.models_lab.jsoncodec.SkipSpace.wp
 #print axioms Perennial.models_lab.jsoncodec.Scan.wp
 #print axioms Perennial.models_lab.jsoncodec.scanOk_scanF
+#print axioms Perennial.models_lab.jsoncodec.AppendUint.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendQuotedUint.wp
+#print axioms Perennial.models_lab.jsoncodec.AppendString.wp
 #print axioms Perennial.models_lab.jsoncodec.ValueEnd.wp
 #print axioms Perennial.models_lab.jsoncodec.At.wp
 #print axioms Perennial.models_lab.jsoncodec.Next.wp

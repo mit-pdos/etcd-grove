@@ -5,8 +5,11 @@ one place. Nothing else in the kit's proof states a JSON premise; the machines' 
 arguments and `Link.lean` passes `JsonHyps`' fields. The package `encoding/json` is the main tree's
 (the model, J1/J2/J3 of mit-pdos/etcd-grove#24; its initializer is proved, and so is its first run
 on a machine, which leaves the registry fresh: `BootLinked.lean`). Proved, not premises: the main
-tree's `Unmarshal.spec` (`Unmarshal.wp`) and `SetCodec.spec` (`SetCodec.wp`), and the kit's
-`RegisterJSON()` (`KitLib.lean`, from the boot's `codecFresh`).
+tree's `Unmarshal.spec` (`Unmarshal.wp`) and `SetCodec.spec` (`SetCodec.wp`), the kit's
+`RegisterJSON()` (`KitLib.lean`, from the boot's `codecFresh`), and (round 8) the registered
+codec, `vsrnet.registeredCodecOk` (`Proof/vsrnetjson/Registered.lean`) with `jsoncodec.Scan`'s
+`scanOk` (`Net/Proof/models_lab/jsoncodec/ScanOk.lean`), which `codecOk` below takes from
+`Link.lean`.
 
 * Data (no instance anywhere; universally quantified at the statement): the model's `*Decoder`
   and `*Encoder` representations, the main tree's `encoding.json.DecoderRep GF` and
@@ -22,10 +25,6 @@ tree's `Unmarshal.spec` (`Unmarshal.wp`) and `SetCodec.spec` (`SetCodec.wp`), an
     (`Spec/events.lean`): `json.NewDecoder` over a connection and `Decoder.Decode` of a
     `vsrwire.Frame` (over the dispatch `unmarshalVia` at the frame), stated at go-vsr's stream
     (`events.rstream` over `DecoderRep`). The main tree has no `NewDecoder`/`Decode` spec yet.
-  - `codec`: `vsrnet.registeredCodecOk` (`Spec/json.lean`): the kit's registered codec
-    (`jsonMarshal`, `jsonUnmarshal`, jsongen's, for the unnamed roots) meets
-    `codecPart vsrnet.jsonCodec` (`marshalOk`, `unmarshalOk`; the scanner's part of
-    `codecOkWith`, `scanOk`, is proved: `Net/Proof/models_lab/jsoncodec/ScanOk.lean`).
   - `types`: `vsrnet.TypeCodecs` (`Spec/json.lean`): the kit's named types' own `JSONModel*`
     methods (jsongen's same-package mode) meet `vsrnet.jsonCodec` where it gives a deposit (13
     fields: `*Event`'s `JSONModelMarshalPtr`, the 11 payloads' and `Frame`'s
@@ -72,15 +71,15 @@ structure JsonHyps : Prop where
   Encode_conn : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
   newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG)
   Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG)
-  codec : examples.vsrnet.registeredCodecOk (GF := GF) (hG := hG)
   types : examples.vsrnet.TypeCodecs (GF := GF) (hG := hG)
 
 /-- The kit's JSON facts (`vsrnet.codecOk`: what the proofs take), from the premises. -/
 theorem JsonHyps.codecOk (j : JsonHyps (GF := GF) (hG := hG))
+    (hc : examples.vsrnet.registeredCodecOk (GF := GF) (hG := hG))
     (hs : ⊢ models_lab.jsoncodec.scanOk (GF := GF) examples.vsrnet.scanF
       models_lab.jsoncodec.scanFn) :
     examples.vsrnet.codecOk (GF := GF) (hG := hG) :=
-  examples.vsrnet.codecOk_of j.codec hs j.types
+  examples.vsrnet.codecOk_of hc hs j.types
 
 end hyps
 
