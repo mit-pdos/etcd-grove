@@ -11,6 +11,7 @@ permission, which comes back. Lean-first (no Rocq counterpart); the legacy count
 -/
 module
 
+public import Proof.os.IgnoringEINTR
 public import Spec.os.OpenFileS
 public import Proof.os.File__Close
 public import Proof.os.SharedExt
@@ -143,7 +144,7 @@ theorem os.OpenFile.wp_dirErrS (p : GoString) (perm : w32) (R : Roots) (j : Ino)
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp HΦ
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -207,7 +208,7 @@ theorem os.OpenFile.wp_dirS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (d
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp HΦ
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls

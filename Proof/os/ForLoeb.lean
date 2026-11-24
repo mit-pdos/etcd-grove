@@ -110,7 +110,7 @@ end wp_for_loeb
 set_option hygiene false in
 /-- `wp_for_bind`: bind the `doFor` loop at the head of the goal (then `iloeb as IH generalizing
 ...` and `wp_for_step`). -/
-macro "wp_for_bind" : tactic => `(tactic| wp_bind (App (App (App (Val doFor) _) _) _))
+macro "wp_for_bind" : tactic => `(tactic| ((try wp_auto); wp_bind (App (App (App (Val doFor) _) _) _)))
 
 set_option hygiene false in
 /-- `wp_for_step`: one iteration of the `doFor` loop at the head of the goal (`wp_for_loeb`). At

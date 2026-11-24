@@ -10,6 +10,7 @@ tell a missing WAL directory from a present one (`errors.Is(err, os.ErrNotExist)
 -/
 module
 
+public import Proof.os.IgnoringEINTR
 public import Proof.os.NsAbsentS
 
 @[expose] public section
@@ -49,7 +50,7 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
   iloeb as IH generalizing Hperm Hp Hn HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls

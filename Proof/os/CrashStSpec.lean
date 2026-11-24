@@ -8,6 +8,7 @@ reached (`WReach`), with the bytes written so far (`fin_vals`); a truncate's a s
 -/
 module
 
+public import Proof.os.IgnoringEINTR
 public import Proof.os.ForLoeb
 public import Spec.os.CrashSt
 public import Proof.golang_org.x.sys.unix.Munmap
@@ -34,11 +35,13 @@ theorem syscall.Fdatasync.wp_proof_crashS [syscall.Assumptions] :
   intro fd dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
   wp_start as ⟨#Hos, #Hinv, Hfd, Hown⟩
   try wp_auto
-  wp_stub os.fsFsync.impl
+  wp_stub syscall.fsFsync.impl
   wp_apply wp_osFsync_cs fd dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
     $$ Hos Hinv Hfd Hown
     as %e Hr Hfd
-  iapply wp_errno
+  try wp_auto
+  wp_apply wp_errnoErr
+  try wp_auto
   iapply HΦ
   iframe Hfd
   icases Hr with (⟨%he, H⟩ | ⟨%he, H⟩)
@@ -190,7 +193,7 @@ theorem os.OpenFile.wp_proof_crashS :
     imod osPathS_root R d j (DFrac.own 1) hdj CoPset.subseteq_top $$ Hsi with Hp
     icases osCallPerm_child R d b _ j q $$ Hp Hperm with ⟨Hp, Hperm⟩
     try wp_auto
-    wp_stub os.fsOpen.impl
+    wp_open_stub
     wp_apply wp_osCallBeginS R (child d b) q h.next CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hperm Hlb as %t %s0 %hs0 Hk -
     rw [os.file_ty_eq, os.File_ty_eq,
@@ -253,7 +256,7 @@ theorem os.OpenFile.wp_proof_crashS :
     imod osPathS_root R d j (DFrac.own 1) hdj CoPset.subseteq_top $$ Hsi with Hp
     icases osCallPerm_child R d b _ j q $$ Hp Hperm with ⟨Hp, Hperm⟩
     try wp_auto
-    wp_stub os.fsOpen.impl
+    wp_open_stub
     wp_apply wp_osCallBeginS R (child d b) q h.next CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hperm Hlb as %t %s0 %hs0 Hk -
     rw [os.file_ty_eq, os.File_ty_eq,

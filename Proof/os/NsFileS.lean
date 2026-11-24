@@ -8,6 +8,7 @@ os.ErrNotExist)`). Lean-first.
 -/
 module
 
+public import Proof.os.IgnoringEINTR
 public import Proof.os.ForLoeb
 public import Proof.os.NsChildS
 public import GooseLang.Ext.Fs.TreeSharedOpenFileN
@@ -52,7 +53,7 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
   iloeb as IH generalizing Hperm Hp Hn HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls

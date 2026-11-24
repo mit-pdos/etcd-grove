@@ -8,6 +8,7 @@ may pass through (`WIn`, `wIn_fin`), whose crashes the caller's `WriteOk` covers
 -/
 module
 
+public import Proof.os.IgnoringEINTR
 public import Proof.os.ForLoeb
 public import Spec.os.Crash
 
@@ -32,9 +33,11 @@ theorem syscall.Fdatasync.wp_proof_crash [syscall.Assumptions] :
   intro fd dq d N p R γ Good m bs hN hok
   wp_start as ⟨#Hos, #Hinv, Hfd, Hown⟩
   try wp_auto
-  wp_stub os.fsFsync.impl
+  wp_stub syscall.fsFsync.impl
   wp_apply wp_osFsync_cf fd dq d N p R γ Good m bs hN hok $$ Hos Hinv Hfd Hown as %e Hr Hfd
-  iapply wp_errno
+  try wp_auto
+  wp_apply wp_errnoErr
+  try wp_auto
   iapply HΦ
   iframe Hfd
   icases Hr with (⟨%he, H⟩ | ⟨%he, H⟩)
@@ -52,7 +55,9 @@ theorem os.OpenFile.wp_proof_crash :
     rw [hs']) $$ Hown
   have hm : OpenInv s s' := .inl hs'
   clear hs'
+  wp_for_bind
   iloeb as IH generalizing %s' %hm Hperm Hown HΦ
+  wp_for_step
   rcases s' with _ | ⟨i, y⟩
   · -- nothing at the path: an attempt to create it
     obtain rfl : s = none := by
@@ -67,7 +72,7 @@ theorem os.OpenFile.wp_proof_crash :
     imod osPathS_root R d j (DFrac.own 1) hdj CoPset.subseteq_top $$ Hsi with Hp
     icases osCallPerm_child R d b _ j q $$ Hp Hperm with ⟨Hp, Hperm⟩
     try wp_auto
-    wp_stub os.fsOpen.impl
+    wp_open_stub
     wp_apply wp_osCallBeginS R (child d b) q h.next CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hperm Hlb as %t %s0 %hs0 Hk -
     rw [os.file_ty_eq, os.File_ty_eq,
@@ -86,6 +91,7 @@ theorem os.OpenFile.wp_proof_crash :
       ipersist name
       ipersist f
       imodintro
+      wp_for_post
       iapply HΦ
       iframe Hperm
       ileft
@@ -114,6 +120,7 @@ theorem os.OpenFile.wp_proof_crash :
         wp_apply os.wp_modelErrno
         try wp_auto
         wp_apply os.wp_modelPathError
+        wp_for_post
         iapply HΦ
         iframe Hperm
         iright
@@ -130,7 +137,7 @@ theorem os.OpenFile.wp_proof_crash :
     imod osPathS_root R d j (DFrac.own 1) hdj CoPset.subseteq_top $$ Hsi with Hp
     icases osCallPerm_child R d b _ j q $$ Hp Hperm with ⟨Hp, Hperm⟩
     try wp_auto
-    wp_stub os.fsOpen.impl
+    wp_open_stub
     wp_apply wp_osCallBeginS R (child d b) q h.next CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hperm Hlb as %t %s0 %hs0 Hk -
     rw [os.file_ty_eq, os.File_ty_eq,
@@ -158,6 +165,7 @@ theorem os.OpenFile.wp_proof_crash :
       ipersist f
       imodintro
       have hfd0 : 0 ≤ fd.toInt := by rcases hres with ⟨-, h⟩ | ⟨h, -⟩; exact h; exact absurd rfl h
+      wp_for_post
       iapply HΦ
       iframe Hperm
       ileft
@@ -178,12 +186,15 @@ theorem os.OpenFile.wp_proof_crash :
         try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
-        iapply IH $$ %_ %hm Hperm Hown HΦ
+        wp_for_post
+        inext
+        iapply IH $$ %_ %hm Hperm Hown HΦ [$] [$] [$] [$] [$]
       · rw [decide_eq_false he4]
         try wp_auto
         wp_apply os.wp_modelErrno
         try wp_auto
         wp_apply os.wp_modelPathError
+        wp_for_post
         iapply HΦ
         iframe Hperm
         iright
@@ -234,8 +245,10 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
   ihave Hown := (show cfOwn (GF := GF) p R γ (some (d.ino, m, bs, none)) ⊢
     cfOwn p R γ (some (d.ino, m', bs', none)) by rw [hm', hbs']) $$ Hown
   clear hm' hbs' hnnv hw0
+  wp_for_bind
   iloeb as IH generalizing %m' %bs' %nnv %w %hIn %hnn %hnw %hw %hS %hpre Hown Hosfd Hsl
     Hfd HΦ
+  wp_for_step
   -- one attempt, from `nn`
   have hnnz : sint.Z nnv = nnv.toNat := by
     simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_of_lt (by omega)]
@@ -297,8 +310,10 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_pure
+    wp_for_post
+    inext
     iapply IH $$ %_ %_ %nnv %(max w (nnv.toNat + k)) %hIn' %hnn %(by omega) %(by omega) %hS''
-      %hpre' Hown Hosfd Hsl Hfd HΦ
+      %hpre' Hown Hosfd Hsl Hfd HΦ [$] [$] [$] [$] [$]
   · rw [decide_eq_false he4]
     try wp_auto
     have hWk : (W64 k).toNat = k := by
@@ -314,6 +329,7 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
       by_cases he0 : e = W64 0
       · rw [decide_eq_true he0]
         try wp_auto
+        wp_for_post
         iapply HΦ
         iframe
         isplitl []
@@ -325,6 +341,7 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         simp only [decide_eq_false he0, Bool.not_false]
         try wp_auto
         wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_for_post
         iapply HΦ
         iframe
         isplitl []
@@ -341,12 +358,15 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         have hne : nnv.toNat + k ≠ data.length := by
           intro hc; apply hfull; apply BitVec.eq_of_toNat_eq
           rw [hnk, hsln]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
+        wp_for_post
+        inext
         iapply IH $$ %_ %_ %(nnv + W64 k) %(max w (nnv.toNat + k)) %hIn' %(by rw [hnk]; omega)
-          %(by rw [hnk]; omega) %(by omega) %hS'' %hpre' Hown Hosfd Hsl Hfd HΦ
+          %(by rw [hnk]; omega) %(by omega) %hS'' %hpre' Hown Hosfd Hsl Hfd HΦ [$] [$] [$] [$] [$]
       · rw [decide_eq_false he0]
         simp only [Bool.not_false]
         try wp_auto
         wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_for_post
         iapply HΦ
         iframe
         isplitl []

@@ -6,6 +6,7 @@ read-only (an outside fd, `osOutFd`, or an error), and `Sync`/`Close` of such an
 -/
 module
 
+public import Proof.os.IgnoringEINTR
 public import Proof.internal.gomodel.LocalChoose
 public import Proof.os.NsS
 public import Proof.os.PathKindS
@@ -126,7 +127,7 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing HΦ
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginAboveS R _ hp 0 CoPset.subseteq_top CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hab Hlb as %t %s0 %qc %hs Hk Hls
   iclear Hls

@@ -7,6 +7,7 @@ can fail on the path (`FsNoErrAt`): so `fileutil.Exist` of a covered path holdin
 -/
 module
 
+public import Proof.os.IgnoringEINTR
 public import Proof.internal.gomodel.LocalChoose
 public import Proof.os.StatS
 public import Proof.os.RemoveAllNE
@@ -54,7 +55,7 @@ theorem os.model.wp_stat_dirSW (op p : GoString) (R : Roots) (J : Ino) (dq : DFr
   try wp_auto
   iloeb as IH generalizing Hperm Hp HΦ
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -148,7 +149,7 @@ theorem os.model.wp_stat_fileAnySW (op d b : GoString) (R : Roots) (j i : Ino) (
   iloeb as IH generalizing Hperm Hp Hn HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls

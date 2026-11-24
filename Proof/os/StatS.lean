@@ -12,6 +12,7 @@ counterpart).
 -/
 module
 
+public import Proof.os.IgnoringEINTR
 public import Proof.internal.gomodel.LocalChoose
 public import Spec.os.OpenFileS
 public import Proof.os.SharedExt
@@ -60,7 +61,7 @@ theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFra
   try wp_auto
   iloeb as IH generalizing Hperm Hp HΦ
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -146,7 +147,7 @@ theorem os.model.wp_stat_absentS (op d b : GoString) (R : Roots) (j : Ino) (N : 
   iloeb as IH generalizing Hperm Hp Hn HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -199,7 +200,7 @@ theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : 
   iloeb as IH generalizing Hperm Hp Hn Hm HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   try wp_auto
-  wp_stub os.fsOpen.impl
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls

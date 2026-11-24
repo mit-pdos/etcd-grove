@@ -49,14 +49,6 @@ def os.mkdirAttempt (p : GoString) (I : IProp GF) (Ψ : w64 → IProp GF) : IPro
     (∀ e : w64, ((⌜e = W64 4⌝ ∗ I) ∨ (⌜e ≠ W64 4⌝ ∗ Ψ e)) -∗ Φ #e) -∗
     WP (App (App (Val (@! syscall.fsMkdir)) (Val #p)) (Val #m)) {{ Φ }})
 
-/-- `syscallMode(m)`: some mode. -/
-theorem os.wp_syscallMode (m : w32) :
-    {{ (True : IProp GF) }} (App (Val (@! os.syscallMode)) (Val #m)) {{ (o : w32), RET #o; True }} := by
-  wp_start as -
-  try wp_auto
-  repeat (first | (wp_if_destruct <;> try wp_auto) | skip)
-  all_goals (iapply HΦ; try itrivial)
-
 /-- **`os.Mkdir(p)` below a root** (`PathKind` is `1`): attempts (`os.mkdirAttempt`) until one does
 not return `EINTR`; its errno `e` gives the result: `nil` for 0, else a `*PathError`. -/
 theorem os.Mkdir.wp_tree (R : Roots) (p : GoString) (perm : w32) (I : IProp GF) (Ψ : w64 → IProp GF)
