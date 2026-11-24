@@ -79,8 +79,17 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   have hlen : ∀ k, (U.initMap.lookup k).isSome → (U.initURLs k).length ≤ 2 ^ 62 := by
     intro k hk
     have hkd : k ∈ U.initMap.domList := (GMap.mem_dom_list _ _).2 hk
-    have : (U.initURLs k).length ≤ (U.initMap.domList.map (fun k => (U.initURLs k).length)).sum :=
-      List.le_sum_of_mem (List.mem_map_of_mem hkd)
+    have hle : ∀ l : List GoString, k ∈ l → (U.initURLs k).length ≤
+        (l.map (fun k => (U.initURLs k).length)).sum := by
+      intro l hl
+      induction l with
+      | nil => cases hl
+      | cons a l ih =>
+        rw [List.map_cons, List.sum_cons]
+        rcases List.mem_cons.1 hl with rfl | h
+        · omega
+        · have := ih h; omega
+    have := hle _ hkd
     omega
   wp_start as ⟨#Hzlg, #Hro, Hrt⟩
   iunfold bootCfgRO at Hro
