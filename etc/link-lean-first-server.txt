@@ -97,6 +97,7 @@ concurrentReadTx__UnsafeRange: @
 readTx__RLock: @
 readTx__RUnlock: @
 readTx__UnsafeRange: @
+readTx__UnsafeForEach: @
 batchTxBuffered__LockInsideApply: @
 batchTxBuffered__LockOutsideApply: @
 batchTxBuffered__UnsafeSeqPut: @
@@ -214,9 +215,14 @@ EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
-# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8): `restore` is
-# the trust boundary (names-only).
-AlarmStore__restore:
+# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8); (prove-ps2-v3alarm,
+# 2026-11-24) `restore` with its body (the trust boundary until then), over schema's alarm backend, with
+# its bodies, over the backend's specs (the read through `readTx`: the idle-read law, backend/IdleRead.lean)
+schema_alarmBackend__CreateAlarmBucket: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+schema_alarmBackend__unsafeGetAllAlarms: readTx__UnsafeForEach schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+schema_alarmBackend__GetAllAlarms: backend__ReadTx readTx__RLock readTx__RUnlock schema_alarmBackend__unsafeGetAllAlarms
+schema_alarmBackend__ForceCommit: backend__ForceCommit
+AlarmStore__restore: schema_alarmBackend__CreateAlarmBucket schema_alarmBackend__GetAllAlarms schema_alarmBackend__ForceCommit
 AlarmStore__Recover: AlarmStore__restore
 # (the trust boundary, continued)
 RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
@@ -367,8 +373,17 @@ EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
 # auth-mediation M2 (2026-11-20): the other member operations, over the names-only callees taken as
 # contracts (`MemberContracts.lean`), and `json.Marshal`'s trust-boundary specs
-json_MarshalMember:
-json_MarshalConfigChangeContext:
+# (#24 J2, 2026-11-23) proved over the encoding/json model's `Marshal` (its per-type dispatch) and
+# membership's generated `JSONModelMarshal` methods (jsongen, `json_model_gen.go`), over jsoncodec's
+# proved encoders (`Net/Proof/models_lab/Results.lean`)
+membership_jenc_S_string: =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp
+membership_jenc_Member: membership_jenc_S_string =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp =_root_.Perennial.models_lab.jsoncodec.AppendUint.wp =_root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+membership_jenc_ConfigChangeContext: membership_jenc_S_string =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp =_root_.Perennial.models_lab.jsoncodec.AppendUint.wp =_root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+Member__JSONModelMarshal: membership_jenc_Member
+Member__JSONModelMarshalPtr: membership_jenc_Member
+ConfigChangeContext__JSONModelMarshal: membership_jenc_ConfigChangeContext
+json_MarshalMember: =_root_.Perennial.encoding.json.Marshal.wp Member__JSONModelMarshal
+json_MarshalConfigChangeContext: =_root_.Perennial.encoding.json.Marshal.wp ConfigChangeContext__JSONModelMarshal
 EtcdServer__AddMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
 EtcdServer__UpdateMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
 EtcdServer__promoteMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalConfigChangeContext

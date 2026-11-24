@@ -53,7 +53,6 @@ entry Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof 7:Φ:GoString×
 entry Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.storage.OpenBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
-entry Perennial.EtcdGrove.v3alarm.AlarmStore.restore.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 3:Pre:produced2/consumed1  as v3alarm.NewAlarmStore's: Pre is bound in the produced `authApplyOk` → `isAuthStore`; the hook path and the no-lock path are exclusive, so the two productions are one `Pre` on one of them (reason rewritten 2026-11-12, stage B gate triage)
 entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 7:RD:IPropGF  the auth store's reader permit: its copies are produced together with the handles that alone use it (`isReqAuth st RD`, `authApplyOk stl RD`, each call consuming a copy and returning it), the Scope's rule 7 first case (§5.1, "`NewAuthStore`'s `RD` inside `isReqAuth`"), which the walk does not recognize through the defined handles
@@ -124,5 +123,4 @@ trunc Perennial.EtcdGrove.membership.RaftCluster.Recover.wp_proof
 trunc Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof
-trunc Perennial.EtcdGrove.v3alarm.AlarmStore.restore.wp_proof
 trunc Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof

@@ -145,10 +145,8 @@ THE EMITTED CODE. Marshal (jsonMarshal; jencAny on the argument, by its dynamic 
   - bool: `true`/`false`; integers: decimal, `-` for negatives (v2_encode.go:55-57;
     `v2/arshal_default.go`:467-489, strconv.AppendInt/AppendUint); with the `string` option, the
     same in quotes (v2_encode.go:127-132);
-  - string: the bytes in quotes (jsoncodec.AppendString), for strings of bytes 0x20..0x7e other
-    than `"`, `\\`, `<`, `>`, `&`: real encoding/json writes exactly those bytes for them; any
-    other string panics (NotModelled: escaping, UTF-8 coercion and HTML escaping, v2_encode.go:60-67,
-    are not reproduced);
+  - string: jsoncodec.AppendString, real encoding/json's escaping of every string (HTML and
+    U+2028/U+2029 escapes, U+FFFD for invalid UTF-8: v2_encode.go:60-67, jsonwire.AppendQuote);
   - a slice: `null` if nil, else `[`, the elements separated by `,`, `]` (v2_encode.go:69-71);
   - a struct: `{`, then per flattened field in index order (EMBEDDED FIELDS) that is not behind a
     nil embedded pointer and not omitted, `"name":` and the value, separated by `,`, then `}`
