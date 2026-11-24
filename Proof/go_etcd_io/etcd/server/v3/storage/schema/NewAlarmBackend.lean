@@ -27,6 +27,7 @@ theorem schema.NewAlarmBackend.wp_proof : schema.NewAlarmBackend.spec (GF := GF)
   wp_start
   wp_auto
   wp_alloc l as Hl
+  ihave %Hlnn := typedPointsto_not_null _ _ _ $$ Hl
   iStructNamed Hl
   ipersist lg
   ipersist be
@@ -34,7 +35,7 @@ theorem schema.NewAlarmBackend.wp_proof : schema.NewAlarmBackend.spec (GF := GF)
   iapply HΦ
   iexists l
   iframe #
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, Hlnn⟩
 
 end proof
 
