@@ -640,8 +640,6 @@ theorem wsElems_atIdx_sw (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNa
   · iintro H
     iapply (BigSepM.bigSepM_mono (fun {ws _} _ => wsElem_atIdx_nil V G n γs S ws i hD)) $$ H
   · rw [hV]
-    iintro H
-    iexact H
 
 /-- **A substream neither registered nor queued across a reconnection** (server-cancelled, refused,
 or closed): its state of the next generation (`closedRun` becomes `closed`). -/

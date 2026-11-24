@@ -111,7 +111,7 @@ theorem watchGRPCStream.run.wp_proof
   iapply (wp_wand_r (Φ := fun v => iprop(⌜v = #()⌝ ∗ ∃ mi : Nat, isWGS (V0.atIdx mi) G callSl ∗
     client.runExit (V0.atIdx mi) G closeErr_ptr clm)))
   isplitl [Hsub Hm0 Hres Hs0 HcE Hrc Hrcb Hgen Hrcons Hprod0 Hep0 Hdn Had Htt Hwsa wc closeErr Hclm]
-  · wp_apply wp_newWC V0 G callSl m0 s0 rc γrc 0 [] [] (StreamNames.mk G.γws G.γws G.γws G.γws G.γws G.γws G.γws)
+  · wp_apply wp_newWC V0 G callSl m0 s0 rc γrc 0 [] [] (StreamNames.mk G.γws G.γws G.γws G.γws G.γws G.γws G.γws G.γws)
       client.RunSt.init ∅ $$ [Hsub Hm0 Hres Hs0 Hrc Hrcb Hgen Hprod0 Hep0 Hwsa Had Htt]
       as %wcv %err ⟨%m1, %s1, %rc1, %γrc1, %l1, Hsub, Hm1, Hres, Hs1, Hrc, Hrcb, Hgen, %HgOk0, Hwsa,
         Hels0, Had, Htt, Hcase⟩
@@ -132,7 +132,7 @@ theorem watchGRPCStream.run.wp_proof
       isplitr
       · iapply (client.isWGS_atIdx V0 G callSl mi0 hmi0) $$ HG0
       unfold client.runExit
-      iexists (StreamNames.mk G.γws G.γws G.γws G.γws G.γws G.γws G.γws), client.RunSt.init.reconnect l1, ∅,
+      iexists (StreamNames.mk G.γws G.γws G.γws G.γws G.γws G.γws G.γws G.γws), client.RunSt.init.reconnect l1, ∅,
         GoInterface.ok ei, GoInterface.nil, m1, s1, 1
       simp only [client.RunSt.init, client.RunSt.reconnect]
       iframe
