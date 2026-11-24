@@ -358,3 +358,8 @@ use `flock /tmp/ant4-build.lock` and `etc/lean-check.py` (server class) rather t
    `RunCluster` (allocation of `AntNames`, `antSim_init`, the boot reports, the goroutines, the end:
    `antInv`'s swap to the three `nodeLive`), `Main`, then `Results.lean` (`raft_antithesis_accepts`),
    adequacy and `Proof/.../TopLevelRobustness.lean`.
+
+**Raft-side items found by the Sim proofs (end of session 2):** `InputEnd`'s `HeartbeatOk` must also say a
+heartbeat's `index = 0`, `logterm = 0`, `entries = []` (Go's `sendHeartbeat` sets only `To`, `Type`,
+`Commit`, `Context`), which `Sim/Rel.lean`'s `PendOk` now uses for a `send hb`; strengthen it and
+`InputEndLift.lean`'s proofs. `Ready`'s queue is up to permutation (`≡ₚ`; `ReadyOutP` matches).
