@@ -17,6 +17,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `context.WithCancel`'s `cancel` does not say `Err()` returns `Canceled` (2026-11-24, grpc-trusted-T, T4)
+
+- **Limitation.** Perennial's `context.WithCancel.spec` gives the cancel function's post `ContextClosed γ'`
+  only, and `isContext`'s `Err()` contract says a done context's error is `Canceled`'s or
+  `DeadlineExceeded`'s value (`isCtxErr`), never which. A call grpc fails with `codes.Canceled` because
+  its context's `Err()` is `context.Canceled` (`toRPCErr`), not `DeadlineExceeded`.
+- **Who needs it.** The gRPC driver's `ctx-canceled` section (`ctx, cancel := WithCancel(Background());
+  cancel(); c.Echo(ctx, …)` must fail with `Canceled`), through `grpcInvokerDone`'s premise
+  `ctxCanceledIs ctx` (`Proof/google_golang_org/grpc/InvGrpc.lean`: a `*cancelCtx` whose `Err()` stably
+  returns `Canceled`'s value).
+- **Workaround here.** None yet: the premise is stated; the driver cannot produce it until Perennial does.
+- **Proposed change.** `cancel()`'s post also gives that the new context's `Err()` returns `Canceled`'s
+  value on every call when the parent was not done first (for instance a parent whose `PDone` is `False`,
+  `Background()`'s): `cancelCtx.cancel` stores `Canceled` only if `err` is unset, and `propagateCancel`
+  sets the parent's error only if the parent finishes first. General: any program that tells a cancelled
+  context from an expired one needs it.
+- **Status.** Open (not started).
+
 ### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
 ### `runtime.callers` may fill its buffer every time: `zap.Stack` cannot be proved (2026-11-23, zap-z2, claim #40)
 
