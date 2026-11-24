@@ -36,14 +36,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-! ## `LeaseGrant` -/
 
-/-- **The store of a lease-grant request**: its `TTL` and `ID`. -/
-def leaseGrantReqTree (m : w64 × w64) : VTree :=
-  .strct etcdserverpb.LeaseGrantRequest.ty [(go!"TTL", go.int64), (go!"ID", go.int64)]
-    [.leaf #m.1, .leaf #m.2]
-
 /-- **`pbLeaseGrantRequest` with its store.** -/
 def pbLeaseGrantRequestT : ProtoMsgT GF :=
-  { pbLeaseGrantRequest with tree := leaseGrantReqTree }
+  { pbLeaseGrantRequest with }
 
 /-- **`pbLeaseGrantRequestT`'s request model is satisfiable.** -/
 theorem pbLeaseGrantRequestT_reqSat : (pbLeaseGrantRequestT (GF := GF)).ReqSat := by
@@ -92,16 +87,9 @@ theorem pbLeaseGrantRequestT_wireLen_ok :
     ∃ m, (pbLeaseGrantRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨(0, 0), by simp [pbLeaseGrantRequestT, pbLeaseGrantRequest, wireSlack, grpcMsgMax]⟩
 
-/-- **The store of a lease-grant response**: its header, `ID`, `TTL`, `Error`. -/
-def leaseGrantRespTree (m : LeaseGrantRespM) : VTree :=
-  .strct etcdserverpb.LeaseGrantResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty), (go!"ID", go.int64),
-     (go!"TTL", go.int64), (go!"Error", go.string)]
-    [hdrTree m.hdr, .leaf #m.id, .leaf #m.ttl, .leaf #m.err]
-
 /-- **`pbLeaseGrantResponse` with its store.** -/
 def pbLeaseGrantResponseT : ProtoMsgT GF :=
-  { pbLeaseGrantResponse with tree := leaseGrantRespTree }
+  { pbLeaseGrantResponse with }
 
 /-- **`pbLeaseGrantResponseT`'s reply model is satisfiable.** -/
 theorem pbLeaseGrantResponseT_repSat : (pbLeaseGrantResponseT (GF := GF)).RepSat := by
@@ -156,13 +144,9 @@ theorem pbLeaseGrantResponseT_repSat : (pbLeaseGrantResponseT (GF := GF)).RepSat
 
 /-! ## `LeaseRevoke` -/
 
-/-- **The store of a lease-revoke request**: its `ID`. -/
-def leaseRevokeReqTree (id : w64) : VTree :=
-  .strct etcdserverpb.LeaseRevokeRequest.ty [(go!"ID", go.int64)] [.leaf #id]
-
 /-- **`pbLeaseRevokeRequest` with its store.** -/
 def pbLeaseRevokeRequestT : ProtoMsgT GF :=
-  { pbLeaseRevokeRequest with tree := leaseRevokeReqTree }
+  { pbLeaseRevokeRequest with }
 
 /-- **`pbLeaseRevokeRequestT`'s request model is satisfiable.** -/
 theorem pbLeaseRevokeRequestT_reqSat : (pbLeaseRevokeRequestT (GF := GF)).ReqSat := by
@@ -211,14 +195,9 @@ theorem pbLeaseRevokeRequestT_wireLen_ok :
     ∃ m, (pbLeaseRevokeRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨(0 : w64), by simp [pbLeaseRevokeRequestT, pbLeaseRevokeRequest, wireSlack, grpcMsgMax]⟩
 
-/-- **The store of a lease-revoke response**: its header. -/
-def leaseRevokeRespTree (m : LeaseRevokeRespM) : VTree :=
-  .strct etcdserverpb.LeaseRevokeResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty)] [hdrTree m.hdr]
-
 /-- **`pbLeaseRevokeResponse` with its store.** -/
 def pbLeaseRevokeResponseT : ProtoMsgT GF :=
-  { pbLeaseRevokeResponse with tree := leaseRevokeRespTree }
+  { pbLeaseRevokeResponse with }
 
 /-- **`pbLeaseRevokeResponseT`'s reply model is satisfiable.** -/
 theorem pbLeaseRevokeResponseT_repSat : (pbLeaseRevokeResponseT (GF := GF)).RepSat := by
@@ -270,14 +249,9 @@ theorem pbLeaseRevokeResponseT_repSat : (pbLeaseRevokeResponseT (GF := GF)).RepS
 
 /-! ## `LeaseTimeToLive` -/
 
-/-- **The store of a lease time-to-live request**: its `ID` and `Keys`. -/
-def leaseTTLReqTree (m : w64 × Bool) : VTree :=
-  .strct etcdserverpb.LeaseTimeToLiveRequest.ty [(go!"ID", go.int64), (go!"Keys", go.bool)]
-    [.leaf #m.1, .leaf #m.2]
-
 /-- **`pbLeaseTimeToLiveRequest` with its store.** -/
 def pbLeaseTimeToLiveRequestT : ProtoMsgT GF :=
-  { pbLeaseTimeToLiveRequest with tree := leaseTTLReqTree }
+  { pbLeaseTimeToLiveRequest with }
 
 /-- **`pbLeaseTimeToLiveRequestT`'s request model is satisfiable.** -/
 theorem pbLeaseTimeToLiveRequestT_reqSat : (pbLeaseTimeToLiveRequestT (GF := GF)).ReqSat := by
@@ -327,18 +301,9 @@ theorem pbLeaseTimeToLiveRequestT_wireLen_ok :
   ⟨(0, false), by simp [pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveRequest, wireSlack,
     grpcMsgMax]⟩
 
-/-- **The store of a lease time-to-live response**: its header, `ID`, `TTL`, `GrantedTTL`; its
-`Keys` `nil` (the model does not carry them: see the file header). -/
-def leaseTTLRespTree (m : LeaseTTLRespM) : VTree :=
-  .strct etcdserverpb.LeaseTimeToLiveResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty), (go!"ID", go.int64),
-     (go!"TTL", go.int64), (go!"GrantedTTL", go.int64),
-     (go!"Keys", go.GoType.SliceType (go.GoType.SliceType go.byte))]
-    [hdrTree m.hdr, .leaf #m.id, .leaf #m.ttl, .leaf #m.grantedTtl, .leaf #slice.nil]
-
 /-- **`pbLeaseTimeToLiveResponse` with its store.** -/
 def pbLeaseTimeToLiveResponseT : ProtoMsgT GF :=
-  { pbLeaseTimeToLiveResponse with tree := leaseTTLRespTree }
+  { pbLeaseTimeToLiveResponse with }
 
 /-- **`pbLeaseTimeToLiveResponseT`'s reply model is satisfiable.** -/
 theorem pbLeaseTimeToLiveResponseT_repSat : (pbLeaseTimeToLiveResponseT (GF := GF)).RepSat := by
@@ -394,13 +359,9 @@ theorem pbLeaseTimeToLiveResponseT_repSat : (pbLeaseTimeToLiveResponseT (GF := G
 
 /-! ## `LeaseLeases` -/
 
-/-- **The store of a lease-list request** (no field). -/
-def leaseLeasesReqTree (_ : Unit) : VTree :=
-  .strct etcdserverpb.LeaseLeasesRequest.ty [] []
-
 /-- **`pbLeaseLeasesRequest` with its store.** -/
 def pbLeaseLeasesRequestT : ProtoMsgT GF :=
-  { pbLeaseLeasesRequest with tree := leaseLeasesReqTree }
+  { pbLeaseLeasesRequest with }
 
 /-- **`pbLeaseLeasesRequestT`'s request model is satisfiable.** -/
 theorem pbLeaseLeasesRequestT_reqSat : (pbLeaseLeasesRequestT (GF := GF)).ReqSat := by
@@ -439,22 +400,9 @@ theorem pbLeaseLeasesRequestT_wireLen_ok :
     ∃ m, (pbLeaseLeasesRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨(), by simp [pbLeaseLeasesRequestT, pbLeaseLeasesRequest, wireSlack, grpcMsgMax]⟩
 
-/-- **The store of a lease status** (a fresh `*LeaseStatus`): its `ID`. -/
-def leaseStatusTree (id : w64) : VTree :=
-  .ptr etcdserverpb.LeaseStatus.ty
-    (.strct etcdserverpb.LeaseStatus.ty [(go!"ID", go.int64)] [.leaf #id])
-
-/-- **The store of a lease-list response**: its header and its leases (`nil` if none). -/
-def leaseLeasesRespTree (m : LeaseLeasesRespM) : VTree :=
-  .strct etcdserverpb.LeaseLeasesResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
-     (go!"Leases", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.LeaseStatus.ty))]
-    [hdrTree m.hdr,
-     sliceTree (go.GoType.PointerType etcdserverpb.LeaseStatus.ty) (m.ids.map leaseStatusTree)]
-
 /-- **`pbLeaseLeasesResponse` with its store.** -/
 def pbLeaseLeasesResponseT : ProtoMsgT GF :=
-  { pbLeaseLeasesResponse with tree := leaseLeasesRespTree }
+  { pbLeaseLeasesResponse with }
 
 theorem treeWp_leaseStatus (id : w64) (Φ : val → IProp GF) :
     (∀ p : Loc, structFieldRef etcdserverpb.LeaseStatus go!"ID" p ↦□ id -∗ Φ #p) ⊢

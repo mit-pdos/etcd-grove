@@ -109,7 +109,7 @@ def leaseReady (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
     srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
     srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-    grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd)
+    grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd)
 
 instance leaseReady_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (m : lease.Mode) : Persistent (leaseReady addr s E ρ m) := by
@@ -225,14 +225,14 @@ theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
       %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgr,
-      Hlis, #Hlu⟩
+      Hlis, Hleft, #Hlu⟩
     obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     imod (etcdstart.kvServeStocks_pools s E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
     rw [HCA]
     imod (ak_served_kv addr gs q p pa s lis E { ρ with wait := γw } cid mid C.n
         il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
-      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, #Hsat⟩
+      $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, #Hsat⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -266,7 +266,7 @@ theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     imodintro
     iframe HKV HSA HAu HWF Htag Hgr HLS
     isplitl [Hserv]
-    · iexists γ; iexact Hserv
+    · iexists _; iexact Hserv
     ipureintro; exact ⟨hRE, hRs⟩
   iapply HΦ
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HSA, #HAu, #HWF, #Htag, Hgr, #HLS⟩⟩)

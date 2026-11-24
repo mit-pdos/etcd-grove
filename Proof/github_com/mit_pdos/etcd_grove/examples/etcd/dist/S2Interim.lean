@@ -2,13 +2,14 @@
 
 # Interim cross-machine vocabulary for etcd's distributed theorems (until #24's S2 switch)
 
-`notes/putget-dist-plan.md` §12. What a member publishes to its clients, and the address fact, the
-only axiomatized predicate (`etcdAddrRaw`: the intended interpretation is #24's
-`grpcAddrAt a (etcdSvc γE mid)`; see its docstring). The publication machinery is #24's §1.3 over
+`notes/putget-dist-plan.md` §12. What a member publishes to its clients, and the address fact, since
+phase 7 S2's interface switch (2026-11-24) #24's own `grpcAddrAt a (etcdSvc γE mid)` with only the
+table `etcdSvc` axiomatized (see its docstring). The publication machinery is #24's §1.3 over
 `dghostVar`, with a smaller view (`EnvView`: the KV state variable's name, the only name the putget
 client's statements read; #24's view, O1, adds fields when its table needs them).
 
-Two axioms (A1 `etcdAddrRaw`, A2 `etcdAddr_set`); the function axioms A3-A5 are in `ServeDist.lean`,
+One axiom (A1 `etcdSvc`; until the switch A1 was the opaque predicate `etcdAddrRaw` and A2 the start law
+`etcdAddr_set`, now a theorem); the function axioms A3-A5 are in `ServeDist.lean`,
 `ClientPutDist.lean` and `ClientGetDist.lean`. Every other declaration is a definition or a proved
 law. The publication's laws: `envPub_start` (allocation), `env_publish` (the member's step),
 `envAt_agree` (one view per name) and `envAt_pub` (a client reads `▷ □ Pub ν`: the invariant's
@@ -17,6 +18,7 @@ content is not timeless, so it comes under a later, review F2).
 module
 
 public import GooseLang.Ext.Net.Proto
+public import Proof.google_golang_org.grpc.InvGrpcWire
 public import Perennial.Ghost.DGhostVar
 public import Proof.go_etcd_io.etcd.client.v3.PutThenGet
 
@@ -200,24 +202,24 @@ theorem envAt_pub_h (E : CoPset) (γE : GName) (hE : ↑(envPubN γE) ⊆ E)
 
 end heap
 
-/-! ## The address fact (axiomatized: see `etcdAddrRaw`) -/
+/-! ## The address fact (over phase 7 S2's interface; the table axiomatized: see `etcdSvc`) -/
 
-/-- **The address `a` serves etcd's KV calls for the member `mid` publishing at `γE`** (raw,
-axiomatized; see `etcdAddrAt`). Its intended interpretation is #24's
-`∃ σ : NetSlotGS, depSlotsCtx ∗ grpcAddrAt a (etcdSvc γE mid)`: `a`'s net-library protocols are
-grpc's for etcd's table at `γE` and `mid` (unary calls carry their deposit in the connection's slot;
-`Proof/google_golang_org/grpc/InvGrpcWire.lean`). It cannot be defined yet: the table's entries
-need the messages' wire bytes (`ProtoWire.enc`, #24's O3/O7). A placeholder protocol would be false
-of the bytes the member writes, and a verified reader at `a` would refute it
-(`notes/putget-dist-plan.md` §12). It is made only by `etcdAddr_set`, from `a`'s unset net
-resources, so it has no other law. It takes the instances its interpretation's table needs (the
-specs reach the heap only through the global ghost state and `go.Semantics` over the Go local
-context). Retired by #24's switch: it becomes that definition, and `etcdAddr_set` becomes
-`depSlots_alloc` followed by `grpc_addr_set`. -/
-axiom etcdAddrRaw [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
+/-- **etcd's service table for the member `mid` publishing at `γE`** (interim, axiomatized; heap-free:
+it takes no `HeapGS`, so both machines hold the same table). Its intended interpretation is #24's
+`etcdSvc γE cid mid` (`notes/phase7-plan.md` §1.3): etcd's unary methods by full name, each at its
+messages' wire parts (`pbPutRequest.wire`, ...) with the spec `etcdPubSpec γE (fun ν => …)` over the
+published view, `grpcNoCall` for the methods no client of the theorem calls. It cannot be defined yet:
+the entries' specs need the member's apply environment from its view (`etcdEnvOf ν`, open question O1)
+and specs that take no `HeapGS` (O2). It has no law: no proof can learn an entry of it, so nothing can
+call it through grpc's own `Invoke` (`isGrpcRpcMd` needs an entry of the table at the address), and only a
+server registering no unary method serves it through `Server.Serve` (`grpcServes … [] [] []` holds
+vacuously: every call gets `Unimplemented`). A table is data, so the axiom is consistent
+(`GrpcSvc` is inhabited). Retired by S2's `etcdSvc` (the cluster id `cid` moves into the view, #24
+05:09Z). -/
+axiom etcdSvc [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     [GoLocalContext] [go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
-    {GF : BundledGFunctors} [GooseGlobalGS .hasLC GF] [NetProtoGS]
-    (a : GoString) (γE : GName) (mid : w64) : IProp GF
+    {GF : BundledGFunctors} [GooseGlobalGS .hasLC GF]
+    (γE : GName) (mid : w64) : GrpcSvc GF
 
 section addr
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
@@ -226,27 +228,34 @@ variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF] [π : NetProtoGS
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- **The address `a` serves etcd's KV calls for the member `mid` publishing at `γE`** (persistent
-by construction; see `etcdAddrRaw`). -/
+/-- **The address `a` serves etcd's KV calls for the member `mid` publishing at `γE`** (persistent):
+`a` serves etcd's table (`grpcAddrAt`: its net-library protocols are grpc's opaque
+`grpcCliPI`/`grpcSrvPI` for the table, over a slot map). #24's
+`∃ σ, depSlotsCtx ∗ grpcAddrAt a (etcdSvc γE mid)` (`grpcAddrAt` holds `depSlotsCtx`); only the table
+is axiomatized. -/
 def etcdAddrAt (a : GoString) (γE : GName) (mid : w64) : IProp GF :=
-  iprop(□ etcdAddrRaw a γE mid)
+  iprop(∃ σ : NetSlotGS, grpcAddrAt (Gg := Gg) (π := π) (σ := σ) a (etcdSvc (GF := GF) γE mid))
 
 instance etcdAddrAt_persistent (a : GoString) (γE : GName) (mid : w64) :
     Persistent (etcdAddrAt (GF := GF) a γE mid) := by
   unfold etcdAddrAt; infer_instance
 
-/-- **The start law** (`notes/putget-dist-plan.md` §12): the deployment's start sets the unset address
-`a` to serve etcd's KV calls for `(γE, mid)`. It spends `addrUnset a`: `a`'s pending set (empty), its
-token and its listening token, the net extension's only per-address resources. So no verified program
-can dial `a` or accept a connection at `a` but through the axioms over `etcdAddrAt` (`Dial.spec` and
-`Listener.Accept.spec` need `netPend a`, which this law spends), and `a` is set at most once
-(`netLisTok_excl`). (`Listen.spec` only lends `lisToks` and returns them, so a program may listen at
-`a` before this law, review F4; such a listener can never accept, its `Accept` needing `netPend a`.)
-True of the intended interpretation: `depSlots_alloc` and `grpc_addr_set` (`addr_set_proto` at grpc's
-protocols for `etcdSvc γE mid`), both proved on `phase7-s2-core`. Retired by #24's switch (it becomes
-that theorem). -/
-axiom etcdAddr_set (E : CoPset) (a : GoString) (γE : GName) (mid : w64) :
-  ⊢ regCtx (Gg := Gg) -∗ addrUnset (Gg := Gg) a ={E}=∗ etcdAddrAt (GF := GF) a γE mid
+/-- **The start law** (`notes/putget-dist-plan.md` §12; proved since the S2 interface switch, 2026-11-24,
+where it was an axiom): the deployment's start sets the unset address `a` to serve etcd's table for
+`(γE, mid)`, over a fresh slot map (`depSlots_alloc`, then `grpc_addr_set`). It spends `addrUnset a`:
+`a`'s pending set, its token and its listening token, so `a` is set at most once (`netLisTok_excl`). It is
+not the only source of `etcdAddrAt`: `net.Listen`'s `netAddrLeft` sets a table too (`addr_set_proto_tok`), and
+`etcdAddrAt`'s `addrProto` lets its holder listen at `a` (`listen_au`); with `bridge.New` that refutes
+`Client_Put_dist`/`Client_Get_dist` (review 4, pending a decision, `notes/putget-dist-plan.md` §12). -/
+theorem etcdAddr_set (E : CoPset) (a : GoString) (γE : GName) (mid : w64) :
+    ⊢ regCtx (Gg := Gg) -∗ addrUnset (Gg := Gg) a ={E}=∗ etcdAddrAt (GF := GF) a γE mid := by
+  iintro #Hreg Hu
+  imod depSlots_alloc (Gg := Gg) E with ⟨%σ, #Hs⟩
+  imod grpc_addr_set (Gg := Gg) (σ := σ) E a (etcdSvc (GF := GF) γE mid) $$ Hreg Hs Hu with #Ha
+  imodintro
+  unfold etcdAddrAt
+  iexists σ
+  iexact Ha
 
 end addr
 

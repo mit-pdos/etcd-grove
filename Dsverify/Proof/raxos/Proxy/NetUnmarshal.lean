@@ -88,7 +88,7 @@ theorem unmarshal_bounded : unmarshalB.spec (GF := GF) (hG := hG) := by
       _ _) $$ [Hown Hsl]
     as %n %e1 ⟨%d1, %Hd1, Hsl, Hown, #Hres⟩
   · iframe Hrok HEOF HUEOF Hown Hsl
-    ipureintro; exact HPre' R _
+    ipureintro; exact fun ys h => HPre' R _ ys (Nat.le_of_lt h)
   cases e1 with
   | ok i1 =>
     wp_auto
@@ -130,7 +130,7 @@ theorem unmarshal_bounded : unmarshalB.spec (GF := GF) (hG := hG) := by
       (R ++ d1) _ _ _ _) $$ [Hown Hdsl]
     as %n2 %e2 ⟨%d2, %Hd2, Hdsl, Hown, #Hres2⟩
   · iframe Hrok HEOF HUEOF Hown Hdsl
-    ipureintro; exact HPre' (R ++ d1) _
+    ipureintro; exact fun ys h => HPre' (R ++ d1) _ ys (Nat.le_of_lt h)
   cases e2 with
   | ok i2 =>
     wp_auto

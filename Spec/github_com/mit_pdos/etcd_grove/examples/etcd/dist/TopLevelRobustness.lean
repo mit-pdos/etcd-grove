@@ -6,7 +6,7 @@
 the interim `etcd_robust_nocrash.spec` (`etcd_safe_nocrash`, no machine crashing; Q7), both over the fixed
 bundle `etcdNetExts` (`[idIssueExt, fsExt at etcdFsSem, netExt]`). Built, not proved; **neither is
 instantiable yet** (the opaque PLACEHOLDERs `TrustBoundary` and the boot programs, below). `etcd_safe` takes the
-names `etcd_safe`/`etcd_robust` (2026-11-22, Upamanyu's naming on #24: the distributed theorems take the
+names `etcd_safe`/`etcd_robust` (2026-11-22, the naming decided on #24: the distributed theorems take the
 plain names) of the single-process theorem it replaces (`examples/etcd/all`: eleven drivers in one
 process, each on a cluster of its own; retired with leaseexpiryN's at the net swap, tag
 `single-process-final`). Placeholders are marked in `TopLevelDefs.lean`.

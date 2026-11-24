@@ -36,7 +36,7 @@ dials through an HTTP `CONNECT` proxy that `HTTPS_PROXY` names; review F1, evide
 and `TestWithNoProxyFix`, `notes/putget-dist-plan.md` §12): each attempt dials `ep` itself,
 deposits the call's request precondition in the connection's slot and writes the request under
 `ep`'s protocol (`etcdAddrAt`'s interpretation). `ep`'s only acceptor is the member `mid`
-publishing at `γE` (`Serve_dist`), which instantiates the deposit at its own published view, so the
+publishing at `γE` (`Serve_dist`; **Known false as of 2026-11-24 (review 4, pending a decision):** `bridge.New` takes only `netListenerAt l a` (`addrClaim ∗ netListenerOpen`), so a program holding `netAddrFree ep` can listen at `ep` and set (or fabricate the view of) `etcdAddrAt ep …`, then relay `ep` to an unrelated etcd; the proposed fix is `bridge.New` also consuming `netAddrLeft a`, `notes/putget-dist-plan.md` §12.), which instantiates the deposit at its own published view, so the
 caller's update runs at that view. The deposit is under a later (review F2): the member takes program
 steps between reading the deposit from the connection's slot and firing the update, so it strips one
 `▷`. A `nil` result is the handler's reply after the put fired once on the member's store: its

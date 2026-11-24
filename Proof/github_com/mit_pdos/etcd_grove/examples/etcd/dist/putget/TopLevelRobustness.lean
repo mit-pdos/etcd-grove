@@ -126,8 +126,9 @@ end start
 /-- **`putget_safe`** (see the file header): the start is proved (`putget_start`), the member's boot is
 proved (`member_boot`, at `Pub = putgetPub`), the client's boot is proved (`client_boot`), the bridge is
 proved (`putget_safe_of_boot`); the cross-machine steps are the interim axioms of
-`notes/putget-dist-plan.md` §12 (`etcd_dist.etcdAddrRaw`, `etcdAddr_set`, `Serve_dist`,
-`Client_Put_dist`, `Client_Get_dist`). -/
+`notes/putget-dist-plan.md` §12 (the table `etcd_dist.etcdSvc`, `Serve_dist`, `Client_Put_dist`,
+`Client_Get_dist`; the start law `etcdAddr_set` proved over grpc's `grpc_addr_set` since the S2 interface
+switch). -/
 theorem putget_safe : putget_safe.spec := by
   refine putget_safe_of_boot ?_
   intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
