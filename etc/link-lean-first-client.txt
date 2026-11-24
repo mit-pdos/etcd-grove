@@ -117,7 +117,7 @@ zap_String:
 zap_Error:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 errors_IsStatusErr:
@@ -283,9 +283,9 @@ resolver_EtcdManualResolver__SetEndpoints:
 resolver_EtcdManualResolver__Close:
 endpoint_RequiresCredentials:
 strings_SplitN:
-fmt_SprintfClientPtr:
+fmt_SprintfArgs:
 context_TODO:
-context_WithCancelTodo:
+context_WithCancelTodo: =_root_.Perennial.context.wp_withCancel =_root_.Perennial.context.cancelCtx.wp_cancel =_root_.Perennial.context.cancelCtx.wp_propagateCancel =_root_.Perennial.context.cancelCtx.wp_Done =_root_.Perennial.context.cancelCtx.wp_Err =_root_.Perennial.context.cancelCtx.wp_Value =_root_.Perennial.sync.atomic.Value.wp_Load
 Client__streamClientInterceptor:
 # (prove-ps2-rqb, 2026-11-22) `roundRobinQuorumBackoff` proved over the real code: `jitterUp`'s
 # float arithmetic over `rand.Float64` (the trust boundary), zap's `Float64` over Perennial's
@@ -307,8 +307,11 @@ Client__SetEndpoints: resolver_EtcdManualResolver__SetEndpoints
 Client__credentialsForEndpoint: endpoint_RequiresCredentials
 authority: strings_SplitN
 Client__dialSetupOpts: Client__roundRobinQuorumBackoff withBackoff withMax Client__streamClientInterceptor Client__unaryClientInterceptor insecure_NewCredentials grpc_WithKeepaliveParams grpc_WithTransportCredentials grpc_WithStreamInterceptor grpc_WithUnaryInterceptor
-Client__dial: Client__dialSetupOpts authority grpc_NewClient fmt_SprintfClientPtr credentials_perRPCCredentialBundle__PerRPCCredentials grpc_WithPerRPCCredentials
+Client__dial: Client__dialSetupOpts authority grpc_NewClient fmt_SprintfArgs credentials_perRPCCredentialBundle__PerRPCCredentials grpc_WithPerRPCCredentials
 Client__dialWithBalancer: Client__Endpoints Client__credentialsForEndpoint grpc_WithResolvers Client__dial
 Client__autoSync:
 newClient: context_TODO context_WithCancelTodo resolver_New Client__SetEndpoints resolver_EtcdManualResolver__Close Client__dialWithBalancer v3_NewCluster v3_NewKV v3_NewLease NewWatcher v3_NewAuth v3_NewMaintenance Client__getToken Client__autoSync Client__Close credentials_NewPerRPCCredentialBundle
 client_v3_New: newClient
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

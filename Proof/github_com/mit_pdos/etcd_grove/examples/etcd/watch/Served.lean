@@ -41,7 +41,8 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- **etcd's server, started for a watch client, given the watch path's server facts and the
 watch condition** (`srvWOk V.W`, `srvOnce V.W`: the store does not compact, watchkv's and
 cachekv's, `client.srvOnce_noCmp`; or no revision writes a key twice, `compactkv`'s; watches across a
-compaction, W4, 2026-11-01). -/
+compaction, W4, 2026-11-01); (2026-11-24) with the server listening at the address etcd's
+(`etcdKVSrvAt` at its unary chain, which with the chain's identity is what `etcd_noRefusal_at` takes). -/
 theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv GF) (addr : GoString)
     (gs q p pw s : Loc) (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -72,19 +73,20 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
+        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
         srvStreamInterceptorWOk is (levelTok 0) ∗
         client.srvKVFacts V ∗ client.eofOk ∗ v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
         v3rpc.srvOnce V.W ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗
-        client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : client.SrvAt GF) ∗ watchAddrFacts V := by
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗
+        client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : client.SrvAt GF) ∗ etcdKVSrvAt addr s [il, im, iu] ∗
+        watchAddrFacts V := by
   haveI := v3rpc.srvWOk_persistent Hp V.W V.R.wsl v3rpc.wsN
-  iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, #Hb, #Hrp,
+  iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hleft, #Hb, #Hrp,
     #Hws, #Hims, #His, #Hnd, #Heof, #HW, #Hon⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs
-    hregs Hrf hnd hrd HL) $$ [Hgs Hlis] with ⟨%γ, Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
+    hregs Hrf hnd hrd HL) $$ [Hgs Hlis Hleft] with ⟨%γ, Htok', #Hss, #Hksa, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
   · iframe; iframe #
   imod (v3rpc.etcd_watch_served_chain addr pw V.R V.W ims is sregs γ γr hγm Htb HL hset hwreg) $$ []
     with #Hst
@@ -94,11 +96,13 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
   ihave #Hlaws := client.watchLaws_srv V false γr hWM hWL hH $$ Hwl
   imodintro
   isplitl [Htok']
-  · iexists γ; iexact Htok'
+  · iexists _; iexact Htok'
   isplitl []
   · unfold client.kvRegsAt
     subst hrd
     iframe #
+  isplitr
+  · iexact Hksa
   unfold watchAddrFacts
   rw [hV]
   iframe #

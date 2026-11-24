@@ -37,6 +37,7 @@ public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
 public import Perennial.Proof.math.Link
 public import Perennial.Proof.strconv.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
@@ -55,6 +56,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
+public import Proof.go_etcd_io.etcd.pkg.v3.runtime.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Init
@@ -68,6 +70,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
@@ -89,6 +92,7 @@ public import Proof.go_opentelemetry_io.otel.trace.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.golang_org.x.crypto.bcrypt.Init
 public import Proof.net.http.Init
+public import Proof.os.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes

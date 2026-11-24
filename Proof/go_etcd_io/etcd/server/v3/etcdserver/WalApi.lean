@@ -492,9 +492,10 @@ instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := b
 
 /-- **`NewStorage`'s contract as a law** (wal-item3, 2026-11-21; the import tiers' "a proof takes a linked
 lemma as a law"): given the storage package's initialization, `rnNewStorageOk`. `rnNewStorageOk_law_holds`
-(`RnNewStorageLinked.lean`) proves it under `os`'s `fileStat`/`file` field assumptions (the WAL's), so
-`bootstrappedRaft.newRaftNode`'s spec still takes `rnNewStorageOk` as a premise (and every closed theorem with it);
-the semantic hypothesis `UntypedRuneSemantics` it also took went with Perennial `04b42a139` (2026-11-21). -/
+(`RnNewStorageLinked.lean`) proves it under `os`'s `fileStat`/`file` field assumptions (the WAL's), and
+`bootstrappedRaft.newRaftNode`'s proof takes it (wal-nostorageok, 2026-11-21: until then its spec's premise
+`rnNewStorageOk`, and every closed theorem's; those now take the two field-assumption classes instead). The
+semantic hypothesis `UntypedRuneSemantics` it also took went with Perennial `04b42a139` (2026-11-21). -/
 abbrev rnNewStorageOk.law : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ⊢ rnNewStorageOk (GF := GF)
 
@@ -545,6 +546,16 @@ theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) 
     dataDirFresh (GF := GF) d ∗ memberAreasFresh d ⊢ wal.bootRes cfg := by
   unfold wal.bootRes; subst hd; iintro ⟨H, Ha⟩; iframe H Ha; ipureintro; exact hw
 
+/-- **`wal.bootRes` is the data directory's token, the dedicated WAL directory's equation and the
+member's fresh areas** (claim #34, 2026-11-23): the slot's body as a law, so that `bootstrap`'s
+file-system laws (`BootFsLaws.lean`), which split the data area, need no `import all` of this sealed
+module. It says what the slot is made of; the WAL's sealed records (`WalRecs`) are not involved. -/
+theorem wal.bootRes_iff (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
+    wal.bootRes (GF := GF) cfg ⊣⊢
+      dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗
+        memberAreasFresh cfg.DataDir' := by
+  unfold wal.bootRes; exact .rfl
+
 /-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the
 configuration's WAL directory with the member's metadata and no records (`walOpened … walFresh`),
 and the right to close it with its files kept (the purge's, `walPurgeRight`). (raft-entsize §5,
@@ -561,6 +572,14 @@ directory, which fits. -/
     (w : Loc) : IProp GF :=
   iprop(∃ h : WalH GF, ⌜h.w = w⌝ ∗
     walOpened h cfg.DedicatedWALDir' id cid walFresh true ∗ walPurgeRight h)
+
+/-- **`wal.bootOk`'s intro** (claim #34 stage 4, 2026-11-25): the WAL `wal.Create` opened in the
+configuration's WAL directory (`wal.Create.specSrv`'s post), as `bootstrapNewWAL` hands it on. -/
+theorem wal.bootOk_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) :
+    (∃ h : WalH GF, ⌜h.w = w⌝ ∗ walOpened h cfg.DedicatedWALDir' id cid walFresh true ∗
+        walPurgeRight h) ⊢ wal.bootOk (GF := GF) cfg id cid w := by
+  unfold wal.bootOk; exact .rfl
 
 /-- **What the server takes from `wal.bootOk`** (narrow: the slot convention's elimination laws
 give what their consumers take, never the slot's body; R2b-1 stage 3c, 2026-11-03, replacing

@@ -54,23 +54,22 @@ variable [syscall.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 variable [_root_.Perennial.log.NewModel]
 
-/-- **A replica's program** (see the file header): from the generation's empty package state, the
-replica's address protocols and the start resource at every address map holding exactly the
-addresses, given the globals the package's imports' facts give (`TopPkg.lean`), which `RunNode`
-reads too. -/
+/-- **A replica's program** (see the file header): from the generation's empty package state and,
+if `RunNode`'s check passes (`runNodeOk`; otherwise it returns at once), the replica's address
+protocols and the start resource at every address map holding exactly the addresses, given the
+globals the package's imports' facts give (`TopPkg.lean`), which `RunNode` reads too. -/
 theorem kvReplica_wp
-    (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
-    (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
-      (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
-    (hid1 : 1 ≤ uint.nat id) (hid2 : uint.nat id ≤ (splitAddrs addrs).length) :
+    (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64) :
     ⊢ ownGoState (GF := GF) ∅ -∗
-      (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
-        addrProto a (kvP (kvFacts γ (fun _ => True)) id) (kvQ (kvFacts γ (fun _ => True)) id)) -∗
-      (raft_kvcheck.connGlobals -∗ context.isClosedchanInit -∗ ∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗
-        kvNodeStart γ vs dir id dir ⟨cl.voters, cl.preVote, cl.checkQuorum, cl.stepDownOnRemoval,
-          cl.maxSizePerMsg, cl.maxCommittedSizePerReady, cl.maxInflightMsgs⟩ M) -∗
+      (⌜runNodeOk (splitAddrs addrs) (uint.nat id) dir (uint.nat cl.voters)
+        (uint.nat cl.maxSizePerMsg) (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs)⌝ -∗
+        (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
+          addrProto a (kvP (kvFacts γ (fun _ => True)) id) (kvQ (kvFacts γ (fun _ => True)) id)) ∗
+        (raft_kvcheck.connGlobals -∗ context.isClosedchanInit -∗ ∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗
+          kvNodeStart γ vs dir id dir ⟨cl.voters, cl.preVote, cl.checkQuorum, cl.stepDownOnRemoval,
+            cl.maxSizePerMsg, cl.maxCommittedSizePerReady, cl.maxInflightMsgs⟩ M)) -∗
       WP (kvnetReplicaProgram cl addrs dir id) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
-  iintro Hgs Hproto HS
+  iintro Hgs Hres
   unfold kvnetReplicaProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.raft.kvnet.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getIsPkgInit_wf) $$ [Hgs] as ⟨-, #Hpkg⟩
@@ -85,27 +84,30 @@ theorem kvReplica_wp
   ihave ⟨#Hnet, #Hctx⟩ := kvnet_pkg_deps $$ Hpkg
   ihave #Hcg := connGlobals_of_net $$ Hnet
   ihave #Hcc := context.isClosedchanInit_of_init $$ Hctx
-  ispecialize HS $$ Hcg Hcc
+  ihave Hcg' := connGlobals_of_net $$ Hnet
   unfold raft_kvcheck.connGlobals
-  icases Hcg with ⟨%eof, %ed, %et, #Heof, #Hed, -⟩
+  icases Hcg' with ⟨%eof, %ed, %et, #Heof, #Hed, -⟩
   wp_pures
   wp_apply (kvnetLink.raft_kvnet.wp_RunNode γ vs dir id addrs dir cl.voters cl.preVote
       cl.checkQuorum cl.stepDownOnRemoval cl.maxSizePerMsg cl.maxCommittedSizePerReady
-      cl.maxInflightMsgs eof ed hvc hid1 hid2) $$ [Hproto HS]
-  · iframe Hproto HS Heof Hed Hcc
+      cl.maxInflightMsgs eof ed) $$ [Hres]
+  · iframe Heof Hed Hcc
+    iintro %h
+    ihave ⟨Hproto, HS⟩ := Hres $$ %h
+    iframe Hproto
+    iapply HS $$ Hcg Hcc
   ipureintro; rfl
 
-/-- **A replica's generation** (the body of `TopBridge.lean`'s `CrashBootWpG` for replica `id`), at the
-generation's storage registry (the section's `KdStor`, whose invariant it takes): at the file
-extension's local interpretation `σ` (kept), the boot (`kvGen_boot`), then the program's WP
+/-- **A replica's generation** (the body of `Net.CrashBootWp` for replica `id`), at the generation's
+storage registry (the section's `KdStor`, whose invariant it takes): the boot (`kvGen_boot`), then
+the program's WP
 (`kvReplica_wp`) and the crash obligation (`kvGen_crash`, with one later credit), which gives the next
 generation's `kvGen` at the same file. -/
 theorem kvRep_gen
     (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
-    (f : DurFs.DFile) (R : Fs.Roots) (σ : Fs.OsState)
-    (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
-      (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
-    (hid1 : 1 ≤ uint.nat id) (hid2 : uint.nat id ≤ (splitAddrs addrs).length)
+    (f : DurFs.DFile) (R : Fs.Roots)
+    (hrun : runNodeOk (splitAddrs addrs) (uint.nat id) dir (uint.nat cl.voters)
+      (uint.nat cl.maxSizePerMsg) (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs))
     (hR : Fs.RootsOk R) (hr : (f.d, f.J) ∈ R) (hd : f.d = dir) (hf : f.Ok)
     (hname : f.name = kdFileName dir id) (hmax : uint.nat id ≤ γ.max)
     (hγ : γ.r.cluster.dup = true ∧ γ.r.cluster.bootLen = 0 ∧ Cluster.trace γ.r.cluster = none ∧
@@ -117,27 +119,27 @@ theorem kvRep_gen
       □ (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
         addrProto a (kvP (kvFacts γ (fun _ => True)) id) (kvQ (kvFacts γ (fun _ => True)) id)) -∗
       □ (∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗ kvPeerAddrs γ id M) -∗
-      kvGen γ id f R -∗ ownGoState ∅ -∗
-      Fs.fs_interp.localCtx (extLocalGS Fs.fsExt) σ ={⊤}=∗
-      Fs.fs_interp.localCtx (extLocalGS Fs.fsExt) σ ∗
+      kvGen γ id f R -∗ ownGoState ∅ ={⊤}=∗
       (WP (kvnetReplicaProgram cl addrs dir id) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} ∗
         ∀ (L' : GooseLocalGS GF) (V' : Fs.Hist), £ 1 -∗
           crashed (hC := hG.goose_localGS.goose_crashGS) -∗ Fs.osInv (L := L') -∗
           Fs.crashRest (fun _ _ => True) (Fs.gooseOsGS (L := hG.goose_localGS))
             (Fs.gooseOsGS (L := L')) [] false V' ={⊤}=∗
           kvGen (hG := ⟨hG.goose_globalGS, L'⟩) γ id f R) := by
-  iintro #Hsi #Hcl #Hrf #Hpr #Hpeer Hg Hgs Hl
-  imod kvGen_boot γ vs dir id f R σ hR hr hd hf hname ⟨hid1, hmax⟩ $$ Hcl Hg Hl
-    with ⟨Hl, %fl, ⟨%hfl1, %hfl2⟩, Hst, Hk⟩
+  iintro #Hsi #Hcl #Hrf #Hpr #Hpeer Hg Hgs
+  imod kvGen_boot γ vs dir id f R hR hr hd hf hname ⟨hrun.2.1, hmax⟩ $$ Hcl Hg
+    with ⟨%fl, ⟨%hfl1, %hfl2⟩, Hst, Hk⟩
   imodintro
-  iframe Hl
   isplitl [Hgs Hst]
-  · iapply kvReplica_wp γ vs cl addrs dir id hvc hid1 hid2 $$ Hgs Hpr
+  · iapply kvReplica_wp γ vs cl addrs dir id $$ Hgs
+    iintro %-
+    isplitr
+    · iexact Hpr
     iintro #Hcg #Hcc %M %hM
     unfold kvNodeStart
     isplitr
     · ipureintro; rfl
-    iexists fl, 1
+    iexists fl, (1 : Qp).half
     iframe Hst
     isplitr
     · unfold kvStartGlobals
@@ -153,9 +155,12 @@ theorem kvRep_gen
     · iapply Hpeer; ipureintro; exact hM
     ipureintro; exact ⟨hopts, hvs⟩
   · iintro %L' %V' Hlc #Hcr #Hos' Hrest
-    imod kvGen_crash γ vs id fl L' V' $$ Hcl Hk Hlc Hcr Hrest Hos' with Hg'
+    -- (the rest of the file's directory, `kvDirRest`, is dropped: kvnet has no other file)
+    imod kvGen_crash γ vs id fl L' V' $$ Hcl Hk Hlc Hcr Hrest Hos' with ⟨%V'', Hg', -⟩
     rw [hfl1, hfl2]
     imodintro
+    unfold kvGen
+    iexists V''
     iexact Hg'
 
 end replica

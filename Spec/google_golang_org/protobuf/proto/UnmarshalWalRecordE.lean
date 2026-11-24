@@ -1,11 +1,10 @@
 /-
 `proto.Unmarshal(b, rec)` into a blank `*walpb.Record` as `proto.UnmarshalWalRecord.spec`, and of a
-failure's error, that it is not `io.EOF` and `errors.Is(err, io.EOF)` answers `false` (`errIsNot`):
-**a hypothesis** of the WAL decoder's proof (`decodeRecord`), not proved here and not an axiom.
-The trust-boundary axiom it would follow from, `proto.UnmarshalPb.spec`
-(`Proof/google_golang_org/protobuf/proto/UnmarshalPb.lean`), says nothing of the error but that it
-is not `nil`; extending it is a trust-base change for the user (`notes/perennial-changes.md`, 2026-11-14,
-"`errors.Is` on `fmt.Errorf`'s result", which records it too).
+failure's error, that it is not `io.EOF` and `errors.Is(err, io.EOF)` answers `false` (`errIsNot`).
+A trust-boundary axiom (`Proof/google_golang_org/protobuf/proto/UnmarshalWalRecordE.lean`), interim:
+`proto.UnmarshalPb.spec` (`Proof/google_golang_org/protobuf/proto/UnmarshalPb.lean`), which it would
+follow from, says nothing of the error but that it is not `nil`; etcd-grove#37 S3 extends that spec and
+proves this one (`notes/perennial-changes.md`, 2026-11-14, "`errors.Is` on `fmt.Errorf`'s result").
 Why it holds in Go (protobuf-go v1.36, `proto/decode.go`, `internal/impl/decode.go`,
 `encoding/protowire/wire.go`): `Unmarshal` of a byte slice fails with `internal/errors`' errors
 (`*prefixError`, `*wrapError` wrapping another of these, which unwrap to `errors.Error`, "protobuf

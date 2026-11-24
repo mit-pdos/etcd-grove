@@ -21,6 +21,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.featuregate
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.idutil
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.notify
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.pbutil
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.runtime
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.schedule
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
@@ -34,6 +35,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.cindex
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
@@ -60,7 +62,9 @@ public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
 public import GeneratedProof.net.http
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time

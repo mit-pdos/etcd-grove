@@ -54,7 +54,7 @@ abbrev EtcdServer.Start.spec : Prop :=
       -- `srvMonitorCfg`)
       srvMonitorsOff s ∗ srvMonitorRes s ∗
       -- (2026-10-23) `publishV3`'s right to close `readych` (`NewServer`'s)
-      srvReadyCloser s }}
+      srvReadyCloser s E }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReqM C.isOn s E { ρ with wait := γw } ∗
       isServerReadM C.isOn s E γr ∗ srvAuthLb s E ∗

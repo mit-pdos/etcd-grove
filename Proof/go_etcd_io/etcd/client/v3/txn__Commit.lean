@@ -65,7 +65,7 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
   ipersist Hcsl; ipersist Hssl; ipersist Hfsl
   ihave Hrun' : reqPre conn0 go!"/etcdserverpb.KV/Txn" addr vs
       (attemptPre conn0 om Spec (txnWireOf b.model) Q) $$ [Hrun]
-  · iapply kvReqPre_conn api rkv conn0 go!"/etcdserverpb.KV/Txn" ⟨go!"Txn", rfl⟩ addr vs _ Hsc $$ [Hrun]
+  · iapply kvReqPre_conn api rkv conn0 go!"/etcdserverpb.KV/Txn" kvMethod_txn addr vs _ Hsc $$ [Hrun]
     iframe Hremote Hrkv
     iapply txnReqPre_kv tp api addr $$ [Hrun]
     iframe Hrun

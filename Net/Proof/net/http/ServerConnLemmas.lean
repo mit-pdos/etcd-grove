@@ -10,6 +10,7 @@ public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Spec.bufio.Writer__Reset
 public import Spec.bufio.Reader__Reset
+public import Spec.bufio.NewReaderFresh
 public import Spec.bufio.NewReader
 public import Spec.bufio.NewWriterSizeRep
 
@@ -223,6 +224,32 @@ theorem wp_newBufioReader [bufio.Assumptions]
     wp_apply wp_NewReader ri S E r hty $$ [$Hrs $Hbd $HS] as %b Hb
     iapply HΦ
     iexact Hb
+
+/-- `newBufioReader(r)` of a reader `ri` (not a `*bufio.Reader`): a pooled reader reset to `ri`, or a
+new one; either way fresh (`bufio.freshReader`), as `conn.readRequest` takes it. -/
+theorem wp_newBufioReader_fresh [bufio.Assumptions]
+    (wp_Reset : EtcdGrove.bufio.Reader.Reset.spec (GF := GF) (hG := hG))
+    (wp_NewReader : EtcdGrove.bufio.NewReader.specFresh (GF := GF) (hG := hG))
+    (ri : GoInterfaceOk) (hty : ri.ty ≠ go.GoType.PointerType bufio.Reader.ty) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ rPool }}
+      (App (Val (@! net.http.newBufioReader)) (Val #(GoInterface.ok ri)))
+    {{ (b : Loc), RET #b; EtcdGrove.bufio.freshReader b (GoInterface.ok ri) }} := by
+  wp_start as #Hpool
+  wp_auto
+  iunfold rPool at Hpool
+  wp_apply sync.Pool.wp_Get $$ [$Hpool] as %x ⟨Hx, -⟩
+  icases Hx with (Hx | %Hx)
+  · iunfold rPoolP at Hx
+    icases Hx with ⟨%br, %Hx, Hraw⟩
+    subst Hx
+    wp_auto
+    wp_apply wp_Reset br (GoInterface.ok ri) $$ [$Hraw] as Hfr
+    · ipureintro; right; exact ⟨ri, rfl, hty⟩
+    iapply HΦ $$ Hfr
+  · obtain ⟨-, rfl⟩ := Hx
+    wp_auto
+    wp_apply wp_NewReader ri hty $$ [$Hpkg2] as %b Hb
+    iapply HΦ $$ Hb
 
 /-- `newBufioWriterSize(w, sz)` for `sz` 2048 or 4096 and a destination `wi` not a `*bufio.Writer`:
 a pooled writer reset to `wi`, or a fresh one; either way a writer holding nothing with a buffer of

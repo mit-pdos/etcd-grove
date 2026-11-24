@@ -26,6 +26,8 @@ public import Spec.go_etcd_io.etcd.client.v3.OpGet
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Perennial.Proof.fmt
 public import Proof.go_etcd_io.raft.v3.FrameH
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -229,27 +231,23 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   (try wp_auto)
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
-  have HnI : ¬ _root_.Perennial.fmt.IsIntType go_etcd_io.etcd.client.v3.LeaseID.ty := by
-    simp [_root_.Perennial.fmt.IsIntType, go_etcd_io.etcd.client.v3.LeaseID.ty, go.int,
-      go.int64, go.int32, go.int16, go.int8, go.uint, go.uint64, go.uint32, go.uint16, go.uint8]
-  -- Perennial's `fmt.wp_Sprintf`: a `string` and a `LeaseID` (a named `int64` without methods)
-  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %key ⟨Hargs, %Hkey⟩
-  case wf =>
+  -- the real `fmt.Sprintf` (Perennial's `fmt.wp_Sprintf`): a `string` and an `int64` (the fork
+  -- converts the `LeaseID`, a named `int64` without methods, which `fmt` formats by reflection)
+  wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s%x"
+    [.dir none _root_.Perennial.fmt.verb_s, .dir none _root_.Perennial.fmt.verb_x] _ _ _ _
+    (by fmt_encode) ?fits ?pa $$ [$Hfmt $Hargs] as %key ⟨Hargs, %Hkey⟩
+  case pa =>
     rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
     simp only [List.set_cons_succ, List.set_cons_zero]
-    exact _root_.Perennial.fmt.ArgsWf.cons_string pfx _
-      (_root_.Perennial.fmt.ArgsWf.cons_int _ _ []
-        (_root_.Perennial.fmt.IntArgValue.named_int64 _ id HnI go.IsUnderlying.is_underlying
-          (_root_.Perennial.fmt.NoFmtMethods.of_methodSetIs_nil _))
-        _root_.Perennial.fmt.ArgsWf.nil)
-  rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
-  simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
-  have Hpk : pfx <+: key := _root_.Perennial.fmt.SprintfOut.str_x_prefix pfx _ _ Hkey
+    exact .str pfx _ _ (.int _ _ _ _ (.int64 id) .nil)
+  case fits => fmt_fits
+  have Hkey' : key = pfx ++ _root_.Perennial.fmt.hexPad 0 (sint.Z id) := by
+    simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, Hkey, _root_.Perennial.fmt.render]
+  have Hpk : pfx <+: key := by rw [Hkey']; exact List.prefix_append _ _
   -- the key is the prefix and the lease in hexadecimal: at most `pfx.length + 17` bytes
-  have Hkb : key.length ≤ pfx.length + 17 :=
-    (_root_.Perennial.fmt.SprintfOut.str_x_named_int64 pfx go_etcd_io.etcd.client.v3.LeaseID.ty id
-      HnI go.IsUnderlying.is_underlying
-      (_root_.Perennial.fmt.NoFmtMethods.of_methodSetIs_nil _) key Hkey).2
+  have Hkb : key.length ≤ pfx.length + 17 := by
+    have := fmt.length_hexPad_zero_le (sint.Z id) (by word)
+    rw [Hkey', List.length_append]; omega
   have Hkey28 : key.length ≤ 2 ^ 28 := by omega
   (try wp_auto)
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []

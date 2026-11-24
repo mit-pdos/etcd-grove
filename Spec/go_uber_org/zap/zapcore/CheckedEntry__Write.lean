@@ -1,7 +1,7 @@
 /-
-`zapcore.CheckedEntry.Write`: the trust boundary (names only; zap-z1, 2026-11-23: its entry `zapEntry`
-is defined, the proof blocked by a translator gap, `Proof/go_uber_org/zap/zapcore/CheckedEntry__Write.lean`).
-Lean-first (no Rocq counterpart); the auth plan's S5 (2026-10-24: `auth.authStore.Authenticate`
+`zapcore.CheckedEntry.Write`: proved over zap's code (`Proof/go_uber_org/zap/zapcore/CheckedEntry__Write.lean`;
+zap-z2, 2026-11-23: until then the trust boundary, zap-z1 having found Goose's translation of its pool `Put`
+stuck). Lean-first (no Rocq counterpart); the auth plan's S5 (2026-10-24: `auth.authStore.Authenticate`
 writes the entry `zap.Logger.Check` returned).
 -/
 module

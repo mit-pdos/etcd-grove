@@ -273,9 +273,11 @@ opaque _programmerErrorTemplate [GooseExts] [GoGlobalContext] : val
 
 opaque DPanicLevel [GooseExts] [GoGlobalContext] : val
 
-opaque PanicLevel [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def PanicLevel [GooseExts] [GoGlobalContext] : val :=
+  #(W8 4)
 
-opaque FatalLevel [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def FatalLevel [GooseExts] [GoGlobalContext] : val :=
+  #(W8 5)
 
 @[reducible] noncomputable def schemeFile [GooseExts] [GoGlobalContext] : val :=
   #(go!"file")
@@ -1301,6 +1303,65 @@ noncomputable def Logger.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "fields" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Field.ty)))) (Var "fields"))
   (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
   (Let "$r0" (Let "$a0" (Val ErrorLevel)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Logger.ty) go!"check"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log"))) (Var "$a0")) (Var "$a1"))))
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Var "ce")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Var "ce"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Pair (Var "ce") (Var "$r0")))))))))))
+  (Val #())))))
+
+/-- Panic logs a message at PanicLevel. The message includes any fields passed
+    at the log site, as well as any fields accumulated on the logger.
+
+    The logger then panics, even if logging at PanicLevel is disabled.
+
+    go: logger.go:283:20 -/
+noncomputable def Logger.Panic.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "log"
+  (Lam "msg"
+  (Lam "fields"
+  (Seq (App (Val exceptionDo)
+  (Let "log" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Logger.ty)))) (Var "log"))
+  (Let "fields" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
+  (Let "$r0" (Let "$a0" (Val PanicLevel)
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Logger.ty) go!"check"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log"))) (Var "$a0")) (Var "$a1"))))
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Var "ce")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Var "ce"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Pair (Var "ce") (Var "$r0")))))))))))
+  (Val #())))))
+
+/-- Fatal logs a message at FatalLevel. The message includes any fields passed
+    at the log site, as well as any fields accumulated on the logger.
+
+    The logger then calls os.Exit(1), even if logging at FatalLevel is
+    disabled.
+
+    go: logger.go:294:20 -/
+noncomputable def Logger.Fatal.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "log"
+  (Lam "msg"
+  (Lam "fields"
+  (Seq (App (Val exceptionDo)
+  (Let "log" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Logger.ty)))) (Var "log"))
+  (Let "fields" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Field.ty)))) (Var "fields"))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
+  (Let "$r0" (Let "$a0" (Val FatalLevel)
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "msg"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Logger.ty) go!"check"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log"))) (Var "$a0")) (Var "$a1"))))
   (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Val #())))
@@ -2661,7 +2722,9 @@ class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_Check_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Check" Logger.Check.impl
   ptr_Debug_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Debug" Logger.Debug.impl
   ptr_Error_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Error" Logger.Error.impl
+  ptr_Fatal_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Fatal" Logger.Fatal.impl
   ptr_Info_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Info" Logger.Info.impl
+  ptr_Panic_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Panic" Logger.Panic.impl
   ptr_Sugar_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Sugar" Logger.Sugar.impl
   ptr_Warn_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"Warn" Logger.Warn.impl
   ptr_check_unfold : MethodUnfold (go.GoType.PointerType Logger.ty) go!"check" Logger.check.impl
@@ -2694,7 +2757,9 @@ attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.ptr_Check_unfold
   Logger.TypeAssumptions.ptr_Debug_unfold
   Logger.TypeAssumptions.ptr_Error_unfold
+  Logger.TypeAssumptions.ptr_Fatal_unfold
   Logger.TypeAssumptions.ptr_Info_unfold
+  Logger.TypeAssumptions.ptr_Panic_unfold
   Logger.TypeAssumptions.ptr_Sugar_unfold
   Logger.TypeAssumptions.ptr_Warn_unfold
   Logger.TypeAssumptions.ptr_check_unfold

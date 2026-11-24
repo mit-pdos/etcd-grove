@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.config
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.fmt.Base
+public import SpecPlan.Spec.PkgInit.path.filepath
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap

@@ -2,12 +2,15 @@
 
 # `examples/lib/durable` over `fsExt`: a generation's boot (W4c U2, `notes/wal-fsext-w4c-plan.md`)
 
-`durBoot`: at a generation's switch to the shared mode (`wp_osShare`: the shared invariant, a whole claim
-on every name of the file's directory, nothing logged), from what the generation found at the file's
+`durBoot`: at a generation's start, from its tree's shared view (`osShared`: the shared invariant, a whole
+claim on every name of the file's directory, nothing logged), from what the generation found at the file's
 names (`durFound`: no file and the contents `none`, or a file whose start resources the generation holds,
 its contents `v`; `durFoundTmp`: no temporary, or a file there held whole), the file's invariant, a handle,
 the client's half of the state `⟨v, none⟩` and the crash token, under fresh ghost names. The directory is
 a root (its spine `osPathS_root`).
+
+`durBootOnly`: the same boot from a claim on only the file's two names (the file's and its temporary's),
+for a directory that holds other files too.
 
 `durBoot0`: the first boot, neither the file nor its temporary present (the WAL tester's `DurBoot0`).
 A crash's boot takes `durFound`/`durFoundTmp` from the crash lemma (`Crash.lean`, `durInv_crash`).
@@ -296,6 +299,67 @@ theorem durBoot (L : GooseLocalGS GF) (f : DFile) (R : Roots) (V : Hist) (v : Op
         simp only [NameSet.Mem, List.mem_singleton] at hb ⊢
         subst hb; exact f.tb_ne),
     inter_only' f.tb_ne]
+  icases (osNames_halves_boot L f.J (.only [f.b]) _).1 $$ Hb with ⟨Hb1, Hb2⟩
+  icases (osNames_halves_boot L f.J (.only [f.tb]) _).1 $$ Htb with ⟨Ht1, Ht2⟩
+  -- the spine, the commit bound, the candidates
+  imod osPathS_root R f.d f.J (DFrac.own 1) hR hE $$ Hsh with Hsp
+  imod osCommitLb_zero' L with #Hlb
+  icases durFound_cands L f V v $$ Hf with ⟨%cs, %hcs, Hc1, Hc2⟩
+  icases durFoundTmp_tmpRes L f V hV $$ Ht with ⟨%htd, Ht⟩
+  have hok := durOk_boot (f := f) hV hcs htd
+  ihave Hcur := curRes_boot L f V cs hV hcs $$ Hc2
+  -- the ghost state and the invariant
+  imod ghostVar_alloc (GF := GF) (⟨v, none⟩ : DurSt) with ⟨%γs, Hs⟩
+  icases (ghostVar_split_half (GF := GF) γs 1 (⟨v, none⟩ : DurSt)).1 $$ Hs with ⟨Hs1, Hs2⟩
+  imod ghostVar_alloc (GF := GF) (bootPhys f V cs) with ⟨%γp, Hp⟩
+  icases (ghostVar_split_half (GF := GF) γp 1 (bootPhys f V cs)).1 $$ Hp with ⟨Hp1, Hp2⟩
+  imod token_alloc (GF := GF) with ⟨%γc, Htok⟩
+  imod inv_alloc durN E iprop(durInvBody (L := L) ⟨γs, γp, γc⟩ f ∨
+      (crashed (hC := L.goose_crashGS) ∗ durCrashTok (GF := GF) ⟨γs, γp, γc⟩))
+    $$ [Hs1 Hp1 Hb1 Ht1 Hc1] with #Hinv
+  · inext
+    ileft
+    unfold durInvBody durPhys
+    iexists ⟨v, none⟩, bootPhys f V cs
+    iframe Hs1 Hp1 Hb1 Ht1 Hc1 Hlb
+    ipureintro; exact hok
+  imodintro
+  iexists ⟨γs, γp, γc⟩
+  unfold durInv durHandle durHandleP durSt durCrashTok durPhys
+  iframe Hinv Hs2 Htok
+  iexists bootPhys f V cs
+  isplitl
+  · iexists 1
+    iframe Hp2 Hb2 Ht2 Hsp Ht Hcur
+  · ipureintro; rfl
+
+/-- **The boot on the file's own names** (`durBoot` with a claim on only the file's two names, `f.b`
+and its temporary's `f.tb`, instead of the whole directory): the rest of the directory's names stay
+with the caller, e.g. for another durable file in the same directory. -/
+theorem durBootOnly (L : GooseLocalGS GF) (f : DFile) (R : Roots) (V : Hist) (v : Option GoString)
+    (E : CoPset) (hV : V.2 = []) (hR : (f.d, f.J) ∈ R) (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (L := L) R -∗
+      osNames (L := L) f.J (.only [f.b, f.tb]) (DFrac.own 1) (namesOf V f.J (.only [f.b, f.tb])) -∗
+      durFound (L := L) f V.now v -∗ durFoundTmp (L := L) f V.now ={E}=∗
+      ∃ γ : DurGS, durInv (L := L) γ f ∗ durHandle (L := L) γ f R ∗
+        durSt (GF := GF) γ ⟨v, none⟩ ∗ durCrashTok (GF := GF) γ := by
+  iintro #Hsh Hall Hf Ht
+  -- the two names' claims
+  imod osNames_split R f.J (.only [f.b, f.tb]) [f.b] _ hE $$ Hsh Hall with ⟨Hb, Htb⟩
+  have hi : (NameSet.only [f.b, f.tb]).inter [f.b] = .only [f.b] := by
+    simp [NameSet.inter, f.tb_ne]
+  have hd : (NameSet.only [f.b, f.tb]).diff [f.b] = .only [f.tb] := by
+    simp [NameSet.diff, f.tb_ne]
+  rw [namesOf_restrict V f.J (.only [f.b, f.tb]) ((NameSet.only [f.b, f.tb]).inter [f.b])
+      (fun b hb => by
+        rw [hi] at hb
+        simp only [NameSet.Mem, List.mem_singleton] at hb
+        subst hb; simp [NameSet.Mem]),
+    namesOf_restrict V f.J (.only [f.b, f.tb]) ((NameSet.only [f.b, f.tb]).diff [f.b])
+      (fun b hb => by
+        rw [hd] at hb
+        simp only [NameSet.Mem, List.mem_singleton] at hb
+        subst hb; simp [NameSet.Mem]), hi, hd]
   icases (osNames_halves_boot L f.J (.only [f.b]) _).1 $$ Hb with ⟨Hb1, Hb2⟩
   icases (osNames_halves_boot L f.J (.only [f.tb]) _).1 $$ Htb with ⟨Ht1, Ht2⟩
   -- the spine, the commit bound, the candidates

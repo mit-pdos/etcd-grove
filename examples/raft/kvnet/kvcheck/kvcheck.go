@@ -22,9 +22,9 @@ import (
 
 	"github.com/anishathalye/porcupine"
 	"github.com/goose-lang/primitive"
-	"github.com/mit-pdos/gokv/trusted_proph"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 	"github.com/mit-pdos/etcd-grove/examples/raft/kvnet"
+	"github.com/mit-pdos/gokv/trusted_proph"
 	pb "go.etcd.io/raft/v3/raftpb"
 )
 
@@ -213,23 +213,24 @@ func (c *checker) reconfigure(stop <-chan struct{}) {
 	}
 }
 
-// disrupt moves leadership at random times until stop: a transfer to a random replica, a
-// campaign, or a leader forgotten, asked of a random replica.
+// disrupt disrupts a random replica at random times until stop: a leadership transfer to a random
+// replica, a campaign, a leader forgotten, or the replica's restart in its process (its node
+// stopped, raft's Node.Stop, and restarted from its file).
 func (c *checker) disrupt(stop <-chan struct{}) {
 	for !sleep(disruptPause, stop) {
-		c.request(c.randomID(), kvnet.ReqDisrupt, kvnet.EncodeDisrupt(below(3), c.randomID()))
+		c.request(c.randomID(), kvnet.ReqDisrupt, kvnet.EncodeDisrupt(below(4), c.randomID()))
 	}
 }
 
 // Check is the checking client's process, as the top-level theorem runs it: the cluster whose
 // replicas' addresses are addrs (comma-separated, replica i at the i-th, ids from 1), with the
-// bootstrap voters 1..voters. It panics if the cluster is not one the theorem's premises allow
-// (kvnet.ValidAddrs), and unless porcupine accepts the history of the operations it ran (the
-// package's comment); otherwise it returns once they are done.
+// bootstrap voters 1..voters. It returns at once, doing nothing, if the cluster is not one it can
+// check (kvnet.ValidAddrs): a safe run. It panics unless porcupine accepts the history of the
+// operations it ran (the package's comment); otherwise it returns once they are done.
 func Check(addrs string, voters uint64) {
 	as := kvnet.SplitAddrs(addrs)
 	if !kvnet.ValidAddrs(as, voters) {
-		panic("kvcheck: not a valid cluster")
+		return
 	}
 	c := &checker{addrs: as}
 	stop := make(chan struct{})

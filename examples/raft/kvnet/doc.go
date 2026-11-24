@@ -14,8 +14,11 @@
 //   - A replica is a process (RunNode), started with its id, every replica's address (one
 //     comma-separated string, replica i at the i-th), its directory and the cluster's options, all
 //     scalars and strings (the top-level theorem's programs: notes/kvnet-robust-goal.md). An
-//     incarnation is a process: it never stops itself; it ends when the process is killed, or its
-//     machine loses power. A failed Listen is retried, never a panic.
+//     incarnation ends when the process is killed, or its machine loses power, or when a client
+//     asks the replica to restart (ReqDisrupt): the process then stops it cleanly (its loop, clock
+//     and snapshot goroutine, then raft's Node.Stop, then its transport) and starts the next one
+//     from the file (Node.restart), as kvdurable's restarts do. A failed Listen is retried, never
+//     a panic.
 //   - Messages go over TCP (Transport): one connection per peer, dialed when needed, one frame
 //     per message (a length, then the message encoded by hand, putMsg: no proto.Marshal); a
 //     message that cannot be written is dropped and reported to raft (ReportUnreachable,

@@ -190,7 +190,9 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   definition (`Robust crashing stable g threads bound`: in every execution of Perennial's `DistCrashNstepsBelow`
   (fewer than `threads` live threads on every machine, fewer than `bound` steps) of programs on machines that crash and restart and programs on machines that never crash, with
   any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
-  is checked by a program of the deployment that panics, never stated over traces in Lean), and
+  is checked by a program of the deployment that panics, never stated over traces in Lean; an exit
+  (`os.Exit`, `log.Fatal`: Perennial's `AngelicExit`) counts as a safe run, so checkers panic,
+  `etc/exit-check.py`), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
   kernel and the harness, never by the program): `notes/robustness.md`. Every example's top-level
   result is an instance, in two files named `TopLevelRobustness.lean`:
@@ -345,7 +347,9 @@ which roots reach a `sorry` (`--per-root`: every root). A collection
 (`etc/tcb-collections/*.txt`) keeps the patterns (`roots` lines) with their baseline
 (`axiom`/`sorry` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
 `--check` compares, `--check --update` rewrites the baseline. Track a proof's progress
-by adding a collection for it.
+by adding a collection for it. Its `axioms PATTERN` lines, if any, restrict the report and the
+baseline to the axioms and `sorry`s whose name or module file matches one: what one family of
+declarations contributes to the roots (`etc/tcb-collections/grpc.txt`).
 
 ## How much is verified
 
@@ -471,6 +475,8 @@ read-only conditions holding only such statements. The rule widens (Upamanyu, #2
 - a patch may add prophecy-only declarations: a `ProphId` field or package variable initialized only by `NewProph`, and helper functions whose bodies hold only read-only computation plus `Resolve*`;
 - it may add calls to them at statement level or inside `if`s on read-only conditions;
 - `etc/prophcheck` checks that erasing every added declaration and call gives back the original files, and refuses an added field in a struct the program compares with `==`, uses as a map key, or reflects on.
+- `Resolve(any)` calls are admitted too (Upamanyu, #24), their argument built from read-only values: a struct literal or conversion to `any`, with no allocation, `append` or `make`.
+- The prophecy package is Perennial's `github.com/mit-pdos/perennial/proph` (`NewProph`, `ProphId`, `ResolveBool`, `ResolveU64`, `Resolve(any)`; Lean namespace `github_com.mit_pdos.perennial.proph`) or goose's `github.com/goose-lang/primitive` (the same without `Resolve`); new patches use `proph`.
 
 A read-only expression may fail, which only adds failing behaviors the proof rules out. The exact
 checks: `notes/proph-patch-rule.md` and `etc/prophcheck/main.go`'s doc comment. Never put anything

@@ -354,6 +354,7 @@ public import RaftNoAx.Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.voteRespMsgType
 public import Perennial.Proof.time.Link
+public import Perennial.Proof.strings.Link
 public import Proof.context.Link
 
 @[expose] public section

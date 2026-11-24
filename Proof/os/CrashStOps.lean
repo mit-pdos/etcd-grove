@@ -1,13 +1,13 @@
 /-
 The extension's operations over a file in the generic crash invariant (`Proof/os/CrashSt.lean`):
 each opens the invariant around its one step (`fsOp_atomic`; `cs_open`, which closes it again
-with a state of the same file, so the tree's part holds as it did), applies the extension-level
+with a state of the same file, so the claim's part holds as it did), applies the extension-level
 spec to the invariant's and the caller's parts put together, and closes it with the new state, of
 which the caller shows `Ok`. The caller's part is of the file only (`csOwnF`), but for the create,
-which needs the history (`csOwn`). Lean-first (no Rocq counterpart).
+which needs the caller's half of the claim on the file's name (`csOwn`). Lean-first (no Rocq counterpart).
 
-* `wp_osOpenCreate_cs`: no file at `p = d/b`, the create (the invariant's half of the history and
-  the caller's make it whole), to the new file (`csNew`); on failure maybe.
+* `wp_osOpenCreate_cs`: no file at `p = d/b`, the create (the invariant's half of the claim and
+  the caller's make it whole, `wp_osOpenCreateS`), to the new file (`csNew`); on failure maybe.
 * `wp_osPWriteStart_cs`/`wp_osPWriteFinish_cs`: idle to a write in flight (inside the file, and
   missing the frozen bytes), and back to idle, as the write of the first `k` bytes left it.
 * `wp_osFtruncateStart_cs`/`wp_osFtruncateFinish_cs`: idle to a growing truncate in flight, and
@@ -227,12 +227,11 @@ end bytes
 /-- The state of a file just created, of inode `i`: empty, idle, nothing frozen. -/
 def csNew (i : Ino) : CState := some (i, ⟨newMeta, [], 0, 0, .idle⟩)
 
-/-- The state of the file at `d/b` and the history after an `open(O_CREAT)` of it succeeds, from
-the state `s` and the history `V`, the file being `i`: created (`d` being the directory `j`) if `s`
-has none, unchanged otherwise. -/
-def csOpenSt (j : Ino) (b : GoString) (V : Hist) (i : Ino) : CState → CState × Hist
-  | none => (csNew i, V.push ⟨.create j b i, V.2.length⟩)
-  | some x => (some x, V)
+/-- The state of the file at `d/b` after an `open(O_CREAT)` of it succeeds, from the state `s`,
+the file being `i`: created if `s` has none, unchanged otherwise. -/
+def csOpenSt (i : Ino) : CState → CState
+  | none => csNew i
+  | some x => some x
 
 /-- The state after a successful sync of an idle state `H ++ (F ++ T)` (`F` frozen, durable): every
 byte durable. -/
@@ -264,7 +263,7 @@ theorem invResS_idle (p : Ino) (s : CSt) (hb : s.busy = .idle) :
   dsimp only at hb; subst hb; exact .rfl
 
 /-- The invariant's state, from the caller's: they agree. The invariant closes again with a state
-of the same file (its tree's part, `TreeOkI`, depends on the inode only). -/
+of the same file (its claim's part, `TreeOkI`, depends on the inode only). -/
 theorem cs_open (N : Namespace) (P : GoString) (R : Roots) (γ : GName)
     (Good : Option OsFile → Prop) (Ok : CState → Prop) (s : CState) (E : CoPset) (hE : ↑N ⊆ E) :
     ⊢ csInv (L := L) N P R γ Good Ok -∗ ghostVar γ (1 : Qp).half s ={E, E \ ↑N}=∗
@@ -274,7 +273,8 @@ theorem cs_open (N : Namespace) (P : GoString) (R : Roots) (γ : GName)
   iintro #Hinv Hv
   unfold csInv
   imod inv_acc (E := E) hE $$ Hinv with ⟨Hi, Hclose⟩
-  icases Hi with ⟨%s', %V, >Hv', >Hr, >Ht, >%Hok'⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%s', %j, %b, %h, %hfa, Hv', Hr, Hn, %Hok'⟩
   icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
   subst Heq
   imodintro
@@ -285,8 +285,10 @@ theorem cs_open (N : Namespace) (P : GoString) (R : Roots) (γ : GName)
   icases H with ⟨%s2, >Hv2, >Hr2, >%Hok2⟩
   iapply Hclose
   inext
-  iexists s2, V
-  iframe
+  iexists s2, j, b, h
+  iframe Hv2 Hr2 Hn
+  isplitr
+  · ipureintro; exact hfa
   ipureintro
   exact ⟨Hok2.1, by rw [Hok2.2.1]; exact Hok'.2.1, Hok2.2.2⟩
 
@@ -962,71 +964,81 @@ theorem wp_osMunmap_cs (base : Loc) (len cap : w64) (p : Ino) (N : Namespace) (P
 
 /-! ### Open -/
 
-/-- The invariant's state and its half of the history, from the caller's: they agree. -/
+/-- The invariant's state, from the caller's: they agree; and the invariant's half of the claim
+on the file's name. -/
 theorem cs_openT (N : Namespace) (P : GoString) (R : Roots) (γ : GName)
-    (Good : Option OsFile → Prop) (Ok : CState → Prop) (s : CState) (V : Hist) (dq : DFrac) :
-    ⊢ csInv (L := L) N P R γ Good Ok -∗ ghostVar γ (1 : Qp).half s -∗
-      osTree (L := L) dq R V ={⊤, ⊤ \ ↑N}=∗
-      ghostVar γ (1 : Qp).half s ∗ osTree (L := L) dq R V ∗ invResS (L := L) s ∗
-        osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗ ghostVar γ (1 : Qp).half s ∗
-        ⌜Ok s ∧ TreeOkI Good P R (sIno s) V ∧ CsCut s⌝ ∗
-        (∀ (s' : CState) (V' : Hist), ghostVar γ (1 : Qp).half s' -∗ invResS (L := L) s' -∗
-          osTree (L := L) (DFrac.own (1 : Qp).half) R V' -∗ ⌜Ok s' ∧ TreeOkI Good P R (sIno s') V' ∧ CsCut s'⌝
-          ={⊤ \ ↑N, ⊤}=∗ True) := by
-  iintro #Hinv Hv Ht
+    (Good : Option OsFile → Prop) (Ok : CState → Prop) (s : CState) :
+    ⊢ csInv (L := L) N P R γ Good Ok -∗ ghostVar γ (1 : Qp).half s ={⊤, ⊤ \ ↑N}=∗
+      ghostVar γ (1 : Qp).half s ∗ invResS (L := L) s ∗ ghostVar γ (1 : Qp).half s ∗
+      ∃ (j : Ino) (b : GoString) (h : NamesH), ⌜FileAt R P j b⌝ ∗
+        ⌜Ok s ∧ TreeOkI Good j b (sIno s) h ∧ CsCut s⌝ ∗
+        osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h ∗
+        (∀ (s' : CState) (h' : NamesH), ghostVar γ (1 : Qp).half s' -∗ invResS (L := L) s' -∗
+          osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h' -∗
+          ⌜Ok s' ∧ TreeOkI Good j b (sIno s') h' ∧ CsCut s'⌝ ={⊤ \ ↑N, ⊤}=∗ True) := by
+  iintro #Hinv Hv
   unfold csInv
   imod inv_acc (E := ⊤) (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
     with ⟨Hi, Hclose⟩
-  icases Hi with ⟨%s', %V', >Hv', >Hr, >Ht', >%Hok'⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%s', %j, %b, %h, %hfa, Hv', Hr, Hn, %Hok'⟩
   icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
   subst Heq
-  icases osTree_agree _ _ _ _ _ _ $$ Ht Ht' with %Heq
-  obtain ⟨-, rfl⟩ := Heq
   imodintro
-  iframe Hv Ht Hr Ht' Hv'
+  iframe Hv Hr Hv'
+  iexists j, b, h
+  iframe Hn
+  isplitr
+  · ipureintro; exact hfa
   isplitr
   · ipureintro; exact Hok'
-  iintro %s2 %V2 Hv2 Hr2 Ht2 %Hok2
+  iintro %s2 %h2 Hv2 Hr2 Hn2 %Hok2
   iapply Hclose
-  inext; iexists s2, V2; iframe; ipureintro; exact Hok2
+  inext; iexists s2, j, b, h2; iframe; isplitr
+  · ipureintro; exact hfa
+  ipureintro; exact Hok2
 
-/-- `open(2)` with `O_RDWR | O_CREAT` of `p = d/b`, no file there, in a crash invariant: the
-invariant's half of the history and the caller's (with the call's) make it whole, so the create
-can happen; on success the new file (`csNew`), which the caller shows `Ok`; on failure it may have
-been created. -/
+/-- `open(2)` with `O_RDWR | O_CREAT` of `p = d/b` (`d` the root directory `j`), no file there, in
+a crash invariant: the invariant's half of the claim on `b` and the caller's make it whole, so the
+create can happen; on success the new file, empty and idle, which the caller shows `Ok`; on
+failure it may have been created. -/
 theorem wp_osOpenCreate_cs (d b : GoString) (N : Namespace) (R : Roots) (γ : GName)
-    (Good : Option OsFile → Prop) (Ok : CState → Prop) (V : Hist) (j : Ino) (k s0 : Nat)
-    (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hb : NameOk b) (hd : lookupH R V d = some (.dir j))
-    (hn : lookupH R V (child d b) = none) (hok : ∀ i, Ok (csNew i)) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ csInv (L := L) N (child d b) R γ Good Ok -∗
-      ghostVar γ (1 : Qp).half (none : CState) -∗
-      osTree (L := L) (DFrac.own (1 : Qp).half.half) R V -∗ osCall (L := L) k s0 (child d b) (1 : Qp).half.half -∗
-      (∀ fd : w64, ∀ e : w64,
-        ((∃ i, ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗
-            csOwn (L := L) (child d b) R γ (csNew i) (V.push ⟨.create j b i, V.2.length⟩) ∗
+    (Good : Option OsFile → Prop) (Ok : CState → Prop) (j : Ino) (dq : DFrac) (h : NamesH)
+    (k s0 : Nat) (q : Qp) (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hN' : ↑osShN ⊆ (⊤ : CoPset) \ ↑N)
+    (hb : NameOk b) (hfa : FileAt R (child d b) j b) (hn : h.cur !! b = none) (hs : h.next ≤ s0)
+    (hok : ∀ i, Ok (csNew i)) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ csInv (L := L) N (child d b) R γ Good Ok -∗
+      osPathS (L := L) R d dq j -∗ ghostVar γ (1 : Qp).half (none : CState) -∗
+      osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h -∗
+      osCallS (L := L) k s0 (child d b) q -∗
+      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
+        ((∃ i, ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ csOwn (L := L) (child d b) R γ (csNew i) ∗
             osFd (L := L) fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
-         (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (csOwn (L := L) (child d b) R γ none V ∨ ∃ i,
-            csOwn (L := L) (child d b) R γ (csNew i) (V.push ⟨.create j b i, V.2.length⟩)))) -∗
+         (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (csOwn (L := L) (child d b) R γ none ∨ ∃ i,
+            csOwn (L := L) (child d b) R γ (csNew i)))) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
         {{ Φ }} := by
-  iintro #Hos #Hinv Hv Ht Hk HΦ
+  iintro #Hos #Hsi #Hinv Hp Hv Hn Hk HΦ
   have hnm : newMeta.size = 0 := by simp [initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
   have hwf : ∀ i, CsWf (csNew i) := fun i =>
     ⟨by show 0 = newMeta.size; exact hnm.symm, Nat.le_refl _, Nat.zero_le _, trivial⟩
   iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
-  imod cs_openT N (child d b) R γ Good Ok _ V _ $$ Hinv Hv Ht
-    with ⟨Hv, Ht, -, Hti, Hv', %Hok', Hclose⟩
-  ihave Hh := (osTree_split (1 : Qp).half (1 : Qp).half.half R V).2 $$ [Hti Ht]
-  · iframe
+  imod cs_openT N (child d b) R γ Good Ok _ $$ Hinv Hv
+    with ⟨Hv, -, Hv', %j', %b', %h', %hfa', %Hok', Hti, Hclose⟩
+  icases cf_claims R (child d b) j j' b b' h h' hfa hfa' $$ Hn Hti with ⟨%he, Hw⟩
+  obtain ⟨hj, hb', hh⟩ := he
+  subst j' b' h'
   imodintro
-  iapply wp_osOpenCreate d b R V _ _ k s0 j hb hd hn qp_three hN $$ Hos Hh Hk
-  iintro %fd %e %hr Hres
-  have hpush : ∀ i, Ok (csNew i) ∧ TreeOkI Good (child d b) R (sIno (csNew i))
-      (V.push ⟨.create j b i, V.2.length⟩) ∧ CsCut (csNew i) :=
-    fun i => ⟨hok i, treeOk_create (i := i) hr hd hb hn Hok'.2.1 (newMeta, [], none), rfl⟩
-  have hpath : ∀ i, SPathOk (child d b) R (csNew i) (V.push ⟨.create j b i, V.2.length⟩) :=
-    fun i => EtcdGrove.lookupH_create V.2.length hr hd hb hn
+  iapply wp_osOpenCreateS R d b j dq h k s0 q flCreat
+    (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) (by decide) hb
+    (fun J hJ => by rw [hn] at hJ; cases hJ) hs hN hN' $$ Hos Hsi Hp Hw Hk
+  iintro %fd %e Hperm Hp Hres
+  have hpush : ∀ x i, Ok (csNew i) ∧ TreeOkI Good j b (sIno (csNew i))
+      (h.log x ⟨.create j b i, s0⟩ (<[b := .file i]> h.cur)) ∧ CsCut (csNew i) :=
+    fun x i => ⟨hok i, treeOk_create (i := i) x s0 (newMeta, [], none) Hok'.2.1, rfl⟩
+  have hpath : ∀ x i, SPathOk b (csNew i) (h.log x ⟨.create j b i, s0⟩ (<[b := .file i]> h.cur)) :=
+    fun x i => GMap.lookup_insert _ _ _
   -- the new file's resources, as the invariant's part and the caller's
   have hnew : ∀ i, osMeta (L := L) i (DFrac.own 1) newMeta ⊢
       invResS (L := L) (csNew i) ∗ thrResS (L := L) (csNew i) := fun i => by
@@ -1036,76 +1048,82 @@ theorem wp_osOpenCreate_cs (d b : GoString) (N : Namespace) (R : Roots) (γ : GN
     iframe Hm1 Hm2
     unfold invBytes thrBytes
     isplitl <;> iapply (cBytes_nil _ _ _ _).2 <;> iempintro
-  icases Hres with (⟨%he, %i, Ht, Hm, Hfd⟩ | ⟨%he, (Ht | ⟨%i, Ht, Hm⟩)⟩)
-  · icases (osTree_halves R _).1 $$ Ht with ⟨Ht1, Ht2⟩
+  icases Hres with (⟨%i, %hi, -, -⟩ | ⟨-, %x, %i, -, Hw, Hm, Hfd⟩ | ⟨%he, Hw⟩)
+  · rw [hn] at hi; cases hi
+  · icases (osNames_halves' j _ _).1 $$ Hw with ⟨Hw1, Hw2⟩
     icases hnew i $$ Hm with ⟨Hi, Hth⟩
     imod ghostVar_update_halves (csNew i) γ _ _ $$ Hv Hv' with ⟨Hv, Hv'⟩
-    imod Hclose $$ %_ %_ Hv' Hi Ht1 %(hpush i) with -
+    imod Hclose $$ %_ %_ Hv' Hi Hw1 %(hpush x i) with -
     imodintro
-    iapply HΦ
-    ileft
-    iexists i
-    iframe Hfd
-    isplitr
-    · ipureintro; exact he
-    unfold csOwn csOwnF
-    iframe Hv Hth Ht2
-    ipureintro; exact ⟨hwf i, hpath i⟩
-  · icases (osTree_halves R _).1 $$ Ht with ⟨Ht1, Ht2⟩
-    imod Hclose $$ %none %V Hv' [] Ht1 %Hok' with -
+    iapply HΦ $$ %fd %e Hperm Hp
+    ihave Hown := (show ghostVar γ (1 : Qp).half (csNew i) ∗ thrResS (L := L) (csNew i) ∗
+        osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half)
+          (h.log x ⟨.create j b i, s0⟩ (<[b := .file i]> h.cur)) ⊢
+        csOwn (L := L) (child d b) R γ (csNew i) by
+      iintro ⟨Hv, Hth, Hw2⟩
+      unfold csOwn csOwnF
+      iframe Hv Hth
+      isplitr
+      · ipureintro; exact hwf i
+      iexists j, b, _
+      iframe Hw2
+      ipureintro; exact ⟨hpath x i, hfa⟩) $$ [Hv Hth Hw2]
+    · iframe
+    icases Hfd with (%he | ⟨%he, Hfd⟩)
+    · iright
+      isplitr
+      · ipureintro; exact he
+      iright; iexists i; iexact Hown
+    · ileft
+      iexists i
+      isplitr
+      · ipureintro; exact he
+      iframe Hown
+      rw [openFd_rw]; iexact Hfd
+  · icases (osNames_halves' j _ _).1 $$ Hw with ⟨Hw1, Hw2⟩
+    imod Hclose $$ %none %h Hv' [] Hw1 %Hok' with -
     · dsimp only [invResS]; iempintro
     imodintro
-    iapply HΦ
+    iapply HΦ $$ %fd %e Hperm Hp
     iright
     isplitr
     · ipureintro; exact he
     ileft
     unfold csOwn csOwnF
     dsimp only [thrResS]
-    iframe Hv Ht2
-    ipureintro; exact ⟨⟨trivial, trivial⟩, hn⟩
-  · icases (osTree_halves R _).1 $$ Ht with ⟨Ht1, Ht2⟩
-    icases hnew i $$ Hm with ⟨Hi, Hth⟩
-    imod ghostVar_update_halves (csNew i) γ _ _ $$ Hv Hv' with ⟨Hv, Hv'⟩
-    imod Hclose $$ %_ %_ Hv' Hi Ht1 %(hpush i) with -
-    imodintro
-    iapply HΦ
-    iright
+    iframe Hv
     isplitr
-    · ipureintro; exact he
-    iright
-    iexists i
-    unfold csOwn csOwnF
-    iframe Hv Hth Ht2
-    ipureintro; exact ⟨hwf i, hpath i⟩
+    · ipureintro; exact ⟨trivial, trivial⟩
+    iexists j, b, h
+    iframe Hw2
+    ipureintro; exact ⟨hn, hfa⟩
 
 
 /-! ### The specs' loops -/
 
-/-- What an `open(O_CREAT)` loop of the file at `d/b` may have made of the state `s` and the
-history `V` so far: nothing, or `csOpenSt` of them (a failed attempt may have created the
-file). -/
-def CsOpenInv (j : Ino) (b : GoString) (V : Hist) (s s' : CState) (V' : Hist) : Prop :=
-  (s' = s ∧ V' = V) ∨ ∃ i, (s', V') = csOpenSt j b V i s
+/-- What an `open(O_CREAT)` loop of the file at `d/b` may have made of the state `s` so far:
+nothing, or `csOpenSt` of it (a failed attempt may have created the file). -/
+def CsOpenInv (s s' : CState) : Prop :=
+  s' = s ∨ ∃ i, s' = csOpenSt i s
 
 /-- With a file at the path, it is idle, and it is what `csOpenSt` makes of `s`. -/
-theorem csOpenInv_some {j : Ino} {b : GoString} {V V' : Hist} {s : CState} {i : Ino} {y : CSt}
+theorem csOpenInv_some {s : CState} {i : Ino} {y : CSt}
     (hs : s = none ∨ ∃ i m bs fa fb, s = some (i, ⟨m, bs, fa, fb, .idle⟩))
-    (h : CsOpenInv j b V s (some (i, y)) V') :
-    (s = none ∨ sIno s = some i) ∧ (some (i, y), V') = csOpenSt j b V i s ∧ y.busy = .idle := by
-  rcases h with ⟨h1, h2⟩ | ⟨i1, h⟩
-  · subst h1 h2
+    (h : CsOpenInv s (some (i, y))) :
+    (s = none ∨ sIno s = some i) ∧ some (i, y) = csOpenSt i s ∧ y.busy = .idle := by
+  rcases h with h1 | ⟨i1, h⟩
+  · subst h1
     rcases hs with h | ⟨i0, m, bs, fa, fb, h⟩
     · cases h
     · cases h; exact ⟨.inr rfl, rfl, rfl⟩
   · cases s with
     | none =>
-      simp only [csOpenSt, csNew, Prod.mk.injEq, Option.some.injEq] at h
-      obtain ⟨⟨rfl, rfl⟩, rfl⟩ := h
+      simp only [csOpenSt, csNew, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
       exact ⟨.inl rfl, rfl, rfl⟩
     | some x =>
-      simp only [csOpenSt, Prod.mk.injEq, Option.some.injEq] at h
-      obtain ⟨rfl, rfl⟩ := h
+      simp only [csOpenSt, Option.some.injEq] at h
+      subst h
       rcases hs with h | ⟨i0, m, bs, fa, fb, h⟩
       · cases h
       · cases h; exact ⟨.inr rfl, rfl, rfl⟩
@@ -1113,26 +1131,34 @@ theorem csOpenInv_some {j : Ino} {b : GoString} {V V' : Hist} {s : CState} {i : 
 theorem csOwnF_wf (γ : GName) (s : CState) : csOwnF (L := L) γ s ⊢ ⌜CsWf s⌝ := by
   unfold csOwnF; iintro ⟨-, -, %h⟩; ipureintro; exact h
 
-/-- The caller's part of no file at `p`. -/
-theorem csOwn_none (p : GoString) (R : Roots) (γ : GName) (V : Hist) :
-    csOwn (L := L) p R γ none V ⊢ ghostVar γ (1 : Qp).half (none : CState) ∗
-      osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗ ⌜lookupH R V p = none⌝ := by
+/-- The caller's part of no file at `p`: the claim's half, on a name holding nothing. -/
+theorem csOwn_none (p : GoString) (R : Roots) (γ : GName) :
+    csOwn (L := L) p R γ none ⊢ ghostVar γ (1 : Qp).half (none : CState) ∗
+      ∃ (j : Ino) (b : GoString) (h : NamesH),
+        osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h ∗
+        ⌜h.cur !! b = none ∧ FileAt R p j b⌝ := by
   unfold csOwn csOwnF; dsimp only [thrResS]
-  iintro ⟨⟨Hv, -, -⟩, Ht, %h⟩; iframe; ipureintro; exact h
+  iintro ⟨⟨Hv, -, -⟩, %j, %b, %h, Ht, %hw⟩; iframe Hv; iexists j, b, h; iframe; ipureintro
+  exact hw
 
-/-- The caller's part of the file `i` at `p`: its half of the history, lent out. -/
-theorem csOwn_tree (p : GoString) (R : Roots) (γ : GName) (i : Ino) (x : CSt) (V : Hist) :
-    csOwn (L := L) p R γ (some (i, x)) V ⊢ osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗
-      ⌜lookupH R V p = some (.file i)⌝ ∗
-      (osTree (L := L) (DFrac.own (1 : Qp).half) R V -∗ csOwn (L := L) p R γ (some (i, x)) V) := by
+/-- The caller's part of the file `i` at `p`: its half of the claim, lent out. -/
+theorem csOwn_tree (p : GoString) (R : Roots) (γ : GName) (i : Ino) (x : CSt) :
+    csOwn (L := L) p R γ (some (i, x)) ⊢ ∃ (j : Ino) (b : GoString) (h : NamesH),
+      osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h ∗
+      ⌜h.cur !! b = some (.file i) ∧ FileAt R p j b⌝ ∗
+      (osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h -∗
+        csOwn (L := L) p R γ (some (i, x))) := by
   unfold csOwn
-  iintro ⟨Hf, Ht, %h⟩
+  iintro ⟨Hf, %j, %b, %h, Ht, %hw⟩
+  iexists j, b, h
   iframe Ht
   isplitr
-  · ipureintro; exact h
+  · ipureintro; exact hw
   iintro Ht
+  iframe Hf
+  iexists j, b, h
   iframe
-  ipureintro; exact h
+  ipureintro; exact hw
 
 /-! ### Freezing more bytes -/
 

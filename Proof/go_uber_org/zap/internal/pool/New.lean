@@ -22,12 +22,40 @@ variable [sem : go.Semantics]
 variable [package_sem : go_uber_org.zap.internal.pool.Assumptions]
 
 theorem zap.internal.pool.New.wp_proof : zap.internal.pool.New.spec (GF := GF) (hG := hG) := by
-  intro V _ _ T _ fn
+  intro E fn
   wp_start
   wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
+  iapply wp_fupd
   wp_auto
-  wp_end
+  ipersist fn
+  imodintro
+  iapply HΦ
+  unfold zap.internal.pool.ownPool
+  iStructNamed «$r0»
+  iexists _
+  iframe
+  isplitr
+  · ipureintro
+    exact ⟨rfl, by simp [func.nil]⟩
+  imodintro
+  iintro %Q #Hfn
+  unfold sync.newSpec
+  iright
+  imodintro
+  iintro %Ψ - HΨ
+  dsimp only
+  wp_auto
+  unfold zap.internal.pool.fnSpec
+  wp_apply Hfn as %v HQ
+  iapply HΨ
+  isplitl
+  · unfold zap.internal.pool.elemOk
+    iexists v
+    iframe
+    ipureintro
+    rfl
+  itrivial
 
 end proof
 

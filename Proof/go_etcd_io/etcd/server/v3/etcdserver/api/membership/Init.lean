@@ -19,9 +19,14 @@ trust-boundary axiom `ClusterVersionMetrics_init`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.PkgInit
+public import Perennial.Proof.crypto.sha1.Link
+public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
+public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sort.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
+public import Perennial.Proof.time.Link
 public import Proof.encoding.json.Init
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init

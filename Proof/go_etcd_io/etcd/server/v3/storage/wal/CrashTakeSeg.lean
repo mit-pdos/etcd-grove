@@ -338,8 +338,8 @@ theorem crashRestAt_take_tok (hL : OsGS GF) (Q : OsState → OsState → Prop) (
         crashRestAt Q hL hL' (if tk then ti.ino :: D else D) tt V' st st' ∗
         gElem hL hL.γt t (DFrac.own 1) ti ∗ ([∗list] r ∈ rs, bytesG hL ti.ino r.1 r.2.1 r.2.2) := by
   unfold crashRestAt
-  iintro ⟨%Γb, %Γm, %F, %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Htl⟩ Ht Hbs
-  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩ := hrel
+  iintro ⟨%Γb, %Γm, %F, %Γf, %Γt, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Htl⟩ Ht Hbs
+  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, hV, hnamed⟩ := hrel
   icases gAuth_lookup hL _ _ _ _ _ $$ HAt Ht with %hti
   unfold tokRes
   icases (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
@@ -389,11 +389,11 @@ theorem crashRestAt_take_tok (hL : OsGS GF) (Q : OsState → OsState → Prop) (
     simp only [Bool.false_eq_true, ite_false]
     isplitr
     · iempintro
-    iexists Γb, Γm, F, Γf, Γt, V
+    iexists Γb, Γm, F, Γf, Γt
     iframe Hab Ham Hfs HAt HAd Htl
     isplitr
     · ipureintro
-      exact ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩
+      exact ⟨hwf, hcoh, hcr, hQ, hF, hroots, hV, hnamed⟩
     iapply (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
         gElem hL hL.γm ti.ino (DFrac.own 1) ti.meta ∗
         bytesG hL ti.ino ti.lo (DFrac.own 1) ti.saved)) hti).2
@@ -404,11 +404,11 @@ theorem crashRestAt_take_tok (hL : OsGS GF) (Q : OsState → OsState → Prop) (
     have hFi := hF ti.ino (hi rfl)
     rw [hFi]
     iframe Hf
-    iexists Γb, Γm, GMap.delete ti.ino F, Γf, Γt, V
+    iexists Γb, Γm, GMap.delete ti.ino F, Γf, Γt
     iframe Hab Ham Hfs HAt HAd Htl
     isplitr
     · ipureintro
-      exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed, htd⟩
+      exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, hV, hnamed⟩
     iapply (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
         gElem hL hL.γm ti.ino (DFrac.own 1) ti.meta ∗
         bytesG hL ti.ino ti.lo (DFrac.own 1) ti.saved)) hti).2

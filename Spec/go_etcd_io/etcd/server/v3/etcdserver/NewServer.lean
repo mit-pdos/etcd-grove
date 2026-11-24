@@ -225,6 +225,11 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2) the member's peer and client URLs within
+  -- etcd's URL bounds (`etcdURLsFit`: at most `etcdURLCountMax` URLs of at most `etcdURLLenMax`
+  -- bytes, each `http://host`), for the `strings.Join`s of their strings (`publishV3`'s log lines,
+  -- the transport's `X-PeerURLs`)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
   -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
   -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
@@ -313,9 +318,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
       -- cluster gives the member (raft's `RaftNames.reSnapLoc` until 2026-10-27; until then `NewServer` allocated it,
       -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`). This is the ghost map's
-      -- authority only; the directory itself (no `.snap.db` file yet, no writer but the server's
-      -- snapshotters) is `bootOk`'s `Hsdo` (`snap.snapDirOwn`, restart S6a M1), which names this map
-      -- in the directory's invariant (`snapDir_init`); `snapDir_alloc` is deleted.
+      -- authority only; the directory itself is `bootOk`'s `Hsfree` (its snapshot names, free) and
+      -- `Hsdo` (`snap.snapDirOwn`, restart S6a M1; claim #34, 2026-11-23: the claim on its other names),
+      -- which the directory's invariant keeps with this map (`snapDir_init`); `snapDir_alloc` is deleted.
       "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the auth store's record
       -- bound (until 2026-11-12 also the lessor's checkpointer's effects, through `lease.bootCfg`)
@@ -332,8 +337,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- snapshot backend
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
+      -- (wal-nostorageok, 2026-11-21: `rnNewStorageOk` gone, proved: `rnNewStorageOk.law`)
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Hns" ∷ rnNewStorageOk ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
@@ -366,7 +371,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- `monitorDowngrade`'s `lgMu` reader slot
           srvMonitorCfg srv cfg ∗
           -- (2026-10-23) the right to close `readych`, for `publishV3`
-          srvReadyCloser srv ∗
+          srvReadyCloser srv E ∗
           -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
           -- started there: what `RaftHandler` takes, to serve the member's raft handler;
           -- (2026-10-24, rafthttp stage 6d) a reader's token of the transport (`CutPeer`,

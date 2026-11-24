@@ -53,6 +53,14 @@ abbrev math.rand.Rand.Intn.spec (ownRand : Loc → IProp GF) : Prop :=
       (App (Val (r @!! go.GoType.PointerType math.rand.Rand.ty @!! go!"Intn")) (Val #n))
     {{ (x : w64), RET #x; ownRand r ∗ ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
 
+/-- The package-level `Seed(seed)`: it returns, nothing claimed (it reseeds the locked global
+source; it has no precondition and does not panic). gryff's `NewReplica` calls it. -/
+abbrev math.rand.Seed.spec : Prop :=
+  ∀ (seed : w64),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
+      (App (Val (@! math.rand.Seed)) (Val #seed))
+    {{ RET #(); True }}
+
 /-- The package-level `Intn(n)` for `n > 0`: some `x` in `[0, n)`. -/
 abbrev math.rand.Intn.spec : Prop :=
   ∀ (n : w64), 0 < sint.Z n →

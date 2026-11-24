@@ -104,7 +104,7 @@ variable [GoGlobalContext]
 def S2Holds : Prop :=
   ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS], Nonempty (S2Draft putgetGF)
 
-/-- **The deployment's start, against S2's names** (upamanyus's §1.3 steps 1-4): the slot map, `γE`
+/-- **The deployment's start, against S2's names** (the plan's §1.3 steps 1-4): the slot map, `γE`
 allocated, the publication invariant, the client address set to `etcdSvc` (spending its `addrUnset`), the
 member's and the client's shares. The peer address's `addrUnset` is unused (nothing listens there). -/
 theorem putget_start [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S : S2Draft putgetGF)
@@ -163,14 +163,23 @@ start resources with no source yet (`MemberBootHyps`), and the client's boot (`P
 theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
     (HM : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics]
       [github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions], MemberBootHyps)
-    (HC : PutgetClientS2) :
+    (HC : PutgetClientS2)
+    -- (wal-nostorageok, 2026-11-24) `os`'s field steps, which `etcdstart`'s linked results take since
+    -- `NewStorage`'s contract `rnNewStorageOk` left `etcdstart.premises` (proved over the real WAL): what
+    -- `putget_safe.spec` binds once this is settled (as the single-process theorems do), or goose emits
+    -- (`notes/perennial-changes.md`, 2026-11-21, "Goose emits no field steps for a trusted struct layout")
+    (HOs : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics],
+      os.file.FieldAssumptions ∧ os.fileStat.FieldAssumptions) :
     putget_safe.spec := by
   refine putget_safe_of_boot ?_
   intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
     Hm Hc Hok HEnv HEnvTok G hlo hb
+  haveI : os.file.FieldAssumptions := HOs.1
+  haveI : os.fileStat.FieldAssumptions := HOs.2
   have HCb : ClientBootS2 client id σc := HC Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
     Hprem σc Hc
   have hpeer : Net.addrOk peer = true := Hok peer (by simp [addrs])
+  have hclient : Net.addrOk client = true := Hok client (by simp [addrs])
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   obtain ⟨S⟩ := @HS2 _ G π
@@ -186,7 +195,7 @@ theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
     match i, hm with
     | 0, hm =>
       simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
-      exact member_boot Hctx HM HEnvTok peer client hpeer id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm S γE
+      exact member_boot Hctx HM HEnvTok peer client hpeer hclient id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm S γE
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
         Option.some.injEq] at hm; subst hm; exact HCb S γE
     | k + 2, hm => simp [system] at hm

@@ -26,7 +26,7 @@ raw standard encodings `b64Raw` of the metadata's, which is what grpc's client w
 `grpc-message` field's percent-decoding, `model_http_util.go`).
 
 **The protocols.** `grpcCliP Svc` (what a dialer writes): a prefix of the preface; or the preface,
-a head `fs`, and a rest that, if `fs` names a unary method of `Svc` (`unaryOf Svc fs`), is empty,
+a head `fs`, and a rest that, if `fs` names a unary method of `Svc` (`grpcUnaryOf Svc fs`), is empty,
 a cancel, or one data frame of bytes `bs` carrying the attempt's slot (`grpcAttemptSlot Svc cn fs
 bs`), then anything. The slot holds the deposit, `▷` the method's spec at every metadata the server
 may make of `fs` (`grpcDeposit`), claimable once the server read the whole data frame (`msgReady fs
@@ -60,13 +60,14 @@ data frame or a trailer with a handler's description has its slot's answer
 **Not yet** (S2's later steps): the parse of the server's frame sequence (a client's read of
 `settingsBytes` and whole frames gives each frame's `srvFrameOk`; the server's blocks are within
 the limit, or the marker `.oversized`, since F1's fix), the client attempt's proof (`newClientTransportStream`,
-`createHeaderFields`), the codec's laws relating `ProtoWire.enc` to the store (O7), and
-`ProtoMsg.wire` (O3: here a message's wire part has its bytes `enc`, not a tree).
+`createHeaderFields`), and the codec's laws for `protoEncodes` (O7: a message's wire part is its
+tree, `ProtoMsg.wire`, O3, and its bytes are any `protoEncodes` relates to the tree, an opaque
+relation in `Store.lean` with no law yet).
 -/
 module
 
 public import GooseLang.Ext.Net.Slot
-public import Proof.google_golang_org.grpc.InvGrpc
+public import Proof.google_golang_org.grpc.InvGrpcBase
 public import Proof.encoding.base64.Base
 
 @[expose] public section
@@ -459,12 +460,16 @@ section svc
 variable [GooseExts]
 variable {GF : BundledGFunctors}
 
-/-- **A message type's wire part** (no heap): its Go type, its model, and the bytes grpc's codec
-marshals a message of model `m` to (the codec's laws, O7, tie them to the store). -/
+/-- **A message type's wire part** (no heap): its Go type, its model, and its stored form (the
+tree `storeInto ty` writes for a message of model `m`; its bytes are any `protoEncodes ty (tree m)`
+relates it to, O7). -/
 structure ProtoWire where
   ty : go.GoType
   M : Type
-  enc : M → List w8
+  tree : M → VTree
+
+/-- **A message type's wire part** (no heap: its Go type, its model, its stored form). -/
+abbrev ProtoMsg.wire {GF : BundledGFunctors} (T : ProtoMsg GF) : ProtoWire := ⟨T.ty, T.M, T.tree⟩
 
 /-- **A unary method of a service**: its messages' wire parts and its spec (no heap). -/
 structure GrpcEntry (GF : BundledGFunctors) [GooseExts] where
@@ -476,7 +481,7 @@ structure GrpcEntry (GF : BundledGFunctors) [GooseExts] where
 abbrev GrpcSvc (GF : BundledGFunctors) [GooseExts] := GoString → Option (GrpcEntry GF)
 
 /-- The head `fs` names a unary method of `Svc`. -/
-def unaryOf (Svc : GrpcSvc GF) (fs : List (GoString × GoString)) : Prop :=
+def grpcUnaryOf (Svc : GrpcSvc GF) (fs : List (GoString × GoString)) : Prop :=
   ∃ name e, pathOf fs = some name ∧ Svc name = some e
 
 /-- **What a unary attempt deposits** for the entry `e` and the head `fs`: its request's
@@ -489,7 +494,7 @@ def grpcDeposit (e : GrpcEntry GF) (fs : List (GoString × GoString)) (m : e.Wq.
 `Φ m'`; or, for a handler's description, its `Ψe`. -/
 def grpcSlotCont (e : GrpcEntry GF) (Φ : e.Wp.M → IProp GF) (Ψe : GoString → IProp GF) :
     GrpcOut → IProp GF
-  | .ok bs => iprop(∃ m', ⌜e.Wp.enc m' = bs⌝ ∗ Φ m')
+  | .ok bs => iprop(∃ m', ⌜protoEncodes e.Wp.ty (e.Wp.tree m') bs⌝ ∗ Φ m')
   | .err d => iprop(⌜d ∈ handlerDescs⌝ -∗ Ψe d)
 
 /-- **What a dialer writes on a connection to an address serving `Svc`, as the S2 interface states
@@ -523,14 +528,14 @@ def grpcAttemptSlot (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoStri
     (bs : List w8) : IProp GF :=
   iprop(∃ (name : GoString) (e : GrpcEntry GF) (γ : SlotNames) (m : e.Wq.M)
       (Φ : e.Wp.M → IProp GF) (Ψe : GoString → IProp GF),
-    ⌜pathOf fs = some name ∧ Svc name = some e ∧ e.Wq.enc m = bs⌝ ∗
+    ⌜pathOf fs = some name ∧ Svc name = some e ∧ protoEncodes e.Wq.ty (e.Wq.tree m) bs⌝ ∗
     depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) ∗
     depSlotInv (Gg := Gg) cn γ (msgReady fs bs) (grpcDeposit e fs m Φ Ψe) (grpcSlotCont e Φ Ψe))
 
 /-- What a client may write after the head `fs` (see the file header). -/
 def cliRest (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString)) (rest : List w8) :
     IProp GF :=
-  iprop(⌜¬ unaryOf Svc fs⌝ ∨ ⌜rest = [] ∨ rest = cancelFrame⌝ ∨
+  iprop(⌜¬ grpcUnaryOf Svc fs⌝ ∨ ⌜rest = [] ∨ rest = cancelFrame⌝ ∨
     ∃ bs tl, ⌜rest = dataFrame bs ++ tl ∧ bs.length < 2 ^ 32⌝ ∗
       grpcAttemptSlot (Gg := Gg) Svc cn fs bs)
 
@@ -544,7 +549,7 @@ def grpcCliP (Svc : GrpcSvc GF) : Proto GF := fun cn W =>
 /-- The connection's client wrote a head that names no unary method of `Svc` (persistent). -/
 def streamConn (Svc : GrpcSvc GF) (cn : Nat) : IProp GF :=
   iprop(∃ fs, sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) ∗
-    ⌜headOk fs ∧ ¬ unaryOf Svc fs⌝)
+    ⌜headOk fs ∧ ¬ grpcUnaryOf Svc fs⌝)
 
 /-- **What a server frame says** (see the file header). -/
 def srvFrameOk (Svc : GrpcSvc GF) (cn : Nat) : SrvFrame → IProp GF
@@ -626,7 +631,7 @@ theorem grpc_addr_set (E : CoPset) (a : GoString) (Svc : GrpcSvc GF) :
 /-- **A unary attempt's connection is no stream connection**: its client wrote a well-formed head
 naming a unary method of `Svc`, so the server's frames answer its slot. -/
 theorem streamConn_unary (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
-    (hok : headOk fs) (hu : unaryOf Svc fs) :
+    (hok : headOk fs) (hu : grpcUnaryOf Svc fs) :
     sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) ∗ streamConn (Gg := Gg) Svc cn ⊢
       (False : IProp GF) := by
   unfold streamConn
@@ -644,7 +649,7 @@ theorem streamConn_unary (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × G
 naming a unary method of `Svc` and a data frame, met the client's protocol, so the data frame
 carries the attempt's slot. -/
 theorem cli_read_slot (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
-    (bs : List w8) (hok : headOk fs) (hu : unaryOf Svc fs) (hbs : bs.length < 2 ^ 32) :
+    (bs : List w8) (hok : headOk fs) (hu : grpcUnaryOf Svc fs) (hbs : bs.length < 2 ^ 32) :
     protoPrefix (grpcCliP (Gg := Gg) Svc) cn (clientPrefaceBytes ++ headFrame fs ++ dataFrame bs) ⊢
       grpcAttemptSlot (Gg := Gg) Svc cn fs bs := by
   unfold protoPrefix
@@ -677,7 +682,7 @@ theorem cli_read_slot (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoSt
 /-- **The client reads a reply's data frame**: on its unary attempt's connection, a server's data
 frame of bytes `bs'` answered its slot `.ok bs'`. -/
 theorem srv_data_answered (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
-    (bs bs' : List w8) (γ : SlotNames) (hok : headOk fs) (hu : unaryOf Svc fs) :
+    (bs bs' : List w8) (γ : SlotNames) (hok : headOk fs) (hu : grpcUnaryOf Svc fs) :
     ⊢ sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) -∗
       depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) -∗ srvFrameOk (Gg := Gg) Svc cn (.data bs') -∗
       slotDone (Gg := Gg) γ (GrpcOut.ok bs') := by
@@ -694,7 +699,7 @@ theorem srv_data_answered (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × 
 /-- **The client reads a trailer**: on its unary attempt's connection, a trailer whose decoded
 `grpc-message` is a handler's description answered its slot `.err` with it. -/
 theorem srv_trailer_answered (Svc : GrpcSvc GF) (cn : Nat) (fs fst : List (GoString × GoString))
-    (bs v : List w8) (γ : SlotNames) (hok : headOk fs) (hu : unaryOf Svc fs)
+    (bs v : List w8) (γ : SlotNames) (hok : headOk fs) (hu : grpcUnaryOf Svc fs)
     (hv : fieldLast fst go!"grpc-message" = some v) (hd : grpcMsgDecode v ∈ handlerDescs) :
     ⊢ sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) -∗
       depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) -∗

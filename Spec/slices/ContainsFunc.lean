@@ -1,6 +1,6 @@
 /-
-`slices.ContainsFunc(s, f)` (Go's `slices`, names only in Perennial): **the trust boundary**.
-Lean-first (no Rocq counterpart).
+`slices.ContainsFunc(s, f)`: proved (`Proof/slices/ContainsFunc.lean`) over Perennial's spec of its
+translation (since Perennial 52d62e83c; until then names only, and this the trust boundary). Lean-first (no Rocq counterpart).
 -/
 module
 

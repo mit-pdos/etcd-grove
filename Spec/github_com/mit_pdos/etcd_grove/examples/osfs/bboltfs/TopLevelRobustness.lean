@@ -45,21 +45,20 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- **`bootCrashSafety` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`), under P1's semantics: the program alone on one machine that may
 crash at any step and restart, a fresh Go process (`Robust`'s premise), its files as on disk, its
-directory a root with no `db` in it: in every execution of fewer than `2 ^ 30 - 1` steps no thread
-is stuck and none has an unrecovered panic. `BootCrashSafety`'s thread bound (fewer than `2 ^ 30`
-live threads) follows from the step bound: an execution of `n` steps from one thread has fewer
-than `n + 2`. -/
+directory a root with no `db` in it: in every execution of fewer than `2 ^ 63` steps along which
+fewer than `2 ^ 30` threads are live at once (`Robust`'s thread bound, the one minibolt's proof
+needs), no thread is stuck and none has an unrecovered panic. (Until 2026-11-24 the step bound was
+`2 ^ 30 - 1`: the crash adequacy theorem took the thread bound of every execution, which only the
+step count bounded; Perennial's `goose_crash_adequacy_below` takes it along the execution.) -/
 def bootCrashRobust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (dir : GoString)
-    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
-      ∀ hG : HeapGS .hasLC fsGF, initialize'.spec (GF := fsGF) (hG := heapAt hG lctx))
     (σ : state) (g : GlobalState)
     (Hinit : FsInit (extLocal fsExt σ.world))
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
     (Hnone : (extLocal fsExt σ.world).lookup (dir ++ go!"/db") = none),
     Robustness.Robust [(boot dir, σ)] [] g (threads := 2 ^ 30)
-      (bound := 2 ^ 30 - 1)
+      (bound := 2 ^ 63)
 
 end adequacy
 end osfs_bboltfs

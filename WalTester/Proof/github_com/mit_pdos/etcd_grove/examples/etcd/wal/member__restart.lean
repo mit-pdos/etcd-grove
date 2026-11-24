@@ -41,7 +41,7 @@ theorem member.restart.wp_proof
     (wp_resume : member.resume.spec (GF := GF) (hG := hG))
     (wp_fits : fits.spec (GF := GF) (hG := hG)) :
     member.restart.spec (GF := GF) (hG := hG) := by
-  intro W e γ m lg w0 v o cd od qp t vo cm b l tm r rv hmn hf hpath hcd hok hwf
+  intro W e γ m lg w0 v o cd od qp t vo cm b l tm r rv hmn hf hpath hpf hcd hok hwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, #Hzap, #Harea, Hpath, Hres, Htok, Hlg, Hwd, Hop, Hw,
     Hov, Ht, Hv, Hc, Hb, Hl, Htm, Hr, Hrv, Hrep, Ho, Hwo, #HrW⟩
   try wp_auto
@@ -54,7 +54,7 @@ theorem member.restart.wp_proof
   have hsm : (tEncodeOracle o).length + 16 ≤ 0x40000000 := by
     have h := hbf.1 rfl; unfold tOrRoom at h; simp at h; omega
   wp_auto
-  wp_apply (wp_read W e γ lg m v o cd od qp hmn hf hpath hcd hok (by have := (hwf.2 cd hcd).2; omega)
+  wp_apply (wp_read W e γ lg m v o cd od qp hmn hf hpath hpf hcd hok (by have := (hwf.2 cd hcd).2; omega)
       (fun d hd => tCandOk_readsBack (hok d hd)) hsm) $$ [Hh Hperm Hpath Hres Htok Hop Hov Hrep Ho Hwo]
     as %st %vc %w ⟨Hh, Hpath, Hres, Hop, %v1, %ls, %od1, Hov, Hrep, Ho, Hwo, %hd1, Hst⟩
   · iframe; iframe #

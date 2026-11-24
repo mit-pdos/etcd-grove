@@ -7,10 +7,14 @@ each message `run` hands over (`msgOwn`, `sentMsg`, `msgCredits`) is one `Send` 
 `kvFacts`: the message itself, `msgOwn` being `msgPtsC` with the entries frozen; the fact `msgOkK`,
 its credits made persistent in a duplicating cluster, `msgCredits_copy`, and its wire shape `MsgWf`,
 `msgPtsC_wf` for the lengths of its slices and `sentMsg_shape` for its type).
+
+`kv_sendSpec_pt` (2026-11-24, G5): the same from a peer transport's `ptSend` (`PeerTransport.lean`),
+for the interface value's `Send` (`start` hands `t.Send` of its `peerTransport`).
 -/
 module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport__Send
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.PeerTransport
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Facts
 
 @[expose] public section
@@ -172,6 +176,27 @@ theorem kv_sendSpec (wp_Send : Transport.Send.spec (GF := GF) (hG := hG)) (γ : 
     $$ [$Hpkg $Ht $Hp $Hsl $Hel]
   inext
   iintro -
+  iapply HΦ
+  itrivial
+
+/-- `run`'s send callback from a peer transport's `Send` (see the file header). -/
+theorem kv_sendSpec_pt (γ : KdNames) (cf : List w8 → Prop) (id : w64) (i : GoInterfaceOk)
+    (hdup : γ.r.cluster.dup = true) :
+    ptSend (GF := GF) (kvFacts γ cf) (interface.ok i) ⊢
+      sendSpec γ id (methods i.ty go!"Send" i.v) := by
+  iintro Hs
+  iunfold ptSend at Hs
+  icases Hs with ⟨%i', %Heq, #Hs⟩
+  injection Heq with Heq
+  subst Heq
+  unfold sendSpec
+  iintro !> %msl %ms %Φ !> ⟨Hpkg, Hsl, Hms⟩ HΦ
+  ihave Hel : [∗list] m ∈ ms.map QMsg.loc, sendElem (kvFacts γ cf) m $$ [Hms]
+  · rw [BigSepL.bigSepL_map]
+    iapply BigSepL.bigSepL_mono _ $$ Hms
+    intro k q _
+    exact sendElem_of_sent γ cf id q hdup
+  wp_apply Hs $$ %msl %(DFrac.own 1) %(ms.map QMsg.loc) [$Hpkg $Hsl $Hel] as -
   iapply HΦ
   itrivial
 

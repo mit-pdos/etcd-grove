@@ -39,10 +39,12 @@ etcdstart_StartPeriodicServer: etcdstart_newServerMode EtcdServer__Start
 # `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
 # `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
 net_Listen: =_root_.Perennial.net.Listen.wp_proof
+# (2026-11-24) `net.Listen` at an address reserved for HTTP (`Spec/net/ListenHttp.lean`): a member's peer listener
+net_Listen+Http: =_root_.Perennial.net.Listen.wp_proof
 # (2026-10-24, rafthttp stage 6d/6f) `RaftHandler` linked in the server's `Link.lean`; the HTTP
 # boundary's `Serve` (`http.Serve_ok`) used by `NewMember`'s proof directly
 EtcdServer__RaftHandler: @
-etcdstart_NewMember: etcdstart_newServer net_Listen EtcdServer__RaftHandler
+etcdstart_NewMember: etcdstart_newServer net_Listen+Http EtcdServer__RaftHandler
 etcdstart_StartMember: etcdstart_NewMember EtcdServer__Start
 # (putgetN, the clusterN Scope, 2026-11-15) `Members`: the members of a cluster of any size
 # (`strconv.FormatUint`'s trust-boundary axiom); `StartMembers`: `NewMember` and `Start` for each
@@ -52,14 +54,10 @@ etcdstart_StartMembers: etcdstart_NewMember EtcdServer__Start
 # `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
 # grpc's trust-boundary axioms, the keepalive policy's among them, D28)
 v3rpc_Server: @
-# (per-type stage B) `Serve` is the trusted model (`Server.Serve.impl := model.Serve`), proved over
-# its leaves' axioms (model-only names, `google.golang.org/grpc#model.*`)
-grpc_Server__Serve: model_Serve
-model_Serve: model_acceptRun model_acceptRunConns model_respond model_finishStream
-model_acceptRun:
-model_acceptRunConns:
-model_respond:
-model_finishStream:
+# (phase 7 S2's interface, 2026-11-24) `Serve` is a trust-boundary axiom over the right to serve a
+# service table (`grpcServeTok gs lis a Svc`); per-type stage B to then: the trusted model
+# `Server.Serve.impl := model.Serve`, proved over its leaves' axioms, retired
+grpc_Server__Serve:
 grpc_KeepaliveEnforcementPolicy:
 # (the import tiers, 2026-11-18) the laws of linked lemmas the proof takes as hypotheses (`=`)
 etcdstart_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Server__Serve =client.grpcCfgOk_of_startedM_law_holds =client.raftKV_serverM_law_holds

@@ -74,6 +74,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --antcheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
+       etc/gen-link.py --wal-tester > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Link.lean
        etc/gen-link.py --kvnet > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
@@ -251,10 +252,19 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringNotWriter",
     # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
     "EtcdGrove.MutexLitSemantics",
+    # (wal-nostorageok, 2026-11-21) `os`'s field steps of its trusted `file`/`fileStat` layouts, which
+    # goose does not emit (`TrustedCode/os.lean`): the WAL's results take them, and so, through
+    # `=rnNewStorageOk_law_holds`, does the server's `newRaftNode` and every result reaching it. A mode
+    # that has them as section variables (`PRE_VARS`, `EXTRA_VARS`) does not repeat them per result.
+    "os.file.FieldAssumptions",
+    "os.fileStat.FieldAssumptions",
     # (net-swap, 2026-11-22) the net extension's `net`'s hand-stated field facts (`Net/TrustedCode/net.lean`),
     # which Net's `Listen` spec takes (`Proof/net/Listen.lean`)
     "_root_.Perennial.net.FieldAssumptions",
 ]
+# The semantic premises a proof takes only as a section variable: `os`'s field assumptions also occur
+# inside the binders of a hypothesis (backend's `∀ [os.file.FieldAssumptions] ..., bbolt.Tx.Commit.spec`).
+SEM_VARIABLE_ONLY = {"os.file.FieldAssumptions", "os.fileStat.FieldAssumptions"}
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
 # are stated under, a description for the header, the module roots holding their specs).
@@ -646,7 +656,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                            "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
-                 "--raft": ["Perennial.Proof.time.Link"],
+                 "--raft": ["Perennial.Proof.time.Link", "Perennial.Proof.strings.Link"],
+                 # (fmt stage 1, 2026-11-24) Perennial's `strings.Join` (raft's `strings.Join`, `=` callee)
+                 "--raft-tla": ["Perennial.Proof.strings.Link"],
+                 "--raft-witness": ["Perennial.Proof.strings.Link"],
                  # (prove-ps2-rqb, 2026-11-22) Perennial's `math.Float64bits` (zap's `Float64`, `=` callee)
                  "--client": ["Perennial.Proof.math.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)
@@ -670,7 +683,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # the reader tokens, 2026-11-06)
                  "--apply": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
                  # Perennial's `time` and `sync/atomic` results minibolt's proofs take as terms (`=` callees)
-                 "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link"],
+                 "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link",
+                               # (fs single view) the shared open, `Open`'s `=` callee
+                               "Proof.os.OpenFileS"],
                  # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
                  "--kv": ["Proof.go_etcd_io.raft.v3.Linked"],
                  # raft's importable `confchange`/`tracker` specs (`=RaftLink.*` callees),
@@ -734,6 +749,11 @@ EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                                  "Proof.go_etcd_io.etcd.client.v3.LinkMembers"]
 # (the import tiers, 2026-11-18) the linking modules whose laws (`=*_law_holds`) the modes' proofs take
 EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
+# (#26, 2026-11-24) `bytes.Buffer`'s `Write` and `Bytes` proved over Perennial's (`=_root_.Perennial.bytes.*`)
+EXTRA_IMPORTS["--k8setcd3"] += ["Perennial.Proof.bytes.Link"]
+EXTRA_IMPORTS["--server"] += ["Proof.bytes.BufferLinked"]
+# (#26, 2026-11-24) `WithCancel(TODO())` over Perennial's context proofs (`=_root_.Perennial.context.*`)
+EXTRA_IMPORTS["--client"] += ["Perennial.Proof.context.Link", "Perennial.Proof.sync.atomic.Link"]
 # (net-swap, etcd-dist D2, 2026-11-22) `net.Listen`'s proof takes the part `Net/`'s `Listen` spec, its
 # proof over the net extension
 for _m in ["--common", "--cluster3"]:
@@ -1247,8 +1267,9 @@ variable [sem : go.Semantics]
     def arg(fn, c):
         if c.startswith("="):
             # a term given as is (`=http.respWrite_ok`): a boundary statement's axiom, or another
-            # library's linked result, which no spec file of a mode names
-            return c[1:]
+            # library's linked result, which no spec file of a mode names; `~` separates its arguments
+            # (`=rnNewStorageOk_law_holds~raftpb.SnapshotMetadata.wp_GetIndex`, wal-nostorageok)
+            return f"({c[1:].replace('~', ' ')})" if "~" in c else c[1:]
         if c in pending:
             return hyp(c)
         if c in blocked:
@@ -1315,7 +1336,8 @@ variable [sem : go.Semantics]
         # storage is a `MemoryStorage`, `memStorageModel` under the registry's name)
         elif "[MemStorReg GF]" in src:
             allg += " [MemStorReg GF]"
-        allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES if p in premises[fn])
+        allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES
+                        if p in premises[fn] and premise_binder(p) not in em)
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
@@ -1368,6 +1390,19 @@ variable [sem : go.Semantics]
     def premise_binder(p):
         return "[" + p + "]"
 
+    def eq_premises(c):
+        """The semantic premises of an `=` callee declared in one of the mode's extra imports: those
+        among that module's section variables (`RnNewStorageLinked.lean`'s `os` field assumptions)."""
+        if not c.startswith("="):
+            return set()
+        last = c[1:].split("~")[0].split(".")[-1]
+        ps = set()
+        for src in extra_srcs:
+            if re.search(r"^theorem " + re.escape(last) + r"\b", src, re.M):
+                vs = "\n".join(l for l in src.splitlines() if l.startswith("variable "))
+                ps |= {p for p in SEM_PREMISES if premise_binder(p) in vs}
+        return ps
+
     premises = {}
     for fn in order:
         ps = set()
@@ -1384,10 +1419,13 @@ variable [sem : go.Semantics]
         else:
             if fn not in pending and os.path.exists(proof_file(fn)):
                 src = open(proof_file(fn)).read()
+                vs = "\n".join(l for l in src.splitlines() if l.startswith("variable "))
                 ps |= {p for p in SEM_PREMISES
-                       if premise_binder(p.split(".")[-1]) in src or premise_binder(p) in src}
+                       if (premise_binder(p) in vs if p in SEM_VARIABLE_ONLY else
+                           premise_binder(p.split(".")[-1]) in src or premise_binder(p) in src)}
             for c in callees[fn]:
                 ps |= premises.get(c, set())
+                ps |= eq_premises(c)
         premises[fn] = ps
 
     # the results whose specs take the v3rpc package's assumptions besides the mode's (the

@@ -96,7 +96,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__RoleGrantPer
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__UserAdd
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__UserGrantRole
 public import Proof.go_etcd_io.etcd.client.v3.filterCallOptions
-public import Proof.fmt.SprintfClientPtr
+public import Proof.fmt.SprintfArgs
 public import Proof.google_golang_org.grpc.ClientConn__Invoke
 public import Proof.google_golang_org.grpc.ClientConn__NewStream
 public import Proof.google_golang_org.grpc.ClientConn__Target
@@ -142,6 +142,7 @@ public import Proof.google_golang_org.grpc.metadata.FromOutgoingContext
 public import Proof.go_etcd_io.etcd.client.v3.newBlockLogger
 public import Proof.go_etcd_io.etcd.client.v3.newClient
 public import Proof.google_golang_org.grpc.peer.Peer__String
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.go_etcd_io.etcd.client.v3.progressRequest__toPB
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.math.rand.Float64
@@ -252,6 +253,8 @@ public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint
 public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.context.Link
+public import Perennial.Proof.sync.atomic.Link
 
 @[expose] public section
 
@@ -290,9 +293,13 @@ theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
@@ -354,9 +361,9 @@ theorem rpctypes.EtcdError.wp_Code :
     EtcdGrove.rpctypes.EtcdError.Code.spec (GF := GF) (hG := hG) :=
   EtcdGrove.rpctypes.EtcdError.Code.wp_proof
 
-theorem fmt.wp_SprintfClientPtr :
-    EtcdGrove.fmt.SprintfClientPtr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.fmt.SprintfClientPtr.wp_proof
+theorem fmt.wp_SprintfArgs :
+    EtcdGrove.fmt.SprintfArgs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.SprintfArgs.wp_proof
 
 theorem proto.wp_Clone :
     EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
@@ -655,7 +662,7 @@ theorem grpc.wp_WithPerRPCCredentials :
 
 theorem v3.Client.wp_dial :
     EtcdGrove.Client.dial.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Client.dial.wp_proof v3.Client.wp_dialSetupOpts v3.wp_authority grpc.wp_NewClient fmt.wp_SprintfClientPtr credentials.perRPCCredentialBundle.wp_PerRPCCredentials grpc.wp_WithPerRPCCredentials
+  EtcdGrove.Client.dial.wp_proof v3.Client.wp_dialSetupOpts v3.wp_authority grpc.wp_NewClient fmt.wp_SprintfArgs credentials.perRPCCredentialBundle.wp_PerRPCCredentials grpc.wp_WithPerRPCCredentials
 
 theorem grpc.wp_WithResolvers :
     EtcdGrove.grpc.WithResolvers.spec (GF := GF) (hG := hG) :=
@@ -791,7 +798,7 @@ theorem v3.wp_canceledByCaller :
 
 theorem context.wp_WithCancelTodo :
     EtcdGrove.context.WithCancelTodo.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.context.WithCancelTodo.wp_proof
+  EtcdGrove.context.WithCancelTodo.wp_proof _root_.Perennial.context.wp_withCancel _root_.Perennial.context.cancelCtx.wp_cancel _root_.Perennial.context.cancelCtx.wp_propagateCancel _root_.Perennial.context.cancelCtx.wp_Done _root_.Perennial.context.cancelCtx.wp_Err _root_.Perennial.context.cancelCtx.wp_Value _root_.Perennial.sync.atomic.Value.wp_Load
 
 theorem resolver.wp_New :
     EtcdGrove.resolver.New.spec (GF := GF) (hG := hG) :=
