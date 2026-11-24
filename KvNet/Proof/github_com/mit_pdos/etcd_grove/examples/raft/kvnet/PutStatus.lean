@@ -89,12 +89,12 @@ theorem PutStatus.wp_proof
     ipureintro; constructor <;> word
   (try wp_auto)
   -- the counters' count, then the stats' array
-  wp_apply wp_putUint64 bv B (W64 23) $$ [$Hpkg $Hb $Hc] as %b4 ⟨Hb4, Hc4⟩
+  wp_apply wp_putUint64 bv B (W64 24) $$ [$Hpkg $Hb $Hc] as %b4 ⟨Hb4, Hc4⟩
   try wp_auto
   ihave IH2 : iprop(∃ (k : w64) (bv : GoSlice) (B : List w8) (x0 : w64),
       "i" ∷ i_ptr ↦ k ∗ "buf" ∷ buf_ptr ↦ bv ∗ "Hb" ∷ bv ↦* B ∗
       "Hc" ∷ ownSliceCap w8 bv (DFrac.own 1) ∗ "x" ∷ x_ptr ↦ x0 ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 23⌝) $$ [i buf Hb4 Hc4 x]
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 24⌝) $$ [i buf Hb4 Hc4 x]
   · iexists W64 0, b4, _, _
     simp only [named]
     iframe

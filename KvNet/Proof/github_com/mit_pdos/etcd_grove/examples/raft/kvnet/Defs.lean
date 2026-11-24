@@ -94,8 +94,16 @@ storage's key and the `dmu` names). -/
 structure KdRepNames where
   ms : Loc
   γs : MemStorNames
+  stopc : Loc
+  sc : ChanNames
+  rdc : Loc
+  rd : HandoffNames
+  tdc : Loc
+  td : HandoffNames
   snc : Loc
   sn : ChanNames
+  sdc : Loc
+  sd : HandoffNames
   /-- the key raft named the storage by at the attach (`RestartNode`'s post) -/
   key : GName
   /-- the `dmu` names (the pending batch's claim, the image's lower bounds) -/
@@ -494,12 +502,33 @@ def isReplicaR (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : L
     "#Hrep" ∷ isReplica γ vs dir id r n st sts sq ρ.ms ρ.γs ρ.ph ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Htick" ∷ (∃ tk : time.Duration, r.[KReplica, go!"tick"] ↦□ tk ∗ ⌜0 < sint.Z tk⌝) ∗
+    -- (2026-11-24, G5: the clean stop, kvdurable's) the stop channel and the three done channels
+    "#Hstopc" ∷ r.[KReplica, go!"stopc"] ↦□ ρ.stopc ∗
+    "#Hrdc" ∷ r.[KReplica, go!"runDone"] ↦□ ρ.rdc ∗
+    "#Htdc" ∷ r.[KReplica, go!"tickDone"] ↦□ ρ.tdc ∗
     "#Hsnc" ∷ r.[KReplica, go!"snapc"] ↦□ ρ.snc ∗
+    "#Hsdc" ∷ r.[KReplica, go!"snapDone"] ↦□ ρ.sdc ∗
+    "#HstopB" ∷ ownBroadcastChan ρ.stopc ρ.sc iprop(True) .Unknown ∗
+    "#HrdH" ∷ isHandoff (V := Unit) ρ.rd ρ.rdc
+      (fun _ => iprop(nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
+        ∃ v : Option GName × RaftState, ghostVar ρ.ph.ph (1 : Qp).half v)) iprop(True) iprop(False) ∗
+    "#HtdH" ∷ isHandoff (V := Unit) ρ.td ρ.tdc (fun _ => iprop(True)) iprop(True) iprop(False) ∗
     "#HsnB" ∷ isChanBag ρ.sn ρ.snc (snapReqOk γ ρ.key ρ.γs ρ.ph) ∗
+    "#HsdH" ∷ isHandoff (V := Unit) ρ.sd ρ.sdc
+      (fun _ => nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) iprop(True) iprop(False) ∗
     "#HmsInv" ∷ memStorInvP ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key) ∗
     -- (2026-11-01, stage II (j), G23) the writers' lower bound of the stored snapshot, which
     -- `MemoryStorage.ApplySnapshot` takes (`run`'s snapshot `Ready`; kvreconf's `#HsnLb`)
     "#HsnLb" ∷ memSnapLb ρ.γs 0)
+
+/-- **The stopper's share of incarnation `r`** (exclusive; kvdurable's, 2026-11-24 G5): `isReplicaR`
+with the stopper's tokens, what `stop` takes: the stop channel's closer and the three done channels'
+consumers. -/
+def repStopper (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) : IProp GF :=
+  iprop(∃ (n : NodeH) (st sts sq : Loc) (ρ : KdRepNames),
+    isReplicaR γ vs dir id r n st sts sq ρ ∗
+    ownBroadcastChan ρ.stopc ρ.sc iprop(True) .Pending ∗
+    handoffConsumer ρ.rd false ∗ handoffConsumer ρ.td false ∗ handoffConsumer ρ.sd false)
 
 /-- **What `run` starts with** (kvreconf's `runStart`): the node's driver as `RestartNode` leaves it
 (at the committed log `l` of the applied index raft starts at, the stored hard state, the durable
@@ -515,7 +544,7 @@ def runStart (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st : Loc) (ρ : Kd
     nodeConfig n γ.r.cluster kdRaftN ⟨ap.length, m⟩ ∗
     nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
     repOwn γ r ap (W64 ap.length) csp m mA A ∗
-    ghostVar ρ.ph.ph (1 : Qp).half ((none : Option GName), S) ∗
+    handoffProducer ρ.rd false ∗ ghostVar ρ.ph.ph (1 : Qp).half ((none : Option GName), S) ∗
     -- (2026-11-01, stage II (j), G12) `run`'s half of the image's hard state, the stored one, whose
     -- term and vote are the durable state's
     ghostVar ρ.ph.cm (1 : Qp).half hs ∗ ⌜S.term = hs.Term' ∧ S.vote = hs.Vote'⌝ ∗
