@@ -34,7 +34,8 @@ cc=$(sed -n 's/^commit=//p' "$GOAL/challenge")
 if git merge-base --is-ancestor "$cc" HEAD 2>/dev/null; then ok "HEAD descends from the challenge commit ${cc:0:9} ($(git rev-list --count "$cc..HEAD") commits)"
 else bad "HEAD does not descend from the challenge commit ${cc:0:9}"; fi
 step "the goal, by the comparator (tree= mode)"
-if LAKEPKGS="$P/.lake/packages" bash /opt/lab/comparator-check.sh "$P" "$GOAL"; then ok "goal, by the comparator"; else bad "goal, by the comparator"; fi
+# (its workspace in TMP, removed below: a few GB per verify otherwise left in the throwaway run)
+if CMP_WORK="$TMP/cmp" LAKEPKGS="$P/.lake/packages" bash /opt/lab/comparator-check.sh "$P" "$GOAL"; then ok "goal, by the comparator"; else bad "goal, by the comparator"; fi
 step "done, as the challenge defines it (goal-check.sh)"
 if bash /opt/lab/goal-check.sh "$P" "$GOAL"; then ok "done"; else bad "not done"; fi
 chmod -R u+w "$TMP" 2>/dev/null; rm -rf "$TMP"

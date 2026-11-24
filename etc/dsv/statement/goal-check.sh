@@ -54,7 +54,7 @@ challenge_done() {
     local nv; nv=$(g show "$cc:CLAUDE.md" | sed -n 's/.*the non-vacuity module builds: `\([^`]*\)`.*/\1/p' | head -1)
     if [ -n "$nv" ]; then
         if lake build "$nv" >/dev/null 2>&1; then echo "PASS the non-vacuity module $nv builds"; else echo "FAIL the non-vacuity module $nv"; fail=1; fi
-    else echo "SKIP no non-vacuity module (the statement has no premises)"; fi
+    else echo "SKIP no non-vacuity module named in CLAUDE.md (no premises, or a KitLibs premise: its instance is the kitlibs-check's, below)"; fi
     local kc="" kconf=""
     for c in etc/kitlibs-check.py etc/premcheck.py; do g cat-file -e "$cc:$c" 2>/dev/null && { kc=$c; break; }; done
     for c in "etc/dsv/$kit-kitlibs-check.conf" "etc/dsv/$kit-premcheck.conf"; do g cat-file -e "$cc:$c" 2>/dev/null && { kconf=$c; break; }; done

@@ -190,10 +190,11 @@ EOF
     # 4. the kitlibs-check (after the comparator: it compiles the solution's non-vacuity module)
     local kv=none
     if [ -n "$kc" ]; then
-        if (cd "$WS" && "$CMP/bin/landrun" --best-effort --ro / --rw /dev --rwx "$WS" --rwx "$HOME" --rwx /tmp \
+        if (cd "$WS" && "$CMP/bin/landrun" --best-effort --rox / --rw /dev --rwx "$WS" --rwx "$HOME" --rwx /tmp \
                 --env PATH --env HOME -- python3 "$kc" "$kconf") >"$L/kitlibs-check.log" 2>&1; then
             kv=accepted; echo "PASS kitlibs-check ($kc $kconf): accepted"
-        else kv=refused; echo "FAIL kitlibs-check ($kc $kconf): refused (log: $L/kitlibs-check.log)"; ok=false; fi
+        else kv=refused; echo "FAIL kitlibs-check ($kc $kconf): refused (log: $L/kitlibs-check.log)"; ok=false
+            grep -vE '^(field|axiom|instance|ACCEPTED|REFUSED)' "$L/kitlibs-check.log" | tail -5 | sed 's/^/  /'; fi
         grep -E '^(field|axiom|instance|ACCEPTED|REFUSED)' "$L/kitlibs-check.log" | head -40 | sed 's/^/  /'
     else echo "SKIP no kitlibs-check in this challenge"; fi
 
