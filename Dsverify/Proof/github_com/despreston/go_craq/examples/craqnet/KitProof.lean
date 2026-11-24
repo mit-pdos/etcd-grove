@@ -46,12 +46,12 @@ theorem Gen.wp_proof : Gen.spec (GF := GF) (hG := hG) := by
     imodintro
     ipureintro
     refine ⟨⟨.put _ _, ?_⟩, rfl⟩
-    simp [inOk]
+    simp [inOk, keyOk]
   · iapply HΦ
     imodintro
     ipureintro
     refine ⟨⟨.get _, ?_⟩, rfl⟩
-    simp [inOk]
+    simp [inOk, keyOk]
 
 theorem Codec.wp_proof [go.BasicIntoValInj] : Codec.spec (GF := GF) (hG := hG) := by
   intro γ
@@ -69,8 +69,8 @@ theorem Codec.wp_proof [go.BasicIntoValInj] : Codec.spec (GF := GF) (hG := hG) :
     obtain ⟨p, k, v, hk, hv, hiv, he⟩ : ∃ (p : Bool) (k v : GoString), k.length < 256 ∧
         v.length < 256 ∧ ivK i = inV p k v ∧ encInB i = flagB p :: (encS k ++ encS v) := by
       obtain ⟨k | ⟨k, v⟩, hi⟩ := i
-      · exact ⟨false, k, [], hi, by simp, rfl, rfl⟩
-      · exact ⟨true, k, v, hi.1, hi.2, rfl, rfl⟩
+      · exact ⟨false, k, [], keyOk_lt hi, by simp, rfl, rfl⟩
+      · exact ⟨true, k, v, keyOk_lt hi.1, hi.2, rfl, rfl⟩
     rw [hiv, he]
     wp_auto
     wp_apply wp_flag
@@ -91,8 +91,8 @@ theorem Codec.wp_proof [go.BasicIntoValInj] : Codec.spec (GF := GF) (hG := hG) :
     obtain ⟨p, k, v, hk, hv, hiv, he⟩ : ∃ (p : Bool) (k v : GoString), k.length < 256 ∧
         v.length < 256 ∧ ivK i = inV p k v ∧ encInB i = flagB p :: (encS k ++ encS v) := by
       obtain ⟨k | ⟨k, v⟩, hi⟩ := i
-      · exact ⟨false, k, [], hi, by simp, rfl, rfl⟩
-      · exact ⟨true, k, v, hi.1, hi.2, rfl, rfl⟩
+      · exact ⟨false, k, [], keyOk_lt hi, by simp, rfl, rfl⟩
+      · exact ⟨true, k, v, keyOk_lt hi.1, hi.2, rfl, rfl⟩
     rw [hiv, he]
     ihave %Hlen := ownSlice_len _ _ _ $$ Hb
     ihave %Hwf := ownSlice_wf _ _ _ $$ Hb

@@ -55,7 +55,7 @@ structure Cfg (GF : BundledGFunctors) where
 /-- The run's shared facts (persistent). -/
 def craqCtx (cfg : Cfg GF) : IProp GF :=
   iprop(isCraq cfg.γ ∗ ⌜cfg.W.SS = craqSS cfg.γ cfg.cAddr cfg.chain ∧ cfg.chain.Nodup ∧
-      cfg.cAddr ∉ cfg.chain ∧ go!"" ∉ cfg.chain⌝ ∗
+      cfg.cAddr ∉ cfg.chain ∧ go!"" ∉ cfg.chain ∧ ∀ b ∈ cfg.chain, b.length < 256⌝ ∗
     [∗list] a ∈ cfg.cAddr :: cfg.chain, httpRpcAddr cfg.W a)
 
 instance craqCtx_persistent (cfg : Cfg GF) : Persistent (craqCtx (G := G) cfg) := by
@@ -117,12 +117,12 @@ def isNodeClient (cfg : Cfg GF) (c : GoInterface) (a : GoString) : IProp GF :=
       WP (App (App (App (Val #(methods e.ty go!"Write" e.v)) (Val #k)) (Val #sl)) (Val #v))
         {{ Φ }}) ∧
     -- Commit(k, v)
-    (∀ (k : GoString) (v : w64) (Φ : val → IProp GF), cvLb cfg.γ k v -∗
+    (∀ (k : GoString) (v : w64) (Φ : val → IProp GF), ⌜keyOk k⌝ -∗ cvLb cfg.γ k v -∗
       ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
       WP (App (App (Val #(methods e.ty go!"Commit" e.v)) (Val #k)) (Val #v)) {{ Φ }}) ∧
     -- LatestVersion(k)
     (∀ (k : GoString) (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
-      opAU cfg.γ (.get k) Q -∗
+      ⌜keyOk k⌝ -∗ opAU cfg.γ (.get k) Q -∗
       ▷ (∀ (k' : GoString) (v : w64) (err : GoInterface),
           (⌜err = interface.nil⌝ ∗ (∃ σ : KvM.State, Q (.got (σ k)) ∗ readFacts cfg.γ k v (σ k)) ∨
             models_lab.errAny err) -∗
@@ -130,7 +130,7 @@ def isNodeClient (cfg : Cfg GF) (c : GoInterface) (a : GoString) : IProp GF :=
       WP (App (Val #(methods e.ty go!"LatestVersion" e.v)) (Val #k)) {{ Φ }}) ∧
     -- Read(k)
     (∀ (k : GoString) (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
-      opAU cfg.γ (.get k) Q -∗
+      ⌜keyOk k⌝ -∗ opAU cfg.γ (.get k) Q -∗
       ▷ (∀ (k' : GoString) (sl : GoSlice) (err : GoInterface),
           ((⌜err = interface.nil⌝ ∗ ∃ (x : GoString) (σ : KvM.State), sl ↦* x ∗
               Q (.got (σ k)) ∗ ⌜σ k = some x⌝) ∨
@@ -149,14 +149,14 @@ def isNodeClient (cfg : Cfg GF) (c : GoInterface) (a : GoString) : IProp GF :=
       WP (App (Val #(methods e.ty go!"Update" e.v)) (Val #ptr)) {{ Φ }}) ∧
     -- FwdPropagate(req)
     (∀ (ptr : Loc) (dq : DFrac) (req : GMap GoString w64) (Φ : val → IProp GF),
-      reqPtr ptr dq req -∗
+      ⌜reqKeysOk req⌝ -∗ reqPtr ptr dq req -∗
       ▷ (∀ (rp : Loc) (err : GoInterface),
           (⌜err = interface.nil⌝ ∗ reqPtr ptr dq req ∗ (∃ resp, respPtr rp resp ∗ respItems cfg.γ resp) ∨
             models_lab.errAny err) -∗ Φ (PairV #rp #err)) -∗
       WP (App (Val #(methods e.ty go!"FwdPropagate" e.v)) (Val #ptr)) {{ Φ }}) ∧
     -- BackPropagate(req)
     (∀ (ptr : Loc) (dq : DFrac) (req : GMap GoString w64) (L : CLog) (Φ : val → IProp GF),
-      reqPtr ptr dq req -∗ covers cfg.γ a L -∗
+      ⌜reqKeysOk req⌝ -∗ reqPtr ptr dq req -∗ covers cfg.γ a L -∗
       ▷ (∀ (rp : Loc) (err : GoInterface),
           (⌜err = interface.nil⌝ ∗ reqPtr ptr dq req ∗ (∃ resp, respPtr rp resp ∗ respItems cfg.γ resp ∗
               respCommitted cfg.γ resp ∗ ⌜respCovers req resp L⌝) ∨
@@ -177,7 +177,7 @@ def isCoordClient (cfg : Cfg GF) (c : GoInterface) : IProp GF :=
     -- Write(k, val)
     (∀ (k : GoString) (sl : GoSlice) (dq : DFrac) (x : GoString)
         (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
-      sl ↦*{dq} x -∗ opAU cfg.γ (.put k x) Q -∗
+      ⌜kvOk k x⌝ -∗ sl ↦*{dq} x -∗ opAU cfg.γ (.put k x) Q -∗
       ▷ (∀ err : GoInterface,
           (⌜err = interface.nil⌝ ∗ sl ↦*{dq} x ∗ putReceipt k x Q ∨ models_lab.errAny err) -∗ Φ #err) -∗
       WP (App (App (Val #(methods e.ty go!"Write" e.v)) (Val #k)) (Val #sl)) {{ Φ }}) ∧
@@ -185,7 +185,7 @@ def isCoordClient (cfg : Cfg GF) (c : GoInterface) : IProp GF :=
     (∀ Φ : val → IProp GF, ▷ (∀ err : GoInterface, Φ #err) -∗
       WP (App (Val #(methods e.ty go!"Close" e.v)) (Val #())) {{ Φ }}) ∧
     -- RemoveNode(a), of any address (stage 2: the client nodes' removals)
-    (∀ (a : GoString) (Φ : val → IProp GF),
+    (∀ (a : GoString) (Φ : val → IProp GF), ⌜a.length < 256⌝ -∗
       ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
       WP (App (Val #(methods e.ty go!"RemoveNode" e.v)) (Val #a)) {{ Φ }})))
 
@@ -253,7 +253,7 @@ def isNodeSvc (cfg : Cfg GF) (svc : GoInterface) (a : GoString) : IProp GF :=
           Φ (PairV (PairV #k' #v) #err)) -∗
       WP (App (Val #(methods e.ty go!"LatestVersion" e.v)) (Val #k)) {{ Φ }}) ∧
     (∀ (k : GoString) (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
-      opAU cfg.γ (.get k) Q -∗
+      ⌜keyOk k⌝ -∗ opAU cfg.γ (.get k) Q -∗
       ▷ (∀ (k' : GoString) (sl : GoSlice) (err : GoInterface),
           ((⌜err = interface.nil ∧ k' = k⌝ ∗ ∃ (x : GoString) (σ : KvM.State), sl ↦*□ x ∗
               Q (.got (σ k)) ∗ ⌜σ k = some x⌝) ∨
@@ -286,7 +286,7 @@ def isCoordSvc (cfg : Cfg GF) (svc : GoInterface) : IProp GF :=
       WP (App (Val #(methods e.ty go!"AddNode" e.v)) (Val #a)) {{ Φ }}) ∧
     (∀ (k : GoString) (sl : GoSlice) (x : GoString)
         (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
-      sl ↦*□ x -∗ opAU cfg.γ (.put k x) Q -∗
+      ⌜kvOk k x⌝ -∗ sl ↦*□ x -∗ opAU cfg.γ (.put k x) Q -∗
       ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∗ putReceipt k x Q ∨ errNE err) -∗
           Φ #err) -∗
       WP (App (App (Val #(methods e.ty go!"Write" e.v)) (Val #k)) (Val #sl)) {{ Φ }}) ∧

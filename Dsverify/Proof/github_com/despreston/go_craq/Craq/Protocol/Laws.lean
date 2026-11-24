@@ -19,7 +19,8 @@ namespace github_com.despreston.go_craq
 
 /-- The invariant's state after an assignment. -/
 theorem craqWf_assign {l : List (GoString × GoString)} {L : CLog} {n : w64}
-    {R : GMap w64 RecInfo} (ri : RecInfo) (Hwf : craqWf l L n R) (hn : uint.Z n < 2 ^ 64 - 1) :
+    {R : GMap w64 RecInfo} (ri : RecInfo) (Hwf : craqWf l L n R) (hn : uint.Z n < 2 ^ 64 - 1)
+    (hri : kvOk ri.key ri.val) :
     R.lookup (n + W64 1) = none ∧ uint.Z (n + W64 1) = uint.Z n + 1 ∧
       (∀ k, uint.Z (cvOf L k) ≤ uint.Z n) ∧
       craqWf l L (n + W64 1) (GMap.insert (n + W64 1) ri R) := by
@@ -34,14 +35,14 @@ theorem craqWf_assign {l : List (GoString × GoString)} {L : CLog} {n : w64}
     intro k
     by_cases h0 : cvOf L k = W64 0
     · rw [h0]; have := uint_Z_nonneg n; exact Int.le_trans (by decide) this
-    · obtain ⟨ri, hri, _⟩ := Hwf.2.2 k h0
+    · obtain ⟨ri, hri, _⟩ := Hwf.2.2.1 k h0
       exact ((Hwf.1 _).1 (by simp [hri])).2
   have hne : ∀ k, cvOf L k ≠ W64 0 → cvOf L k ≠ n + W64 1 := by
     intro k _ h
     have := hcv k
     rw [h] at this
     omega
-  refine ⟨hnone, hn1, hcv, fun v => ?_, fun k => ?_, fun k hk => ?_⟩
+  refine ⟨hnone, hn1, hcv, fun v => ?_, fun k => ?_, fun k hk => ?_, fun v ri' h => ?_⟩
   · by_cases hv : v = n + W64 1
     · subst hv
       rw [GMap.lookup_insert]
@@ -57,7 +58,13 @@ theorem craqWf_assign {l : List (GoString × GoString)} {L : CLog} {n : w64}
     · simp only [h0, ↓reduceIte]
       rw [GMap.lookup_insert_ne _ _ (Ne.symm (hne k h0))]
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm (hne k hk))]
-    exact Hwf.2.2 k hk
+    exact Hwf.2.2.1 k hk
+  · by_cases hv : v = n + W64 1
+    · subst hv
+      rw [GMap.lookup_insert] at h
+      cases h; exact hri
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hv)] at h
+      exact Hwf.2.2.2 v ri' h
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -75,7 +82,7 @@ theorem recRes_true (γ : CraqNames) (ri : RecInfo) :
       iprop(∃ P : IProp GF, savedPropOwn ri.post .discard P ∗ (P ∨ token ri.col)) := rfl
 
 theorem assign.holds : assign.spec (GF := GF) (G := G) := by
-  intro γ E hE n hn k x Q
+  intro γ E hE n hn k x hkx Q
   iintro ⟨#Hinv, Hnext, HAU⟩
   unfold isCraq
   iinv Hinv with Hi Hclose
@@ -90,13 +97,13 @@ theorem assign.holds : assign.spec (GF := GF) (G := G) := by
   ihave %Hn := ghostVar_agree _ _ _ _ _ $$ Hnext Hnext'
   subst Hn
   obtain ⟨hnone, hn1, hcv, Hwf'⟩ := craqWf_assign (n := n) (L := L) (l := l) (R := R) ⟨k, x, 0, 0⟩
-    Hwf hn
+    Hwf hn hkx
   imod ghostVar_update_halves (n + W64 1) $$ Hnext Hnext' with ⟨Hnext, Hnext'⟩
   imod saved_prop_alloc (putReceipt k x Q) DFrac.discard DFrac.valid_discard with ⟨%p, #Hsp⟩
   imod token_alloc (GF := GF) with ⟨%c, Htokc⟩
   imod ghost_map_insert_persist (n + W64 1) ((k, x, p, c) : RecInfo) hnone $$ HR with ⟨HR, #Hel⟩
   obtain ⟨-, -, -, Hwf2⟩ := craqWf_assign (n := n) (L := L) (l := l) (R := R) ((k, x, p, c))
-    Hwf hn
+    Hwf hn hkx
   imod Hclose $$ [Habs HL Hnext' HR Hels Hrs HAU] with -
   · inext
     iexists l, L, n + W64 1, GMap.insert (n + W64 1) ((k, x, p, c) : RecInfo) R
@@ -122,7 +129,9 @@ theorem assign.holds : assign.spec (GF := GF) (G := G) := by
   iframe Hnext
   unfold valsElem ticket
   isplitr
-  · iexists p, c; iexact Hel
+  · isplitr
+    · ipureintro; exact hkx
+    iexists p, c; iexact Hel
   iexists p, c
   iframe Hel Hsp Htokc
 
@@ -135,7 +144,7 @@ theorem read_facts {l : List (GoString × GoString)} {L : CLog} {n : w64} {R : G
   unfold absOf
   by_cases h0 : cvOf L k = W64 0
   · simp [h0]
-  · obtain ⟨ri, hri, hk⟩ := Hwf.2.2 k h0
+  · obtain ⟨ri, hri, hk⟩ := Hwf.2.2.1 k h0
     simp only [h0, ↓reduceIte, hri, Option.map_some, reduceCtorEq,
       true_and, Option.some.injEq]
     intro x hx
@@ -177,6 +186,8 @@ theorem read.holds : read.spec (GF := GF) (G := G) := by
   iintro %x %hx
   obtain ⟨p, c, hR⟩ := Hrf.2 x hx
   unfold valsElem
+  isplitr
+  · ipureintro; exact Hwf.2.2.2 _ _ hR
   iexists p, c
   iapply (BigSepM.bigSepM_lookup (M := GMap w64)
     (show get? R (cvOf L k) = some ((k, x, p, c) : RecInfo) from hR)) $$ Hels
@@ -241,7 +252,7 @@ theorem valsElem_pos_inv (γ : CraqNames) (E : CoPset) (hE : ↑craqN ⊆ E) (v 
   imod HR
   imod Hwf with %Hwf
   unfold valsElem
-  icases Hval with ⟨%p, %c, Hel⟩
+  icases Hval with ⟨-, %p, %c, Hel⟩
   ihave %HRv := ghost_map_lookup $$ HR Hel
   imod Hclose $$ [Habs HL Hnext HR Hels Hrs] with -
   · inext

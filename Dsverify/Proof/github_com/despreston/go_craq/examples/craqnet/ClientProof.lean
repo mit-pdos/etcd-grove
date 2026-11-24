@@ -132,6 +132,9 @@ def opPost (_γ : CraqNames) (Φ : KOut → IProp GF) (o : Out) : IProp GF :=
 
 /-- `op(s, c, x)`: through the coordinator's `Write` (a put) or chain machine `readAt(c)`'s
 `Read` (a get); linearized by `lin_opAU`. -/
+/-- The server addresses are shorter than 256 bytes (a removal's argument). -/
+theorem serverAddrs_short : ∀ a ∈ serverAddrs, a.length < 256 := by decide
+
 theorem wp_op
     (wp_NewNC : netrpc.wp_NewNodeClient.spec (GF := GF))
     (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF))
@@ -184,7 +187,7 @@ theorem wp_op
       cases He'
       icases Hm with ⟨-, -, -, -, #HR, -, -, -, #HC⟩
       wp_bind (App (Val #(methods e.ty go!"Read" e.v)) (Val #k))
-      iapply HR $$ HAU
+      iapply HR $$ %hi HAU
       inext
       iintro %k' %vsl %err2 Herr2
       wp_auto
@@ -285,7 +288,7 @@ theorem wp_op
       icases Hm with ⟨-, #HW, #HC, -⟩
       wp_apply wp_string_to_bytes as %bsl ⟨Hbsl, -⟩
       wp_bind (App (App (Val #(methods e.ty go!"Write" e.v)) (Val #k)) (Val #bsl))
-      iapply HW $$ Hbsl HAU
+      iapply HW $$ %hi Hbsl HAU
       inext
       iintro %err2 Herr2
       wp_auto
@@ -432,7 +435,7 @@ theorem wp_Sys_remove [LogHyp GF]
           $$ [Hsl2] with Hsl2
         · iframe; ipureintro; exact ha
         wp_bind (App (Val #(methods ec.ty go!"RemoveNode" ec.v)) (Val #a))
-        iapply HRN
+        iapply HRN $$ %(serverAddrs_short a (List.mem_of_getElem? ha))
         inext
         iintro %err4 -
         wp_auto

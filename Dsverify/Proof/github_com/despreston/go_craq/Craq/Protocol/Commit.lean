@@ -35,7 +35,7 @@ theorem craqWf_commit {l l' : List (GoString × GoString)} {L : CLog} {n : w64}
     have := uint_Z_nonneg (cvOf L k)
     have h0 : uint.Z (W64 0) = 0 := rfl
     omega
-  refine ⟨Hwf.1, fun k' => ?_, fun k' => ?_⟩
+  refine ⟨Hwf.1, fun k' => ?_, fun k' => ?_, Hwf.2.2.2⟩
   · by_cases hk : k' = k
     · subst hk
       rw [hl2]
@@ -53,7 +53,7 @@ theorem craqWf_commit {l l' : List (GoString × GoString)} {L : CLog} {n : w64}
       intro _
       exact ⟨_, hRv, rfl⟩
     · rw [cvOf_commit_ne _ _ _ _ hk]
-      exact Hwf.2.2 k'
+      exact Hwf.2.2.1 k'
 
 section commit
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -223,7 +223,7 @@ theorem commit.holds : commit.spec (GF := GF) (G := G) := by
     with ⟨%HLL, Htok, HL⟩
   subst HLL
   unfold valsElem
-  icases Hval with ⟨%p, %c, Hel⟩
+  icases Hval with ⟨-, %p, %c, Hel⟩
   ihave %HRv := ghost_map_lookup $$ HR Hel
   ihave Hst := stage_start γ L k R $$ Hrs
   have hv := uint_Z_lt v

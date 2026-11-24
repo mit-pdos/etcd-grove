@@ -2,12 +2,12 @@
 The craq kit's server machines (kit.go's `Server`, `runNode`) and the codec's registration
 (`Register`): over Net's `SetCodec`, go-craq's packages' specs (`Specs.lean`, taken as theorem
 arguments as paxos's `KitProof.lean` does), the bindings' receivers (`Netrpc/BindingsProof.lean`)
-and net/rpc over HTTP's server side (`RpcHttpServe`, H2/H3).
+and net/rpc over HTTP's server side (Net's `RegisterName` spec, proved, and `RpcHttpServe`, H2/H3).
 
 Open points carried as preconditions (notes/dsv-craq.md, P5): a machine's codec registry at its
 initial state (`codecFresh`: `codecUnset` and `codecMu`'s mutex, from net/rpc's initialization,
 which Net has not proved), its mux at its initial state (`muxOwner []`), its `DefaultServer`
-(`RpcHttpServe.defaultServer`), and its net/rpc and net/http variables (`rpcEnv`), all from the
+(`net.rpc.defaultServer`), and its net/rpc and net/http variables (`rpcEnv`), all from the
 machine's boot (`rpcBootRes`); and the machine's thread bound `threadBound ≤ 2 ^ 31`
 (`RpcHttpServe`'s `HandleHTTP`, `ListenAndServe`: net/rpc's server).
 -/
@@ -17,6 +17,7 @@ public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitS
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Specs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Netrpc.BindingsProof
 public import Net.Spec.net.rpc.SetCodec
+public import Net.Spec.net.rpc.RegisterName
 
 @[expose] public section
 
@@ -184,6 +185,7 @@ theorem srvServes_coord (cfg : Cfg GF) (γs : GName)
 
 /-- **The coordinator's machine**, `Server(1)`. -/
 theorem wp_Server1 [rs : RpcHttpServe GF]
+    (wp_RegisterName : net.rpc.RegisterName.spec (GF := GF) (hG := hG))
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
     (wp_cNew : coordinator.wp_New.spec (GF := GF) (hG := hG))
     (wp_cStart : coordinator.wp_Start.spec (GF := GF) (hG := hG))
@@ -192,7 +194,7 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
     (cfg : Cfg GF) (htb : threadBound GF ≤ 2 ^ 31)
     (hc : cfg.cAddr = go!"127.0.0.1:7501") (hlen : cfg.chain.length < 2 ^ 31 - 1) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        rpcEnv ∗ (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ coordRes cfg }}
+        rpcEnv ∗ (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ coordRes cfg }}
       (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Server)) (Val #(W64 1)))
     {{ RET #(); True }} := by
   wp_start as ⟨Hcf, Hmux, #Hre, ⟨%γs, #Hdsv⟩, #Hctx, Hres⟩
@@ -232,8 +234,8 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
     iframe Hnr Hpkg Hcs Hsvc
     iexact «cb»
   ihave #Hrcv := coordRcv_ok cfg cb_ptr _ $$ HcB
-  wp_apply rs.RegisterName craqCodec go!"RPC" _ (coordSpec cfg.γ cfg.chain) go!"CoordinatorBinding" false
-    γs (by decide) $$ [] as %err Herr
+  wp_apply wp_RegisterName γs craqCodec go!"RPC" _ (coordSpec cfg.γ cfg.chain) go!"CoordinatorBinding"
+    false (by decide) $$ [] as %err Herr
   · iframe Hcs Hrcv Hdsv
   icases Herr with (⟨%Herr, #Hreg⟩ | %Herr)
   · subst Herr
@@ -317,6 +319,7 @@ theorem rpcReady_env : rpcReady (hG := hG) ⊢ rpcEnv := by
 
 /-- `runNode(id, a, conf)`: chain machine `id`'s node at `a`. -/
 theorem wp_runNode [rs : RpcHttpServe GF]
+    (wp_RegisterName : net.rpc.RegisterName.spec (GF := GF) (hG := hG))
     (wp_kvNew : kv.wp_New.spec (GF := GF) (hG := hG))
     (wp_nNew : node.wp_New.spec (GF := GF) (hG := hG))
     (wp_nStart : node.wp_Start.spec (GF := GF) (hG := hG))
@@ -326,7 +329,7 @@ theorem wp_runNode [rs : RpcHttpServe GF]
     (cfg : Cfg GF) (id : w64) (a : GoString) (conf : Conf) (htb : threadBound GF ≤ 2 ^ 31)
     (hc : cfg.cAddr = go!"127.0.0.1:7501") (ha : a ∈ cfg.chain) (hok : addrOk a = true) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ rpcReady ∗ RpcHttpServe.muxOwner [] ∗
-        (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ nodeRes cfg a ∗ joinTicket cfg.γ a ∗
+        (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ nodeRes cfg a ∗ joinTicket cfg.γ a ∗
         net.rpc.errOk (nodeSpec cfg.γ cfg.chain a) }}
       (App (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.runNode)) (Val #id))
         (Val #a)) (Val #conf))
@@ -374,8 +377,8 @@ theorem wp_runNode [rs : RpcHttpServe GF]
     iframe Hnr Hpkg Hcs Hsvc
     iexact «nb»
   ihave #Hrcv := nodeRcv_ok cfg nb_ptr _ a $$ HnB
-  wp_apply rs.RegisterName craqCodec go!"RPC" _ (nodeSpec cfg.γ cfg.chain a) go!"NodeBinding" false
-    γs (by decide) $$ [] as %err Herr
+  wp_apply wp_RegisterName γs craqCodec go!"RPC" _ (nodeSpec cfg.γ cfg.chain a) go!"NodeBinding"
+    false (by decide) $$ [] as %err Herr
   · iframe Hcs Hrcv Hdsv
   icases Herr with (⟨%Herr, #Hreg⟩ | %Herr)
   · subst Herr
@@ -451,6 +454,7 @@ its codec registered, it waits for the configuration (`awaitConf` in a goroutine
 discharged by `nodeSpec_errOk`). F1 is discharged: RemoveNode's method obligation is proved
 (`cnewArg_RemoveNode`, over `callRet`'s `errAny` branch). -/
 theorem Server.wp_proof [rs : RpcHttpServe GF]
+    (wp_RegisterName : net.rpc.RegisterName.spec (GF := GF) (hG := hG))
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
     (wp_cNew : coordinator.wp_New.spec (GF := GF) (hG := hG))
     (wp_cStart : coordinator.wp_Start.spec (GF := GF) (hG := hG))
@@ -471,7 +475,7 @@ theorem Server.wp_proof [rs : RpcHttpServe GF]
   · subst hid
     have hres : serverRes cfg (uint.nat (W64 1)) = coordRes cfg := by simp [serverRes]
     rw [hres]
-    exact wp_Server1 wp_SetCodec wp_cNew wp_cStart h_csvc h_fact cfg htb hc
+    exact wp_Server1 wp_RegisterName wp_SetCodec wp_cNew wp_cStart h_csvc h_fact cfg htb hc
       (by rw [hcfg.2]; decide)
   have hn1 : uint.nat id ≠ 1 := fun h => hid (by word)
   obtain ⟨a, ha, hmem⟩ := serverAddrs_chain (uint.nat id - 1) (by omega) (by omega)
@@ -525,7 +529,7 @@ theorem Server.wp_proof [rs : RpcHttpServe GF]
   icases Hm with ⟨%Hcok, -⟩
   (try wp_auto)
   wp_if_destruct
-  · wp_apply wp_runNode wp_kvNew wp_nNew wp_nStart h_nsvc h_fact wp_NewCC cfg id a _ htb hc
+  · wp_apply wp_runNode wp_RegisterName wp_kvNew wp_nNew wp_nStart h_nsvc h_fact wp_NewCC cfg id a _ htb hc
       (by rw [hcfg.2]; exact hmem)
       (List.all_eq_true.1 serverAddrs_addrOk a (List.mem_of_mem_tail hmem)) $$ [Hmux Hres Htk]
     · iframe Hmux Hres Htk

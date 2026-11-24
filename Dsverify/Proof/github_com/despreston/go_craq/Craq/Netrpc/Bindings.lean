@@ -429,11 +429,11 @@ theorem newArg_Commit (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
     imodintro
     iintro Hp %args %Φ HS
     rw [nodeSpec_Commit]
-    icases HS with ⟨%k, %v, %Hargs, HS⟩
+    icases HS with ⟨%k, %v, ⟨%Hargs, %Hko⟩, HS⟩
     isplitl [HS]
     · iexists k, v
       isplitr
-      · ipureintro; exact Hargs
+      · ipureintro; exact ⟨Hargs, Hko⟩
       iexact HS
     iapply Hlen
     iintro %_
@@ -455,7 +455,7 @@ theorem newArg_Commit (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
   simp only [ite_true]
   icases Hp with ⟨%k, %v, %Hm, Hp⟩
   rw [nodeSpec_Commit]
-  icases HS with ⟨%k', %v', %Hargs, Hcv, HS⟩
+  icases HS with ⟨%k', %v', ⟨%Hargs, %Hko⟩, Hcv, HS⟩
   obtain ⟨rfl, rfl⟩ := I.encCommitArgs_inj k k' v v' (Hm ▸ Hl) (Hm ▸ Hargs)
   unfold net.rpc.callObl
   wp_func_call
@@ -533,11 +533,11 @@ theorem newArg_LatestVersion (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen 
     imodintro
     iintro Hp %args %Φ HS
     rw [nodeSpec_LatestVersion]
-    icases HS with ⟨%k, %Q, %Hargs, HS⟩
+    icases HS with ⟨%k, %Q, ⟨%Hargs, %Hko⟩, HS⟩
     isplitl [HS]
     · iexists k, Q
       isplitr
-      · ipureintro; exact Hargs
+      · ipureintro; exact ⟨Hargs, Hko⟩
       iexact HS
     iapply L.decA_string _ _ k
     iframe
@@ -557,7 +557,7 @@ theorem newArg_LatestVersion (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen 
   simp only [ite_true]
   icases Hp with ⟨%k, %Hm, Hp⟩
   rw [nodeSpec_LatestVersion]
-  icases HS with ⟨%k', %Q, %Hargs, HAU, HS⟩
+  icases HS with ⟨%k', %Q, ⟨%Hargs, %Hko⟩, HAU, HS⟩
   have hk : k = k' := I.encString_inj k k' (Hm ▸ Hargs)
   subst hk
   unfold net.rpc.callObl
@@ -651,11 +651,11 @@ theorem newArg_Read (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.
     imodintro
     iintro Hp %args %Φ HS
     rw [nodeSpec_Read]
-    icases HS with ⟨%k, %Q, %Hargs, HS⟩
+    icases HS with ⟨%k, %Q, ⟨%Hargs, %Hko⟩, HS⟩
     isplitl [HS]
     · iexists k, Q
       isplitr
-      · ipureintro; exact Hargs
+      · ipureintro; exact ⟨Hargs, Hko⟩
       iexact HS
     iapply L.decA_string _ _ k
     iframe
@@ -675,7 +675,7 @@ theorem newArg_Read (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.
   simp only [ite_true]
   icases Hp with ⟨%k, %Hm, Hp⟩
   rw [nodeSpec_Read]
-  icases HS with ⟨%k', %Q, %Hargs, HAU, HS⟩
+  icases HS with ⟨%k', %Q, ⟨%Hargs, %Hko⟩, HAU, HS⟩
   have hk : k = k' := I.encString_inj k k' (Hm ▸ Hargs)
   subst hk
   unfold net.rpc.callObl
@@ -696,7 +696,7 @@ theorem newArg_Read (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.
   icases Hsvc with ⟨%e, %He, #Hm⟩
   subst He
   icases Hm with ⟨-, -, -, -, -, #HR, -⟩
-  wp_apply HR $$ %k %Q %_ HAU as %k' %sl %err Herr
+  wp_apply HR $$ %k %Q %_ %Hko HAU as %k' %sl %err Herr
   (try wp_auto)
   unfold readCont
   icases Herr with (⟨⟨%Herr, %Hk⟩, %x, %σ, #Hsl, HQ, %Hσ⟩ | ⟨#Hem, %σ, HQ, %Hσ⟩ | ⟨%msg, ⟨%Hmsg, %Hnf⟩, #Hem⟩)
@@ -795,11 +795,11 @@ theorem newArg_FwdPropagate (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen :
     imodintro
     iintro Hp %args %Φ HS
     rw [nodeSpec_Fwd]
-    icases HS with ⟨%req, %Hargs, HS⟩
+    icases HS with ⟨%req, ⟨%Hargs, %Hko⟩, HS⟩
     isplitl [HS]
     · iexists req
       isplitr
-      · ipureintro; exact Hargs
+      · ipureintro; exact ⟨Hargs, Hko⟩
       iexact HS
     iapply Hlen
     iintro %_
@@ -821,7 +821,7 @@ theorem newArg_FwdPropagate (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen :
   simp only [ite_true]
   icases Hp with ⟨%req, %Hm, Hp⟩
   rw [nodeSpec_Fwd]
-  icases HS with ⟨%req', %Hargs, HS⟩
+  icases HS with ⟨%req', ⟨%Hargs, %Hko⟩, HS⟩
   have hreq : req = req' := I.encPropReq_inj req req' args Hl Hm Hargs
   subst hreq
   unfold net.rpc.callObl
@@ -923,11 +923,11 @@ theorem newArg_BackPropagate (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen 
     imodintro
     iintro Hp %args %Φ HS
     rw [nodeSpec_Back]
-    icases HS with ⟨%req, %Lg, %Hargs, HS⟩
+    icases HS with ⟨%req, %Lg, ⟨%Hargs, %Hko⟩, HS⟩
     isplitl [HS]
     · iexists req, Lg
       isplitr
-      · ipureintro; exact Hargs
+      · ipureintro; exact ⟨Hargs, Hko⟩
       iexact HS
     iapply Hlen
     iintro %_
@@ -949,7 +949,7 @@ theorem newArg_BackPropagate (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen 
   simp only [ite_true]
   icases Hp with ⟨%req, %Hm, Hp⟩
   rw [nodeSpec_Back]
-  icases HS with ⟨%req', %Lg, %Hargs, HL, HS⟩
+  icases HS with ⟨%req', %Lg, ⟨%Hargs, %Hko⟩, HL, HS⟩
   have hreq : req = req' := I.encPropReq_inj req req' args Hl Hm Hargs
   subst hreq
   unfold net.rpc.callObl
@@ -1408,11 +1408,11 @@ theorem cnewArg_Write (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
     imodintro
     iintro Hp %args %Φ HS
     rw [coordSpec_Write]
-    icases HS with ⟨%k, %x, %Q, %Hargs, HS⟩
+    icases HS with ⟨%k, %x, %Q, ⟨%Hargs, %Hko⟩, HS⟩
     isplitl [HS]
     · iexists k, x, Q
       isplitr
-      · ipureintro; exact Hargs
+      · ipureintro; exact ⟨Hargs, Hko⟩
       iexact HS
     iapply Hlen
     iintro %_
@@ -1435,7 +1435,7 @@ theorem cnewArg_Write (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
   simp only [ite_true]
   icases Hp with ⟨%k, %x, %sl, %Hm, Hp, Hsl⟩
   rw [coordSpec_Write]
-  icases HS with ⟨%k', %x', %Q, %Hargs, HAU, HS⟩
+  icases HS with ⟨%k', %x', %Q, ⟨%Hargs, %Hko⟩, HAU, HS⟩
   obtain ⟨rfl, rfl⟩ := I.encClientWriteArgs_inj k k' x x' (Hm ▸ Hl) (Hm ▸ Hargs)
   unfold net.rpc.callObl
   imod ownSlice_persist $$ Hsl with #Hsl
@@ -1458,7 +1458,7 @@ theorem cnewArg_Write (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
   icases Hm with ⟨-, #HW, -⟩
   iStructNamed Hp
   (try wp_auto)
-  wp_apply HW $$ %k %sl %x %Q %_ Hsl HAU as %err Herr
+  wp_apply HW $$ %k %sl %x %Q %_ %Hko Hsl HAU as %err Herr
   (try wp_auto)
   iexists _
   isplitr
@@ -1518,11 +1518,11 @@ theorem cnewArg_RemoveNode (L : SrvCodecLaws (GF := GF)) (I : ArgFacts)
     imodintro
     iintro Hp %args %Φ HS
     rw [coordSpec_RemoveNode]
-    icases HS with ⟨%k, %Hargs, HS⟩
+    icases HS with ⟨%k, ⟨%Hargs, %Hko⟩, HS⟩
     isplitl [HS]
     · iexists k
       isplitr
-      · ipureintro; exact Hargs
+      · ipureintro; exact ⟨Hargs, Hko⟩
       iexact HS
     iapply L.decA_string _ _ k
     iframe
@@ -1542,7 +1542,7 @@ theorem cnewArg_RemoveNode (L : SrvCodecLaws (GF := GF)) (I : ArgFacts)
   simp only [ite_true]
   icases Hp with ⟨%k, %Hm, Hp⟩
   rw [coordSpec_RemoveNode]
-  icases HS with ⟨%k', %Hargs, HS⟩
+  icases HS with ⟨%k', ⟨%Hargs, %Hko⟩, HS⟩
   have hk : k = k' := I.encString_inj k k' (Hm ▸ Hargs)
   subst hk
   unfold net.rpc.callObl

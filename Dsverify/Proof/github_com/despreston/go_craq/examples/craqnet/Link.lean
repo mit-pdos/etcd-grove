@@ -4,7 +4,9 @@ to its callees' results. The protocol's laws (`Protocol/`), the codec's laws (`C
 the store, node and coordinator specs, transport/netrpc's clients, the configuration messages over
 Net's `net` specs, Net's `SetCodec`, remote's `Check`/`ServeClient`; then the kit's `Client`,
 `Orch`, `Server`; net/rpc's client over HTTP (`DialHTTP`) is Net's (models-rpc-http's
-`net.rpc.DialHTTP.wp`, in `RpcClientSpecs`). What is not proved stays an argument: the hypothesis
+`net.rpc.DialHTTP.wp`, in `RpcClientSpecs`, over Perennial's `strings.Cut`/`TrimLeft`, pending at
+the pin: `StringsPending`), and the package-level `rpc.RegisterName` is Net's
+(`net.rpc.RegisterName.wp`). What is not proved stays an argument: the hypothesis
 classes (instance arguments: `LogHyp`, `RpcHttpServe`, the server side), which the statement takes
 (F1, RemoveNode's obligation: `cnewArg_RemoveNode`; F3, the nodes' `errOk`: `nodeSpec_errOk`).
 -/
@@ -26,6 +28,8 @@ public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.Svc
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.Start
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.New
 public import Net.Proof.net.rpc.Results
+public import Spec.strings.Cut
+public import Spec.strings.TrimLeft
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
@@ -57,11 +61,20 @@ variable [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumpti
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [π : NetProtoGS]
 variable [bvi : go.BasicIntoValInj] [NaInvG GF]
 
+/-- Perennial's `strings.Cut` and `strings.TrimLeft` specs: Net's `DialHTTP.wp` (over net/http's
+`ReadResponse`) takes them as pending callee hypotheses at the pin b3f2fc485, whose Perennial
+translates both as names only (Perennial ed1955557 proves them). Not a premise of the statement:
+`TopLevelRobustness.lean`'s `craq_remote_robust_of_strings` takes them until the pin includes
+ed1955557, when `craq_remote_robust` follows from Perennial's proofs. -/
+class StringsPending (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] : Prop where
+  cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG)
+  trimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG)
+
 /-- Net's net/rpc client specs, for the kit's rpc clients (`Craq/Hyps.lean`'s `RpcClientSpecs`):
 `Client.Call`, `Client.Close`, and models-rpc-http's `DialHTTP` (over `DialHTTPPath` and net/http's
-`ReadResponse`). -/
-instance rpcClientSpecs : RpcClientSpecs GF :=
-  ⟨net.rpc.Client.Call.wp, net.rpc.Client.Close.wp, net.rpc.DialHTTP.wp⟩
+`ReadResponse`, with `strings.Cut`/`TrimLeft` from `StringsPending`). -/
+instance rpcClientSpecs [sp : StringsPending GF] : RpcClientSpecs GF :=
+  ⟨net.rpc.Client.Call.wp, net.rpc.Client.Close.wp, net.rpc.DialHTTP.wp sp.cut sp.trimLeft⟩
 
 /-- The protocol's laws the node's proofs use. -/
 theorem nodeLaws : NodeP.Laws (GF := GF) :=
@@ -70,19 +83,19 @@ theorem nodeLaws : NodeP.Laws (GF := GF) :=
     roleHalf_update.holds, nlog_covers.holds, nlog_covers_le.holds, nlog_append.holds,
     covers_mono.holds, cvOf_append.holds, cvOf_commit.holds⟩
 
-theorem wp_NewNodeClient : netrpc.wp_NewNodeClient.spec (GF := GF) (hG := hG) :=
+theorem wp_NewNodeClient [StringsPending GF] : netrpc.wp_NewNodeClient.spec (GF := GF) (hG := hG) :=
   let L := craqCodecLaws (GF := GF) (hG := hG)
   netrpcP.wp_NewNodeClient L.enc_EmptyArgs L.enc_WriteArgs L.enc_CommitArgs L.enc_string
     L.enc_NodeMeta L.enc_PropagateRequest L.dec_EmptyReply L.dec_VersionResponse L.dec_Item
     L.dec_PropagateResponse
 
-theorem factory : netrpc.factory.spec (GF := GF) (hG := hG) :=
+theorem factory [StringsPending GF] : netrpc.factory.spec (GF := GF) (hG := hG) :=
   let L := craqCodecLaws (GF := GF) (hG := hG)
   netrpcP.factory L.enc_EmptyArgs L.enc_WriteArgs L.enc_CommitArgs L.enc_string
     L.enc_NodeMeta L.enc_PropagateRequest L.dec_EmptyReply L.dec_VersionResponse L.dec_Item
     L.dec_PropagateResponse
 
-theorem wp_NewCoordinatorClient : netrpc.wp_NewCoordinatorClient.spec (GF := GF) (hG := hG) :=
+theorem wp_NewCoordinatorClient [StringsPending GF] : netrpc.wp_NewCoordinatorClient.spec (GF := GF) (hG := hG) :=
   let L := craqCodecLaws (GF := GF) (hG := hG)
   netrpcP.wp_NewCoordinatorClient L.enc_string L.enc_ClientWriteArgs L.dec_NodeMeta
     L.dec_EmptyReply
@@ -96,14 +109,14 @@ theorem wp_configure [LogHyp GF] : configure.spec (GF := GF) (hG := hG) :=
     net.Conn.Close.wp_proof
 
 /-- Every server machine (F1 discharged, `cnewArg_RemoveNode`; F3 discharged, `nodeSpec_errOk`). -/
-theorem wp_Server [LogHyp GF] [RpcHttpServe GF] :
+theorem wp_Server [LogHyp GF] [RpcHttpServe GF] [StringsPending GF] :
     Server.spec (GF := GF) (hG := hG) :=
-  Server.wp_proof net.rpc.SetCodec.wp coordinator.wp_New coordinator.wp_Start
+  Server.wp_proof net.rpc.RegisterName.wp net.rpc.SetCodec.wp coordinator.wp_New coordinator.wp_Start
     (coordinator.coord_svc assign.holds collect.holds) factory kvp.wp_New node.wp_New
     (node.wp_Start nodeLaws) (node.node_svc nodeLaws) wp_NewCoordinatorClient wp_awaitConf
     (fun cfg a => nodeSpec_errOk cfg.γ cfg.chain a)
 
-theorem wp_Client [LogHyp GF] [ρ : RemoteGS] : Client.spec (GF := GF) (hG := hG) :=
+theorem wp_Client [LogHyp GF] [ρ : RemoteGS] [StringsPending GF] : Client.spec (GF := GF) (hG := hG) :=
   Client.wp_proof wp_awaitConf net.rpc.SetCodec.wp wp_NewNodeClient wp_NewCoordinatorClient
     Codec.wp_proof EtcdGrove.remote.wp_ServeClient
 

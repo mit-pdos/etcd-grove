@@ -31,7 +31,7 @@ variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 /-- `n.sendCommitToPrev(prev, k, v)` (persistent precondition: it runs in a goroutine). -/
 abbrev sendCommitToPrev.spec : Prop :=
   ∀ (cfg : Cfg GF) (n : Loc) (a : GoString) (st : GoInterface) (γs : GName) (nbM latM : Loc)
-    (prev : node.neighbor) (k : GoString) (v : w64),
+    (prev : node.neighbor) (k : GoString) (v : w64), keyOk k →
   ⊢ ∀ Φ : val → IProp GF,
     (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node ∗ craqCtx cfg ∗
       nodeFields cfg n a st γs nbM latM ∗ nbrOk cfg prev ∗ cvLb cfg.γ k v) -∗

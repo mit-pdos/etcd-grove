@@ -219,11 +219,11 @@ macro "act_rest " latX:term:max SX:term:max HX:term:max : tactic => `(tactic| (
       ipureintro
       exact ⟨HlatS3, by word, by word⟩
     · simp only [↓reduceIte]
-      icases Hres with ⟨%Herr, #Hcv, Hls⟩
+      icases Hres with ⟨%Herr, %Hko, #Hcv, Hls⟩
       subst Herr
       wp_auto
       wp_apply wp_fork
-      · wp_apply (Hsend cfg n a _ γs nbM latM (nbrAt nbrs1 (W64 0)) ent.1 ent.2.1) $$ []
+      · wp_apply (Hsend cfg n a _ γs nbM latM (nbrAt nbrs1 (W64 0)) ent.1 ent.2.1 Hko) $$ []
         · iframe; iframe #
         iintro %err2
         itrivial

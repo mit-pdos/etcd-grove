@@ -75,8 +75,8 @@ theorem coordinator.coord_svc (Hassign : assign.spec (GF := GF)) (Hcollect : col
     iapply wp_AddNode cfg c a ha $$ [Ht] HΦ
     iframe Hpkg Hc Ht
   isplit
-  · iintro %k %sl %x %Q %Φ #Hsl HAU HΦ
-    iapply wp_Write Hassign Hcollect cfg c k sl x Q $$ [HAU] HΦ
+  · iintro %k %sl %x %Q %Φ %hkx #Hsl HAU HΦ
+    iapply wp_Write Hassign Hcollect cfg c k sl x Q hkx $$ [HAU] HΦ
     iframe Hpkg Hc Hsl HAU
   · iintro %a %Φ HΦ
     iapply wp_RemoveNode cfg c a $$ [] HΦ

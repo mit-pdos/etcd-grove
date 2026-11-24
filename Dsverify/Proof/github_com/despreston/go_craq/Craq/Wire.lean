@@ -107,6 +107,19 @@ def entriesOf {V : Type} (m : GMap GoString V) (es : List (GoString × V)) : Pro
 def encPropReq (m : GMap GoString w64) (bs : List w8) : Prop :=
   ∃ es, entriesOf m es ∧ bs = encPropReqL es
 
+/-- A key the protocol handles: at most 2 bytes (the kit's keys are `"k0"` and `"k1"`). A store
+then has at most `1 + 256 + 256 ^ 2` keys, so a propagation request (a `map[string]uint64` of a
+store's keys) fits the frames net/rpc's model reads (`maxFrameN`; `WireLen.lean`). -/
+def keyOk (k : GoString) : Prop := k.length ≤ 2
+
+theorem keyOk_lt {k : GoString} (h : keyOk k) : k.length < 256 := by unfold keyOk at h; omega
+
+/-- A put the protocol handles: its key, and a value shorter than 256 bytes (the kit's bound). -/
+def kvOk (k x : GoString) : Prop := keyOk k ∧ x.length < 256
+
+/-- A request map's keys are keys the protocol handles. -/
+def reqKeysOk (req : GMap GoString w64) : Prop := ∀ k v, req.lookup k = some v → keyOk k
+
 /-- `bs` encodes the response map `m` (its entries in some order). -/
 def encPropResp (m : GMap GoString (List (GoString × w64))) (bs : List w8) : Prop :=
   ∃ es, entriesOf m es ∧ bs = encPropRespL es

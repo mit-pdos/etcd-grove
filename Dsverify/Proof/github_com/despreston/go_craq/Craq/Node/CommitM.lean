@@ -111,7 +111,7 @@ theorem wp_commitM (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString
         (cvLb cfg.γ k v ∨ ⌜t = true⌝ ∗ £ 1)) -∗
       (∀ err : GoInterface,
         (if S.hasVer k v then
-          iprop(⌜err = interface.nil⌝ ∗ cvLb cfg.γ k v ∗
+          iprop(⌜err = interface.nil⌝ ∗ ⌜keyOk k⌝ ∗ cvLb cfg.γ k v ∗
             lockedState cfg γs n nbM latM h t nbrs (bumpLat lat k v) (S.commit k v))
         else iprop(errNotFound err ∗ lockedState cfg γs n nbM latM h t nbrs lat S)) -∗
         Φ #err) -∗
@@ -156,7 +156,7 @@ theorem wp_commitM (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString
     iframe; iframe #
     ipureintro; exact HlatS
   · simp only [↓reduceIte]
-    icases Hres with ⟨%Herr, HS, #Hcv, Htail⟩
+    icases Hres with ⟨%Herr, %Hko, HS, #Hcv, Htail⟩
     subst Herr
     wp_auto
     wp_apply wp_map_lookup1 $$ Hlatm with Hlatm
@@ -166,6 +166,8 @@ theorem wp_commitM (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString
     · wp_apply wp_mapInsert $$ Hlatm with Hlatm
       iapply HΦ
       simp only [↓reduceIte]
+      isplitr; · ipureintro; rfl
+      isplitr; · ipureintro; exact Hko
       have hb : bumpLat lat k v = lat.insert k v := by
         unfold bumpLat; rw [if_pos]; exact Hif
       rw [hb]
@@ -175,6 +177,8 @@ theorem wp_commitM (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString
       rw [← hb, latOf_bumpLat, StoreS.maxCommitted_commit S k v hv, HlatS k, HlatS k']
     · iapply HΦ
       simp only [↓reduceIte]
+      isplitr; · ipureintro; rfl
+      isplitr; · ipureintro; exact Hko
       have hb : bumpLat lat k v = lat := by
         unfold bumpLat; rw [if_neg]; exact Hif
       rw [hb]

@@ -6,6 +6,11 @@ specs (`net.rpc.MethodSpec`, `Net/Proof/net/rpc/Proto.lean`): a client's `Call` 
 of exactly one run for a nil or `ServerError` result; the server's receiver meets them
 (`rcvrOk`).
 
+A caller's deposit carries what bounds its arguments' encoding (net/rpc's model reads frames of
+at most `maxFrameN` bytes: `WireLen.lean`): a key the protocol handles (`keyOk`, `kvOk`, in
+`valsElem` for a write), a request's keys (`reqKeysOk`), an address shorter than 256 bytes (a
+chain address: `craqCtx`). The server never uses these facts.
+
 Every method answers an error with an empty reply and a non-empty message (`errOk`), but the
 coordinator's `RemoveNode` (stage 2: any caller, any address; its caller uses no result, so its
 spec asks `Φ` of every outcome). Methods no caller uses (`ClientWrite`, `ReadAll`) have the spec
@@ -104,22 +109,22 @@ def nodeSpec (γ : CraqNames) (chain : List GoString) (a : GoString) : net.rpc.M
     iprop(∃ (k x : GoString) (v : w64), ⌜args = encWriteArgs k x v⌝ ∗ valsElem γ v k x ∗
       ((cvLb γ k v -∗ Φ encEmptyReply []) ∧ errOk Φ))
   else if m = go!"Commit" then
-    iprop(∃ (k : GoString) (v : w64), ⌜args = encCommitArgs k v⌝ ∗ cvLb γ k v ∗
+    iprop(∃ (k : GoString) (v : w64), ⌜args = encCommitArgs k v ∧ keyOk k⌝ ∗ cvLb γ k v ∗
       (Φ encEmptyReply [] ∧ errOk Φ))
   else if m = go!"LatestVersion" then
     iprop(∃ (k : GoString) (Q : KvM.Output → IProp GF),
-      ⌜args = encString k⌝ ∗ opAU γ (.get k) Q ∗
+      ⌜args = encString k ∧ keyOk k⌝ ∗ opAU γ (.get k) Q ∗
       ((∀ (v : w64) (σ : KvM.State), Q (.got (σ k)) -∗ readFacts γ k v (σ k) -∗
           Φ (encVersionResp k v) []) ∧ errOk Φ))
   else if m = go!"Read" then
     iprop(∃ (k : GoString) (Q : KvM.Output → IProp GF),
-      ⌜args = encString k⌝ ∗ opAU γ (.get k) Q ∗ readCont γ k Q Φ)
+      ⌜args = encString k ∧ keyOk k⌝ ∗ opAU γ (.get k) Q ∗ readCont γ k Q Φ)
   else if m = go!"FwdPropagate" then
-    iprop(∃ req : GMap GoString w64, ⌜encPropReq req args⌝ ∗
+    iprop(∃ req : GMap GoString w64, ⌜encPropReq req args ∧ reqKeysOk req⌝ ∗
       ((∀ (resp : GMap GoString (List (GoString × w64))) (rbs : List w8), ⌜encPropResp resp rbs⌝ -∗
           respItems γ resp -∗ Φ rbs []) ∧ errOk Φ))
   else if m = go!"BackPropagate" then
-    iprop(∃ (req : GMap GoString w64) (L : CLog), ⌜encPropReq req args⌝ ∗ covers γ a L ∗
+    iprop(∃ (req : GMap GoString w64) (L : CLog), ⌜encPropReq req args ∧ reqKeysOk req⌝ ∗ covers γ a L ∗
       ((∀ (resp : GMap GoString (List (GoString × w64))) (rbs : List w8), ⌜encPropResp resp rbs⌝ -∗
           respItems γ resp -∗ respCommitted γ resp -∗ ⌜respCovers req resp L⌝ -∗ Φ rbs []) ∧
         errOk Φ))
@@ -132,11 +137,12 @@ def coordSpec (γ : CraqNames) (chain : List GoString) : net.rpc.MethodSpec GF :
       ((∀ md : MetaV, Φ (encMeta md) []) ∧ errOk Φ))
   else if m = go!"Write" then
     iprop(∃ (k x : GoString) (Q : KvM.Output → IProp GF),
-      ⌜args = encClientWriteArgs k x⌝ ∗ opAU γ (.put k x) Q ∗
+      ⌜args = encClientWriteArgs k x ∧ kvOk k x⌝ ∗ opAU γ (.put k x) Q ∗
       ((putReceipt k x Q -∗ Φ encEmptyReply []) ∧ errOk Φ))
   else if m = go!"RemoveNode" then
     -- any caller, any address (the client nodes' removals, stage 2); the caller learns nothing
-    iprop(∃ a : GoString, ⌜args = encString a⌝ ∗ (Φ encEmptyReply [] ∧ ∀ msg : GoString, Φ [] msg))
+    iprop(∃ a : GoString, ⌜args = encString a ∧ a.length < 256⌝ ∗
+      (Φ encEmptyReply [] ∧ ∀ msg : GoString, Φ [] msg))
   else iprop(False)
 
 /-- The run's services: the coordinator at `cAddr`, the chain nodes at `chain`, each as service

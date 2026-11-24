@@ -48,7 +48,8 @@ theorem wp_propagateRequestFromItems (sl : GoSlice) (ps : List Loc)
       (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node ∗ sl ↦* ps ∗
         [∗list] i ↦ p ∈ ps, ∃ e, ⌜es[i]? = some e⌝ ∗ itemPtr p e.1 e.2.1 e.2.2.1) -∗
       (∀ (ptr : Loc) (req : GMap GoString w64), reqPtr ptr (DFrac.own 1) req -∗ sl ↦* ps -∗
-        ⌜∀ k, reqVer req k = W64 0 ∨ ∃ e ∈ es, e.1 = k ∧ e.2.1 = reqVer req k⌝ -∗ Φ #ptr) -∗
+        ⌜∀ k, reqVer req k = W64 0 ∨ ∃ e ∈ es, e.1 = k ∧ e.2.1 = reqVer req k⌝ -∗
+        ⌜∀ k v, req.lookup k = some v → ∃ e ∈ es, e.1 = k⌝ -∗ Φ #ptr) -∗
       WP (App (Val (@! node.propagateRequestFromItems)) (Val #sl)) {{ Φ }} := by
   iintro %Φ ⟨#Hpkg, Hsl, #Hps⟩ HΦ
   wp_func_call
@@ -59,12 +60,14 @@ theorem wp_propagateRequestFromItems (sl : GoSlice) (ps : List Loc)
   ihave IH : iprop(∃ (j : w64) (it : Loc) (m : GMap GoString w64),
       "i" ∷ i_ptr ↦ j ∗ "item" ∷ item_ptr ↦ it ∗ "Hmp" ∷ mp ↦$ m ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ (ps.length : Int)⌝ ∗
-      "%Hm" ∷ ⌜∀ k, reqVer m k = W64 0 ∨ ∃ e ∈ es, e.1 = k ∧ e.2.1 = reqVer m k⌝) $$ [i item Hmp]
+      "%Hm" ∷ ⌜∀ k, reqVer m k = W64 0 ∨ ∃ e ∈ es, e.1 = k ∧ e.2.1 = reqVer m k⌝ ∗
+      "%Hd" ∷ ⌜∀ k v, m.lookup k = some v → ∃ e ∈ es, e.1 = k⌝) $$ [i item Hmp]
   · iexists _, _, ∅
     iframe
     ipureintro
-    refine ⟨⟨by word, by word⟩, fun k => Or.inl ?_⟩
-    simp [reqVer]
+    refine ⟨⟨by word, by word⟩, fun k => Or.inl ?_, fun k v h => ?_⟩
+    · simp [reqVer]
+    · simp at h
   wp_for IH
   wp_if_destruct
   · have Hlt : (sint.Z j).toNat < ps.length := by word
@@ -88,23 +91,38 @@ theorem wp_propagateRequestFromItems (sl : GoSlice) (ps : List Loc)
       iexists _, _, _
       iframe
       ipureintro
-      refine ⟨⟨by word, by word⟩, fun k => ?_⟩
-      by_cases hk : k = e.1
-      · subst hk
-        right; refine ⟨e, hemem, rfl, ?_⟩
-        simp [reqVer, GMap.lookup_insert_eq]
-      · have : reqVer (<[e.1 := e.2.1]> m) k = reqVer m k := by
-          simp only [reqVer]; rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)]
-        rw [this]; exact Hm k
+      refine ⟨⟨by word, by word⟩, fun k => ?_, fun k v h => ?_⟩
+      · by_cases hk : k = e.1
+        · subst hk
+          right; refine ⟨e, hemem, rfl, ?_⟩
+          simp [reqVer, GMap.lookup_insert_eq]
+        · have : reqVer (<[e.1 := e.2.1]> m) k = reqVer m k := by
+            simp only [reqVer]; rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)]
+          rw [this]; exact Hm k
+      · by_cases hk : k = e.1
+        · subst hk; exact ⟨e, hemem, rfl⟩
+        · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)] at h
+          exact Hd k v h
     · wp_for_post
       iframe
       iexists _, _, _
       iframe
       ipureintro
-      exact ⟨⟨by word, by word⟩, Hm⟩
+      exact ⟨⟨by word, by word⟩, Hm, Hd⟩
   · iapply HΦ $$ [req Hmp] Hsl
     · unfold reqPtr; iexists mp; iframe
-    ipureintro; exact Hm
+    · ipureintro; exact Hm
+    ipureintro; exact Hd
+
+/-- A request built from a store's items has keys the protocol handles. -/
+theorem reqKeysOk_of (S : StoreS) (es : List (GoString × w64 × GoString × Bool))
+    (req : GMap GoString w64) (HSk : ∀ e ∈ S, keyOk e.1)
+    (Hes : ∀ e ∈ es, (e.2.1, e.2.2.1, e.2.2.2) ∈ S.items e.1)
+    (Hd : ∀ k v, req.lookup k = some v → ∃ e ∈ es, e.1 = k) : reqKeysOk req := by
+  intro k v h
+  obtain ⟨e, he, rfl⟩ := Hd k v h
+  obtain ⟨e', he', hk⟩ := StoreS.mem_items_key S e.1 _ (Hes e he)
+  exact hk ▸ HSk e' he'
 
 /-- The reply's slices (`respPtr`'s big separating conjunction). -/
 def respSlices (m : GMap GoString GoSlice) (resp : GMap GoString (List (GoString × w64))) : IProp GF :=
@@ -431,7 +449,7 @@ theorem wp_commitPropagated (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a :
         iintro %err2 Hres
         rw [hasVer_write_rp]
         simp only [↓reduceIte]
-        icases Hres with ⟨%Herr2, #Hcv2, Hls⟩
+        icases Hres with ⟨%Herr2, %Hko2, #Hcv2, Hls⟩
         subst Herr2
         wp_auto
         wp_for_post
@@ -451,7 +469,7 @@ theorem wp_commitPropagated (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a :
             exact Int.le_trans this h2
           · rw [Hx] at hl; cases hl; exact hm2
       · simp only [↓reduceIte]
-        icases Hres with ⟨%Herr, #Hcv', Hls⟩
+        icases Hres with ⟨%Herr, %Hko, #Hcv', Hls⟩
         subst Herr
         wp_auto
         wp_for_post
@@ -526,15 +544,18 @@ theorem wp_requestFwdPropagation (HL : Laws (GF := GF)) :
   ihave ⟨HS, Hback⟩ := lockedState_store cfg γs n nbM latM h t nbrs lat S $$ Hls
   wp_apply (wp_store_AllDirty_own γs e (1 : Qp).half S) $$ [$Hstore $HS]
   iintro %sl HS Hsl
+  iapply fupd_wp
+  imod (store_keysOk cfg a γs S ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hinv $HS] with ⟨HS, %HSk⟩
+  imodintro
   ihave Hls := Hback $$ %S HS %(fun _ => rfl)
   unfold itemsIn
   icases Hsl with ⟨%ps, %es, Hsl, %Hes, #Hps⟩
   wp_auto
   wp_apply (wp_propagateRequestFromItems sl ps es) $$ [$Hpkg $Hsl $Hps]
-  iintro %ptr %req Hreq Hsl %Hreq
+  iintro %ptr %req Hreq Hsl %Hreq %Hreqd
   wp_auto
   icases Hcs with ⟨-, -, -, -, -, -, Hfwd, -, -⟩
-  wp_apply Hfwd $$ Hreq
+  wp_apply Hfwd $$ %(reqKeysOk_of S es req HSk (fun e he => (Hes.2 e he).1) Hreqd) Hreq
   iintro %rp %err Hres
   icases Hres with (⟨%Herr, Hreq, %resp, Hresp, #Hitems⟩ | #Herr)
   · subst Herr
@@ -576,15 +597,18 @@ theorem wp_requestBackPropagation (HL : Laws (GF := GF)) :
   ihave ⟨HS, Hback⟩ := lockedState_store cfg γs n nbM latM h t nbrs lat S $$ Hls
   wp_apply (wp_store_AllCommitted_own γs e (1 : Qp).half S) $$ [$Hstore $HS]
   iintro %sl HS Hsl
+  iapply fupd_wp
+  imod (store_keysOk cfg a γs S ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hinv $HS] with ⟨HS, %HSk⟩
+  imodintro
   ihave Hls := Hback $$ %S HS %(fun _ => rfl)
   unfold itemsIn
   icases Hsl with ⟨%ps, %es, Hsl, %Hes, #Hps⟩
   wp_auto
   wp_apply (wp_propagateRequestFromItems sl ps es) $$ [$Hpkg $Hsl $Hps]
-  iintro %ptr %req Hreq Hsl %Hreq
+  iintro %ptr %req Hreq Hsl %Hreq %Hreqd
   wp_auto
   icases Hcs with ⟨-, -, -, -, -, -, -, Hbck, -⟩
-  wp_apply Hbck $$ Hreq Hcov
+  wp_apply Hbck $$ %(reqKeysOk_of S es req HSk (fun e he => (Hes.2 e he).1) Hreqd) Hreq Hcov
   iintro %rp %err Hres
   icases Hres with (⟨%Herr, Hreq, %resp, Hresp, #Hitems, #Hcomm, %Hcovers⟩ | #Herr)
   · subst Herr

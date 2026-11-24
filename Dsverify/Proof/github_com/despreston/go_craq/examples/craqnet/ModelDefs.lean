@@ -350,7 +350,7 @@ theorem mrep_set {m : GMap GoString GoString} {a : St} (hm : mrep m a) (k : GoSt
     simp [upd, hx]; exact hm x
 
 theorem find_some (P : List KIn) (hP : ∀ x ∈ P, isPut x = true) (k : GoString) (w : Str8)
-    (hk : k.length < 256) (idx : Nat)
+    (hk : keyOk k) (idx : Nat)
     (h1 : ∀ j < idx, ∀ e, (P.map pendOf)[j]? = some e → ¬ (e.K' = k ∧ e.V' = w.1))
     (h2 : (P.map pendOf)[idx]? = some (pend.mk k w.1)) :
     (⟨.put k w.1, ⟨hk, w.2⟩⟩ : KIn) ∈ P ∧
@@ -362,7 +362,7 @@ theorem find_some (P : List KIn) (hP : ∀ x ∈ P, isPut x = true) (k : GoStrin
   refine ⟨hyP, erase_first P _ idx hy (fun j hj he => ?_)⟩
   exact h1 j hj (pend.mk k w.1) (by rw [List.getElem?_map, he]; rfl) ⟨rfl, rfl⟩
 
-theorem find_none (P : List KIn) (k : GoString) (w : Str8) (hk : k.length < 256)
+theorem find_none (P : List KIn) (k : GoString) (w : Str8) (hk : keyOk k)
     (h1 : ∀ j < (P.map pendOf).length, ∀ e, (P.map pendOf)[j]? = some e → ¬ (e.K' = k ∧ e.V' = w.1)) :
     (⟨.put k w.1, ⟨hk, w.2⟩⟩ : KIn) ∉ P := by
   intro hm

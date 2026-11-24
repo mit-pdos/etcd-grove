@@ -56,7 +56,7 @@ theorem nbrOk_lookup_rd (cfg : Cfg GF) (nbrs : GMap w64 node.neighbor) (p : w64)
     iapply (BI.BigSepM.bigSepM_lookup (Φ := fun _ nb => nbrOk (hG := hG) cfg nb) h) $$ H
 
 theorem wp_Read (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString)
-    (k : GoString) (Q : KvM.Output → IProp GF) (Φ : val → IProp GF) :
+    (k : GoString) (Q : KvM.Output → IProp GF) (Φ : val → IProp GF) (hk : keyOk k) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node -∗
       isNode cfg n a -∗ opAU cfg.γ (.get k) Q -∗
       ▷ (∀ (k' : GoString) (sl : GoSlice) (err : GoInterface),
@@ -119,7 +119,7 @@ theorem wp_Read (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString)
       subst Hec
       icases Hcs with ⟨-, -, -, HLV, -⟩
       wp_auto
-      wp_apply HLV $$ Hau
+      wp_apply HLV $$ %hk Hau
       iintro %k' %v %err Hres
       icases Hres with (⟨%Herr, %σ, HQ, #Hrf⟩ | #Hea)
       · subst Herr

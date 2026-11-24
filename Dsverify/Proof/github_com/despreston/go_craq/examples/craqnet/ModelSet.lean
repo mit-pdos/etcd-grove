@@ -41,10 +41,11 @@ open EtcdGrove EtcdGrove.linkv github_com.despreston.go_craq
 /-- A bounded string: shorter than 256 bytes. -/
 abbrev Str8 := {s : GoString // s.length < 256}
 
-/-- The bounded inputs: a get's key, a put's key and value, each a `Str8`. -/
+/-- The bounded inputs: a get's key, a put's key and value: a key the protocol handles (`keyOk`:
+at most 2 bytes; the kit's keys are `"k0"` and `"k1"`), a value a `Str8`. -/
 def inOk : KvInput → Prop
-  | .get k => k.length < 256
-  | .put k x => k.length < 256 ∧ x.length < 256
+  | .get k => keyOk k
+  | .put k x => keyOk k ∧ x.length < 256
 
 /-- The store's inputs. -/
 abbrev KIn := {i : KvInput // inOk i}

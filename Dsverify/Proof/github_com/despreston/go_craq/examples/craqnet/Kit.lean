@@ -134,10 +134,10 @@ def kvR (γ : CraqNames) : RBase GF St KIn KOut where
     obtain ⟨k | ⟨k, x⟩, hi⟩ := i
     · simp only [encInB, encS, List.cons_append, List.length_cons, List.length_append,
         List.length_nil]
-      simp only [inOk] at hi
+      simp only [inOk, keyOk] at hi
       omega
     · simp only [encInB, encS, List.cons_append, List.length_cons, List.length_append]
-      simp only [inOk] at hi
+      simp only [inOk, keyOk] at hi
       omega
   encOut_len v := by
     unfold encOutV

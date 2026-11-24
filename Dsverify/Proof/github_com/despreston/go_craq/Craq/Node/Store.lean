@@ -39,6 +39,54 @@ theorem itemFacts_lookup (γ : CraqNames) (S : StoreS) (e : StoreS.Ent) (h : e �
   unfold itemFacts
   exact BI.BigSepL.bigSepL_mem (Φ := fun e => itemFact (GF := GF) γ e) h
 
+/-- A store's keys are keys the protocol handles (its items are versions, `valsElem`). -/
+theorem itemFacts_keysOk (γ : CraqNames) : ∀ S : StoreS,
+    itemFacts (GF := GF) γ S ⊢ ⌜∀ e ∈ S, keyOk e.1⌝
+  | [] => by iintro -; ipureintro; intro e he; simp at he
+  | e :: S => by
+    have IH := itemFacts_keysOk γ S
+    unfold itemFacts at IH ⊢
+    iintro #H
+    icases BI.BigSepL.bigSepL_cons.1 $$ H with ⟨#Hf, #Hr⟩
+    ihave %h2 := IH $$ Hr
+    unfold itemFact
+    icases Hf with ⟨#Hve, -⟩
+    ihave %h1 := valsElem_kvOk γ _ _ _ $$ Hve
+    ipureintro
+    intro e' he'
+    rcases List.mem_cons.1 he' with rfl | h
+    · exact h1.1
+    · exact h2 e' h
+
+/-- An item of `k` is an entry of key `k`. -/
+theorem StoreS.mem_items_key (S : StoreS) (k : GoString) (it : w64 × GoString × Bool)
+    (h : it ∈ S.items k) : ∃ e ∈ S, e.1 = k := by
+  simp only [StoreS.items, List.mem_map, List.mem_filter, decide_eq_true_eq] at h
+  obtain ⟨e, ⟨he, hk⟩, -⟩ := h
+  exact ⟨e, he, hk⟩
+
+/-- The store half's keys are keys the protocol handles (from the node's invariant). -/
+theorem store_keysOk (cfg : Cfg GF) (a : GoString) (γs : GName) (S : StoreS) (E : CoPset)
+    (hE : ↑nodeN ⊆ E) :
+    inv nodeN (nodeInv cfg a γs) ∗ storeOwn γs (1 : Qp).half S ={E}=∗
+      storeOwn γs (1 : Qp).half S ∗ ⌜∀ e ∈ S, keyOk e.1⌝ := by
+  iintro ⟨#Hinv, HS⟩
+  iinv Hinv with Hi Hclose
+  unfold nodeInv
+  imod Hi with ⟨%S', %Ln, HS', Hln, %HLn, #Hf⟩
+  unfold storeOwn
+  ihave %Heq := ghostVar_agree γs S _ S' _ $$ HS HS'
+  subst Heq
+  ihave %Hk := itemFacts_keysOk cfg.γ S $$ Hf
+  imod Hclose $$ [HS' Hln] with -
+  · inext
+    iexists S, Ln
+    iframe; iframe #
+    ipureintro; exact HLn
+  imodintro
+  iframe HS
+  ipureintro; exact Hk
+
 theorem itemFacts_write (γ : CraqNames) (S : StoreS) (k x : GoString) (v : w64) :
     itemFacts (GF := GF) γ S ∗ valsElem γ v k x ⊢ itemFacts γ (S.write k x v) := by
   iintro ⟨#H, #Hv⟩
@@ -148,7 +196,8 @@ theorem wp_store_Commit (HL : Laws (GF := GF)) (cfg : Cfg GF) (a : GoString) (γ
           ={⊤ \ ↑nodeN}=∗ cvLb cfg.γ k v ∗ P')) -∗
       (∀ err : GoInterface,
         (if S.hasVer k v then
-          iprop(⌜err = interface.nil⌝ ∗ storeOwn γs (1 : Qp).half (S.commit k v) ∗ cvLb cfg.γ k v ∗ P')
+          iprop(⌜err = interface.nil⌝ ∗ ⌜keyOk k⌝ ∗ storeOwn γs (1 : Qp).half (S.commit k v) ∗
+            cvLb cfg.γ k v ∗ P')
         else iprop(errNotFound err ∗ storeOwn γs (1 : Qp).half S ∗ P)) -∗ Φ #err) -∗
       WP (App (App (Val #(methods e.ty go!"Commit" e.v)) (Val #k)) (Val #v)) {{ Φ }} := by
   iintro %Φ ⟨#Hst, #Hinv, HS, HP, HW⟩ HΦ
@@ -207,6 +256,7 @@ theorem wp_store_Commit (HL : Laws (GF := GF)) (cfg : Cfg GF) (a : GoString) (γ
       ihave #Hx := itemFacts_lookup cfg.γ S _ hmem $$ Hf
       unfold itemFact
       icases Hx with ⟨#Hve, -⟩
+      ihave %Hkx := valsElem_kvOk cfg.γ v k x $$ Hve
       imod HW $$ %x %c %hmem Hve HP with ⟨#Hcv, HP'⟩
       icases (ghostVar_split_half γs (1 : Qp).half (S.commit k v)).1 $$ Hfull with ⟨HS, HS'⟩
       imod (HL.nlog_append cfg.γ a Ln k v) $$ Hln with Hln
@@ -227,7 +277,7 @@ theorem wp_store_Commit (HL : Laws (GF := GF)) (cfg : Cfg GF) (a : GoString) (γ
       iapply HΦ
       simp only [↓reduceIte]
       iframe; iframe #
-      ipureintro; exact Herr
+      ipureintro; exact ⟨Herr, Hkx.1⟩
 
 /-- `ReadVersion(k, v)`, unlocked (the invariant's half): the item read is a version. -/
 theorem wp_store_ReadVersion (cfg : Cfg GF) (a : GoString) (γs : GName) (e : GoInterfaceOk)

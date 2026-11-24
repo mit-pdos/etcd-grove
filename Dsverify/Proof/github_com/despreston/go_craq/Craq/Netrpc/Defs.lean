@@ -5,6 +5,7 @@ module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Codec
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Hyps
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.WireLen
 
 @[expose] public section
 
@@ -101,10 +102,23 @@ theorem craqCodec_dec_frame (bs : List w8) (ptr : GoInterface) (Ψ : Bool → IP
     ispecialize HΦ $$ HΨ' Herr
     iexact HΦ
 
+/-- The codec's encoding is monotone in its continuation. -/
+theorem craqCodec_enc_mono (v : GoInterface) (Ψ Ψ' : List w8 → IProp GF) :
+    craqCodec.enc v Ψ ∗ (∀ bs, Ψ bs -∗ Ψ' bs) ⊢ craqCodec.enc v Ψ' := by
+  unfold craqCodec
+  iintro ⟨He, Hw⟩ %Φ HΦ
+  iapply He
+  inext
+  iintro %sl %bs Hsl Hcap HΨ
+  iapply HΦ $$ Hsl Hcap
+  iapply Hw $$ HΨ
+
 theorem wp_Call_tag [rcs : RpcClientSpecs GF] (T : List w8 → Prop) (c : Loc) (W : net.rpc.RpcWorld GF)
     (a sm svc M : GoString) (S : net.rpc.MethodSpec GF) (args reply : GoInterface)
     (Φ : List w8 → GoString → IProp GF) (Rargs D : IProp GF) (Θ : List w8 → Bool → IProp GF)
-    (HT : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝) :
+    (HT : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝)
+    (HS : ∀ bs, S M bs Φ ⊢ ⌜bs.length ≤ net.rpc.maxFrameN⌝)
+    (Hsm : sm.length + 16 ≤ net.rpc.maxFrameN := by simp [net.rpc.maxFrameN]) :
   {{ net.rpc.isClient c W a ∗ ⌜net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧
         reply ≠ interface.nil⌝ ∗
       net.rpc.codecSet craqCodec ∗
@@ -121,6 +135,8 @@ theorem wp_Call_tag [rcs : RpcClientSpecs GF] (T : List w8 → Prop) (c : Loc) (
           (craqCodec.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D))) }} := by
   have HT2 : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝ ∗ Φ rep [] := fun rep =>
     (BI.and_intro (HT rep) .rfl).trans BI.persistent_and_sep_mp
+  have HS2 : ∀ bs, S M bs Φ ⊢ ⌜bs.length ≤ net.rpc.maxFrameN⌝ ∗ S M bs Φ := fun bs =>
+    (BI.and_intro (HS bs) .rfl).trans BI.persistent_and_sep_mp
   iintro %Ψ ⟨#Hc, %Hs, #Hcs, Henc, HD, #Hdec⟩ HΨ
   wp_apply (rcs.call (C := craqCodec) c W a sm svc M S args reply Φ
     Rargs D (fun rep ok => if ok then iprop(Φ rep [] ∗ Θ rep true) else Θ rep false))
@@ -130,9 +146,15 @@ theorem wp_Call_tag [rcs : RpcClientSpecs GF] (T : List w8 → Prop) (c : Loc) (
     isplitr
     · ipureintro; exact Hs
     isplitr
+    · ipureintro; exact Hsm
+    isplitr
     · iexact Hcs
     isplitl [Henc]
-    · iexact Henc
+    · iapply craqCodec_enc_mono
+      iframe Henc
+      iintro %bs ⟨HSM, HR⟩
+      ihave HSM := HS2 bs $$ HSM
+      iframe
     isplitl [HD]
     · iexact HD
     imodintro
@@ -178,7 +200,13 @@ theorem wp_Call_tag [rcs : RpcClientSpecs GF] (T : List w8 → Prop) (c : Loc) (
     · ipureintro; exact Herr
     isplitr
     · iexact Hany
-    iright; iexact Hrest
+    iright
+    icases Hrest with ⟨Henc, HD⟩
+    iframe HD
+    iapply craqCodec_enc_mono
+    iframe Henc
+    iintro %bs ⟨-, HSM⟩
+    iexact HSM
 
 /-- The replies' type tags (an empty reply has none). -/
 theorem tagOk_nil (t : GoString) : tagOk t [] := by
@@ -232,14 +260,14 @@ theorem nodeSpec_Write :
 
 theorem nodeSpec_Commit :
     nodeSpec γ ch a go!"Commit" args Φ =
-      iprop(∃ (k : GoString) (v : w64), ⌜args = encCommitArgs k v⌝ ∗ cvLb γ k v ∗
+      iprop(∃ (k : GoString) (v : w64), ⌜args = encCommitArgs k v ∧ keyOk k⌝ ∗ cvLb γ k v ∗
         (Φ encEmptyReply [] ∧ errOk Φ)) := by
   unfold nodeSpec; simp
 
 theorem nodeSpec_LatestVersion :
     nodeSpec γ ch a go!"LatestVersion" args Φ =
       iprop(∃ (k : GoString) (Q : KvM.Output → IProp GF),
-        ⌜args = encString k⌝ ∗ opAU γ (.get k) Q ∗
+        ⌜args = encString k ∧ keyOk k⌝ ∗ opAU γ (.get k) Q ∗
         ((∀ (v : w64) (σ : KvM.State), Q (.got (σ k)) -∗ readFacts γ k v (σ k) -∗
             Φ (encVersionResp k v) []) ∧ errOk Φ)) := by
   unfold nodeSpec; simp
@@ -247,19 +275,20 @@ theorem nodeSpec_LatestVersion :
 theorem nodeSpec_Read :
     nodeSpec γ ch a go!"Read" args Φ =
       iprop(∃ (k : GoString) (Q : KvM.Output → IProp GF),
-        ⌜args = encString k⌝ ∗ opAU γ (.get k) Q ∗ readCont γ k Q Φ) := by
+        ⌜args = encString k ∧ keyOk k⌝ ∗ opAU γ (.get k) Q ∗ readCont γ k Q Φ) := by
   unfold nodeSpec; simp
 
 theorem nodeSpec_Fwd :
     nodeSpec γ ch a go!"FwdPropagate" args Φ =
-      iprop(∃ req : GMap GoString w64, ⌜encPropReq req args⌝ ∗
+      iprop(∃ req : GMap GoString w64, ⌜encPropReq req args ∧ reqKeysOk req⌝ ∗
         ((∀ (resp : GMap GoString (List (GoString × w64))) (rbs : List w8), ⌜encPropResp resp rbs⌝ -∗
           respItems γ resp -∗ Φ rbs []) ∧ errOk Φ)) := by
   unfold nodeSpec; simp
 
 theorem nodeSpec_Back :
     nodeSpec γ ch a go!"BackPropagate" args Φ =
-      iprop(∃ (req : GMap GoString w64) (L : CLog), ⌜encPropReq req args⌝ ∗ covers γ a L ∗
+      iprop(∃ (req : GMap GoString w64) (L : CLog), ⌜encPropReq req args ∧ reqKeysOk req⌝ ∗
+        covers γ a L ∗
         ((∀ (resp : GMap GoString (List (GoString × w64))) (rbs : List w8), ⌜encPropResp resp rbs⌝ -∗
           respItems γ resp -∗ respCommitted γ resp -∗ ⌜respCovers req resp L⌝ -∗ Φ rbs []) ∧
         errOk Φ)) := by
@@ -274,15 +303,62 @@ theorem coordSpec_AddNode :
 theorem coordSpec_Write :
     coordSpec γ ch go!"Write" args Φ =
       iprop(∃ (k x : GoString) (Q : KvM.Output → IProp GF),
-        ⌜args = encClientWriteArgs k x⌝ ∗ opAU γ (.put k x) Q ∗
+        ⌜args = encClientWriteArgs k x ∧ kvOk k x⌝ ∗ opAU γ (.put k x) Q ∗
         ((putReceipt k x Q -∗ Φ encEmptyReply []) ∧ errOk Φ)) := by
   unfold coordSpec; simp
 
 theorem coordSpec_RemoveNode :
     coordSpec γ ch go!"RemoveNode" args Φ =
-      iprop(∃ a : GoString, ⌜args = encString a⌝ ∗
+      iprop(∃ a : GoString, ⌜args = encString a ∧ a.length < 256⌝ ∗
         (Φ encEmptyReply [] ∧ ∀ msg : GoString, Φ [] msg)) := by
   unfold coordSpec; simp
+
+/-! The deposits bound the arguments' encoding (`WireLen.lean`): what `wp_Call_tag` asks. -/
+
+theorem nodeSpec_frame (hch : ∀ b ∈ ch, b.length < 256) (m : GoString) :
+    nodeSpec γ ch a m args Φ ⊢ ⌜args.length ≤ net.rpc.maxFrameN⌝ := by
+  have hm : ∀ md : MetaV, metaAddrsOk ch md →
+      md.prev.length < 256 ∧ md.next.length < 256 ∧ md.tail.length < 256 := by
+    intro md ⟨h1, h2, h3⟩
+    have hb : ∀ b, b ∈ go!"" :: ch → b.length < 256 := by
+      intro b hb; rcases List.mem_cons.1 hb with rfl | hb
+      · decide
+      · exact hch b hb
+    exact ⟨hb _ h1, hb _ h2, hb _ h3⟩
+  unfold nodeSpec
+  split
+  · iintro ⟨%h, -⟩; subst h; ipureintro; exact encEmptyArgs_frame
+  split
+  · iintro ⟨%md, %r, %h, -⟩; obtain ⟨rfl, hmd⟩ := h; ipureintro; exact encMeta_frame md (hm md hmd)
+  split
+  · iintro ⟨%k, %x, %v, %h, #Hve, -⟩; subst h
+    ihave %hkx := valsElem_kvOk γ v k x $$ Hve
+    ipureintro; exact encWriteArgs_frame k x v hkx
+  split
+  · iintro ⟨%k, %v, %h, -⟩; obtain ⟨rfl, hk⟩ := h; ipureintro; exact encCommitArgs_frame k v hk
+  split
+  · iintro ⟨%k, %Q, %h, -⟩; obtain ⟨rfl, hk⟩ := h; ipureintro
+    exact encString_frame k (by unfold keyOk at hk; omega)
+  split
+  · iintro ⟨%k, %Q, %h, -⟩; obtain ⟨rfl, hk⟩ := h; ipureintro
+    exact encString_frame k (by unfold keyOk at hk; omega)
+  split
+  · iintro ⟨%req, %h, -⟩; ipureintro; exact encPropReq_frame req args h.1 h.2
+  split
+  · iintro ⟨%req, %L, %h, -⟩; ipureintro; exact encPropReq_frame req args h.1 h.2
+  · exact BI.false_elim
+
+theorem coordSpec_frame (hch : ∀ b ∈ ch, b.length < 256) (m : GoString) :
+    coordSpec γ ch m args Φ ⊢ ⌜args.length ≤ net.rpc.maxFrameN⌝ := by
+  unfold coordSpec
+  split
+  · iintro ⟨%a', %h, -⟩; obtain ⟨rfl, ha⟩ := h; ipureintro; exact encString_frame a' (hch a' ha)
+  split
+  · iintro ⟨%k, %x, %Q, %h, -⟩; obtain ⟨rfl, hkx⟩ := h; ipureintro
+    exact encClientWriteArgs_frame k x hkx
+  split
+  · iintro ⟨%a', %h, -⟩; obtain ⟨rfl, ha⟩ := h; ipureintro; exact encString_frame a' ha
+  · exact BI.false_elim
 
 end specs
 

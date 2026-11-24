@@ -14,16 +14,17 @@ from Net's proof. Its precondition, besides `httpRpcAddr W a`, is a machine's en
 `httpEnv`, `connected ↦□ connectedStatus`), which each machine's boot supplies (`rpcBootRes`).
 
 **The server side** (`RpcHttpServe`, a premise of `craq_remote_robust`, never an instance) is what
-Net does not prove yet: net/http's server (`http.ListenAndServe` up to the hijack, `DefaultServeMux`),
-`rpc.HandleHTTP` and the package-level `rpc.RegisterName` on `DefaultServer`, in the shapes of the
-other kits' (dsv-epaxos's `RpcHttpHyp`, dsv-gryff's): `muxOwner R` (exclusive: the right to register
-paths at `DefaultServeMux`, `R` those registered; `http.Handle` panics on a path registered twice),
-`muxHas W A path` (persistent: the mux routes `path` to a handler serving `W` at the addresses `A`),
-`defaultServer γ` (persistent: `rpc.DefaultServer` is a server with registry `γ`). A machine's
-`muxOwner []` and `∃ γ, defaultServer γ` come from its initialization (`rpcBootRes`). Net's net/rpc
-server (`Server.ServeHTTP.spec`, `ServeCodec`) needs the machine's thread bound
-`threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is an `int32`), so `HandleHTTP` and
-`ListenAndServe` ask for it too.
+Net does not prove yet: net/http's server (`http.ListenAndServe` up to the hijack, `DefaultServeMux`)
+and `rpc.HandleHTTP`, in the shapes of the other kits' (dsv-epaxos's `RpcHttpHyp`, dsv-gryff's):
+`muxOwner R` (exclusive: the right to register paths at `DefaultServeMux`, `R` those registered;
+`http.Handle` panics on a path registered twice), `muxHas W A path` (persistent: the mux routes
+`path` to a handler serving `W` at the addresses `A`). `rpc.DefaultServer` is Net's
+`net.rpc.defaultServer γ` (rpc-defaultserver), and the package-level `rpc.RegisterName` is Net's
+proved `net.rpc.RegisterName.wp` (the server proofs take its spec, `Link.lean` supplies the proof).
+A machine's `muxOwner []` and `∃ γ, net.rpc.defaultServer γ` come from its initialization
+(`rpcBootRes`). Net's net/rpc server (`Server.ServeHTTP.spec`, `ServeCodec`) needs the machine's
+thread bound `threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is an `int32`), so
+`HandleHTTP` and `ListenAndServe` ask for it too.
 -/
 module
 
@@ -62,20 +63,6 @@ class RpcHttpServe [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [G
   /-- `DefaultServeMux` routes `path` to a handler serving `W` at every address of `A`. -/
   muxHas : net.rpc.RpcWorld GF → (GoString → Prop) → GoString → IProp GF
   muxHas_persistent : ∀ W A path, Persistent (muxHas W A path)
-  /-- `rpc.DefaultServer` is a server with registry `γ`; a machine's comes from net/rpc's
-  initialization, `DefaultServer = NewServer()` (`rpcBootRes`). -/
-  defaultServer : GName → IProp GF
-  defaultServer_persistent : ∀ γ, Persistent (defaultServer γ)
-  /-- `rpc.RegisterName(name, rcvr)`: `DefaultServer.RegisterName(name, rcvr)` (Net's
-  `Server.RegisterName.spec`; a second registration of a name is an error). -/
-  RegisterName : ∀ (C : net.rpc.CodecSpec GF) (name : GoString) (rcvr : GoInterface)
-      (S : net.rpc.MethodSpec GF) (nm : GoString) (np : Bool) (γ : GName),
-    name ≠ [] →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ defaultServer γ ∗ net.rpc.codecSet C ∗
-        C.rcv rcvr (net.rpc.rcvrIs C rcvr S nm np) }}
-      (App (App (Val (@! net.rpc.RegisterName)) (Val #name)) (Val #rcvr))
-    {{ (err : GoInterface), RET #err;
-        (⌜err = interface.nil⌝ ∗ net.rpc.svcReg γ C name S) ∨ ⌜err ≠ interface.nil⌝ }}
   /-- `rpc.HandleHTTP()`: `DefaultServer.HandleHTTP(DefaultRPCPath, DefaultDebugPath)`, i.e.
   `http.Handle` of both paths on `DefaultServeMux` (hence `muxOwner`); the debug path is never
   requested (`rpcAddrP`'s handshake names the rpc path). Its server (registry `γs`) serves `W` at
@@ -85,7 +72,7 @@ class RpcHttpServe [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [G
       (A : GoString → Prop) (R : List GoString),
     {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
         muxOwner R ∗ ⌜net.rpc.defaultRPCPath ∉ R ∧ go!"/debug/rpc" ∉ R⌝ ∗
-        defaultServer γs ∗ (□ ∀ a, ⌜A a⌝ → net.rpc.srvServes γs C W a) ∗ net.rpc.srvEnv ∗
+        net.rpc.defaultServer γs ∗ (□ ∀ a, ⌜A a⌝ → net.rpc.srvServes γs C W a) ∗ net.rpc.srvEnv ∗
         net.rpc.codecSet C ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus }}
       (App (Val (@! net.rpc.HandleHTTP)) (Val #()))
     {{ RET #(); muxOwner (go!"/debug/rpc" :: net.rpc.defaultRPCPath :: R) ∗
@@ -99,7 +86,7 @@ class RpcHttpServe [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [G
       (App (App (Val (@! net.http.ListenAndServe)) (Val #a)) (Val #interface.nil))
     {{ (err : GoInterface), RET #err; True }}
 
-attribute [instance] RpcHttpServe.muxHas_persistent RpcHttpServe.defaultServer_persistent
+attribute [instance] RpcHttpServe.muxHas_persistent
 
 end github_com.despreston.go_craq
 

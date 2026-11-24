@@ -34,11 +34,11 @@ variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.As
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 theorem sendCommitToPrev_ok : sendCommitToPrev.spec (GF := GF) (hG := hG) := by
-  intro cfg n a st γs nbM latM prev k v
+  intro cfg n a st γs nbM latM prev k v hk
   iintro %Φ ⟨#Hpkg, #Hctx, #Hf, #Hnb, #Hcv⟩ HΦ
   iunfold nodeFields at Hf
   icases Hf with ⟨%f, %lg, %ch, -, -, -, -, -, -, -, #Hlog, -, %Hch, -⟩
-  wp_apply wp_sendCommitToPrev cfg n lg Hch.2 prev k v $$ Hpkg Hlog Hnb Hcv
+  wp_apply wp_sendCommitToPrev cfg n lg Hch.2 prev k v hk $$ Hpkg Hlog Hnb Hcv
   iintro %err -
   iapply HΦ
 
@@ -116,8 +116,8 @@ theorem node.node_svc (HL : NodeP.Laws (GF := GF)) : node.node_svc.spec (GF := G
   · iintro %k %Q %Φ Hau HΦ
     iapply NodeP.wp_LatestVersion HL.read cfg n a k Q Φ $$ Hpkg Hn Hau HΦ
   isplit
-  · iintro %k %Q %Φ Hau HΦ
-    iapply NodeP.wp_Read HL cfg n a k Q Φ $$ Hpkg Hn Hau HΦ
+  · iintro %k %Q %Φ %hk Hau HΦ
+    iapply NodeP.wp_Read HL cfg n a k Q Φ hk $$ Hpkg Hn Hau HΦ
   isplit
   · iintro %ptr %dq %req %Φ Hreq HΦ
     iapply NodeP.wp_FwdPropagate HL cfg n a ptr dq req Φ $$ Hpkg Hn Hreq HΦ

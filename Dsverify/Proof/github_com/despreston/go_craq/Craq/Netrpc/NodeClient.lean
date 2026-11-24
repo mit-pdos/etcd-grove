@@ -53,7 +53,7 @@ theorem wp_Ping (Henc : enc_EmptyArgs.spec (GF := GF)) (Hdec : dec_EmptyReply.sp
   wp_auto
   wp_alloc pr as Hpr
   wp_auto
-  wp_apply (wp_Call_tag (HT := fun rep => BI.pure_mono (fun h => by rw [h rfl]; exact tagOk_EmptyReply)) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply") r cfg.W a go!"RPC.Ping" go!"RPC" go!"Ping"
+  wp_apply (wp_Call_tag (HS := fun bs => nodeSpec_frame _ _ _ bs _ Hss.2.2.2.2 _) (HT := fun rep => BI.pure_mono (fun h => by rw [h rfl]; exact tagOk_EmptyReply)) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply") r cfg.W a go!"RPC.Ping" go!"RPC" go!"Ping"
     (nodeSpec cfg.γ cfg.chain a) _ _ (fun rep msg => iprop(⌜msg = [] → rep = encEmptyReply⌝)) iprop(True)
     (pr ↦ transport.netrpc.EmptyReply.mk) (fun _ _ => pr ↦ transport.netrpc.EmptyReply.mk)) $$ [Hpa Hpr]
   · isplitr
@@ -114,7 +114,7 @@ theorem wp_Write (Henc : enc_WriteArgs.spec (GF := GF)) (Hdec : dec_EmptyReply.s
   wp_auto
   wp_alloc pr as Hpr
   wp_auto
-  wp_apply (wp_Call_tag (HT := fun rep => by iintro ⟨%h, -⟩; ipureintro; rw [h rfl]; exact tagOk_EmptyReply) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply") r cfg.W a go!"RPC.Write" go!"RPC" go!"Write"
+  wp_apply (wp_Call_tag (HS := fun bs => nodeSpec_frame _ _ _ bs _ Hss.2.2.2.2 _) (HT := fun rep => by iintro ⟨%h, -⟩; ipureintro; rw [h rfl]; exact tagOk_EmptyReply) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply") r cfg.W a go!"RPC.Write" go!"RPC" go!"Write"
     (nodeSpec cfg.γ cfg.chain a) _ _
     (fun rep msg => iprop(⌜msg = [] → rep = encEmptyReply⌝ ∗ (⌜msg = []⌝ -∗ cvLb cfg.γ k v))) iprop(True)
     (pr ↦ transport.netrpc.EmptyReply.mk) (fun _ _ => pr ↦ transport.netrpc.EmptyReply.mk))
@@ -172,10 +172,10 @@ theorem wp_Write (Henc : enc_WriteArgs.spec (GF := GF)) (Hdec : dec_EmptyReply.s
 theorem wp_Commit (Henc : enc_CommitArgs.spec (GF := GF)) (Hdec : dec_EmptyReply.spec (GF := GF))
     (cfg : Cfg GF) (c cl : Loc) (a : GoString) (ha : a ∈ cfg.chain) :
     env cfg ∗ c ↦□ transport.netrpc.NodeClient.mk cl ∗ connected cfg cl a ⊢
-    ∀ (k : GoString) (v : w64) (Φ : val → IProp GF), cvLb cfg.γ k v -∗
+    ∀ (k : GoString) (v : w64) (Φ : val → IProp GF), ⌜keyOk k⌝ -∗ cvLb cfg.γ k v -∗
       ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
       WP (App (App (Val #(methods (go.GoType.PointerType transport.netrpc.NodeClient.ty) go!"Commit" #c)) (Val #k)) (Val #v)) {{ Φ }} := by
-  iintro ⟨#Henv, #Hc, #Hcl⟩ %k %v %Φ Hlb HΦ
+  iintro ⟨#Henv, #Hc, #Hcl⟩ %k %v %Φ %hk Hlb HΦ
   unfold connected
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
@@ -188,7 +188,7 @@ theorem wp_Commit (Henc : enc_CommitArgs.spec (GF := GF)) (Hdec : dec_EmptyReply
   wp_auto
   wp_alloc pr as Hpr
   wp_auto
-  wp_apply (wp_Call_tag (HT := fun rep => BI.pure_mono (fun h => by rw [h rfl]; exact tagOk_EmptyReply)) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply") r cfg.W a go!"RPC.Commit" go!"RPC" go!"Commit"
+  wp_apply (wp_Call_tag (HS := fun bs => nodeSpec_frame _ _ _ bs _ Hss.2.2.2.2 _) (HT := fun rep => BI.pure_mono (fun h => by rw [h rfl]; exact tagOk_EmptyReply)) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply") r cfg.W a go!"RPC.Commit" go!"RPC" go!"Commit"
     (nodeSpec cfg.γ cfg.chain a) _ _ (fun rep msg => iprop(⌜msg = [] → rep = encEmptyReply⌝)) iprop(True)
     (pr ↦ transport.netrpc.EmptyReply.mk) (fun _ _ => pr ↦ transport.netrpc.EmptyReply.mk))
     $$ [Hpa Hpr Hlb]
@@ -207,7 +207,7 @@ theorem wp_Commit (Henc : enc_CommitArgs.spec (GF := GF)) (Hdec : dec_EmptyReply
       · iexists k, v
         iframe
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, hk⟩
         isplit
         · ipureintro; intro _; rfl
         · unfold errOk; iintro %_ %Hm; ipureintro; intro h; exact absurd h Hm
@@ -237,13 +237,13 @@ theorem wp_LatestVersion_fixed (Henc : enc_string.spec (GF := GF))
     (cfg : Cfg GF) (c cl : Loc) (a : GoString) (ha : a ∈ cfg.chain) :
     env cfg ∗ c ↦□ transport.netrpc.NodeClient.mk cl ∗ connected cfg cl a ⊢
     ∀ (k : GoString) (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
-      opAU cfg.γ (.get k) Q -∗
+      ⌜keyOk k⌝ -∗ opAU cfg.γ (.get k) Q -∗
       ▷ (∀ (k' : GoString) (v : w64) (err : GoInterface),
           (⌜err = interface.nil⌝ ∗ (∃ σ : KvM.State, Q (.got (σ k)) ∗ readFacts cfg.γ k v (σ k)) ∨
             models_lab.errAny err) -∗
           Φ (PairV (PairV #k' #v) #err)) -∗
       WP (App (Val #(methods (go.GoType.PointerType transport.netrpc.NodeClient.ty) go!"LatestVersion" #c)) (Val #k)) {{ Φ }} := by
-  iintro ⟨#Henv, #Hc, #Hcl⟩ %k %Q %Φ HAU HΦ
+  iintro ⟨#Henv, #Hc, #Hcl⟩ %k %Q %Φ %hk HAU HΦ
   unfold connected
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
@@ -254,7 +254,7 @@ theorem wp_LatestVersion_fixed (Henc : enc_string.spec (GF := GF))
   wp_auto
   rw [show zero_val transport.netrpc.VersionResponse =
     transport.netrpc.VersionResponse.mk go!"" (W64 0) from rfl]
-  wp_apply (wp_Call_tag (HT := fun rep => by
+  wp_apply (wp_Call_tag (HS := fun bs => nodeSpec_frame _ _ _ bs _ Hss.2.2.2.2 _) (HT := fun rep => by
       iintro H; ispecialize H $$ %rfl; icases H with ⟨%v, %σ, %Hrep, -⟩
       ipureintro; rw [Hrep]; exact tagOk_VersionResp k v)
     (tagOk go!"github.com/despreston/go-craq/transport/netrpc.VersionResponse") r cfg.W a go!"RPC.LatestVersion" go!"RPC" go!"LatestVersion"
@@ -280,7 +280,7 @@ theorem wp_LatestVersion_fixed (Henc : enc_string.spec (GF := GF))
       · iexists k, Q
         iframe
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, hk⟩
         isplit
         · iintro %v %σ HQ Hrf %_
           iexists v, σ
@@ -350,7 +350,7 @@ theorem wp_Update_fixed (Henc : enc_NodeMeta.spec (GF := GF)) (Hdec : dec_EmptyR
   wp_auto
   wp_alloc pr as Hpr
   wp_auto
-  wp_apply (wp_Call_tag (HT := fun rep => by iintro ⟨%h, -⟩; ipureintro; rw [h rfl]; exact tagOk_EmptyReply) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply") r cfg.W a go!"RPC.Update" go!"RPC" go!"Update"
+  wp_apply (wp_Call_tag (HS := fun bs => nodeSpec_frame _ _ _ bs _ Hss.2.2.2.2 _) (HT := fun rep => by iintro ⟨%h, -⟩; ipureintro; rw [h rfl]; exact tagOk_EmptyReply) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply") r cfg.W a go!"RPC.Update" go!"RPC" go!"Update"
     (nodeSpec cfg.γ cfg.chain a) _ _
     (fun rep msg => iprop(⌜msg = [] → rep = encEmptyReply⌝ ∗ (⌜msg = []⌝ -∗ updPost cfg.γ a ro m)))
     (metaPtr ptr dq m)
@@ -409,7 +409,7 @@ theorem wp_Read (Henc : enc_string.spec (GF := GF)) (Hdec : dec_Item.spec (GF :=
     (cfg : Cfg GF) (c cl : Loc) (a : GoString) (ha : a ∈ cfg.chain) :
     env cfg ∗ c ↦□ transport.netrpc.NodeClient.mk cl ∗ connected cfg cl a ⊢
     ∀ (k : GoString) (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
-      opAU cfg.γ (.get k) Q -∗
+      ⌜keyOk k⌝ -∗ opAU cfg.γ (.get k) Q -∗
       ▷ (∀ (k' : GoString) (sl : GoSlice) (err : GoInterface),
           ((⌜err = interface.nil⌝ ∗ ∃ (x : GoString) (σ : KvM.State), sl ↦* x ∗
               Q (.got (σ k)) ∗ ⌜σ k = some x⌝) ∨
@@ -419,7 +419,7 @@ theorem wp_Read (Henc : enc_string.spec (GF := GF)) (Hdec : dec_Item.spec (GF :=
               (net.rpc.notServerErr err ∨ ∃ msg, err = net.rpc.serverErr msg)⌝)) -∗
           Φ (PairV (PairV #k' #sl) #err)) -∗
       WP (App (Val #(methods (go.GoType.PointerType transport.netrpc.NodeClient.ty) go!"Read" #c)) (Val #k)) {{ Φ }} := by
-  iintro ⟨#Henv, #Hc, #Hcl⟩ %k %Q %Φ HAU HΦ
+  iintro ⟨#Henv, #Hc, #Hcl⟩ %k %Q %Φ %hk HAU HΦ
   unfold connected
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
@@ -428,7 +428,7 @@ theorem wp_Read (Henc : enc_string.spec (GF := GF)) (Hdec : dec_Item.spec (GF :=
   wp_method_call
   wp_call
   wp_auto
-  wp_apply (wp_Call_tag (HT := fun rep => by
+  wp_apply (wp_Call_tag (HS := fun bs => nodeSpec_frame _ _ _ bs _ Hss.2.2.2.2 _) (HT := fun rep => by
       rw [if_pos rfl]; iintro ⟨%x, %σ, %Hrep, -⟩
       ipureintro; rw [Hrep]; exact tagOk_Item k x)
     (tagOk go!"github.com/despreston/go-craq/transport.Item") r cfg.W a go!"RPC.Read" go!"RPC" go!"Read"
@@ -457,7 +457,7 @@ theorem wp_Read (Henc : enc_string.spec (GF := GF)) (Hdec : dec_Item.spec (GF :=
       · iexists k, Q
         iframe
         isplitr
-        · ipureintro; rfl
+        · ipureintro; exact ⟨rfl, hk⟩
         unfold readCont
         isplit
         · iintro %x %σ HQ %Hx
@@ -543,12 +543,12 @@ theorem wp_FwdPropagate_fixed (Henc : enc_PropagateRequest.spec (GF := GF)) (Hde
     (cfg : Cfg GF) (c cl : Loc) (a : GoString) (ha : a ∈ cfg.chain) :
     env cfg ∗ c ↦□ transport.netrpc.NodeClient.mk cl ∗ connected cfg cl a ⊢
     ∀ (ptr : Loc) (dq : DFrac) (req : GMap GoString w64) (Φ : val → IProp GF),
-      reqPtr ptr dq req -∗
+      ⌜reqKeysOk req⌝ -∗ reqPtr ptr dq req -∗
       ▷ (∀ (rp : Loc) (err : GoInterface),
           (⌜err = interface.nil⌝ ∗ reqPtr ptr dq req ∗ (∃ resp, respPtr rp resp ∗ respItems cfg.γ resp) ∨
             models_lab.errAny err) -∗ Φ (PairV #rp #err)) -∗
       WP (App (Val #(methods (go.GoType.PointerType transport.netrpc.NodeClient.ty) go!"FwdPropagate" #c)) (Val #ptr)) {{ Φ }} := by
-  iintro ⟨#Henv, #Hc, #Hcl⟩ %ptr %dq %req %Φ Hreq HΦ
+  iintro ⟨#Henv, #Hc, #Hcl⟩ %ptr %dq %req %Φ %hreq Hreq HΦ
   unfold connected
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
@@ -558,7 +558,7 @@ theorem wp_FwdPropagate_fixed (Henc : enc_PropagateRequest.spec (GF := GF)) (Hde
   wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) _ _) as %mp Hmp
   unfold env rpcReady craqCtx
   icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
-  wp_apply (wp_Call_tag (HT := fun rep => by
+  wp_apply (wp_Call_tag (HS := fun bs => nodeSpec_frame _ _ _ bs _ Hss.2.2.2.2 _) (HT := fun rep => by
       iintro H; ispecialize H $$ %rfl; icases H with ⟨%resp, %Hresp, -⟩
       ipureintro; exact tagOk_PropResp resp rep Hresp)
     (tagOk go!"github.com/despreston/go-craq/transport.PropagateResponse") r cfg.W a go!"RPC.FwdPropagate" go!"RPC" go!"FwdPropagate"
@@ -584,7 +584,7 @@ theorem wp_FwdPropagate_fixed (Henc : enc_PropagateRequest.spec (GF := GF)) (Hde
       iexists req
       iframe
       isplitr
-      · ipureintro; exact Hbs
+      · ipureintro; exact ⟨Hbs, hreq⟩
       isplit
       · iintro %resp %rbs %Hrbs Hi %_
         iexists resp
@@ -631,13 +631,13 @@ theorem wp_BackPropagate_fixed (Henc : enc_PropagateRequest.spec (GF := GF)) (Hd
     (cfg : Cfg GF) (c cl : Loc) (a : GoString) (ha : a ∈ cfg.chain) :
     env cfg ∗ c ↦□ transport.netrpc.NodeClient.mk cl ∗ connected cfg cl a ⊢
     ∀ (ptr : Loc) (dq : DFrac) (req : GMap GoString w64) (L : CLog) (Φ : val → IProp GF),
-      reqPtr ptr dq req -∗ covers cfg.γ a L -∗
+      ⌜reqKeysOk req⌝ -∗ reqPtr ptr dq req -∗ covers cfg.γ a L -∗
       ▷ (∀ (rp : Loc) (err : GoInterface),
           (⌜err = interface.nil⌝ ∗ reqPtr ptr dq req ∗ (∃ resp, respPtr rp resp ∗ respItems cfg.γ resp ∗
               respCommitted cfg.γ resp ∗ ⌜respCovers req resp L⌝) ∨
             models_lab.errAny err) -∗ Φ (PairV #rp #err)) -∗
       WP (App (Val #(methods (go.GoType.PointerType transport.netrpc.NodeClient.ty) go!"BackPropagate" #c)) (Val #ptr)) {{ Φ }} := by
-  iintro ⟨#Henv, #Hc, #Hcl⟩ %ptr %dq %req %L %Φ Hreq Hcov HΦ
+  iintro ⟨#Henv, #Hc, #Hcl⟩ %ptr %dq %req %L %Φ %hreq Hreq Hcov HΦ
   unfold connected
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
@@ -647,7 +647,7 @@ theorem wp_BackPropagate_fixed (Henc : enc_PropagateRequest.spec (GF := GF)) (Hd
   wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) _ _) as %mp Hmp
   unfold env rpcReady craqCtx
   icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
-  wp_apply (wp_Call_tag (HT := fun rep => by
+  wp_apply (wp_Call_tag (HS := fun bs => nodeSpec_frame _ _ _ bs _ Hss.2.2.2.2 _) (HT := fun rep => by
       iintro H; ispecialize H $$ %rfl; icases H with ⟨%resp, %Hresp, -⟩
       ipureintro; exact tagOk_PropResp resp rep Hresp)
     (tagOk go!"github.com/despreston/go-craq/transport.PropagateResponse") r cfg.W a go!"RPC.BackPropagate" go!"RPC" go!"BackPropagate"
@@ -674,7 +674,7 @@ theorem wp_BackPropagate_fixed (Henc : enc_PropagateRequest.spec (GF := GF)) (Hd
       iexists req, L
       iframe
       isplitr
-      · ipureintro; exact Hbs
+      · ipureintro; exact ⟨Hbs, hreq⟩
       isplit
       · iintro %resp %rbs %Hrbs Hi Hcm %Hcv %_
         iexists resp

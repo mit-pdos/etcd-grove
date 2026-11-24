@@ -87,11 +87,12 @@ theorem craq_alloc.holds : craq_alloc.spec (GF := GF) (G := G) := by
     iframe
     isplitr
     · ipureintro
-      refine ⟨fun v => ?_, fun k => ?_, fun k h => absurd rfl h⟩
+      refine ⟨fun v => ?_, fun k => ?_, fun k h => absurd rfl h, fun v ri h => ?_⟩
       · simp only [GMap.lookup_empty, Option.isSome_none, Bool.false_eq_true, false_iff]
         have : uint.Z (W64 0) = 0 := rfl
         omega
       · rfl
+      · simp at h
     isplitr
     · iapply BigSepM.bigSepM_empty.2
       itrivial

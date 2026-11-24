@@ -7,7 +7,7 @@ invariant, Net's `addrs_set_proto`), remote's map of operations, the client addr
 protocols, the configuration addresses' `confProto`, remote's pending library over the key-value
 state, and each machine's boot from its share through dsv-epaxos's `robust_of_distProtoLisRBT`
 (no wildcard listener; each machine's thread bound `threadBound ≤ 2 ^ 31`, which net/rpc's server
-needs, for runs of fewer than `2 ^ 31 - 1` steps); the orchestrator's boot by its generated
+needs, from `Robust`'s `threads = 2 ^ 31`; runs of fewer than `2 ^ 63` steps); the orchestrator's boot by its generated
 initializer spec, every other machine's by `RpcBoot` (F2), whose boot resources give the codec
 registry, the mux, `DefaultServer` and net/rpc's and net/http's package variables (`rpcEnv`, with
 the deployment's receipt bound).
@@ -170,12 +170,23 @@ theorem craq_rpc_alloc (SS : GoString → GoString → Option (net.rpc.MethodSpe
 
 end alloc
 
-/-- **The craq kit, closed** (see the statement's file). -/
-theorem craq_remote_robust : craq_remote_robust.spec := by
+/-- Perennial's `strings.Cut` and `strings.TrimLeft` specs, at every heap: Net's `DialHTTP.wp`
+takes them as pending callee hypotheses at the pin b3f2fc485 (`Link.lean`'s `StringsPending`);
+Perennial ed1955557 proves them. Not a premise of the statement. -/
+def stringsPending.spec : Prop :=
+  ∀ [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors}
+    [hG : HeapGS HasLC.hasLC GF] [go.Semantics],
+    EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG) ∧
+      EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG)
+
+/-- **The craq kit, closed up to the pin bump** (see the statement's file): the statement, given
+Perennial's `strings.Cut`/`TrimLeft` specs (`stringsPending.spec`), which the pin after
+b3f2fc485 proves; then `craq_remote_robust` is this theorem applied to Perennial's proofs. -/
+theorem craq_remote_robust_of_strings (hs : stringsPending.spec) : craq_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
-    hri hhi hlog rs hb1 hb2 hb3 hb4 hb5 hb6 hb7 hb8 hb9 hb10 hb11 σ g threads
+    hri hhi hlog rs hb1 hb2 hb3 hb4 hb5 hb6 hb7 hb8 hb9 hb10 hb11 σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT
-    (GF := remoteGF) craqKitAddrs [] (system σ) g threads (2 ^ 31 - 1) List.Pairwise.nil
+    (GF := remoteGF) craqKitAddrs [] (system σ) g (2 ^ 31) (2 ^ 63) List.Pairwise.nil
     (fun _ _ _ h => by simp at h) ?_
   intro G π hrb
   iintro #Hreg Hs -
@@ -202,7 +213,8 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
     isplitr
     · ipureintro
       exact ⟨HW, (by decide : serverAddrs.tail.Nodup),
-        (by decide : serverAddrs.headD [] ∉ serverAddrs.tail), (by decide : go!"" ∉ serverAddrs.tail)⟩
+        (by decide : serverAddrs.headD [] ∉ serverAddrs.tail), (by decide : go!"" ∉ serverAddrs.tail),
+        (by decide : ∀ b ∈ serverAddrs.tail, b.length < 256)⟩
     · rw [show cfg.cAddr :: cfg.chain = serverAddrs from rfl]
       iexact Hra
   rw [show serverAddrs.tail = [serverAddrs.getD 1 [], serverAddrs.getD 2 [], serverAddrs.getD 3 [],
@@ -269,6 +281,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
     letI : net.http.InitHyp remoteGF := hhi G' hG.goose_localGS
     letI : LogHyp remoteGF := hlog G' hG.goose_localGS
     letI : RpcHttpServe remoteGF := rs G' hG.goose_localGS π
+    letI : EtcdGrove.dsvcraq.StringsPending remoteGF := ⟨(hs (GF := remoteGF)).1, (hs (GF := remoteGF)).2⟩
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega
     have hrb64 : receiptBound remoteGF ≤ 2 ^ 64 := by omega
     have htb : threadBound remoteGF ≤ 2 ^ 31 := by omega
@@ -604,7 +617,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
     iapply BigSepL.bigSepL_nil.2
     iempintro
 
-#print axioms craq_remote_robust
+#print axioms craq_remote_robust_of_strings
 
 end github_com.despreston.go_craq.examples.craqnet
 end Perennial

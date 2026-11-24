@@ -48,7 +48,7 @@ theorem wp_errors_New_ne (pfx msg : GoString) (h : pfx ≠ []) :
 
 theorem wp_Write (Hassign : assign.spec (GF := GF)) (Hcollect : collect.spec (GF := GF))
     (cfg : Cfg GF) (c : Loc) (k : GoString) (vsl : GoSlice) (x : GoString)
-    (Q : KvM.Output → IProp GF) :
+    (Q : KvM.Output → IProp GF) (hkx : kvOk k x) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.coordinator ∗
         isCoord cfg c ∗ vsl ↦*□ x ∗ opAU cfg.γ (.put k x) Q }}
       (App (App (Val (c @!! go.GoType.PointerType coordinator.Coordinator.ty @!! go!"Write"))
@@ -92,7 +92,7 @@ theorem wp_Write (Hassign : assign.spec (GF := GF)) (Hcollect : collect.spec (GF
     have : ver ≠ W64 (2 ^ 64 - 1) := by intro h; apply Hif; rw [h]; rfl
     word
   iapply fupd_wp
-  imod (Hassign cfg.γ ⊤ (fun _ _ => CoPset.mem_full) ver hv k x Q) $$ [Hcraq Hnext HAU]
+  imod (Hassign cfg.γ ⊤ (fun _ _ => CoPset.mem_full) ver hv k x hkx Q) $$ [Hcraq Hnext HAU]
     with ⟨Hnext, #Hve, Hticket⟩
   · iframe; iexact Hcraq
   imodintro

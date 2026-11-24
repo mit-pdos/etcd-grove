@@ -6,34 +6,38 @@ against the key-value map with pending puts, porcupine over kit.go's `Model()`),
 machines (each waits for the configuration, registers the codec, then `remote.ServeClient`; a put
 is the coordinator's `Write`, a get a chain node's `Read`), the coordinator's machine and five
 chain machines (go-craq's `coordinator` and `node` over net/rpc over HTTP) -- deployed at
-`craqKitAddrs` (`DistDeploy`). In every execution of fewer than `2 ^ 31 - 1` steps, with any
-number of threads, no thread of any machine is stuck and none has a top-level panic (`Robust`).
-Since the orchestrator panics unless porcupine accepts the history, this says porcupine accepts
-every history, under every fault the net extension allows.
+`craqKitAddrs` (`DistDeploy`). In every execution of fewer than `2 ^ 63` steps along which every
+machine keeps fewer than `2 ^ 31` live threads, no thread of any machine is stuck and none has a
+top-level panic (`Robust`). Since the orchestrator panics unless porcupine accepts the history,
+this says porcupine accepts every history, under every fault the net extension allows.
 
-**The step bound** is `2 ^ 31 - 1`, not `2 ^ 63` (remote's clock, `receiptBound ≤ 2 ^ 63`, would
-allow more): net/rpc's server (Net's `Server.ServeHTTP.spec`/`ServeCodec.spec`, run under
-`RpcHttpServe`'s `HandleHTTP`/`ListenAndServe` by the coordinator's and the chain machines) needs
-the machine's thread bound `threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is an `int32`),
-and the deployment bridge bounds a machine's threads by the step count plus 2 (dsv-epaxos's
-`robust_of_distProtoLisRBT`, here with no wildcard listener). So the theorem covers every prefix
-of fewer than `2 ^ 31 - 1` steps of a run, not the whole of a longer one.
+**The bounds**: `2 ^ 63` steps (remote's clock, `receiptBound ≤ 2 ^ 63`) and fewer than `2 ^ 31`
+live threads per machine: net/rpc's server (Net's `Server.ServeHTTP.spec`/`ServeCodec.spec`, run
+under `RpcHttpServe`'s `HandleHTTP`/`ListenAndServe` by the coordinator's and the chain machines)
+needs the machine's thread bound `threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is an
+`int32`), which the deployment bridge (dsv-epaxos's `robust_of_distProtoLisRBT`, here with no
+wildcard listener, over Perennial's `goose_dist_adequacy_below`) takes along the execution at
+hand, `Robust`'s `threads`. (Until 2026-11-24 the bridge bounded the threads by the step count
+plus 2, and the step bound was `2 ^ 31 - 1`.)
 
 **Premises** (visible, each a hypothesis of the proof at the bundle `remoteGF`, for every
 machine's heap `heapAt G L` and the start's `NetProtoGS`; never an instance):
 * H1: net/rpc's and net/http's initializers (`InitHyp`; Net has no initialization proof);
 * H6: `LogHyp` (`log.Default` and `*Logger`'s methods, which Perennial's trusted `log` model
   leaves without a body);
-* H2/H3, net/rpc's server over HTTP (`RpcHttpServe`: `rpc.RegisterName` on `DefaultServer`,
-  `rpc.HandleHTTP`, `http.ListenAndServe`), over models-rpc-http's `RpcWorld` and `rpcAddrP`;
+* H2/H3, net/rpc's server over HTTP (`RpcHttpServe`: `rpc.HandleHTTP`, `http.ListenAndServe`
+  and `DefaultServeMux`), over models-rpc-http's `RpcWorld` and `rpcAddrP`;
 * F2: each machine's boot resources from its initialization (`RpcBoot`: the codec registry,
-  net/rpc's and net/http's package variables, `DefaultServeMux` unclaimed, `DefaultServer`).
-Not premises: net/rpc's client over HTTP (`rpc.DialHTTP`, models-rpc-http's `DialHTTP.wp`, over
-`DialHTTPPath` and net/http's `ReadResponse`) is proved, and so is the allocation of the net/rpc
-world at the server addresses (Net's `addrs_set_proto` and the registry's invariant). F1,
-RemoveNode's method obligation, is proved (net-rpc-errors' `callRet` admits a forwarded `errAny`
-error, `cnewArg_RemoveNode`); F3, the chain nodes' `errOk`, is proved (Net's `errOk` is over the
-server's own messages, `srvErrMsg`, which Read's not-found is not; `nodeSpec_errOk`).
+  net/rpc's and net/http's package variables, `DefaultServeMux` unclaimed, `DefaultServer`, Net's
+  `net.rpc.defaultServer`).
+Not premises: the package-level `rpc.RegisterName` on `DefaultServer` (Net's
+`net.rpc.RegisterName.wp`, rpc-defaultserver); net/rpc's client over HTTP (`rpc.DialHTTP`,
+models-rpc-http's `DialHTTP.wp`, over `DialHTTPPath` and net/http's `ReadResponse`) is proved,
+and so is the allocation of the net/rpc world at the server addresses (Net's `addrs_set_proto` and
+the registry's invariant). F1, RemoveNode's method obligation, is proved (net-rpc-errors'
+`callRet` admits a forwarded `errAny` error, `cnewArg_RemoveNode`); F3, the chain nodes' `errOk`,
+is proved (Net's `errOk` is over the server's own messages, `srvErrMsg`, which Read's not-found is
+not; `nodeSpec_errOk`).
 Proved in `Dsverify/Proof/github_com/despreston/go_craq/examples/craqnet/TopLevelRobustness.lean`.
 -/
 module
@@ -111,9 +115,9 @@ def craq_remote_robust.spec : Prop :=
       RpcBoot (GF := remoteGF) cmd.server5.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server5) →
     (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
       RpcBoot (GF := remoteGF) cmd.server6.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server6) →
-    ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
+    ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy craqKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g threads (2 ^ 31 - 1)
+    Robustness.Robust [] (system σ) g (2 ^ 31) (2 ^ 63)
 
 end github_com.despreston.go_craq.examples.craqnet
 end Perennial

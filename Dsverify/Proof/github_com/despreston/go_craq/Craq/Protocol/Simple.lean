@@ -96,7 +96,7 @@ theorem cvLb_mono.holds : cvLb_mono.spec (GF := GF) (G := G) := by
 theorem valsElem_agree.holds : valsElem_agree.spec (GF := GF) (G := G) := by
   intro γ v k x k' x'
   unfold valsElem
-  iintro ⟨⟨%p, %c, H1⟩, ⟨%p', %c', H2⟩⟩
+  iintro ⟨⟨-, %p, %c, H1⟩, ⟨-, %p', %c', H2⟩⟩
   ihave %Hag := ghostMapElem_agree _ _ _ _ _ _ $$ H1 H2
   ipureintro
   simp only [Prod.mk.injEq] at Hag

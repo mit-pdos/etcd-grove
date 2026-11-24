@@ -197,7 +197,7 @@ abbrev Server.spec [RpcHttpServe GF] : Prop :=
   ∀ (cfg : Cfg GF) (id : w64), threadBound GF ≤ 2 ^ 31 → cfgKit cfg → 1 ≤ uint.nat id →
     uint.nat id ≤ 6 →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-      rpcEnv ∗ (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg (uint.nat id) }}
+      rpcEnv ∗ (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg (uint.nat id) }}
     (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Server)) (Val #id))
   {{ RET #(); True }}
 
@@ -215,7 +215,7 @@ net/rpc's `True` fact). -/
 def rpcBootRes [RpcHttpServe GF] : IProp GF :=
   iprop(codecFresh ∗ net.rpc.srvEnv ∗ net.http.httpEnv ∗
     globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗ RpcHttpServe.muxOwner [] ∗
-    (∃ γ, RpcHttpServe.defaultServer γ))
+    (∃ γ, net.rpc.defaultServer γ))
 
 /-- **F2's premise**: command `pkg`'s initializer `init`, run once from the machine's empty
 package state (only the deployment's boot holds `ownGoState ∅`, once per machine), initializes

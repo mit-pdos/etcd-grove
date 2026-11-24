@@ -33,6 +33,7 @@ good), `joinTicket γ a`.
 -/
 module
 
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Wire
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoList
@@ -108,7 +109,8 @@ def absOf (L : CLog) (R : GMap w64 RecInfo) (k : GoString) : Option GoString :=
 def craqWf (l : List (GoString × GoString)) (L : CLog) (n : w64) (R : GMap w64 RecInfo) : Prop :=
   (∀ v : w64, (R.lookup v).isSome ↔ (1 ≤ uint.Z v ∧ uint.Z v ≤ uint.Z n)) ∧
   (∀ k, kvOfPuts l k = absOf L R k) ∧
-  (∀ k, cvOf L k ≠ W64 0 → ∃ ri, R.lookup (cvOf L k) = some ri ∧ ri.key = k)
+  (∀ k, cvOf L k ≠ W64 0 → ∃ ri, R.lookup (cvOf L k) = some ri ∧ ri.key = k) ∧
+  (∀ v ri, R.lookup v = some ri → kvOk ri.key ri.val)
 
 /-- The ghost names of a run. -/
 structure CraqNames where
@@ -178,9 +180,9 @@ def tailTok (γ : CraqNames) (L : CLog) : IProp GF := monoListAuthOwn γ.cv (1 :
 def cvLb (γ : CraqNames) (k : GoString) (v : w64) : IProp GF :=
   iprop(⌜v = W64 0⌝ ∨ ∃ L : CLog, monoListLbOwn γ.cv L ∗ ⌜uint.Z v ≤ uint.Z (cvOf L k)⌝)
 
-/-- Version `v` is the write of `x` to `k` (persistent). -/
+/-- Version `v` is the write of `x` to `k`, a put the protocol handles (persistent). -/
 def valsElem (γ : CraqNames) (v : w64) (k x : GoString) : IProp GF :=
-  iprop(∃ p c : GName, ghostMapElem γ.recs v .discard ((k, x, p, c) : RecInfo))
+  iprop(⌜kvOk k x⌝ ∗ ∃ p c : GName, ghostMapElem γ.recs v .discard ((k, x, p, c) : RecInfo))
 
 /-- The coordinator's half of the last assigned version. -/
 def nextHalf (γ : CraqNames) (n : w64) : IProp GF := ghostVar γ.next (1 : Qp).half n
@@ -221,6 +223,10 @@ instance cvLb_persistent (γ : CraqNames) (k : GoString) (v : w64) :
     Persistent (cvLb (GF := GF) γ k v) := by unfold cvLb; infer_instance
 instance valsElem_persistent (γ : CraqNames) (v : w64) (k x : GoString) :
     Persistent (valsElem (GF := GF) γ v k x) := by unfold valsElem; infer_instance
+
+theorem valsElem_kvOk (γ : CraqNames) (v : w64) (k x : GoString) :
+    valsElem (GF := GF) γ v k x ⊢ ⌜kvOk k x⌝ := by
+  unfold valsElem; iintro ⟨%h, -⟩; ipureintro; exact h
 instance readFacts_persistent (γ : CraqNames) (k : GoString) (v : w64) (r : Option GoString) :
     Persistent (readFacts (GF := GF) γ k v r) := by unfold readFacts; infer_instance
 instance covers_persistent (γ : CraqNames) (a : GoString) (L : CLog) :
@@ -284,7 +290,7 @@ abbrev covers_nil.spec : Prop :=
 /-- The coordinator assigns the next version to a put, depositing its atomic update. -/
 abbrev assign.spec : Prop :=
   ∀ (γ : CraqNames) (E : CoPset) (hE : ↑craqN ⊆ E) (n : w64)
-    (hn : uint.Z n < 2 ^ 64 - 1) (k x : GoString)
+    (hn : uint.Z n < 2 ^ 64 - 1) (k x : GoString) (hkx : kvOk k x)
     (Q : KvM.Output → IProp GF),
     isCraq (GF := GF) γ ∗ nextHalf γ n ∗ opAU γ (.put k x) Q ={E}=∗
       nextHalf γ (n + W64 1) ∗ valsElem γ (n + W64 1) k x ∗ ticket γ (n + W64 1) k x Q
