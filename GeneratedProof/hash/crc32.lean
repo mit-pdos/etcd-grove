@@ -4,7 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import ManualProof.hash.crc32
 public import Perennial.GeneratedProof.hash
-public import GeneratedProof.internal.byteorder
+public import Perennial.GeneratedProof.internal.byteorder
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.Golang.Theory
