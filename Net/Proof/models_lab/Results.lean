@@ -7,7 +7,8 @@ notes/dsverify-net-port-plan.md), restated, with `#print axioms` of each (none b
   `SkipSpace`, `Scan` (`JsonScan.scanF`, `jsoncodec/Scan/Def.lean`) and the codec obligation
   `scanOk JsonScan.scanF scanFn` (`scanOk_scanF`); the decoding helpers `ValueEnd`, `At`, `Next`,
   `Empty`, `Str`, `Member`, `Digits`, `Uint`, `QuotedUint`, `String` (at valid input); the
-  encoding helpers `AppendUint`, `AppendQuotedUint`, `AppendString` (its plain subset);
+  encoding helpers `AppendUint`, `AppendQuotedUint`, `AppendString` (its plain subset); `Valid` (on
+  one complete value);
 * `pbcodec`: `(*Error).Error`, its package initialization, and `Error_errAny`.
 
 The codec obligations (`pbcodec.PbCodec`, `marshalOk`, `unmarshalOk`; `jsoncodec.JsonCodec`,
@@ -27,6 +28,7 @@ public import Net.Proof.models_lab.jsoncodec.Error__Error
 public import Net.Proof.models_lab.jsoncodec.SkipSpace
 public import Net.Proof.models_lab.jsoncodec.Scan
 public import Net.Proof.models_lab.jsoncodec.ScanOk
+public import Net.Proof.models_lab.jsoncodec.Valid
 public import Net.Proof.models_lab.jsoncodec.AppendUint
 public import Net.Proof.models_lab.jsoncodec.AppendQuotedUint
 public import Net.Proof.models_lab.jsoncodec.AppendString
@@ -136,6 +138,10 @@ theorem jsoncodec.AppendString.wp [jsoncodec.Assumptions] :
     jsoncodec.AppendString.spec (GF := GF) (hG := hG) :=
   jsoncodec.AppendString.wp_proof
 
+theorem jsoncodec.Valid.wp [jsoncodec.Assumptions] :
+    jsoncodec.Valid.spec (GF := GF) (hG := hG) :=
+  jsoncodec.Valid.wp_proof jsoncodec.Scan.wp jsoncodec.SkipSpace.wp
+
 /-- `jsoncodec.Scan` computes `JsonScan.scanF` (`jsoncodec.scanOk_of`, linked). -/
 theorem jsoncodec.scanOk_scanF [jsoncodec.Assumptions] :
     ⊢ jsoncodec.scanOk (GF := GF) JsonScan.scanF jsoncodec.scanFn :=
@@ -170,6 +176,7 @@ end Perennial
 #print axioms Perennial.models_lab.jsoncodec.SkipSpace.wp
 #print axioms Perennial.models_lab.jsoncodec.Scan.wp
 #print axioms Perennial.models_lab.jsoncodec.scanOk_scanF
+#print axioms Perennial.models_lab.jsoncodec.Valid.wp
 #print axioms Perennial.models_lab.jsoncodec.AppendUint.wp
 #print axioms Perennial.models_lab.jsoncodec.AppendQuotedUint.wp
 #print axioms Perennial.models_lab.jsoncodec.AppendString.wp
