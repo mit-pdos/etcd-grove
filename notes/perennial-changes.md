@@ -502,9 +502,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   OK): `DistCfgThreadsBelow` and `DistCrashNstepsBelow boots T n c κs c'` in `DistLang.lean` (a
   distributed execution, crashes included, every configuration of which has fewer than `T` threads on
   every node), with `nsteps`, `start`, `mono`, `of_threadsBelow`, `of_single`. `Robust` quantifies over it
-  (`Robust crashing stable g threads bound`). Open: crash and distributed adequacy theorems over it
-  (`goose_crash_adequacy`, `goose_dist_crash_adequacy` still take the all-executions premise), so the crash
-  and multi-machine examples state `threads := bound + 1` (their statement without a thread bound).
+  (`Robust crashing stable g threads bound`). The adequacy theorems over it landed with perennial#690
+  (Perennial `09a0f88cd`, pin `580868e54`, 2026-11-24): `goose_crash_adequacy_below` (over
+  `RealCrashNstepsBelow`), `goose_dist_adequacy_below` (over `DistCrashNstepsBelow []`),
+  `goose_dist_crash_adequacy_below`, `goose_dist_mixed_crash_adequacy_below`. Users: `bboltfs`
+  (#30, `Robust.of_single_crashing_below`), the dsverify kits (dsv-steps63). The other crash and
+  multi-machine examples still state `threads := bound + 1` and can move the same way.
 
 ### `go.NotInterface` of the predeclared named types; the standard-library axioms that only bodies would discharge (2026-11-19, branch `prove-stdlib/2026-11-19`)
 
