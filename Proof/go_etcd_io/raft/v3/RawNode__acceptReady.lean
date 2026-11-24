@@ -1205,7 +1205,8 @@ theorem RawNode.acceptReady.wp_proof
   have HscN : RnScope rs s →
       RnScope rsN (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) :=
     fun H => ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, HLn H, by rw [HpN]; exact H.2.2.2.2.2.1,
-      by rw [Hlogst, Haf2, Hf_snap]; exact H.2.2.2.2.2.2.1, fun m hm => by simp [readyNstate] at hm⟩
+      by rw [Hlogst, Haf2, Hf_snap]; exact H.2.2.2.2.2.2.1, fun m hm => by simp [readyNstate] at hm,
+      H.2.2.2.2.2.2.2.2⟩
   ihave Hsc := rnScopeAt_keep sc rs rsN s
     (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) HscN HstN $$ Hsc
   ihave %Hdurf := durTie_scope γ sc rsN

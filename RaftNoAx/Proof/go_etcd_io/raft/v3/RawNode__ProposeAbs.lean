@@ -124,7 +124,8 @@ local macro "prop_tail" : tactic => `(tactic| (
         have hrd : s'.rd.pend = s.rd.pend := by
           rw [← toPState_rd_pend s', ← toPState_rd_pend s, proposeEnd_rd (Hlifted h).1]
         exact RnScope.keep Hs rfl rfl Hfr.2.2.2.2.2.2.2.1 Hcq' hrd Hfr.2.2.2.2.1 Hfr.2.2.2.1
-          (fun m hm => .inr ((Hx h).2 m hm))) Hfr.2.2.2.2.2.2.1 $$ Hsc
+          (fun m hm => .inr ((Hx h).2 m hm))
+          (fun h0 => by rw [proposeEnd_rd (Hlifted h).1]; exact h0)) Hfr.2.2.2.2.2.2.1 $$ Hsc
     ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
       (by rw [LocalFrame.ns Hfr]; exact Hgtr.trans HtrG)
     iapply HΦ $$ %err %(toPState s') %(uint.nat s'.logst.inprogress - 1)
@@ -186,12 +187,13 @@ theorem RawNode.Propose.wp_absProof
   icases ownRaftPhysC_ackScope cf rnv.raft' id s $$ Hphys with ⟨%Hal0, Hphys⟩
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
   icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
-  icases ownStepGhost_cfgStatic γ _ cf id s $$ Hghost with ⟨%Hcfs, Hghost⟩
+  icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
+  icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
   have Hlift : sc = true → LiftScope id s ∧ AckScope cf := fun h => by
     have Hs := Hscope h
-    have HC : CfgStatic γ cf := Hcfs (by rw [Hs.1]; rfl)
+    obtain ⟨HC, Hid⟩ := cfgScope_of Hs (Hcin h) Hcfm
     have Hv : cf.voters = γ.reCfg := HC.voters
-    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hin Hs.1), Hal0 HC.2.1⟩
+    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hid), Hal0 HC.2.1⟩
   have Hp0 : sc = true → uint.Z s.logst.prev.index' = 0 := fun h => by
     rw [(Hscope h).2.2.2.2.2.1]; rfl
   wp_auto_lc 1
@@ -268,7 +270,7 @@ theorem RawNode.Propose.wp_absProof
       · iexact Hcap
       isplitr
       · ipureintro; exact Hp0 hsc
-      · ipureintro; exact (Hscope hsc).2.2.2.2.2.2.2
+      · ipureintro; exact (Hscope hsc).2.2.2.2.2.2.2.1
     simp only [MsgProp]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %Htm, %_, -, -, Herr,
       %Hend, -, %Hns', -⟩

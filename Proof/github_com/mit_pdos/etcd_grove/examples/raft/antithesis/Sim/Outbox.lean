@@ -255,7 +255,7 @@ theorem outOk_tick {c : CfgM} {id : w64} {w : NodeView} {s s' : PState}
       · show (plogLast s.base s.log).index' = (plogLast base0 s.log).index'; rw [hb]
       · show (plogLast s.base s.log).term' = (plogLast base0 s.log).term'; rw [hb]
   · intro q hq hne hd
-    obtain ⟨hh, hi, hlt, he⟩ := hms q (mem_psend hX hq)
+    obtain ⟨hh, hi, hlt, he, -⟩ := hms q (mem_psend hX hq)
     exact pendOk_heartbeat hne hd hr hh hi hlt he
 
 /-! ## `Advance`'s messages -/

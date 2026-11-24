@@ -71,7 +71,7 @@ abbrev RawNode.acceptReady.spec : Prop :=
   (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNodeReadyS γ rn id rs rd ce es ms true L s ∗
-      "Hsc" ∷ rnScopeAt sc rs s ∗
+      "Hsc" ∷ rnScopeAt γ id sc rs s ∗
       "#Hh" ∷ hsOpt rd.HardState' h }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
   {{ (steps : List Pending) (ss : Option (w64 × StateType)) (qs' : List Msg) (ip' : Nat), RET #();

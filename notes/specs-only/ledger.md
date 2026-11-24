@@ -5584,3 +5584,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   read request). (3) `msgShape.stmt`'s cause premise gains `m.ty = .heartbeat → m.ctx = []` (`NetFacts`).
 - **Decision.** Accepted (the lead, 2026-11-24). (1) and (3) applied by helper F; (2) to land with the
   `RnScope` scope change (the raft helper's successor), then `msgShape := msgShape_of tickHbCtx`.
+  (2) applied with the scope change below (`tickEnd_of_stepEnd_beat` takes `(toPState s).rd.ro.pending = []`;
+  `roEmpty_iff`, `tickEnd_ro`, `recvEnd_ro` keep it), and `Sim/MsgShape.lean` proves `tickHbCtx` and `msgShape`.
+
+## 2026-11-24: `NewRawNode.emptyStartAbsSpec`'s precondition is unsatisfiable: the scope required the static mode (#33 S4)
+
+- **Spec.** `RnScope` and `rnScopeAt` (`Proof/go_etcd_io/raft/v3/RawNodeAt.lean`), `NewRawNode.emptyStartForm`
+  (`RawNodeAbsSpecs.lean`), `NewRawNode.restartAtSpec`'s scope premise (`RawNodeStart.lean`), `rawNode_scope.law`
+  (`RawNodeApi.lean`).
+- **Defect.** Vacuous: `RnScope`'s first conjunct was `rs.mode = .static` and `emptyStartForm` assumed
+  `γ.rnMode = .static`, but `isCluster` (its pre) forces the cluster's nodes into the dynamic mode of the
+  decoder that decides nothing (`UniNames`, `ModeDec`: `γ.mode = (RNMode.dyn noDec …).all`, `InvApi.lean`).
+  No harness could meet the premise; every `absSpec` in the scope was usable only vacuously.
+- **Evidence.** `InvApi.lean` `ModeDec`/`UniNames`; `RawNodeStart.lean` (the restart's `Hin` proof
+  already refuted the static mode from `Hmd`).
+- **Proposed change.** The scope admits the dynamic mode: `RnScope`'s first conjunct becomes
+  `rs.mode.isDyn = true → rs.cfg.cfg.outgoing = ∅`; `rnScopeAt γ id` owns `RnCfgIn γ id rs` (the node among
+  `γ.reCfg`, in the dynamic mode `rs.cfg.cfg.incoming = γ.reCfg`, and `γ.reTrace = none`); the proofs read the
+  configuration by mode (`ownStepGhost_cfgScope`: static `CfgStatic`, dynamic `ghostRestM`'s `g.cfg.cfg = c`)
+  into `CfgScope` (`cfgScope_of`). `emptyStartForm` drops `γ.rnMode = .static` for
+  `γ.raftNames.reCfg = GMap.listToSet vs ∧ cv.ID' ∈ vs`; `restartAtSpec`'s premise for
+  `m.voters = reCfg ∧ m.votersOutgoing = ∅ ∧ cv.ID' ∈ reCfg`. `rawNode_scope.law` states
+  `id ∈ γ.reCfg ∧ γ.reTrace = none ∧ (isDyn → incoming = reCfg ∧ outgoing = ∅)` (was `rs.mode = .static`).
+  `RnScope` also gains, last, `s.role = .leader → s.rd.ro.pending = []` (entry above).
+- **Decision.** Applied (the lead's option (a), branch `antithesis-s4`; raft helper).

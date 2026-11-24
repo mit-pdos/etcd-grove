@@ -314,7 +314,10 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → PState 
       "%Hout" ∷ ⌜S → qs' ≡ₚ ps.outbox.filter (fun m => decide (m.dst = id)) ∧
         ReadyOut id rs ps h es ce ms ss L ∧
         -- (decision 3) the entries from the in-progress boundary on; the boundary to the end
-        (∀ e0 ∈ es.head?, uint.nat e0.Index' = ip + 1) ∧ ip' = ps.log.length⌝ }}
+        (∀ e0 ∈ es.head?, uint.nat e0.Index' = ip + 1) ∧ ip' = ps.log.length ∧
+        -- (#33 S4, 2026-11-24) a non-empty hard state differs from the last one handed out
+        -- (`rd.HardState` is set only when `!isHardStateEqual(hardSt, prevHardSt)`; ledger)
+        (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs)⌝ }}
 
 /-- **`RawNode.Ready`, strengthened**. -/
 abbrev RawNode.Ready.absSpec : Prop :=
@@ -364,8 +367,8 @@ abbrev RawNode.Advance.spec_of_abs.law : Prop :=
 /-! ### `NewRawNode` at an empty storage -/
 
 /-- `NewRawNode.emptyStartSpec`'s triple, the post's node over `R` at `pInit` with nothing queued,
-with the harness's scope as premises: pre-vote and check-quorum off (F6), the cluster in the static
-mode, and the storage never compacted past `0` (`storCapF`: the harness never calls `Compact`; the
+with the harness's scope as premises: pre-vote and check-quorum off (F6), the names' voters the
+cluster's (`vs`) with the node among them, and the storage never compacted past `0` (`storCapF`: the harness never calls `Compact`; the
 storage's contract states it). -/
 abbrev NewRawNode.emptyStartForm (R : RaftNames → Loc → w64 → RNState → PState → List Msg → Nat → IProp GF) :
     Prop :=
@@ -389,9 +392,11 @@ abbrev NewRawNode.emptyStartForm (R : RaftNames → Loc → w64 → RNState → 
   ¬ clusterNoSnap γ →
   TraceLoggerOk cv.TraceLogger' →
   Cluster.trace γ = none →
-  -- (#33 S3c, F6) pre-vote and check-quorum off; the static mode
+  -- (#33 S3c, F6) pre-vote and check-quorum off; (2026-11-24) the names' voters the cluster's, the
+  -- node one of them (until then the static mode, `γ.rnMode = .static`, which `isCluster`
+  -- contradicts: its nodes are in the dynamic mode, `InvApi.lean`'s `ModeDec`)
   cv.PreVote' = false ∧ cv.CheckQuorum' = false →
-  γ.rnMode = .static →
+  γ.raftNames.reCfg = GMap.listToSet vs ∧ cv.ID' ∈ vs →
   ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isCluster γ N ∗ nodeVacantA γ cv.ID' x ∗ readyFits γ N ∗

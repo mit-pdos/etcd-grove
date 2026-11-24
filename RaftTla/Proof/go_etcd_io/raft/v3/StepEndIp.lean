@@ -469,8 +469,9 @@ theorem ownRaftPhysC_ackScope (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
   iapply Hback $$ %tv %s.votes Hf Htrk
 
 /-- The scope's storage cap, read out (persistent). -/
-theorem rnScopeAt_cap {sc : Bool} (h : sc = true) (rs : RNState) (s : NState) :
-    rnScopeAt (GF := GF) sc rs s ⊢ storCapF s.logst.storage 0 ∗ rnScopeAt sc rs s := by
+theorem rnScopeAt_cap {γ : RaftNames} {id : w64} {sc : Bool} (h : sc = true) (rs : RNState)
+    (s : NState) :
+    rnScopeAt (GF := GF) γ id sc rs s ⊢ storCapF s.logst.storage 0 ∗ rnScopeAt γ id sc rs s := by
   subst h
   unfold rnScopeAt; simp only [ite_true]
   iintro ⟨%H, #Hc⟩

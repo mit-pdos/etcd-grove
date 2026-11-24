@@ -12,9 +12,9 @@ leader's empty entry (normal) or a received append's entries (the cause's, norma
 message carries no entries, the log's (an append, `AppOk`), or the cause's (a forwarded proposal).
 
 `msgShape_of`: `msgShape.stmt` from `TickHbCtx`, a tick's heartbeats carry no context, which
-`TickEnd` (`Protocol/InputEnd.lean`) does not say yet: its heartbeat arm gains `x.ctx = []`, lifted
-from `stepLeader`'s exact context (`hbCtx`, `[]` with no read request pending, the RawNode scope's);
-then `TickHbCtx` is a lemma and `msgShape := msgShape_of tickHbCtx`.
+`TickEnd` (`Protocol/InputEnd.lean`) says in its heartbeat arm (`x.ctx = []`, lifted from
+`stepLeader`'s exact context, `hbCtx`, `[]` with no read request pending, the RawNode scope's):
+`tickHbCtx`, and `msgShape := msgShape_of tickHbCtx`.
 -/
 module
 
@@ -311,7 +311,7 @@ theorem outShape_tick {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState} (h
       exact ⟨rfl, .inl (by simp [NetTy, pvoteReq]), (fun e he => by simp [pvoteReq] at he),
         (fun h => by simp [pvoteReq] at h), (fun h => by simp [pvoteReq] at h)⟩
   · intro q hq _
-    obtain ⟨hh, -, -, he⟩ := hms q (mem_psend hX hq)
+    obtain ⟨hh, -, -, he, -⟩ := hms q (mem_psend hX hq)
     exact ⟨hh.2.1, .inl (by simp [NetTy, hh.1]), (by rw [he]; exact entsNormal_nil),
       (fun h => by rw [hh.1] at h; cases h), hctx q hq⟩
 
@@ -393,6 +393,19 @@ theorem msgShape_of (ht : TickHbCtx) : msgShape.stmt := by
   · exact h5 hh
   · obtain ⟨m, hc, hmt, hx⟩ := h4 hh
     rw [hx]; exact (hcm m hc).2 hmt
+
+/-- **A tick's heartbeats carry no context** (`TickEnd`'s heartbeat arm). -/
+theorem tickHbCtx : TickHbCtx := by
+  intro c id s s' hX h q hq hty
+  rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, hms, rfl⟩
+  · rw [hX] at hq; cases hq
+  · rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
+    · rw [List.mem_singleton.mp hq] at hty; simp [Msg.plain] at hty
+    · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq; simp [pvoteReq] at hty
+  · exact (hms q (mem_psend hX hq)).2.2.2.2
+
+/-- **`msgShape.stmt`**. -/
+theorem msgShape : msgShape.stmt := msgShape_of tickHbCtx
 
 end shape
 
