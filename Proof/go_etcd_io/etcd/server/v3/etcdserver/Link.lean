@@ -257,6 +257,7 @@ public import Proof.github_com.jonboulle.clockwork.realClock__Now
 public import Proof.go_etcd_io.etcd.server.v3.config.CheckDuplicateURL
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BootstrapTimeoutEffective
+public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__MemberDir
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__PeerDialTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ShouldDiscover
@@ -285,6 +286,7 @@ public import Proof.errors.IsCtxErr
 public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapCluster
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapNewClusterNoWAL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
@@ -742,6 +744,7 @@ public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Strings
 public import Proof.go_uber_org.zap.Time
+public import Proof.go_uber_org.zap.Uint
 public import Proof.go_uber_org.zap.Uint64
 public import Proof.net.http.Axioms
 public import Perennial.Proof.time.Link
@@ -767,6 +770,11 @@ public import Proof.bytes.BufferLinked
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZap
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__advertiseMatchesCluster
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootClusterRows
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootFsTouchData
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootFsTouchMember
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootFsWalExist
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrapBackend
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrapSnapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.isMemberBootstrapped
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__MemberMem
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__MemberByNameMem
@@ -1784,6 +1792,10 @@ theorem config.ServerConfig.wp_BootstrapTimeoutEffective :
     config.ServerConfig.BootstrapTimeoutEffective.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.BootstrapTimeoutEffective.wp_proof
 
+theorem config.ServerConfig.wp_MemberDir :
+    config.ServerConfig.MemberDir.spec (GF := GF) (hG := hG) :=
+  config.ServerConfig.MemberDir.wp_proof
+
 theorem config.ServerConfig.wp_PeerDialTimeout :
     config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.PeerDialTimeout.wp_proof
@@ -1883,6 +1895,10 @@ theorem membership.RaftCluster.wp_genID :
 theorem membership.RaftCluster.wp_MemberByName :
     membership.RaftCluster.MemberByName.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.MemberByName.wp_proof membership.Member.wp_Clone
+
+theorem zap.wp_Uint :
+    zap.Uint.spec (GF := GF) (hG := hG) :=
+  zap.Uint.wp_proof
 
 theorem proto.wp_MarshalRole :
     proto.MarshalRole.spec (GF := GF) (hG := hG) :=
@@ -3748,6 +3764,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable (h_NewRaftLoggerZap : NewRaftLoggerZap.spec (GF := GF) (hG := hG))
 variable (h_config_ServerConfig__advertiseMatchesCluster : config.ServerConfig.advertiseMatchesCluster.spec (GF := GF) (hG := hG))
 variable (h_etcdserver_bootClusterRows : bootClusterRows.spec (GF := GF) (hG := hG))
+variable (h_etcdserver_bootFsTouchData : bootFsTouchData.spec (GF := GF) (hG := hG))
+variable (h_etcdserver_bootFsTouchMember : bootFsTouchMember.spec (GF := GF) (hG := hG))
+variable (h_etcdserver_bootFsWalExist : bootFsWalExist.spec (GF := GF) (hG := hG))
+variable (h_etcdserver_bootstrapBackend : bootstrapBackend.spec (GF := GF) (hG := hG))
+variable (h_etcdserver_bootstrapSnapshot : bootstrapSnapshot.spec (GF := GF) (hG := hG))
 variable (h_etcdserver_isMemberBootstrapped : isMemberBootstrapped.spec (GF := GF) (hG := hG))
 variable (h_membership_RaftCluster__Member_Mem : membership.RaftCluster.Member.specMem (GF := GF) (hG := hG))
 variable (h_membership_RaftCluster__MemberByName_Mem : membership.RaftCluster.MemberByName.specMem (GF := GF) (hG := hG))
@@ -3755,7 +3776,7 @@ variable (h_membership_RaftCluster__MemberIDs_Mem : membership.RaftCluster.Membe
 variable (h_pbutil_MustMarshalMessage_Meta : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specMeta (GF := GF) (hG := hG))
 variable (h_wal_Create_Srv : wal.Create.specSrv (GF := GF) (hG := hG))
 variable (h_zap_Logger__Named : zap.Logger.Named.spec (GF := GF) (hG := hG))
-include h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named
+include h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named
 
 theorem wp_bootstrapNewWAL :
     bootstrapNewWAL.spec (GF := GF) (hG := hG) :=
@@ -3767,15 +3788,15 @@ theorem wp_raftConfig :
 
 theorem wp_bootstrapRaftFromCluster [MemStorReg GF] :
     bootstrapRaftFromCluster.spec (GF := GF) (hG := hG) :=
-  bootstrapRaftFromCluster.wp_proof h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__Member_Mem encoding.json.wp_MarshalMemberPtr types.ID.wp_String_ptr types.ID.wp_String membership.RaftCluster.wp_ID zap.wp_String zap.Logger.wp_Info zap.Logger.wp_Panic zap.wp_Error bootstrappedWAL.wp_MemoryStorageFresh (wp_raftConfig h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+  bootstrapRaftFromCluster.wp_proof h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__Member_Mem encoding.json.wp_MarshalMemberPtr types.ID.wp_String_ptr types.ID.wp_String membership.RaftCluster.wp_ID zap.wp_String zap.Logger.wp_Info zap.Logger.wp_Panic zap.wp_Error bootstrappedWAL.wp_MemoryStorageFresh (wp_raftConfig h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
 
 theorem wp_bootstrapRaft [MemStorReg GF] :
     bootstrapRaft.spec (GF := GF) (hG := hG) :=
-  bootstrapRaft.wp_proof h_membership_RaftCluster__MemberIDs_Mem (wp_bootstrapRaftFromCluster h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+  bootstrapRaft.wp_proof h_membership_RaftCluster__MemberIDs_Mem (wp_bootstrapRaftFromCluster h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
 
 theorem wp_bootstrapStorage :
     bootstrapStorage.spec (GF := GF) (hG := hG) :=
-  bootstrapStorage.wp_proof (wp_bootstrapNewWAL h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+  bootstrapStorage.wp_proof (wp_bootstrapNewWAL h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
 
 theorem bootstrappedCluster.wp_Finalize :
     bootstrappedCluster.Finalize.spec (GF := GF) (hG := hG) :=
@@ -3787,11 +3808,15 @@ theorem config.ServerConfig.wp_VerifyBootstrap :
 
 theorem wp_bootstrapNewClusterNoWAL :
     bootstrapNewClusterNoWAL.spec (GF := GF) (hG := hG) :=
-  bootstrapNewClusterNoWAL.wp_proof (config.ServerConfig.wp_VerifyBootstrap h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) membership.wp_WithMaxLearners membership.wp_NewClusterFromURLsMap membership.RaftCluster.wp_MemberByName config.ServerConfig.wp_BootstrapTimeoutEffective h_etcdserver_isMemberBootstrapped config.ServerConfig.wp_ShouldDiscover types.ID.wp_String fmt.wp_Errorf
+  bootstrapNewClusterNoWAL.wp_proof (config.ServerConfig.wp_VerifyBootstrap h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) membership.wp_WithMaxLearners membership.wp_NewClusterFromURLsMap membership.RaftCluster.wp_MemberByName config.ServerConfig.wp_BootstrapTimeoutEffective h_etcdserver_isMemberBootstrapped config.ServerConfig.wp_ShouldDiscover types.ID.wp_String fmt.wp_Errorf
 
 theorem wp_bootstrapCluster :
     bootstrapCluster.spec (GF := GF) (hG := hG) :=
-  bootstrapCluster.wp_proof (wp_bootstrapNewClusterNoWAL h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+  bootstrapCluster.wp_proof (wp_bootstrapNewClusterNoWAL h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+
+theorem wp_bootstrap [MemStorReg GF] :
+    bootstrap.spec (GF := GF) (hG := hG) :=
+  bootstrap.wp_proof h_etcdserver_bootstrapSnapshot h_etcdserver_bootstrapBackend (wp_bootstrapCluster h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapStorage h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (bootstrappedCluster.wp_Finalize h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapRaft h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) bootstrappedBackend.wp_Close h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist config.ServerConfig.wp_MemberDir config.ServerConfig.wp_WALDir config.ServerConfig.wp_PeerDialTimeout rafthttp.wp_NewRoundTripper go_humanize.wp_Bytes zap.Logger.wp_Warn zap.Logger.wp_Info zap.wp_Uint zap.wp_String zap.wp_Int' fmt.wp_ErrorfWrap
 
 end links_pending
 
