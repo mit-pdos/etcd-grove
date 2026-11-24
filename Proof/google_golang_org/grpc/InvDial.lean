@@ -52,7 +52,7 @@ option reaches the one address `a`.
 `rb` (a `resolver.Builder`), for the scheme `scheme`, resolves to the addresses `addrs`, for good
 (a list since 2026-10-21, `notes/decisions.md` D27; one address until then):
 the resolver's state is grpc's once it is dialed with (`NewClient` takes it), and its service
-config sets no retry policy (k8s 7e-1, 2026-11-10, decided by etcd-grove-81: a `retryPolicy` that
+config sets no method config: no retry policy, no `timeout`, no `waitForReady` (k8s 7e-1, 2026-11-10, decided by etcd-grove-81: a `retryPolicy` that
 exhausts its attempts makes grpc-go v1.84 return a `*fmt.wrapError`, `stream.go:867`, which
 `grpcInvokerOk`/`cliStreamErr` exclude through `clientErr`; no dial option of `GrpcDialOpt` sets a
 default service config). etcd's `EtcdManualResolver` gives it for plain endpoints

@@ -188,7 +188,9 @@ every reply it sends (`Rep.send l m`) below `grpcMsgMax` (2 ^ 32), below `grpcRe
 marshalling of it allocates no more than Go's `maxAlloc` (`InvGrpcServer.lean`, `grpcReplyMax`). Below
 `grpcMsgMax`, not `grpcReplyMax`: a model's default `wireLen` is `grpcMsgMax`, "no bound known", which
 must not pass (the axiom review: below `grpcReplyMax` held of every default model, `RangeResponse`'s
-among them, whose shared `Kvs` encode past `maxAlloc`). The other way to the size premise
+among them, whose shared `Kvs` encode past `maxAlloc`). A reply model's explicit `wireLen` is trusted
+(`ProtoMsg.wireLen`'s doc: part of the instance's wire model) and so reviewed as a size bound when it is
+registered; today only `StringValue`'s (`s.length + 11`) is below `grpcMsgMax`. The other way to the size premise
 of `Serve`'s trusted model than the workload premise `grpcRepliesFit`: a property of the registered
 models, which a program with bounded replies proves (the gRPC driver's `StringValue`). -/
 def grpcRepliesBounded (Svc : GrpcSvc GF) : IProp GF :=

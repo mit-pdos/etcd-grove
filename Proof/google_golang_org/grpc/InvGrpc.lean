@@ -617,7 +617,11 @@ attempt, `newAttemptLocked`, which checks the caller's context first (`toRPCErr(
 axiom review's counterexample B) can give another code, hence `ctxQuiet` there. (The model,
 `models/grpc/model_clientconn.go`'s `onCallBegin`, fails a closed connection's call before the metadata
 check: fewer behaviors than grpc-go, within this contract.) The gRPC driver's `ctx-canceled` and `close`
-sections. Review: `notes/axiom-review/grpc-driver-interim.md`. -/
+sections. It rests on the connection's service config setting no method config (no retry policy, no
+`timeout`, no `waitForReady`): a method `timeout` makes `newClientStreamWithParams` wrap the context in
+a `WithTimeout`, which may give `DeadlineExceeded` first; `grpcResolverAt`'s configurations (etcd's,
+`loadBalancingPolicy` only) and `dialPassthrough`'s (none) set none. Review:
+`notes/axiom-review/grpc-driver-interim.md`. -/
 def grpcInvokerDone (conn : Loc) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (method : GoString)
       (req reply : GoInterface) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),

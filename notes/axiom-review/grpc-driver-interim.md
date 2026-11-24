@@ -51,3 +51,14 @@ the server). **Fix:** `Rep.wireLen m < grpcMsgMax`.
 - T8: `Close`'s docstring no longer claims `onCallBegin` fails later calls.
 
 ## Second round
+
+Re-attack of `38170fa86d` (same reviewer, read-only): **both fixes sound.**
+- `grpcInvokerDone`: counterexample A excluded by `outMD ctx none`, B by `ctxQuiet` (a timer context's
+  `Done()` is not nil); the closed-connection walk through `newClientStream` (`OnCallBegin`, no metadata,
+  `waitForResolvedAddrs`'s nil `ctx.Done()` arm, the default `SelectConfig`, `before`, the default codec,
+  `newAttemptLocked`'s `cc.ctx` check) ends in `ErrClientConnClosing`. Caveat (doc, applied): it relies on
+  the service config setting no method config (a `timeout` would give `DeadlineExceeded`); now stated in
+  `grpcInvokerDone` and `grpcResolverAt`.
+- `grpcRepliesBounded` at `< grpcMsgMax`: every registered reply model keeps the default `wireLen` but
+  `StringValue`'s (`s.length + 11`, a true bound on protobuf-go's `Size`, `send` pinning no unknown fields).
+  Caveat (doc, applied): an explicit reply `wireLen` is trusted, reviewed as a size bound at registration.
