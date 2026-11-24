@@ -2,8 +2,9 @@
 The results of the net/rpc model (`models/net/rpc`, project models-net; phase 5.2 of
 `notes/dsverify-net-port-plan.md`, the Lean half): each proved spec with its callees' proofs
 plugged in (the net extension's `Conn.Read` for the reads, Perennial's `sync.Mutex`), restated, with
-`#print axioms` of each (none beyond Lean's; the translation's trusted `go/token.IsExported` is not
-reached by these).
+`#print axioms` of each (none beyond Lean's; the translation's trusted code, `go/token.IsExported`
+and the model's stuck point `stuck`, `Net/TrustedCode/net/rpc.lean`, is not an axiom: the proofs
+show `stuck` is never reached).
 
 * the wire's helpers: `putU64`, `getU64`, `putString`, `putFrame`, `getString`;
 * the reads: `readFull` (gob's `recvMessage` errors: `io.EOF` between frames,
@@ -11,7 +12,8 @@ reached by these).
   codec's `ReadResponseHeader` (a frame of `respHdr seq sm e`, or `errFrame`, or a read error) and
   `ReadResponseBody` (a frame, decoded into the body unless it is `nil`);
 * the client codec's `WriteRequest` (the sticky error, or `reqWire` written through the library's
-  `sendTok`) and `Close`;
+  `sendTok`; a frame longer than `maxFrame`, the model's stuck point, excluded by the caller's
+  bound) and `Close`;
 * the codec registry: `SetCodec`, `getCodec` (`Codec.lean`: `CodecSpec`, `codecIs`, `codecSet`).
 
 * the client (`ClientDefs.lean`, over the protocol `Proto.lean`): `newClientCodec`, `Call.done`,

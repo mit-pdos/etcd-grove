@@ -14,7 +14,11 @@ client was shut down or closing, or an earlier write failed), the encoding premi
 Every error comes with its `Error()` (`errMsg` for a `ServerError`; `errAny` for the others, whose
 message may be arbitrary: the net extension's `*OpError`). The service is one the address offers
 with the spec `S` (`splitSM sm`), and `reply` is not `nil` (Go's `Call` with a `nil` reply discards
-the reply; not specified). Proved in `Net/Proof/net/rpc/Client__Call.lean`.
+the reply; not specified). The request fits the frames the model's server reads (`maxFrameN`, 1 GiB):
+the service method (`sm.length + 16 ≤ maxFrameN`) and the arguments' encoding, whose continuation
+carries the bound (`⌜bs.length ≤ maxFrameN⌝`), which the caller proves of its own encoding (a longer
+frame is the model's stuck point: `clientCodec.WriteRequest.spec`). Proved in
+`Net/Proof/net/rpc/Client__Call.lean`.
 -/
 module
 
@@ -43,7 +47,7 @@ abbrev Client.Call.spec : Prop :=
     (args reply : GoInterface) (Φ : List w8 → GoString → IProp GF) (Rargs D : IProp GF)
     (Θ : List w8 → Bool → IProp GF) (C : CodecSpec GF),
   {{ isClient c W a ∗ ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil⌝ ∗
-      codecSet C ∗ C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
+      ⌜sm.length + 16 ≤ maxFrameN⌝ ∗ codecSet C ∗ C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs)) ∗ D ∗
       □ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep)) }}
     (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))
       (Val #sm)) (Val #args)) (Val #reply))
@@ -53,7 +57,7 @@ abbrev Client.Call.spec : Prop :=
         (∃ rep, Φ rep msg) ∗ D) ∨
       (⌜err ≠ interface.nil ∧ notServerErr err⌝ ∗ models_lab.errAny err ∗
         ((Rargs ∗ (D ∨ ∃ rep, Θ rep false)) ∨
-          (C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D))) }}
+          (C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs)) ∗ D))) }}
 
 end spec
 

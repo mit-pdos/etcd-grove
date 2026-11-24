@@ -298,13 +298,16 @@ def readerSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (ps : List (List w8)) (
 
 /-- A connection accepted at `a`, its handshake done (`Accept`'s, with none; `ServeHTTP`'s): the
 acceptor's end of `cn`, its tokens (the handshake read, nothing else, and a prefix of its answer
-written: all of it, unless the write failed, which `ServeHTTP` does not look at) and its fresh
-token. -/
+written: all of it, unless the write failed, which `ServeHTTP` does not look at), its fresh
+token, and its read deadline not set (`rdlTok cn true false`: no read of the server times out, so
+a read that fails leaves the end's reading dead, `read_dead_au`), or its reading already dead
+(`readDead`: over HTTP, the hijack's clearing of the deadlines failed on a closed end). -/
 def rpcAccepted (W : RpcWorld GF) (a : GoString) (cn : Nat) : IProp GF :=
   iprop(∃ w : List w8, ⌜w <+: W.hsAns a⌝ ∗
     sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) w ∗
     recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (W.hs a) ∗
-    connFresh (Gg := hG.goose_globalGS) cn true)
+    connFresh (Gg := hG.goose_globalGS) cn true ∗
+    (rdlTok (Gg := hG.goose_globalGS) cn true false ∨ readDead (Gg := hG.goose_globalGS) cn true))
 
 /-! ## The request loop's pieces -/
 
@@ -329,7 +332,7 @@ deposit spent by the service's `errOk`). -/
 def errCont (Φ : List w8 → GoString → IProp GF) : IProp GF :=
   iprop(∀ msg : GoString, ⌜srvErrMsg msg⌝ ={⊤}=∗ Φ [] msg)
 
-/-- A sticky read error of the server codec (persistent): an error with a read error's message
+/-- A read error of the server codec (persistent): an error with a read error's message
 (`errSrv`, `rdErrMsg`), and a pointer (which `==` compares). -/
 def rdErr (e : GoInterface) : IProp GF :=
   iprop(errSrv e ∗ ⌜∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l⌝)
@@ -337,22 +340,25 @@ def rdErr (e : GoInterface) : IProp GF :=
 instance rdErr_persistent (e : GoInterface) : Persistent (rdErr (GF := GF) e) := by
   unfold rdErr; infer_instance
 
-/-- The reader's resources at the top of the loop, on the codec `sc` (its `rerr`): no read failed,
-and it has read the frames of the first `k` requests (`readerSt`); or a read failed, `rerr` holding
-its error, and the reader reads no more. -/
-def rdrOwn (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF :=
-  iprop(∃ r0 : GoInterface, structFieldRef net.rpc.serverCodec go!"rerr" sc ↦ r0 ∗
-    ((⌜r0 = interface.nil⌝ ∗ ∃ (ps : List (List w8)) (k : Nat), readerSt W a cn ps k ∗
-        ⌜ps.length = 2 * k⌝) ∨
-      (⌜r0 ≠ interface.nil⌝ ∗ rdErr r0 ∗ ∃ R : List w8,
-        recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) R)))
+/-- The reader's resources at the top of the loop: no read failed, the reader having read the
+frames of the first `k` requests (`readerSt`), and the end's read deadline not set (`rdlTok`); or
+the end's reading is dead (`readDead`, the net extension's sticky read errors, D1 v3.5: a read
+failed), so that every later read returns no byte (`read_after_dead_au`) and the loop ends at the
+next header. -/
+def rdrOwn (W : RpcWorld GF) (a : GoString) (cn : Nat) : IProp GF :=
+  iprop((rdlTok (Gg := hG.goose_globalGS) cn true false ∗
+      ∃ (ps : List (List w8)) (k : Nat), readerSt W a cn ps k ∗ ⌜ps.length = 2 * k⌝) ∨
+    (∃ R : List w8, recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) R ∗
+      readDead (Gg := hG.goose_globalGS) cn true))
 
 /-- The reader mid-request: it has read the frames `ps` of the first `k` requests and the header of
-request `k` (`r`, the `k`-th of the connection's lower bound `L`), and taken it. -/
+request `k` (`r`, the `k`-th of the connection's lower bound `L`), and taken it; the end's read
+deadline not set. -/
 def rdrMid (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (r : RpcReq) : IProp GF :=
   iprop(∃ (γ : RpcConnNames) (L : List RpcReq) (ps : List (List w8)),
     recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a)
       (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm])) ∗
+    rdlTok (Gg := hG.goose_globalGS) cn true false ∗
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ∗
     ghostVar γ.ctr (1 : Qp).half (k + 1) ∗
     ⌜L[k]? = some r ∧ ps.length = 2 * k ∧ (∀ q ∈ ps, q.length < 2 ^ 63) ∧ reqOk r⌝)
@@ -373,7 +379,6 @@ def callReady (C : CodecSpec GF) (svc mt : Loc) (argv replyv : GoInterface)
 /-- The codec's state a served connection starts with, and the acceptor's tokens. -/
 def srvCodecOwn (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF :=
   iprop(structFieldRef net.rpc.serverCodec go!"werr" sc ↦ interface.nil ∗
-    structFieldRef net.rpc.serverCodec go!"rerr" sc ↦ interface.nil ∗
     structFieldRef net.rpc.serverCodec go!"closed" sc ↦ false ∗ rpcAccepted W a cn)
 
 end defs

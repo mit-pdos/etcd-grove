@@ -81,15 +81,29 @@ theorem masterSvc_register (γ : EpNames) (args : List w8) (Φ : List w8 → GoS
     masterSvc γ go!"Register" args Φ = registerSpec γ args Φ := by
   unfold masterSvc; rw [if_pos rfl]
 
+/-- Replica `k`'s `RegisterArgs` fit the frames the net/rpc model's server reads. -/
+theorem regArgs_fit (k : Nat) :
+    (encRegisterArgs (replicaIp k) (portOf k)).length ≤ net.rpc.maxFrameN := by
+  have hlen : ∀ (addr : GoString) (port : w64),
+      (encRegisterArgs addr port).length ≤ 27 + tRegisterArgs.length + addr.length := by
+    intro addr port
+    unfold encRegisterArgs tagged strct fStr fInt fld encStr encU64
+    split <;> split <;> simp [u64Le_length] <;> omega
+  have h := hlen (replicaIp k) (portOf k)
+  have ht : tRegisterArgs.length ≤ 100 := by simp [tRegisterArgs]
+  have hi : (replicaIp k).length ≤ 100 := by simp [replicaIp]
+  unfold net.rpc.maxFrameN; omega
+
 /-- Net's `Client.Call`, its outcomes merged: success with the decoded reply `Θ rep true`, or an
 error (not `nil`) with the decoding resource `D` or a failed decoding. -/
 theorem wp_Call_simple (Hcall : net.rpc.Client.Call.spec (GF := GF)) (c : Loc)
     (W : net.rpc.RpcWorld GF) (a sm svc M : GoString) (S : net.rpc.MethodSpec GF)
     (args reply : GoInterface) (Φ : List w8 → GoString → IProp GF) (D : IProp GF)
     (Θ : List w8 → Bool → IProp GF)
-    (Hs : net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil) :
+    (Hs : net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil)
+    (Hsm : sm.length + 16 ≤ net.rpc.maxFrameN) :
   {{ net.rpc.isClient c W a ∗ net.rpc.codecSet epCodec ∗
-      epCodec.enc args (fun bs => iprop(S M bs Φ ∗ True)) ∗ D ∗
+      epCodec.enc args (fun bs => iprop(⌜bs.length ≤ net.rpc.maxFrameN⌝ ∗ S M bs Φ ∗ True)) ∗ D ∗
       □ (D -∗ ∀ rep, Φ rep [] -∗ epCodec.dec rep reply (Θ rep)) }}
     (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))
       (Val #sm)) (Val #args)) (Val #reply))
@@ -102,6 +116,8 @@ theorem wp_Call_simple (Hcall : net.rpc.Client.Call.spec (GF := GF)) (c : Loc)
     · iexact Hc
     isplitr
     · ipureintro; exact Hs
+    isplitr
+    · ipureintro; exact Hsm
     isplitr
     · iexact Hcs
     isplitl [Henc]
@@ -141,7 +157,7 @@ theorem btlCall_holds (L : CodecLaws (GF := GF)) (Hcall : net.rpc.Client.Call.sp
     go!"BeTheLeader" replicaSvc _ _ (fun rep msg => iprop(⌜msg = [] → rep = btlReplyBytes⌝))
     (bl ↦ replica.defs.BeTheLeaderReply.mk l0 nl0)
     (fun _ _ => bl ↦ replica.defs.BeTheLeaderReply.mk l0 nl0)
-    ⟨by decide, hss, by intro h; cases h⟩) $$ [Hla Hbl]
+    ⟨by decide, hss, by intro h; cases h⟩ (by simp [net.rpc.maxFrameN])) $$ [Hla Hbl]
   · isplitr
     · iexact Hc
     isplitr
@@ -150,6 +166,10 @@ theorem btlCall_holds (L : CodecLaws (GF := GF)) (Hcall : net.rpc.Client.Call.sp
     · iapply L.enc_BtlArgs la (DFrac.own 1)
       iframe
       iintro _
+      isplitr
+      · ipureintro
+        simp [encBtlArgs, tagged, encStr, strct, tBeTheLeaderArgs, u64Le_length,
+          net.rpc.maxFrameN] <;> omega
       rw [replicaSvc_btl]
       unfold btlSpec errAns
       isplitl
@@ -201,7 +221,7 @@ theorem pingCall_holds (L : CodecLaws (GF := GF)) (Hcall : net.rpc.Client.Call.s
   wp_apply (wp_Call_simple Hcall cl W (rpcAddrOf k) go!"Replica.Ping" go!"Replica"
     go!"Ping" replicaSvc _ _ (fun rep msg => iprop(⌜msg = [] → rep = pingReplyBytes⌝))
     (lr ↦ replica.defs.PingReply.mk) (fun _ _ => iprop(True))
-    ⟨by decide, hss, by intro h; cases h⟩) $$ [Hla Hlr]
+    ⟨by decide, hss, by intro h; cases h⟩ (by simp [net.rpc.maxFrameN])) $$ [Hla Hlr]
   · isplitr
     · iexact Hc
     isplitr
@@ -210,6 +230,10 @@ theorem pingCall_holds (L : CodecLaws (GF := GF)) (Hcall : net.rpc.Client.Call.s
     · iapply L.enc_PingArgs la (DFrac.own 1)
       iframe
       iintro _
+      isplitr
+      · ipureintro
+        simp [encPingArgs, tagged, encStr, strct, fU8, fld, encU8, tPingArgs, u64Le_length,
+          net.rpc.maxFrameN] <;> omega
       rw [replicaSvc_ping]
       unfold pingSpec errAns
       isplitl
@@ -249,7 +273,7 @@ theorem registerCall_holds (L : CodecLaws (GF := GF))
     (fun _ ok => if ok then iprop(∃ (id : w64) (sl : GoSlice) (nl : List GoString) (r il : Bool),
         pr ↦ replica.defs.RegisterReply.mk id sl r il ∗ sl ↦* nl ∗ regReplyOk γ k id nl r)
       else iprop(∃ v : replica.defs.RegisterReply, pr ↦ v))
-    ⟨by decide, hss, by intro h; cases h⟩) $$ [Hpr]
+    ⟨by decide, hss, by intro h; cases h⟩ (by simp [net.rpc.maxFrameN])) $$ [Hpr]
   · isplitr
     · iexact Hc
     isplitr
@@ -259,6 +283,8 @@ theorem registerCall_holds (L : CodecLaws (GF := GF))
       isplitr
       · iexact Hpa
       iintro _
+      isplitr
+      · ipureintro; exact regArgs_fit k
       rw [masterSvc_register]
       unfold registerSpec errAns
       isplitl
