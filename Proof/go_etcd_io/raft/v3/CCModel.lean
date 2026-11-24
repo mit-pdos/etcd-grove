@@ -2,7 +2,7 @@
 The pure vocabulary of conf-change messages (moved here from `InvConfChangeMsg.lean` on
 2026-10-13, reconfiguration stage D, so that the protocol's ghost state can name it
 without importing `Base`; see `InvConfChangeMsg.lean` for what each means):
-`ConfChangeM`, `ConfChangeV2M`, the decoders `ccDecodeV1` (opaque) and `ccDecodeV2` (since
+`ConfChangeM`, `ConfChangeV2M`, the decoders `ccDecodeV1` (since 2026-11-24 `cc1DecodeRaw`) and `ccDecodeV2` (since
 2026-11-23 protobuf stage S1's `cc2DecodeRaw`), `ConfChangeIM`; and (new)
 `IsConfEnt` (an entry of type `EntryConfChange` or `EntryConfChangeV2`), `CCDecodes` (a
 conf-change entry's bytes decode), `ccWantsLeave` (an empty `ConfChangeV2`: leave the joint
@@ -43,15 +43,17 @@ structure ConfChangeV2M [GooseExts] where
 
 /-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChange` (raft v3.7; until the
 retarget, gogoproto's generated `(*ConfChange).Unmarshal`): the decoded content (the getters'
-values), or `none` where it returns an error. Opaque: the trust-boundary specs of
-`proto.Marshal`/`proto.Unmarshal` (`Spec/google_golang_org/protobuf/proto/{Marshal,Unmarshal}ConfChange.lean`)
-are what is known of it. -/
-opaque ccDecodeV1 [GooseExts] : List w8 → Option ConfChangeM
+values), or `none` where it returns an error. `cc1DecodeRaw` (`PbWireRaft.lean`; 2026-11-24, the
+trace check's bootstrap log: until then opaque, known only through the trust-boundary specs of
+`proto.Marshal`/`proto.Unmarshal`, `Spec/google_golang_org/protobuf/proto/{Marshal,Unmarshal}ConfChange.lean`),
+checked against protobuf-go by `ConfChangeWireVectors.lean`. -/
+def ccDecodeV1 [GooseExts] (bs : List w8) : Option ConfChangeM :=
+  (cc1DecodeRaw bs).map fun x => ⟨x.2.1, x.2.2.1, x.2.2.2, x.1⟩
 
 /-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChangeV2` (until the
 retarget, gogoproto's generated `(*ConfChangeV2).Unmarshal`); `none` where it returns an error.
 `cc2DecodeRaw` (`PbWireRaft.lean`, protobuf stage S1: until 2026-11-23 opaque, as `ccDecodeV1`
-still is), checked against protobuf-go by `EntryWireVectors.lean`. -/
+was until 2026-11-24), checked against protobuf-go by `EntryWireVectors.lean`. -/
 def ccDecodeV2 [GooseExts] (bs : List w8) : Option ConfChangeV2M :=
   (cc2DecodeRaw bs).map fun x => ⟨x.1, x.2.1.map fun c => ⟨c.1, c.2⟩, x.2.2⟩
 
@@ -255,6 +257,17 @@ def MarshalsConfChange : Option ConfChangeIM → List w8 → Prop
   | none, bs => bs = []
   | some (.v1 m), bs => ccDecodeV1 bs = some m
   | some (.v2 m), bs => ccDecodeV2 bs = some m
+
+/-- **`ccDecodeV1` reads back `proto.Marshal`'s bytes** (2026-11-24): the encoding of a `ConfChange`
+(its populated fields in field-number order, then unknown fields as the decoder leaves them,
+`cc1EncRaw`) decodes to its getters' values. So `proto.MarshalConfChange.spec`'s round trip holds of
+the bytes protobuf-go writes, for every content. -/
+theorem ccDecodeV1_enc (id : Option w64) (type : Option w32) (nodeId : Option w64)
+    (ctx : Option (List w8)) (uf : List w8) (hu : ufWire ccSchema uf)
+    (hc : ∀ c, ctx = some c → c.length < 2 ^ 64) :
+    ccDecodeV1 (cc1EncRaw id type nodeId ctx uf) =
+      some ⟨type.getD 0, nodeId.getD 0, ctx.getD [], id.getD 0⟩ := by
+  simp only [ccDecodeV1, cc1DecodeRaw_enc id type nodeId ctx uf hu hc, Option.map_some]
 
 end codec
 

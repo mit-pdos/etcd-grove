@@ -40,7 +40,11 @@ encoding of every populated field and the unknown fields, and `proto.Unmarshal` 
 `ConfChange` yields the same populated fields (proto2 presence: an unset scalar decodes unset and
 reads as `0`, as `ConfChangeM` records it; `Context`'s bytes are the same, a `nil` and an empty one both
 `[]`). No pure encoder is claimed (the bytes depend on which fields are set, which `ConfChangeM`
-forgets): the round trip is the postcondition. (Premise fixes 1, 2026-11-10) The round trip
+forgets): the round trip is the postcondition. (2026-11-24) In the main tree `ccDecodeV1` is a function since then
+(`cc1DecodeRaw`, `PbWireRaft.lean`, checked against protobuf-go by `ConfChangeWireVectors.lean`), so the
+round trip claims that protobuf-go's decoder gives back `m` on these bytes; it does for every content
+and every unknown fields `pbMsg` admits (`cc1DecodeRaw_enc`, with protobuf-go's own encoding as the
+witness: the populated fields in field-number order, then the unknown fields). (Premise fixes 1, 2026-11-10) The round trip
 holds for the unknown fields an object of the verified programs can hold, which `pbMsg` now
 constrains (`ufWire` at the type's schema, `PbSchema.lean`, per-type models stage A: unknown fields
 as protobuf-go's decoder leaves them, which a re-decode puts back among the unknown fields), not for arbitrary bytes: a record of the message's own field number and
