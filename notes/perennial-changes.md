@@ -17,6 +17,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `bag_nb_send_au(_now)`: a bag channel's non-blocking send (2026-11-24, branch `raft-retire/2026-11-24`)
+
+- **Status.** bag_nb_send_au(_now): Perennial branch chan-bag-nb-send (3b51f8790), replaces kvreconf's
+  BagSend (moved next to the lessor until the pin bump: `Proof/go_etcd_io/etcd/server/v3/lease/BagSend.lean`)
+  and kvnet's queue_nb_send_au.
+
 ### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
 ### `runtime.callers` may fill its buffer every time: `zap.Stack` cannot be proved (2026-11-23, zap-z2, claim #40)
 
