@@ -177,6 +177,26 @@ private theorem slots_pure (F : KvFacts GF) (γu : UdpNames) (key : MsgKey) (chs
     rw [this]; iexact Hs
   ipureintro; exact Hp
 
+private theorem carved_disj (F : KvFacts GF) (γu : UdpNames) (src : w64) (ps : List Loc)
+    (mids : List KMsgID) (jp : Nat) (p : Loc) (hj : ps[jp]? = some p) :
+    ([∗list] j ↦ q ∈ ps, if j = jp then emp else ownPK F γu src mids j q) ⊢
+      [∗list] q ∈ ps, (⌜q = p⌝ ∨ ownPartial F γu src q) := by
+  apply BigSepL.bigSepL_mono
+  intro k x hk
+  by_cases hkj : k = jp
+  · subst hkj
+    rw [hj] at hk; cases hk
+    simp only [↓reduceIte]
+    iintro -
+    ileft; ipureintro; trivial
+  · simp only [hkj, ↓reduceIte]
+    iintro H
+    iright
+    iunfold ownPK at H
+    icases H with ⟨%m, -, H⟩
+    iapply (ownPartial_K F γu src x).2
+    iexists m; iexact H
+
 /-- A map of owned slices, at one key: the slice there (nil if none), and the map back with any
 slice at that key. -/
 private theorem bigSepM_slice_acc (Ψ : w64 → GoSlice → IProp GF) (M : GMap w64 GoSlice) (k : w64)
@@ -218,6 +238,7 @@ private theorem bigSepM_slice_acc_ro (Ψ : w64 → GoSlice → IProp GF) (M : GM
     simp only [Option.getD_some]
     iapply (BigSepM.bigSepM_lookup_acc h).1 $$ HM
 
+set_option maxHeartbeats 4000000 in
 theorem reassembler.add.wp_proof
     (wp_add : Stats.add.spec (GF := GF) (hG := hG)) :
     reassembler.add.spec (GF := GF) (hG := hG) := by
@@ -352,42 +373,408 @@ theorem reassembler.add.wp_proof
          iframe
          ipureintro; exact ⟨⟨by word, by word⟩, Hfound⟩)
   try wp_auto
+  -- the message in progress of this name: found, or a new one
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ r_ptr ↦ r ∗ d_ptr ↦ d ∗
+      id_ptr ↦ ({ boot' := d.boot', seq' := d.seq' } : KMsgID) ∗
+      ∃ (psl : GoSlice) (ps : List Loc) (mids : List KMsgID) (jp : Nat) (pv : Loc),
+        ps_ptr ↦ psl ∗ p_ptr ↦ pv ∗ psl ↦* ps ∗ ownSliceCap Loc psl (DFrac.own 1) ∗
+        pm ↦$ <[d.from' := psl]>P ∗
+        ([∗list] j ↦ q ∈ ps, if j = jp then emp else ownPK F γu d.from' mids j q) ∗
+        ownPartialK F γu d.from' pv ({ boot' := d.boot', seq' := d.seq' } : KMsgID) ∗
+        ⌜ps[jp]? = some pv ∧ mids[jp]? = some ({ boot' := d.boot', seq' := d.seq' } : KMsgID)⌝)))
+    $$ [r d id ps p Hps Hpsc HP Hown]
+  · wp_if_destruct
+    · -- a new message in progress
+      try wp_auto
+      -- the oldest evicted if there are too many
+      wp_bind (If _ _ _)
+      iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ r_ptr ↦ r ∗
+          ∃ (psl1 : GoSlice) (ps1 : List Loc) (mids1 : List KMsgID),
+            ps_ptr ↦ psl1 ∗ psl1 ↦* ps1 ∗ ownSliceCap Loc psl1 (DFrac.own 1) ∗
+            ([∗list] j ↦ q ∈ ps1, ownPK F γu d.from' mids1 j q) ∗ ⌜mids1.length = ps1.length⌝)))
+        $$ [r ps Hps Hpsc Hown]
+      · wp_if_destruct
+        · wp_apply wp_add sts (W64 30) (by decide) (by decide) $$ [$Hpkg $Hs]
+          try wp_auto
+          ihave %Hpsw := ownSlice_wf $$ Hps
+          rw [ite_eq_left (by refine ⟨by decide, by word, by word⟩)]
+          icases (ownSlice_split_all (W64 1) psl (DFrac.own 1) ps ⟨by decide, by word⟩).1 $$ Hps
+            with ⟨-, Hps1⟩
+          ihave Hn := ownSlice_nil (V := Loc) (GF := GF) (DFrac.own 1)
+          ihave Hnc := ownSliceCap_nil (V := Loc) (GF := GF)
+          try wp_auto
+          wp_apply (wp_slice_append (V := Loc) slice.nil [] _ (List.drop (sint.nat (W64 1)) ps)
+            (DFrac.own 1)) $$ [$Hn $Hnc $Hps1] as %psl2 ⟨Hps2, Hpsc2, -⟩
+          try wp_auto
+          iclear Hpsc
+          icases (BigSepL.bigSepL_take_drop (n := 1)).1 $$ Hown with ⟨-, Hown⟩
+          have hs : ∀ k x, ownPK F γu d.from' mids (1 + k) x = ownPK F γu d.from' (mids.drop 1) k x := by
+            intro k x; unfold ownPK; simp [List.getElem?_drop, Nat.add_comm]
+          simp only [hs, List.nil_append, show sint.nat (W64 1) = 1 from rfl]
+          iframe
+          ipureintro; simp [Hmids]
+        · try wp_auto
+          iframe
+          ipureintro; exact Hmids
+      iintro %v ⟨%Hv, r, %psl1, %ps1, %mids1, ps, Hps, Hpsc, Hown, %Hm1⟩
+      subst Hv
+      try wp_auto
+      wp_apply (wp_slice_make2 (V := GoSlice) (W64 (uint.Z d.total'))) as %csl ⟨Hcs, -⟩
+      · ipureintro; word
+      try wp_auto
+      sorry
+    · -- found: carved out of the list
+      obtain ⟨jp, Hjp, Hjm⟩ := Hfound.resolve_left Hif
+      icases (BigSepL.bigSepL_delete_cond Hjp).1 $$ Hown with ⟨Hp, Hown⟩
+      iunfold ownPK at Hp
+      icases Hp with ⟨%m, %Hm, Hp⟩
+      have Hmid : m = ({ boot' := d.boot', seq' := d.seq' } : KMsgID) := by
+        rw [Hjm] at Hm; exact (Option.some.inj Hm).symm
+      subst Hmid
+      have HPsome : P !! d.from' = some psl := by
+        cases hP : P !! d.from' with
+        | none =>
+          exfalso
+          rw [hP] at hpsl
+          simp only [Option.getD_none] at hpsl
+          subst hpsl
+          have : ps.length = 0 := by rw [Hpsl.1]; rfl
+          rw [List.length_eq_zero_iff.mp this] at Hjp
+          simp at Hjp
+        | some v => rw [hP] at hpsl; simp only [Option.getD_some] at hpsl; rw [hpsl]
+      ihave HP : pm ↦$ <[d.from' := psl]>P $$ [HP]
+      · rw [GMap.insert_id _ _ _ HPsome]; iexact HP
+      try wp_auto
+      iframe
+      ipureintro; exact ⟨Hjp, Hjm⟩
+  iintro %v ⟨%Hv, r, d, id, %psl, %ps, %mids, %jp, %pv, ps, p, Hps, Hpsc, HP, Hown, Hp, %Hjpm⟩
+  subst Hv
+  obtain ⟨Hjp, Hjm⟩ := Hjpm
+  clear Hfound hpsl Hmids Hpsl
+  ihave %Hpsl := ownSlice_len $$ Hps
+  try wp_auto
+  -- the fragment's place in the message
+  ihave Hp' := Hp
+  iunfold ownPartialK at Hp'
+  icases Hp' with ⟨%cs, %chs, %hv, %tp, %got, Hpid, Hpcs, Hphv, Hptp, Hpchs, %Hgot, Hslots⟩
+  ihave %Hchl := ownSlice_len $$ Hpchs
+  try wp_auto
   wp_if_destruct
-  rotate_left
-  · -- found: carved out of the list
-    obtain ⟨jp, Hjp, Hjm⟩ := Hfound.resolve_left Hif
-    icases (BigSepL.bigSepL_delete_cond Hjp).1 $$ Hown with ⟨Hp, Hown⟩
-    iunfold ownPK at Hp
-    icases Hp with ⟨%m, %Hm, Hp⟩
-    have Hmid : m = ({ boot' := d.boot', seq' := d.seq' } : KMsgID) := by
-      rw [Hjm] at Hm; exact (Option.some.inj Hm).symm
-    subst Hmid
-    have HPsome : P !! d.from' = some psl := by
-      cases hP : P !! d.from' with
-      | none =>
-        exfalso
-        rw [hP] at hpsl
-        simp only [Option.getD_none] at hpsl
-        subst hpsl
-        have : ps.length = 0 := by rw [Hpsl.1]; rfl
-        rw [List.length_eq_zero_iff.mp this] at Hjp
-        simp at Hjp
-      | some v => rw [hP] at hpsl; simp only [Option.getD_some] at hpsl; rw [hpsl]
-    ihave HP : pm ↦$ <[d.from' := psl]>P $$ [HP]
-    · rw [GMap.insert_id _ _ _ HPsome]; iexact HP
-    try wp_auto
-    -- the fragment's place in the message
-    ihave Hp' := Hp
-    iunfold ownPartialK at Hp'
-    icases Hp' with ⟨%cs, %chs, %hv, %tp, %got, Hpid, Hpcs, Hphv, Hptp, Hpchs, %Hgot, Hslots⟩
-    ihave %Hchl := ownSlice_len $$ Hpchs
-    try wp_auto
-    wp_if_destruct
-    all_goals try wp_if_destruct
-    all_goals try wp_auto
-    all_goals first
-      | (-- inconsistent with the message's total: dropped
-         wp_apply wp_add sts (W64 31) (by decide) (by decide) $$ [$Hpkg $Hs]
+  all_goals try wp_if_destruct
+  all_goals try wp_auto
+  all_goals first
+    | (-- inconsistent with the message's total: dropped
+       wp_apply wp_add sts (W64 31) (by decide) (by decide) $$ [$Hpkg $Hs]
+       try wp_auto
+       ihave Hp : ownPartialK F γu d.from' pv _ $$ [Hpid Hpcs Hphv Hptp Hpchs Hslots]
+       · iunfold ownPartialK; iexists cs, chs, hv, tp, got
+         iframe Hpid Hpcs Hphv Hptp Hpchs
+         isplitr
+         · ipureintro; exact Hgot
+         iexact Hslots
+       ihave Hl := ownPartials_restore F γu d.from' _ mids jp pv _ Hjp Hjm $$ [$Hp $Hown]
+       ihave HPs := HPs $$ %psl [Hps Hpsc Hl]
+       · iexists _; iframe
+       iapply HΦ
+       isplitl
+       · iunfold ownReassembler
+         iexists pm, dm, lm, sts, _, D, Ls
+         iframe Hpm Hdm Hlm Hsts Hs
+         iframe
+       ileft; ipureintro; rfl)
+    | (rename_i Htot
+       have Hidx := Hif
+       have Hil : uint.nat d.index' < chs.length := by rw [Hchl.1, Htot]; word
+       obtain ⟨c0, Hc0⟩ : ∃ c, chs[uint.nat d.index']? = some c := ⟨_, List.getElem?_eq_getElem Hil⟩
+       have Hii : (sint.Z (W64 (uint.Z d.index'))).toNat = uint.nat d.index' := by
+         have : uint.Z d.index' < 2 ^ 32 := by word
+         word
+       rw [ite_eq_left (by refine ⟨by word, by rw [Htot]; word⟩)]
+       wp_apply wp_load_slice_index cs _ chs (DFrac.own 1) c0 (by word) $$ [Hpchs] as Hpchs
+       · iframe Hpchs; ipureintro; rw [Hii]; exact Hc0
+       try wp_auto
+       wp_if_destruct
+       · -- a new fragment
+         try wp_auto
+         wp_bind (If _ _ _)
+         iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ r_ptr ↦ r ∗ d_ptr ↦ d ∗
+             p_ptr ↦ pv ∗ ∃ t : w32,
+             pv.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.«partial», go!"top"] ↦ t))) $$ [Hptp r d p]
+         · wp_if_destruct
+           · wp_apply wp_add sts (W64 27) (by decide) (by decide) $$ [$Hpkg $Hs]
+             iframe
+             try (ipureintro; rfl)
+           · try wp_auto
+             iframe
+             try (ipureintro; rfl)
+         iintro %v ⟨%Hv, r, d, p, %tp', Hptp⟩
+         subst Hv
+         try wp_auto
+         icases slots_pure F γu _ chs got _ _ Hc0 $$ Hslots with ⟨Hslots, %Hgi⟩
+         ihave %Hchk := ownSlice_len $$ Hch
+         rw [ite_eq_left (by refine ⟨by word, by rw [Htot]; word⟩)]
+         wp_apply wp_store_slice_index cs _ chs d.chunk' $$ [Hpchs] as Hpchs
+         · iframe Hpchs; ipureintro; refine ⟨by word, ?_⟩
+           rw [Hchl.1, Htot]; word
+         try wp_auto
+         -- the chunk recorded in its slot
+         obtain ⟨_, HtotB, HidxB, HchB⟩ := HfragB
+         have Hnil : d.chunk' ≠ slice.nil := by
+           intro h
+           have hne := (chunkAt_length B dg.index.toNat HidxB).1
+           rw [← HchB] at hne
+           apply hne
+           rw [h] at Hchk
+           exact List.length_eq_zero_iff.mp (by rw [Hchk.1]; rfl)
+         have Hn : chs.length = nChunks B := by
+           rw [Hchl.1, Htot, ← HtotB, ← Hdtot]; word
+         have Hgl := Hgot.1
+         have Hgf : got[uint.nat d.index']? = some false := by
+           have hlt : uint.nat d.index' < got.length := by omega
+           rw [List.getElem?_eq_getElem hlt] at Hgi ⊢
+           cases hb : got[uint.nat d.index']
+           · rfl
+           · rw [hb] at Hgi; exact absurd rfl (Hgi.mp rfl)
+         ihave Hslot : chunkSlot F γu (d.from', d.boot', d.seq') chs.length (uint.nat d.index') d.chunk' $$ [Hch]
+         · iunfold chunkSlot
+           iright
+           iexists dg.chunk, B
+           iframe Hch HBok
+           isplitl
+           · have hk : dg.key = (d.from', d.boot', d.seq') := by
+               unfold DgM.key; rw [Hdsrc, Hdboot, Hdseq]
+             rw [← hk]; iexact HB
+           ipureintro; refine ⟨Hn.symm, ?_⟩
+           rw [HchB, ← Hdidx]
+         ihave Hslots := slots_set F γu _ chs got (uint.nat d.index') d.chunk' Hnil Hil Hgl $$ [$Hslots $Hslot]
+         rw [Hii] at *
+         have Hcnt := count_set_true got (uint.nat d.index') Hgf
+         have Hcle := List.length_filter_le (fun x => x) (got.set (uint.nat d.index') true)
+         rw [List.length_set] at Hcle
+         have Hhv1 : uint.nat (hv + W32 1) = ((got.set (uint.nat d.index') true).filter (fun x => x)).length := by
+           have : uint.nat hv < 2 ^ 32 - 1 := by
+             have h2 : uint.Z d.total' < 2 ^ 32 := by word
+             rw [Hchl.1, Htot] at Hgl
+             omega
+           rw [Hcnt, ← Hgot.2]; word
+         wp_if_destruct
+         · -- not all the chunks yet
+           ihave Hp : ownPartialK F γu d.from' pv _ $$ [Hpid Hpcs Hphv Hptp Hpchs Hslots]
+           · iunfold ownPartialK
+             iexists cs, chs.set (uint.nat d.index') d.chunk', hv + W32 1, tp', got.set (uint.nat d.index') true
+             iframe Hpid Hpcs Hphv Hptp Hpchs
+             isplitr
+             · ipureintro; refine ⟨by simp [Hgl], Hhv1⟩
+             iexact Hslots
+           ihave Hl := ownPartials_restore F γu d.from' _ mids jp pv _ Hjp Hjm $$ [$Hp $Hown]
+           ihave HPs := HPs $$ %psl [Hps Hpsc Hl]
+           · iexists _; iframe
+           iapply HΦ
+           isplitl
+           · iunfold ownReassembler
+             iexists pm, dm, lm, sts, _, D, Ls
+             iframe Hpm Hdm Hlm Hsts Hs
+             iframe
+           ileft; ipureintro; rfl
+         -- complete: the message leaves the messages in progress
+         have Hcomplete : ¬uint.Z (hv + W32 1) < uint.Z d.total' := Hif
+         repeat clear Hif
+         ihave Hdisj := carved_disj F γu d.from' ps mids jp pv Hjp $$ Hown
+         ihave IH : iprop(∃ (k : w64) (rv : GoSlice) (kept : List Loc) (xl : Loc),
+             "i" ∷ i_ptr ↦ k ∗ "x" ∷ x_ptr ↦ xl ∗ "rest" ∷ rest_ptr ↦ rv ∗
+             "Hrv" ∷ rv ↦* kept ∗ "Hrc" ∷ ownSliceCap Loc rv (DFrac.own 1) ∗
+             "Hkept" ∷ ([∗list] q ∈ kept, ownPartial F γu d.from' q) ∗
+             "Hps" ∷ psl ↦* ps ∗
+             "Hdisj" ∷ ([∗list] q ∈ ps.drop (sint.nat k), (⌜q = pv⌝ ∨ ownPartial F γu d.from' q)) ∗
+             "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ps.length : Int)⌝)
+           $$ [i x rest Hps Hdisj]
+         · iexists W64 0, slice.nil, [], _
+           iframe i x rest Hps
+           isplitl []
+           · iapply ownSlice_nil
+           isplitl []
+           · iapply ownSliceCap_nil
+           isplitl []
+           · iapply BigSepL.bigSepL_nil.2; iempintro
+           simp only [show sint.nat (W64 0) = 0 from rfl, List.drop_zero]
+           iframe Hdisj
+           ipureintro; exact ⟨by decide, by word⟩
+         wp_for IH
+         wp_if_destruct
+         · have Hif' : sint.Z k < sint.Z psl.len := by
+             first | exact Hif | (have h := go.intoVal_inj (V := Bool) Hif; simpa using h)
+           have Hlt : sint.nat k < ps.length := by rw [Hpsl.1]; word
+           obtain ⟨q, Hq⟩ : ∃ q, ps[sint.nat k]? = some q := ⟨_, List.getElem?_eq_getElem Hlt⟩
+           have Hbnd' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z psl.len := ⟨Hk.1, Hif'⟩
+           simp only [Hbnd', _root_.and_self]
+           wp_apply wp_load_slice_index psl (sint.Z k) _ (DFrac.own 1) q Hk.1 $$ [Hps] as Hps
+           · iframe Hps; ipureintro; exact Hq
+           have Hdrop : ps.drop (sint.nat k) = q :: ps.drop (sint.nat k + 1) := by
+             rw [List.drop_eq_getElem_cons Hlt]
+             rw [List.getElem?_eq_getElem Hlt] at Hq
+             rw [Option.some.inj Hq]
+           have Hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+           rw [Hdrop]
+           icases Hdisj with ⟨Hq, Hdisj⟩
+           try wp_auto
+           wp_if_destruct
+           · -- the completed one: dropped
+             iclear Hq
+             try wp_auto
+             wp_for_post
+             iframe
+             iexists k + W64 1, rv, kept, _
+             rw [Hk1]
+             iframe
+             ipureintro; exact ⟨by word, by word⟩
+           · -- another message in progress: kept
+             icases Hq with (%Hqp | Hq)
+             · exact absurd Hqp Hif
+             wp_apply wp_slice_literal
+             try (isplitr; (ipureintro; rfl))
+             iintro %sl1 ⟨Hsl1, -⟩
+             try wp_auto
+             wp_apply wp_slice_append $$ [$Hrv $Hrc $Hsl1] as %rv' ⟨Hrv, Hrc, -⟩
+             wp_for_post
+             iframe
+             iexists k + W64 1, rv', kept ++ [q], q
+             rw [Hk1]
+             iframe
+             isplitl []
+             · iapply BigSepL.bigSepL_nil.2; iempintro
+             ipureintro; exact ⟨by word, by word⟩
+         repeat clear Hif
+         iclear Hdisj Hps Hpsc
+         try wp_auto
+         wp_apply (wp_mapInsert (K := w64) (V := GoSlice) go.uint64 pm _ d.from' rv) $$ HP as HP
+         rw [GMap.insert_insert] at *
+         ihave HPs := HPs $$ %rv [Hrv Hrc Hkept]
+         · iexists kept; iframe
+         try wp_auto
+         -- the body, from the chunks: every slot holds its chunk of the recorded body
+         have Hallg : ∀ i, i < (got.set (uint.nat d.index') true).length →
+             (got.set (uint.nat d.index') true)[i]? = some true := by
+           have hcnt : ((got.set (uint.nat d.index') true).filter (fun x => x)).length =
+               (got.set (uint.nat d.index') true).length := by
+             have h1 := List.length_filter_le (fun x => x) (got.set (uint.nat d.index') true)
+             rw [← Hhv1] at h1 ⊢
+             rw [List.length_set, Hgl, Hchl.1, Htot] at h1 ⊢
+             have : uint.Z d.total' < 2 ^ 32 := by word
+             word
+           intro i hi
+           rw [List.getElem?_eq_getElem hi]
+           have := List.length_filter_eq_length_iff.mp hcnt _ (List.getElem_mem hi)
+           simpa using this
+         have Hn' : (chs.set (uint.nat d.index') d.chunk').length = nChunks B := by
+           rw [List.length_set, Hn]
+         have hk : dg.key = (d.from', d.boot', d.seq') := by
+           unfold DgM.key; rw [Hdsrc, Hdboot, Hdseq]
+         ihave %Hcsl := ownSlice_len $$ Hpchs
+         ihave Hn0 := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
+         ihave Hn0c := ownSliceCap_nil (V := w8) (GF := GF)
+         irename body => Hbodyv
+         ihave IH : iprop(∃ (k : w64) (cv bsl : GoSlice),
+             "i" ∷ i_ptr ↦ k ∗ "c" ∷ c_ptr ↦ cv ∗ "Hbodyv" ∷ body_ptr ↦ bsl ∗
+             "Hb" ∷ bsl ↦* ((List.range (sint.nat k)).map (chunkAt B)).flatten ∗
+             "Hbc" ∷ ownSliceCap w8 bsl (DFrac.own 1) ∗
+             "Hpchs" ∷ cs ↦* chs.set (uint.nat d.index') d.chunk' ∗
+             "Hslots" ∷ ([∗list] i ↦ c ∈ chs.set (uint.nat d.index') d.chunk',
+               iprop(chunkSlot F γu (d.from', d.boot', d.seq') (chs.set (uint.nat d.index') d.chunk').length i c ∗
+                 ⌜(got.set (uint.nat d.index') true)[i]? = some true ↔ c ≠ slice.nil⌝)) ∗
+             "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ ((chs.set (uint.nat d.index') d.chunk').length : Int)⌝)
+           $$ [i c Hbodyv Hpchs Hslots Hn0 Hn0c]
+         · iexists W64 0, _, slice.nil
+           iframe i c Hbodyv Hpchs Hslots
+           simp only [show sint.nat (W64 0) = 0 from rfl, List.range_zero, List.map_nil, List.flatten_nil]
+           iframe Hn0 Hn0c
+           ipureintro; exact ⟨by decide, by word⟩
+         wp_for IH
+         wp_if_destruct
+         · have Hif' : sint.Z k < sint.Z cs.len := by
+             first | exact Hif | (have h := go.intoVal_inj (V := Bool) Hif; simpa using h)
+           have Hlt : sint.nat k < (chs.set (uint.nat d.index') d.chunk').length := by
+             rw [Hcsl.1]; word
+           obtain ⟨c, Hcq⟩ : ∃ c, (chs.set (uint.nat d.index') d.chunk')[sint.nat k]? = some c :=
+             ⟨_, List.getElem?_eq_getElem Hlt⟩
+           have Hbnd' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z cs.len := ⟨Hk.1, Hif'⟩
+           simp only [Hbnd', _root_.and_self]
+           wp_apply wp_load_slice_index cs (sint.Z k) _ (DFrac.own 1) c Hk.1 $$ [Hpchs] as Hpchs
+           · iframe Hpchs; ipureintro; exact Hcq
+           icases (BigSepL.bigSepL_lookup_acc Hcq).1 $$ Hslots with ⟨⟨Hsl, %Hgk⟩, Hback⟩
+           have Hcnn : c ≠ slice.nil :=
+             Hgk.mp (Hallg _ (by rw [List.length_set, Hgl]; rw [List.length_set] at Hlt; exact Hlt))
+           iunfold chunkSlot at Hsl
+           icases Hsl with (%Hcn | ⟨%bs, %bk, Hc, #Hat, #Hbok, %Hbk⟩)
+           · exact absurd Hcn Hcnn
+           ihave #HB' := HB
+           rw [hk] at *
+           iunfold udpMsgAt at Hat HB'
+           ihave %Hag := ghostMapElem_agree _ _ _ _ _ _ $$ Hat HB'
+           subst Hag
+           obtain ⟨-, Hbsk⟩ := Hbk
+           try wp_auto
+           wp_apply wp_slice_append $$ [$Hb $Hbc $Hc] as %bsl' ⟨Hb, Hbc, Hc⟩
+           ihave Hslots := Hback $$ %c [Hc]
+           · isplitl
+             · iunfold chunkSlot
+               iright
+               iexists bs, bk
+               iframe Hc Hbok
+               isplitl
+               · iunfold udpMsgAt; iexact Hat
+               ipureintro; exact ⟨by rw [Hn'], Hbsk⟩
+             ipureintro; exact Hgk
+           have Hset : (chs.set (uint.nat d.index') d.chunk').set (sint.nat k) c =
+               chs.set (uint.nat d.index') d.chunk' := by
+             rw [List.getElem?_eq_getElem Hlt] at Hcq
+             rw [← Option.some.inj Hcq, List.set_getElem_self]
+           rw [Hset]
+           have Hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+           try wp_auto
+           wp_for_post
+           iframe
+           iexists k + W64 1, c, bsl'
+           rw [Hk1, List.range_succ, List.map_append, List.flatten_append]
+           simp only [List.map_cons, List.map_nil, List.flatten_cons, List.flatten_nil, List.append_nil]
+           rw [← Hbsk]
+           iframe
+           ipureintro; exact ⟨by word, by word⟩
+         -- all the chunks, in order: the body
+         have Hkn : sint.nat k = nChunks B := by
+           rw [← Hn', Hcsl.1]; word
+         rw [Hkn, chunks_flatten]
+         wp_if_destruct
+         · wp_apply wp_add sts (W64 29) (by decide) (by decide) $$ [$Hpkg $Hs]
+           try wp_auto
+           iapply HΦ
+           isplitl [HP HPs HD HDs HLs]
+           · iunfold ownReassembler
+             iexists pm, dm, lm, sts, _, D, Ls
+             iframe Hpm Hdm Hlm Hsts Hs
+             iframe
+           iright
+           isplitr
+           · ipureintro; rfl
+           iexists B
+           iframe Hb HBok
+           rw [hk]; iexact HB
+         ·
+           try wp_auto
+           iapply HΦ
+           isplitl [HP HPs HD HDs HLs]
+           · iunfold ownReassembler
+             iexists pm, dm, lm, sts, _, D, Ls
+             iframe Hpm Hdm Hlm Hsts Hs
+             iframe
+           iright
+           isplitr
+           · ipureintro; rfl
+           iexists B
+           iframe Hb HBok
+           rw [hk]; iexact HB
+       · -- a duplicate fragment
+         wp_apply wp_add sts (W64 26) (by decide) (by decide) $$ [$Hpkg $Hs]
          try wp_auto
          ihave Hp : ownPartialK F γu d.from' pv _ $$ [Hpid Hpcs Hphv Hptp Hpchs Hslots]
          · iunfold ownPartialK; iexists cs, chs, hv, tp, got
@@ -405,121 +792,6 @@ theorem reassembler.add.wp_proof
            iframe Hpm Hdm Hlm Hsts Hs
            iframe
          ileft; ipureintro; rfl)
-      | (rename_i Htot
-         have Hidx := Hif
-         have Hil : uint.nat d.index' < chs.length := by rw [Hchl.1, Htot]; word
-         obtain ⟨c0, Hc0⟩ : ∃ c, chs[uint.nat d.index']? = some c := ⟨_, List.getElem?_eq_getElem Hil⟩
-         have Hii : (sint.Z (W64 (uint.Z d.index'))).toNat = uint.nat d.index' := by
-           have : uint.Z d.index' < 2 ^ 32 := by word
-           word
-         rw [ite_eq_left (by refine ⟨by word, by rw [Htot]; word⟩)]
-         wp_apply wp_load_slice_index cs _ chs (DFrac.own 1) c0 (by word) $$ [Hpchs] as Hpchs
-         · iframe Hpchs; ipureintro; rw [Hii]; exact Hc0
-         try wp_auto
-         wp_if_destruct
-         · -- a new fragment
-           try wp_auto
-           wp_if_destruct
-           wp_apply wp_add sts (W64 27) (by decide) (by decide) $$ [$Hpkg $Hs]
-           all_goals try wp_auto
-           all_goals
-             ihave Hptp : iprop(∃ t : w32, pv.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.«partial»,
-                 go!"top"] ↦ t) $$ [Hptp]
-             · iexists _; iexact Hptp
-             icases Hptp with ⟨%tp', Hptp⟩
-             icases slots_pure F γu _ chs got _ _ Hc0 $$ Hslots with ⟨Hslots, %Hgi⟩
-             ihave %Hchk := ownSlice_len $$ Hch
-             rw [ite_eq_left (by refine ⟨by word, by rw [Htot]; word⟩)]
-             wp_apply wp_store_slice_index cs _ chs d.chunk' $$ [Hpchs] as Hpchs
-             · iframe Hpchs; ipureintro; refine ⟨by word, ?_⟩
-               rw [Hchl.1, Htot]; word
-             try wp_auto
-             -- the chunk recorded in its slot
-             obtain ⟨_, HtotB, HidxB, HchB⟩ := HfragB
-             have Hnil : d.chunk' ≠ slice.nil := by
-               intro h
-               have hne := (chunkAt_length B dg.index.toNat HidxB).1
-               rw [← HchB] at hne
-               apply hne
-               rw [h] at Hchk
-               exact List.length_eq_zero_iff.mp (by rw [Hchk.1]; rfl)
-             have Hn : chs.length = nChunks B := by
-               rw [Hchl.1, Htot, ← HtotB, ← Hdtot]; word
-             have Hgl := Hgot.1
-             have Hgf : got[uint.nat d.index']? = some false := by
-               have hlt : uint.nat d.index' < got.length := by omega
-               rw [List.getElem?_eq_getElem hlt] at Hgi ⊢
-               cases hb : got[uint.nat d.index']
-               · rfl
-               · rw [hb] at Hgi; exact absurd rfl (Hgi.mp rfl)
-             ihave Hslot : chunkSlot F γu (d.from', d.boot', d.seq') chs.length (uint.nat d.index') d.chunk' $$ [Hch]
-             · iunfold chunkSlot
-               iright
-               iexists dg.chunk, B
-               iframe Hch HBok
-               isplitl
-               · have hk : dg.key = (d.from', d.boot', d.seq') := by
-                   unfold DgM.key; rw [Hdsrc, Hdboot, Hdseq]
-                 rw [← hk]; iexact HB
-               ipureintro; refine ⟨Hn.symm, ?_⟩
-               rw [HchB, ← Hdidx]
-             ihave Hslots := slots_set F γu _ chs got (uint.nat d.index') d.chunk' Hnil Hil Hgl $$ [$Hslots $Hslot]
-             rw [Hii] at *
-             have Hcnt := count_set_true got (uint.nat d.index') Hgf
-             have Hcle := List.length_filter_le (fun x => x) (got.set (uint.nat d.index') true)
-             rw [List.length_set] at Hcle
-             have Hhv1 : uint.nat (hv + W32 1) = ((got.set (uint.nat d.index') true).filter (fun x => x)).length := by
-               have : uint.nat hv < 2 ^ 32 - 1 := by
-                 have h2 : uint.Z d.total' < 2 ^ 32 := by word
-                 rw [Hchl.1, Htot] at Hgl
-                 omega
-               rw [Hcnt, ← Hgot.2]; word
-             wp_if_destruct
-             · -- not all the chunks yet
-               ihave Hp : ownPartialK F γu d.from' pv _ $$ [Hpid Hpcs Hphv Hptp Hpchs Hslots]
-               · iunfold ownPartialK
-                 iexists cs, chs.set (uint.nat d.index') d.chunk', hv + W32 1, tp', got.set (uint.nat d.index') true
-                 iframe Hpid Hpcs Hphv Hptp Hpchs
-                 isplitr
-                 · ipureintro; refine ⟨by simp [Hgl], Hhv1⟩
-                 iexact Hslots
-               ihave Hl := ownPartials_restore F γu d.from' _ mids jp pv _ Hjp Hjm $$ [$Hp $Hown]
-               ihave HPs := HPs $$ %psl [Hps Hpsc Hl]
-               · iexists _; iframe
-               iapply HΦ
-               isplitl
-               · iunfold ownReassembler
-                 iexists pm, dm, lm, sts, _, D, Ls
-                 iframe Hpm Hdm Hlm Hsts Hs
-                 iframe
-               ileft; ipureintro; rfl
-             sorry
-         · -- a duplicate fragment
-           wp_apply wp_add sts (W64 26) (by decide) (by decide) $$ [$Hpkg $Hs]
-           try wp_auto
-           ihave Hp : ownPartialK F γu d.from' pv _ $$ [Hpid Hpcs Hphv Hptp Hpchs Hslots]
-           · iunfold ownPartialK; iexists cs, chs, hv, tp, got
-             iframe Hpid Hpcs Hphv Hptp Hpchs
-             isplitr
-             · ipureintro; exact Hgot
-             iexact Hslots
-           ihave Hl := ownPartials_restore F γu d.from' _ mids jp pv _ Hjp Hjm $$ [$Hp $Hown]
-           ihave HPs := HPs $$ %psl [Hps Hpsc Hl]
-           · iexists _; iframe
-           iapply HΦ
-           isplitl
-           · iunfold ownReassembler
-             iexists pm, dm, lm, sts, _, D, Ls
-             iframe Hpm Hdm Hlm Hsts Hs
-             iframe
-           ileft; ipureintro; rfl)
-  · -- new
-    try wp_auto
-    wp_if_destruct
-    · sorry
-    · try wp_auto
-      sorry
-
 end proof
 
 end raft_kvnet
