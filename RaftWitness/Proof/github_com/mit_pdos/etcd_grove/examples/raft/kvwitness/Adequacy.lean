@@ -138,7 +138,6 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.cmp, isPkgInit pkg_id.cmp),
    (pkg_id.math, isPkgInit pkg_id.math),
    (pkg_id.reflect, isPkgInit pkg_id.reflect),
-   (pkg_id.internal.gomodel, isPkgInit pkg_id.internal.gomodel),
    (pkg_id.internal.reflectcore, isPkgInit pkg_id.internal.reflectcore),
    (pkg_id.io, isPkgInit pkg_id.io),
    (pkg_id.errors, isPkgInit pkg_id.errors),

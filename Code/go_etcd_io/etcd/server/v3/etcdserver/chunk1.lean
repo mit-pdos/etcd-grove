@@ -227,6 +227,8 @@ class serverVersionAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"processInternalRaftRequestOnce"))) (App (Val (GoInstruction (StructFieldGet serverVersionAdapter.ty go!"EtcdServer"))) (Var "$r"))))
   promoteMember_unfold : MethodUnfold serverVersionAdapter.ty go!"promoteMember" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"promoteMember"))) (App (Val (GoInstruction (StructFieldGet serverVersionAdapter.ty go!"EtcdServer"))) (Var "$r"))))
+  publishV3_unfold : MethodUnfold serverVersionAdapter.ty go!"publishV3" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"publishV3"))) (App (Val (GoInstruction (StructFieldGet serverVersionAdapter.ty go!"EtcdServer"))) (Var "$r"))))
   purgeFile_unfold : MethodUnfold serverVersionAdapter.ty go!"purgeFile" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"purgeFile"))) (App (Val (GoInstruction (StructFieldGet serverVersionAdapter.ty go!"EtcdServer"))) (Var "$r"))))
   raftRequest_unfold : MethodUnfold serverVersionAdapter.ty go!"raftRequest" (LamV "$r"
@@ -469,6 +471,8 @@ class serverVersionAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"processInternalRaftRequestOnce"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef serverVersionAdapter.ty go!"EtcdServer"))) (Var "$r")))))
   ptr_promoteMember_unfold : MethodUnfold (go.GoType.PointerType serverVersionAdapter.ty) go!"promoteMember" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"promoteMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef serverVersionAdapter.ty go!"EtcdServer"))) (Var "$r")))))
+  ptr_publishV3_unfold : MethodUnfold (go.GoType.PointerType serverVersionAdapter.ty) go!"publishV3" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"publishV3"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef serverVersionAdapter.ty go!"EtcdServer"))) (Var "$r")))))
   ptr_purgeFile_unfold : MethodUnfold (go.GoType.PointerType serverVersionAdapter.ty) go!"purgeFile" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"purgeFile"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef serverVersionAdapter.ty go!"EtcdServer"))) (Var "$r")))))
   ptr_raftRequest_unfold : MethodUnfold (go.GoType.PointerType serverVersionAdapter.ty) go!"raftRequest" (LamV "$r"
@@ -616,6 +620,7 @@ attribute [instance] serverVersionAdapter.TypeAssumptions.type_repr
   serverVersionAdapter.TypeAssumptions.parseProposeCtxErr_unfold
   serverVersionAdapter.TypeAssumptions.processInternalRaftRequestOnce_unfold
   serverVersionAdapter.TypeAssumptions.promoteMember_unfold
+  serverVersionAdapter.TypeAssumptions.publishV3_unfold
   serverVersionAdapter.TypeAssumptions.purgeFile_unfold
   serverVersionAdapter.TypeAssumptions.raftRequest_unfold
   serverVersionAdapter.TypeAssumptions.raftStatus_unfold
@@ -737,6 +742,7 @@ attribute [instance] serverVersionAdapter.TypeAssumptions.type_repr
   serverVersionAdapter.TypeAssumptions.ptr_parseProposeCtxErr_unfold
   serverVersionAdapter.TypeAssumptions.ptr_processInternalRaftRequestOnce_unfold
   serverVersionAdapter.TypeAssumptions.ptr_promoteMember_unfold
+  serverVersionAdapter.TypeAssumptions.ptr_publishV3_unfold
   serverVersionAdapter.TypeAssumptions.ptr_purgeFile_unfold
   serverVersionAdapter.TypeAssumptions.ptr_raftRequest_unfold
   serverVersionAdapter.TypeAssumptions.ptr_raftStatus_unfold
@@ -1218,6 +1224,8 @@ class hasherAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"processInternalRaftRequestOnce"))) (App (Val (GoInstruction (StructFieldGet hasherAdapter.ty go!"EtcdServer"))) (Var "$r"))))
   promoteMember_unfold : MethodUnfold hasherAdapter.ty go!"promoteMember" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"promoteMember"))) (App (Val (GoInstruction (StructFieldGet hasherAdapter.ty go!"EtcdServer"))) (Var "$r"))))
+  publishV3_unfold : MethodUnfold hasherAdapter.ty go!"publishV3" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"publishV3"))) (App (Val (GoInstruction (StructFieldGet hasherAdapter.ty go!"EtcdServer"))) (Var "$r"))))
   purgeFile_unfold : MethodUnfold hasherAdapter.ty go!"purgeFile" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"purgeFile"))) (App (Val (GoInstruction (StructFieldGet hasherAdapter.ty go!"EtcdServer"))) (Var "$r"))))
   raftRequest_unfold : MethodUnfold hasherAdapter.ty go!"raftRequest" (LamV "$r"
@@ -1460,6 +1468,8 @@ class hasherAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"processInternalRaftRequestOnce"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef hasherAdapter.ty go!"EtcdServer"))) (Var "$r")))))
   ptr_promoteMember_unfold : MethodUnfold (go.GoType.PointerType hasherAdapter.ty) go!"promoteMember" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"promoteMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef hasherAdapter.ty go!"EtcdServer"))) (Var "$r")))))
+  ptr_publishV3_unfold : MethodUnfold (go.GoType.PointerType hasherAdapter.ty) go!"publishV3" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"publishV3"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef hasherAdapter.ty go!"EtcdServer"))) (Var "$r")))))
   ptr_purgeFile_unfold : MethodUnfold (go.GoType.PointerType hasherAdapter.ty) go!"purgeFile" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"purgeFile"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef hasherAdapter.ty go!"EtcdServer"))) (Var "$r")))))
   ptr_raftRequest_unfold : MethodUnfold (go.GoType.PointerType hasherAdapter.ty) go!"raftRequest" (LamV "$r"
@@ -1609,6 +1619,7 @@ attribute [instance] hasherAdapter.TypeAssumptions.type_repr
   hasherAdapter.TypeAssumptions.parseProposeCtxErr_unfold
   hasherAdapter.TypeAssumptions.processInternalRaftRequestOnce_unfold
   hasherAdapter.TypeAssumptions.promoteMember_unfold
+  hasherAdapter.TypeAssumptions.publishV3_unfold
   hasherAdapter.TypeAssumptions.purgeFile_unfold
   hasherAdapter.TypeAssumptions.raftRequest_unfold
   hasherAdapter.TypeAssumptions.raftStatus_unfold
@@ -1730,6 +1741,7 @@ attribute [instance] hasherAdapter.TypeAssumptions.type_repr
   hasherAdapter.TypeAssumptions.ptr_parseProposeCtxErr_unfold
   hasherAdapter.TypeAssumptions.ptr_processInternalRaftRequestOnce_unfold
   hasherAdapter.TypeAssumptions.ptr_promoteMember_unfold
+  hasherAdapter.TypeAssumptions.ptr_publishV3_unfold
   hasherAdapter.TypeAssumptions.ptr_purgeFile_unfold
   hasherAdapter.TypeAssumptions.ptr_raftRequest_unfold
   hasherAdapter.TypeAssumptions.ptr_raftStatus_unfold

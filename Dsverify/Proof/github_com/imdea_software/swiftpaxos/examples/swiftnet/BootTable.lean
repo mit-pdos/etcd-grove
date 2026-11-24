@@ -81,7 +81,8 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_internal_synctest : G pkg_id.internal.synctest = isPkgInit (PROP := IProp GF) pkg_id.internal.synctest
   e_sync : G pkg_id.sync = isPkgInit (PROP := IProp GF) pkg_id.sync
   e_io : G pkg_id.io = isPkgInit (PROP := IProp GF) pkg_id.io
-  e_internal_abi : G pkg_id.internal.abi = isPkgInit (PROP := IProp GF) pkg_id.internal.abi
+  e_internal_reflectcore : G pkg_id.internal.reflectcore = isPkgInit (PROP := IProp GF) pkg_id.internal.reflectcore
+  e_iter : G pkg_id.iter = isPkgInit (PROP := IProp GF) pkg_id.iter
   e_reflect : G pkg_id.reflect = isPkgInit (PROP := IProp GF) pkg_id.reflect
   e_fmt : G pkg_id.fmt = isPkgInit (PROP := IProp GF) pkg_id.fmt
   e_log : G pkg_id.log = isPkgInit (PROP := IProp GF) pkg_id.log
@@ -101,7 +102,6 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_strings : G pkg_id.strings = isPkgInit (PROP := IProp GF) pkg_id.strings
   e_net_url : G pkg_id.net.url = isPkgInit (PROP := IProp GF) pkg_id.net.url
   e_cmp : G pkg_id.cmp = isPkgInit (PROP := IProp GF) pkg_id.cmp
-  e_iter : G pkg_id.iter = isPkgInit (PROP := IProp GF) pkg_id.iter
   e_slices : G pkg_id.slices = isPkgInit (PROP := IProp GF) pkg_id.slices
   e_vendor_golang_org_x_net_http_httpguts : G pkg_id.vendor.golang_org.x.net.http.httpguts = isPkgInit (PROP := IProp GF) pkg_id.vendor.golang_org.x.net.http.httpguts
   e_net_textproto : G pkg_id.net.textproto = isPkgInit (PROP := IProp GF) pkg_id.net.textproto
@@ -208,13 +208,17 @@ theorem wf_io {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.io G :=
   And.intro h.e_io ⟨wf_errors h, wf_sync h, True.intro⟩
 
-theorem wf_internal_abi {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.abi G :=
-  And.intro h.e_internal_abi True.intro
+theorem wf_internal_reflectcore {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.reflectcore G :=
+  And.intro h.e_internal_reflectcore ⟨wf_unsafe h, True.intro⟩
+
+theorem wf_iter {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.iter G :=
+  And.intro h.e_iter True.intro
 
 theorem wf_reflect {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.reflect G :=
-  And.intro h.e_reflect ⟨wf_internal_abi h, True.intro⟩
+  And.intro h.e_reflect ⟨wf_internal_gomodel h, wf_internal_reflectcore h, wf_iter h, wf_strconv h, wf_unsafe h, True.intro⟩
 
 theorem wf_fmt {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.fmt G :=
@@ -287,10 +291,6 @@ theorem wf_net_url {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_cmp {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.cmp G :=
   And.intro h.e_cmp True.intro
-
-theorem wf_iter {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.iter G :=
-  And.intro h.e_iter True.intro
 
 theorem wf_slices {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.slices G :=
@@ -547,15 +547,20 @@ theorem wfO_io {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.io ∉ ownedPkgs) (hS _ hm))).trans
     h.e_io) ⟨wfO_errors h S hS, wfO_sync h S hS, True.intro⟩
 
-theorem wfO_internal_abi {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.abi (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.abi ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_abi) True.intro
+theorem wfO_internal_reflectcore {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.reflectcore (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.reflectcore ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_reflectcore) ⟨wfO_unsafe h S hS, True.intro⟩
+
+theorem wfO_iter {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.iter (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.iter ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_iter) True.intro
 
 theorem wfO_reflect {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.reflect (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.reflect ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_reflect) ⟨wfO_internal_abi h S hS, True.intro⟩
+    h.e_reflect) ⟨wfO_internal_gomodel h S hS, wfO_internal_reflectcore h S hS, wfO_iter h S hS, wfO_strconv h S hS, wfO_unsafe h S hS, True.intro⟩
 
 theorem wfO_fmt {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.fmt (gOff S G) :=
@@ -646,11 +651,6 @@ theorem wfO_cmp {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.cmp (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.cmp ∉ ownedPkgs) (hS _ hm))).trans
     h.e_cmp) True.intro
-
-theorem wfO_iter {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.iter (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.iter ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_iter) True.intro
 
 theorem wfO_slices {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.slices (gOff S G) :=
