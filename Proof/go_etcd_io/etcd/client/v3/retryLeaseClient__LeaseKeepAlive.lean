@@ -61,6 +61,7 @@ theorem retryLeaseClient.LeaseKeepAlive.wp_proof
   ihave #Hdesc := leaseDescOk_of_init $$ Hpb
   wp_apply wp_stub lc conn addr ctx cd copts _ $$ [Hlt] as %st %err Hres
   · iframe #
+    iframe Hlt
   iapply HΦ
   iexact Hres
 

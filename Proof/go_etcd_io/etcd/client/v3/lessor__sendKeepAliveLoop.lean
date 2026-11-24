@@ -34,7 +34,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     lessor.sendKeepAliveLoop.spec (GF := GF) (hG := hG) := by
   intro l addr st γ Up Dn cd L
-  wp_start as ⟨Hlt, #Hl, #Hst, #Hz, Htok⟩
+  wp_start as ⟨Hl0, #Hl, #Hst, #Hz, Htok⟩
   iunfold lessorAt at Hl
   icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
@@ -142,12 +142,12 @@ theorem lessor.sendKeepAliveLoop.wp_proof
       $$ [Htsl] as Htsl
     · iframe; ipureintro; exact Hc
     (try wp_auto)
-    ihave #HS := HSend $$ %L2 %«$r0_ptr» %(⟨ids[sint.nat n]'Hlt, 0, 0⟩ : KaReqM) %iprop(True)
-    wp_apply HS $$ [Htok «$r0»] as %err ⟨-, -, Hres⟩
+    ihave #HS := HSend $$ %L2 %«$r0_ptr» %(⟨ids[sint.nat n]'Hlt, 0, 0⟩ : KaReqM) %(levelTok 0)
+    wp_apply HS $$ [Hl0 Htok «$r0»] as %err ⟨Hl0, -, Hres⟩
     · isplitr
-      · ipureintro; trivial
-      isplitr
-      · itrivial
+      · ipureintro; rfl
+      isplitl [Hl0]
+      · iexact Hl0
       iframe Htok
       isplitl [«$r0»]
       · iexists _; iframe «$r0»; ipureintro; exact ⟨rfl, rfl⟩
@@ -182,7 +182,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
         (try wp_auto)
         wp_for_post
         wp_for_post
-        iapply HΦ; itrivial
+        iapply HΦ; iframe Hl0; try itrivial
   · ihave #Hsc2 : iprop(context.isContextDef sc scd) $$ [Hscc]
     · iexact Hscc
     unfold context.isContextDef
@@ -226,7 +226,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
       iintro -
       (try wp_auto)
       wp_for_post
-      iapply HΦ; itrivial
+      iapply HΦ; iframe Hl0; try itrivial
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
@@ -239,7 +239,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
       iintro -
       (try wp_auto)
       wp_for_post
-      iapply HΦ; itrivial
+      iapply HΦ; iframe Hl0; try itrivial
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
@@ -252,7 +252,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
       iintro -
       (try wp_auto)
       wp_for_post
-      iapply HΦ; itrivial
+      iapply HΦ; iframe Hl0; try itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
 
