@@ -93,7 +93,8 @@ theorem marshalVia_codec (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 �
   · obtain ⟨h1, h2⟩ := h
     simp only [marshalVia, h1, h2, Bool.false_eq_true, ↓reduceIte]
     iintro H; iexact H
-  · iintro H; iexact H
+  · simp only [marshalVia]
+    iintro H; iexact H
 
 /-- A pointer the dispatch sends to the codec: `unmarshalVia` is the codec's route. -/
 theorem unmarshalVia_codec (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 → Bool → w64 × w64)
@@ -103,7 +104,8 @@ theorem unmarshalVia_codec (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 
   · simp only [unmarshalsByCodec] at h
     simp only [unmarshalVia, h, Bool.false_eq_true, ↓reduceIte]
     iintro H; iexact H
-  · iintro H; iexact H
+  · simp only [unmarshalVia]
+    iintro H; iexact H
 
 /-- `Marshal` of a `*T` whose method set has `JSONModelMarshalPtr`: `T`'s own method. -/
 theorem marshalVia_ptr (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 → Bool → w64 × w64)
