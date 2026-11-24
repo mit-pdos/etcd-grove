@@ -111,5 +111,14 @@ macro "wp_open_stub" : tactic => `(tactic| (
   (try (wp_apply os.wp_syscallMode as %_ -; try wp_auto))
   wp_stub os.fsOpen.impl))
 
+set_option hygiene false in
+/-- `os_newfile`: the `file` OpenFile's model allocates (`&file{name: name}`, its `pfd.Sysfd` set),
+split into its fields (`inner` the struct, then its `pfd`'s). -/
+macro "os_newfile" : tactic => `(tactic| (
+  irename : (_ ↦ (_ : os.file) : IProp GF) => inner
+  iStructNamed inner
+  iStructNamed pfd
+  irename : (_ ↦ (_ : os.File) : IProp GF) => f))
+
 end EtcdGrove
 end Perennial
