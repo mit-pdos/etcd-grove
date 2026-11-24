@@ -52,11 +52,12 @@ CODEC_GEN = {'rpc': 'models/net/rpc/rpcgen.py', 'json': 'models/json/jsongen.py'
 
 def load_kits():
     """The kit files `etc/dsv/*.py` with a `KITGEN` section, by name (as goose.dsv_kits loads
-    them: name order, files starting with `_`, this script and the experiment scripts' proxy.py
-    skipped)."""
+    them: name order, files starting with `_`, this script, the experiment scripts' proxy.py and the
+    run-analysis scripts skipped)."""
     out = {}
     for f in sorted(os.listdir(DSV)):
-        if not f.endswith('.py') or f.startswith('_') or f in ('kitgen.py', 'proxy.py'):
+        if not f.endswith('.py') or f.startswith('_') or f in ('kitgen.py', 'proxy.py', 'tokens.py',
+                                                                'backtrack.py', 'parallel.py', 'compare.py'):
             continue
         spec = importlib.util.spec_from_file_location('kitgen_kit_' + f[:-3], os.path.join(DSV, f))
         m = importlib.util.module_from_spec(spec)
@@ -1099,7 +1100,8 @@ COORDINATION = ('etc/sessions.txt', 'etc/gh-inbox.py', 'notes/coordination.md', 
 EXPERIMENT = ('etc/dsv/sandbox.sh', 'etc/dsv/run.sh', 'etc/dsv/experiment.sh', 'etc/dsv/check-env.sh',
               'etc/dsv/verify.sh', 'etc/dsv/proxy.py', 'etc/dsv/inside.sh', 'etc/dsv/ask-hook.sh',
               'etc/dsv/model-hook.sh', 'etc/dsv/managed-settings.json', 'etc/dsv/loadlog.sh',
-              'etc/dsv/snapshot.sh')
+              'etc/dsv/snapshot.sh', 'etc/dsv/tokens.py', 'etc/dsv/backtrack.py', 'etc/dsv/parallel.py',
+              'etc/dsv/compare.py', 'etc/dsv/rundone.py')
 
 
 def excluded(f, kit, allow, others, roots, other_roots):

@@ -109,11 +109,11 @@ theorem wp_holdToken :
     EtcdGrove.cluster3.holdToken.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.holdToken.wp_proof
 
-theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
+theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.cluster3.StartMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.StartMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve wp_holdToken mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
-theorem wp_StartCluster [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
+theorem wp_StartCluster [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.cluster3.StartCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.StartCluster.wp_proof wp_StartMember wp_StartBridge mvcc.api.mvccApi_names_nonempty_law_holds
 

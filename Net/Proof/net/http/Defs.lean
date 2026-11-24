@@ -5,7 +5,8 @@ translated by project models-net), for `ReadResponse` on net/rpc's `CONNECT` ans
 * `httpEnv` (persistent): the package state the parse reads: `bufio`'s, `io`'s, `fmt`'s (the
   `badStringError`s) and `strconv`'s (`Atoi`) initialization, httpguts' token table (`tokenTable`,
   `ValidHeaderFieldName`'s), `strings`' initialization (`ParseHTTPVersion`'s `HasPrefix`), net/http's
-  `errTooLarge` (an `errors.New` error, `readRequestLimit`'s) and `NoBody` (the body of a response with
+  `errTooLarge` (`errors.New("http: request too large")`, `readRequestLimit`'s: its message persistent,
+  which `conn.serve` compares other errors against) and `NoBody` (the body of a response with
   none). net/http has no package initialization proof yet
   (`notes/dsverify-net-port-plan.md`, phase 5 item 2, 5): a client takes `httpEnv` as a premise.
 * `cutByte s c`, `trimLeftByte s c`: what the model's `modelCutByte` and `modelTrimLeftByte` return
@@ -36,6 +37,7 @@ public import Perennial.Proof.fmt
 public import Perennial.Proof.strconv
 public import Perennial.Proof.internal.stringslite.Base
 public import Perennial.Proof.strings.Base
+public import Perennial.Proof.errors.Base
 
 @[expose] public section
 
@@ -195,8 +197,7 @@ def httpEnv : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
     isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ isPkgInit (PROP := IProp GF) pkg_id.strconv ∗
     (vendor.golang_org.x.net.http.httpguts.tokenTable ∗ isPkgInit (PROP := IProp GF) pkg_id.strings ∗
-      ∃ l : Loc, globalAddr net.http.errTooLarge ↦□
-        interface.mkOk (go.GoType.PointerType errors.errorString.ty) #l) ∗
+      errors.newVar net.http.errTooLarge go!"http: request too large") ∗
     ∃ nb : net.http.noBody, globalAddr net.http.NoBody ↦□ nb)
 
 theorem httpEnv_tokenTable : httpEnv (GF := GF) ⊢ vendor.golang_org.x.net.http.httpguts.tokenTable := by
@@ -209,6 +210,14 @@ theorem httpEnv_strings : httpEnv (GF := GF) ⊢ isPkgInit (PROP := IProp GF) pk
   iintro H
   iunfold httpEnv at H
   icases H with ⟨-, -, -, -, ⟨-, #Hs, -⟩, -⟩
+  iexact Hs
+
+/-- `errTooLarge` holds `errors.New("http: request too large")`. -/
+theorem httpEnv_errTooLarge :
+    httpEnv (GF := GF) ⊢ errors.newVar (GF := GF) net.http.errTooLarge go!"http: request too large" := by
+  iintro H
+  iunfold httpEnv at H
+  icases H with ⟨-, -, -, -, ⟨-, -, #Hs⟩, -⟩
   iexact Hs
 
 instance httpEnv_persistent : Persistent (httpEnv (GF := GF)) := by

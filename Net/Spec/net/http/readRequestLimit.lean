@@ -10,7 +10,7 @@ have an `Error()` method returning a message other than `"message too large"` (`
 `maxHeaders` not negative. It returns a non-nil error (`reqErr E err`: the header reader's, that is the
 stream's or a `textproto.ProtocolError`; `io.ErrUnexpectedEOF` for the stream's `io.EOF` once the request
 line is read; a `badStringError`, `"malformed HTTP …"`, for a request line or version cut by the stream's
-error; never `errTooLarge`), or the request
+error; never `errTooLarge`) and the reader back, at some position, or the request
 (`connectReqv`: `CONNECT`, the request URI `path`, `HTTP/1.0`, the URL of path `path`, an empty header,
 no body) and `nil`, the reader past the request's bytes. A line cut by an error does not parse as a
 whole request: the version `"HTTP/1.0"` is the line's end, and a whole line is followed by the header
@@ -51,7 +51,8 @@ abbrev readRequestLimit.spec : Prop :=
     {{ EtcdGrove.bufio.ownReader b ri S E [] }}
       (App (App (Val (@! net.http.readRequestLimit)) (Val #b)) (Val #maxH))
     {{ (req : Loc) (err : GoInterface), RET (PairV #req #err);
-        (⌜err ≠ interface.nil⌝ ∗ reqErr E err) ∨
+        (⌜err ≠ interface.nil⌝ ∗ reqErr E err ∗
+          ∃ rr : List w8, EtcdGrove.bufio.ownReader b ri S E rr) ∨
         (⌜err = interface.nil⌝ ∗ connectReqv req path ∗
           EtcdGrove.bufio.ownReader b ri S E (net.rpc.connectReq path)) }}
 
