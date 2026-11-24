@@ -5,9 +5,10 @@
 UDP datagrams, `kvnet.RunNodeUDP`; the clients' requests still over TCP) as an instance of the generic
 robustness statement (`Robustness/Statement.lean`). **Exactly kvnet's statement**
 (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`, agreed 2026-11-20: `notes/kvnet-robust-goal.md`), its
-premises and vocabulary reused unchanged (`raft_kvnet.ClusterConfig`, `ClusterConfig.Ok`), with two
-differences: replica `i + 1` runs `kvudpReplicaProgram` (`RunNodeUDP` for `RunNode`), and the
-extensions are `[netExt, fsExt, udpExt]` (`NetFsUdp.kvudpExts`). The definitions are in
+premises and vocabulary reused unchanged (`raft_kvnet.ClusterConfig`, `ClusterConfig.Ok`), with three
+differences: replica `i + 1` runs `kvudpReplicaProgram` (`RunNodeUDP` for `RunNode`), the
+extensions are `[netExt, fsExt, udpExt]` (`NetFsUdp.kvudpExts`), and the thread bound is named
+(below). The definitions are in
 `KvNet/Proof/.../kvnet/cmd/kvudp/TopLevelDefs.lean`, the proof in
 `KvNet/Proof/.../kvnet/cmd/kvudp/TopLevelRobustness.lean`.
 
@@ -32,6 +33,13 @@ deployment sends datagrams to the replicas' addresses.
 **Trusted beyond kvnet's**: the UDP extension's semantics, the trusted models of `net.ListenUDP`,
 `(*UDPConn).WriteToUDP` and `(*UDPConn).ReadFromUDP` (`Net/TrustedCode/net.lean`, section "UDP"), and
 the package assumption `net.UdpFieldAssumptions` (the layout of `UDPConn`/`UDPAddr` those models read).
+
+**The bounds**: fewer than `2 ^ 61` steps, as many as the proof allows (raft's cluster invariant
+needs `receiptBound + bootLen ≤ 2 ^ 61`, `readyFits_intro`, through kvnet's `kvnet_store_alloc`), and
+fewer than `kvudpThreads` live threads on every machine, a bound the proof does not need, set to
+exclude no execution of fewer than `2 ^ 61` steps (`TopLevelDefs.lean`). The bridge takes the thread
+bound along the execution at hand (Perennial's `goose_dist_mixed_crash_adequacy_below`), independent
+of the step bound.
 
 Safety only, as kvnet's.
 -/
@@ -82,7 +90,7 @@ def raft_kvudp_robust.spec : Prop :=
     Robustness.Robust
       (replicas.mapIdx fun i p => (kvudpReplicaProgram cl addrs dir (W64 ((i : Int) + 1)), p.2))
       [(kvudpCheckProgram cl addrs, σc)]
-      g (threads := 2 ^ 61 + 1) (bound := 2 ^ 61)
+      g (threads := kvudpThreads) (bound := 2 ^ 61)
 
 /-- **kvudp is robust, an example**: kvnet's example deployment (`raft_kvnet.exampleConfig`), with
 UDP. A corollary of `raft_kvudp_robust`. -/
@@ -105,7 +113,7 @@ def raft_kvudp_robust_example.spec : Prop :=
        (kvudpReplicaProgram exampleConfig addrs dir 4, σ₄),
        (kvudpReplicaProgram exampleConfig addrs dir 5, σ₅)]
       [(kvudpCheckProgram exampleConfig addrs, σc)]
-      g (threads := 2 ^ 61 + 1) (bound := 2 ^ 61)
+      g (threads := kvudpThreads) (bound := 2 ^ 61)
 
 end statement
 

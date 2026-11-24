@@ -12,6 +12,7 @@ reused unchanged; the programs and `fsOf` are restated only because their extens
   `RunNodeUDP` (as `kvnetReplicaProgram`, with `RunNodeUDP` for `RunNode`).
 * `kvudpCheckProgram cl addrs`: the checking client's process, as `kvcheckProgram` (the same body).
 * `fsOf σ`: a machine's Linux file system (the file extension's local state).
+* `kvudpThreads`: the statement's thread bound (`Robust`'s `threads`).
 -/
 module
 
@@ -57,6 +58,16 @@ attribute [local instance] kvudpExts kvudpExtsSemantics kvudpExts_hasFs
 abbrev fsOf (σ : state) : Fs.OsState := extLocal Fs.fsExt σ.world
 
 end fs
+
+/-- **The statement's thread bound** (`Robust`'s `threads`): the live threads (`state.threads`) a
+machine keeps fewer of, along the executions the theorem covers. kvudp's proof needs no thread
+bound: no spec it rests on takes the machine's `threadBound` (no counter backed by thread tokens,
+such as a `sync.WaitGroup`'s or an `RWMutex`'s readers'), and the program's goroutines are not
+bounded by a constant anyway (a replica forks one per accepted TCP connection, `Node.accept`, and
+one per snapshot it sends over UDP, `udpTransport`'s `sendSnapshot`). So the bound is set to exclude
+nothing: a machine starts with one thread and a step forks at most one, so in fewer than `2 ^ 61`
+steps (the statement's step bound) it never reaches `2 ^ 61 + 1` threads. -/
+def kvudpThreads : Nat := 2 ^ 61 + 1
 
 end raft_kvudp
 end EtcdGrove

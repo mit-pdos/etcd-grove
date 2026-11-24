@@ -143,7 +143,9 @@ theorem nodeStart_of_crashBootU [lctx : GoLocalContext] [G : GooseGlobalGS .hasL
   exact HQ
 
 /-- **The bridge** (`Net.robust_of_netFsBoot_addrs`, over `[netExt, fsExt, udpExt]`): the start
-obligation is also given the UDP extension's start resources. -/
+obligation is also given the UDP extension's start resources. Over Perennial's
+`goose_dist_mixed_crash_adequacy_below`: the machines' thread bound is `Robust`'s `threads`, taken
+along the execution at hand, independent of the step bound (no obligation here depends on it). -/
 theorem robust_of_netFsUdpBoot [lctx : GoLocalContext] (addrs : List GoString)
     (crashing stable : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
     (Hnd : addrs.Nodup) (Hok : ∀ a ∈ addrs, addrOk a = true)
@@ -163,12 +165,11 @@ theorem robust_of_netFsUdpBoot [lctx : GoLocalContext] (addrs : List GoString)
     fun _ m hm => List.mem_append_left _ (List.mem_of_getElem? hm)
   have hfst : ∀ (k : Nat) (m : Expr × state), stable[k]? = some m → m ∈ crashing ++ stable :=
     fun _ m hm => List.mem_append_right _ (List.mem_of_getElem? hm)
-  have H := goose_dist_mixed_crash_adequacy (GF := GF) (n + 1) (n + 2) crashing stable g
+  have H := goose_dist_mixed_crash_adequacy_below (GF := GF) (n + 1) threads crashing stable g
     (fun _ v => v = #()) (fun _ p h => intoVal_ne_PanicV () p h.symm)
     ⟨hig.1, trivial, hig.2.2.1, trivial⟩
     (fun m hm => ⟨trivial, (hil m hm).2.1, trivial, trivial⟩) (fun i L => crashPreU crashing i L) ?_ ?_
-    n κs c hsteps.nsteps (Nat.lt_succ_self n) (fun m hm => (hfresh m hm).2.2)
-    (DistCrashThreadsBelow.of_single (distInit_threads hfresh)) i tp σ hi
+    n κs c hsteps (Nat.lt_succ_self n) (fun m hm => (hfresh m hm).2.2) i tp σ hi
   · exact ⟨H.2.1 e he, H.2.2 e he⟩
   · intro G HN
     iintro Hg
@@ -179,11 +180,11 @@ theorem robust_of_netFsUdpBoot [lctx : GoLocalContext] (addrs : List GoString)
     isplitl [Hc]
     · iapply BigSepL.bigSepL_mono ?_ $$ Hc
       intro k m hm
-      exact nodeStart_of_crashBootU (n + 2) crashing k m hm (hfresh m (hfc k m hm))
+      exact nodeStart_of_crashBootU threads crashing k m hm (hfresh m (hfc k m hm))
         ((hil m (hfc k m hm)).2.1) (Pc k) (HPc k m hm)
     · iapply BigSepL.bigSepL_mono ?_ $$ Hst
       intro k m hm
-      exact nodeWp_of_stableBootU (n + 2) m.1 m.2 (Ps k) (hfresh m (hfst k m hm))
+      exact nodeWp_of_stableBootU threads m.1 m.2 (Ps k) (hfresh m (hfst k m hm))
         ((hil m (hfst k m hm)).2.1) (HPs k m hm)
   · intro hG _ _ k e' σ' Hes Hlctx
     obtain ⟨G, L⟩ := hG
