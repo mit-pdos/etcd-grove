@@ -48,7 +48,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assum
 theorem etcd_auth3.wp_startMember [_root_.Perennial.net.FieldAssumptions] :
     etcd_auth3.startMember.spec (GF := GF) (hG := hG) :=
   etcd_auth3.startMember.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-    server_new_auth_on etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
+    server_new_auth_on etcdstart.net.wp_ListenHttp EtcdServer.wp_RaftHandler server_Start
 
 /-- **auth3's `newUserClient`** (authkv's copy), over `clientv3.New`. -/
 theorem etcd_auth3.wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :

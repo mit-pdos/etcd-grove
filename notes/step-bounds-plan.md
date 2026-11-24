@@ -6,9 +6,11 @@ allows. Steps, as in #30:
 
 1. **Done** (branch `step-bounds-mechanical`, enqueued 2026-11-22): `logkvrw` (`2^63`), `mvccrand`,
    `mvccfull` (`2^38`), `k8s/all` (`2^40 - 11`) off the thread-induced step bound.
-   1b. `bboltfs`: needs crash adequacy along the execution (Perennial; open).
+   1b. **Done** (branch `step-bounds-bboltfs`, 2026-11-24): `bboltfs` at `2^63` steps, `2^30` threads,
+   over Perennial's crash adequacy along the execution (perennial#690, `goose_crash_adequacy_below`,
+   with the distributed forms the dsverify kits use).
 2. **Done** (landed `0f20102d32`): the backend's buffered entries paid by time receipts; the etcd
-   statements at `2^48`. 2b. `OpenBackend`'s receipt premise (Q2): branch `openbackend-receipt`.
+   statements at `2^48`. 2b. `OpenBackend`'s receipt premise (Q2): landed `5d6a6e3f4e`.
 3. **`K` time receipts per request id** (its Scope below, 2026-11-22: a hard stop for the user).
 4. **The ceiling recorded**: `nonissues/etcd-request-id-suffix-wrap-dup-panic.md` (done), and
    `notes/robustness.md` once 2-3 land.

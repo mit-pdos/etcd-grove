@@ -47,7 +47,7 @@ proof does not need that: every attempt reads the same pinned files). Logically 
 unchanged at the pin (no step changes the state), as `Repair`'s. -/
 abbrev wal.ValidSnapshotEntries.spec (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF),
-  InArea r dir nm → NameOk nm → cleanAbsPath r → dir.length < 2 ^ 59 →
+  InArea r dir nm → NameOk nm → cleanAbsPath r → PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
       osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗

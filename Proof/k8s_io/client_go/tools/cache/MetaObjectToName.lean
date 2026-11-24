@@ -38,9 +38,10 @@ theorem MetaObjectToName.wp_proof [apps_sem : k8s_io.api.apps.v1.Assumptions]
   · iexact Hds
   wp_func_call
   wp_call
-  by_cases hl : dd.ObjectMeta'.Namespace'.length < 2 ^ 63
+  by_cases hl : ((dd.ObjectMeta'.Namespace').length : Int) ≤ maxAddr
   case neg => simp only [hl, ↓reduceIte]; wp_apply wp_AngelicExit
   simp only [hl, ↓reduceIte]
+  have hl_lt : (dd.ObjectMeta'.Namespace').length < 2 ^ 63 := by unfold maxAddr at hl; omega
   wp_auto
   have hz : sint.Z (W64 (dd.ObjectMeta'.Namespace'.length : Int)) =
       dd.ObjectMeta'.Namespace'.length := by word

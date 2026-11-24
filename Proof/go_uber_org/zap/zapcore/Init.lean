@@ -26,6 +26,7 @@ public import Proof.go_uber_org.zap.internal.color.Init
 public import Proof.go_uber_org.zap.internal.exit.Init
 public import Proof.go_uber_org.zap.internal.pool.Init
 public import Proof.runtime.Init
+public import Proof.fmt.SprintfPure
 public import Perennial.Proof.errors.NewVar
 
 @[expose] public section

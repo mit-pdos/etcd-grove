@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.cmp
-public import Code.hash
+public import Perennial.Code.hash
 public import Code.hash.crc32
 public import Perennial.Code.slices
 public import Perennial.Code.sync
@@ -3737,7 +3737,7 @@ noncomputable def store.restore.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (Val #(go!"failed to attach a lease"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"lease-id"))
   (Let "$a1" (Let "$a0" (Val #(go!"%016x"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty))) (Var "lid")))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty))) (Var "lid")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))

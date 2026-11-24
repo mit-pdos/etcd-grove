@@ -26,9 +26,12 @@ variable [sem : go.Semantics]
 /-- **`setPeerURLsHeader(req, urls)`** on a request being built: the request with some headers,
 the others kept; (2026-10-27, D22 J-T, W8) of URLs of only the scheme `http` and a plain host,
 `X-PeerURLs` their strings (`http://host`) joined by `,` (`peerURLsHdr`); (http-boundary-fix,
-2026-11-14) no idempotency key added (`http.noIdemKey`). -/
+2026-11-14) no idempotency key added (`http.noIdemKey`). (fmt stage 1, 2026-11-24) The URLs within
+etcd's URL length bound (`plainURLsFit`): `strings.Join` of their strings must stay below its length
+bound (the transport's configured URLs are, `trURLsOk.fit`). -/
 abbrev rafthttp.setPeerURLsHeader.spec : Prop :=
   ∀ (r : Loc) (R : http.HReq) (urls : GoSlice) (uvs : List net.url.URL),
+  plainURLsFit uvs →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ http.reqOwn r R ∗ urls ↦*□ uvs }}
     (App (App (Val (@! rafthttp.setPeerURLsHeader)) (Val #r)) (Val #urls))
   {{ RET #(); ∃ hs : List (GoString × GoString),

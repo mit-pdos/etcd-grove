@@ -28,7 +28,7 @@ variable [os.Assumptions]
 theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
   intro f fd name dqf dq d m lo xs hcov
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hbs⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hm, Hbs⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -52,20 +52,20 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ileft
     isplitr; · ipureintro; rfl
     iframe
   · have he0' : ¬ e = W64 0 := he.1
     simp only [decide_eq_false he0', Bool.not_false]
     wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
     ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
     iapply HΦ
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     iright
     iframe
     ipureintro; intro h; cases h
@@ -94,7 +94,7 @@ private abbrev os.File.Sync.tripleNEB : Prop :=
 private theorem os.File.Sync.wp_oldB : os.File.Sync.tripleOldB (GF := GF) (hG := hG) := by
   intro f fd name dqf dq d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hm⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -118,20 +118,20 @@ private theorem os.File.Sync.wp_oldB : os.File.Sync.tripleOldB (GF := GF) (hG :=
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ileft
     isplitr; · ipureintro; rfl
     iframe
   · have he0' : ¬ e = W64 0 := he.1
     simp only [decide_eq_false he0', Bool.not_false]
     wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
     ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
     iapply HΦ
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     iright
     iframe
     ipureintro; intro h; cases h
@@ -139,7 +139,7 @@ private theorem os.File.Sync.wp_oldB : os.File.Sync.tripleOldB (GF := GF) (hG :=
 private theorem os.File.Sync.wp_NEB : os.File.Sync.tripleNEB (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name dqf dq d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hm⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -149,7 +149,7 @@ private theorem os.File.Sync.wp_NEB : os.File.Sync.tripleNEB (GF := GF) (hG := h
   wp_apply wp_osFsyncBNE hS fd dq d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %c Hm Hosfd
   iapply HΦ
   iframe
-  isplitl [] <;> iassumption
+  (repeat' isplitl []) <;> iassumption
 
 /-- **`specB`**: by cases on `FsNoErr`, the error-free triple or the one without the witness, whose
 error arm then has `¬ FsNoErr`. -/

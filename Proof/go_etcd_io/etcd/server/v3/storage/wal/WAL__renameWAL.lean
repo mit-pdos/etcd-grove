@@ -136,7 +136,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   icases (osCallPerm_split _ _ _).1 $$ Hperm with ⟨Hperm1, Hperm2⟩
   icases osCallPerm_halfSplit _ (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm3⟩
   try wp_auto
-  have hdl' : (child r nm).length < 2 ^ 61 := by omega
+  have hdl' : (child r nm).length < 2 ^ 60 := by omega
   wp_apply wp_nfp lg (child r nm) (W64 64000000) R dq J (by decide) (by decide) hdl' (by decide)
     $$ [Hperm1 Hs1 Ht0] as %fp ⟨%hfp, %γ, Hpipe, Hmain⟩
   · iframe; iframe #; unfold pipeRes; rw [hkc nm]; iframe

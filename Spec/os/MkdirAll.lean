@@ -19,6 +19,7 @@ Proved in `Proof/os/MkdirAll.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.os.PkgInit
 public import Spec.os.Mkdir
 
 @[expose] public section
@@ -43,11 +44,12 @@ abbrev os.MkdirAll.specS : Prop :=
   ∀ (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (qd : Qp) (h : NamesH) (q r : Qp)
     (Q : Option (Nat × Nat × Ino) → IProp GF),
   NameOk b → h.cur !! b = none → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q }}
     (App (App (Val (@! os.MkdirAll)) (Val #(child d b))) (Val #perm))
-  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
+  {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osPathS R d (DFrac.own qd) j ∗
+      osCallPerm (callKey R d) 1 ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ mkOut j b h (DFrac.own q) o ∗ mkNew o }}
 
 end spec

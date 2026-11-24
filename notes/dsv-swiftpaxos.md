@@ -1374,6 +1374,14 @@ unbuilt modules whose imports build, by how many wait on them; the error of each
   replace by remote's kit (the lab's `RemoteDistSpec` interface, its addresses `10.77.0.x`, its
   kitgen codec go).
 
+## Step bound 2^63 (2026-11-24, dsv-steps63)
+
+`swiftpaxos_remote_robust.spec` now concludes `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)` (was `∀
+threads, Robust … threads (2 ^ 31 - 1)`): `Bridge.lean`'s `robust_of_distBootLisRBT_sha` uses
+Perennial's `goose_dist_adequacy_below` (pin 580868e54, perennial#690), whose thread bound is along
+the run (`Robust`'s `threads`), so net/rpc's `threadBound ≤ 2^31` no longer limits the steps.
+Details, and what gryff and craq need: notes/dsv-epaxos.md, "Step bound 2^63".
+
 ## How to resume
 
 - Perennial: `.lake/package-overrides.json` points at `/shared/perennial-71de6f043` (lean's pin since

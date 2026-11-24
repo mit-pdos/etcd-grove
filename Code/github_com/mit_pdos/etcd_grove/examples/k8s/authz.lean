@@ -94,7 +94,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def MainStrict [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/authz.MainStrict"
 
-/-- go: authz.go:35:6 -/
+/-- go: authz.go:36:6 -/
 noncomputable def arbBool.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -110,7 +110,7 @@ noncomputable def arbBool.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- arbErr is nil or an error, arbitrarily.
 
-    go: authz.go:40:6 -/
+    go: authz.go:41:6 -/
 noncomputable def arbErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -134,7 +134,7 @@ noncomputable def arbErr.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
 
-/-- go: authz.go:47:6 -/
+/-- go: authz.go:48:6 -/
 noncomputable def arbReason.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -159,7 +159,7 @@ noncomputable def arbReason.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- arbDecisionValue is Deny, Allow, NoOpinion or a value outside the three, arbitrarily.
 
-    go: authz.go:55:6 -/
+    go: authz.go:56:6 -/
 noncomputable def arbDecisionValue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Val #())))
@@ -176,7 +176,7 @@ noncomputable def arbDecisionValue.impl [GooseExts] [GoGlobalContext] : val :=
 /-- arbName is an authorizer name for a union, from a fixed list with valid names, an empty one, one
     that is not a DNS-1123 subdomain, and repeats (so a union may get the same name twice).
 
-    go: authz.go:61:6 -/
+    go: authz.go:62:6 -/
 noncomputable def arbName.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -204,7 +204,7 @@ noncomputable def arbName.impl [GooseExts] [GoGlobalContext] : val :=
 /-- arbID is a condition ID from a fixed list with valid label keys and invalid ones: empty, not a
     label key, no domain prefix, a reserved domain (*.k8s.io); two picks may repeat (duplicate IDs).
 
-    go: authz.go:68:6 -/
+    go: authz.go:69:6 -/
 noncomputable def arbID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -233,7 +233,7 @@ noncomputable def arbID.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- arbType is a condition type: none (valid), a valid label key, an invalid one, or a reserved one.
 
-    go: authz.go:75:6 -/
+    go: authz.go:76:6 -/
 noncomputable def arbType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -260,7 +260,7 @@ noncomputable def arbType.impl [GooseExts] [GoGlobalContext] : val :=
 /-- arbResult is an arbitrary condition evaluation result: true, false, an error (possibly nil, which
     the library replaces by an error of its own) or unevaluatable.
 
-    go: authz.go:82:6 -/
+    go: authz.go:83:6 -/
 noncomputable def arbResult.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult.ty))) (Val #())))
@@ -299,7 +299,7 @@ noncomputable def arbResult.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult.ty))) (Pair (Var "$res0") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionEvaluationResult.ty))) (Var "$res0")))))
 
-/-- go: authz.go:102:23 -/
+/-- go: authz.go:103:23 -/
 noncomputable def arbCondition.GetID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -314,7 +314,7 @@ noncomputable def arbCondition.GetID.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: authz.go:106:23 -/
+/-- go: authz.go:107:23 -/
 noncomputable def arbCondition.GetType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -329,7 +329,7 @@ noncomputable def arbCondition.GetType.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: authz.go:110:23 -/
+/-- go: authz.go:111:23 -/
 noncomputable def arbCondition.GetCondition.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -344,7 +344,7 @@ noncomputable def arbCondition.GetCondition.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: authz.go:114:23 -/
+/-- go: authz.go:115:23 -/
 noncomputable def arbCondition.GetDescription.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -359,7 +359,7 @@ noncomputable def arbCondition.GetDescription.impl [GooseExts] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: authz.go:118:23 -/
+/-- go: authz.go:119:23 -/
 noncomputable def arbCondition.Evaluate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -379,7 +379,7 @@ noncomputable def arbCondition.Evaluate.impl [GooseExts] [GoGlobalContext] : val
 
 /-- arbConds is a slice of 0 to 3 arbitrary conditions.
 
-    go: authz.go:123:6 -/
+    go: authz.go:124:6 -/
 noncomputable def arbConds.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Condition.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Condition.ty)))) (Val #())))
@@ -422,7 +422,7 @@ noncomputable def arbConds.impl [GooseExts] [GoGlobalContext] : val :=
     unconditional (with or without a reason and an error), a conditions map of arbitrary conditions,
     and, if depth > 0, a union of arbitrary decisions of depth-1 under arbitrary names.
 
-    go: authz.go:135:6 -/
+    go: authz.go:136:6 -/
 noncomputable def arbDecision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "depth"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty))) (Val #())))
@@ -513,7 +513,7 @@ noncomputable def arbDecision.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- arbMaybeEval is an authorizer's arbitrary partial evaluation of a condition.
 
-    go: authz.go:159:6 -/
+    go: authz.go:160:6 -/
 noncomputable def arbMaybeEval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "cond"
@@ -533,7 +533,7 @@ noncomputable def arbMaybeEval.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- arbEval is an authorizer's arbitrary evaluation of a condition.
 
-    go: authz.go:164:6 -/
+    go: authz.go:165:6 -/
 noncomputable def arbEval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "cond"
@@ -556,7 +556,7 @@ noncomputable def arbEval.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: authz.go:176:24 -/
+/-- go: authz.go:177:24 -/
 noncomputable def arbAuthorizer.Authorize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "z"
   (Lam "ctx"
@@ -584,7 +584,7 @@ noncomputable def arbAuthorizer.Authorize.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))
 
-/-- go: authz.go:180:24 -/
+/-- go: authz.go:181:24 -/
 noncomputable def arbAuthorizer.ConditionsAwareAuthorize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "z"
   (Lam "ctx"
@@ -603,7 +603,7 @@ noncomputable def arbAuthorizer.ConditionsAwareAuthorize.impl [GooseExts] [GoGlo
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision.ty))) (Var "$res0")))))))
 
-/-- go: authz.go:184:24 -/
+/-- go: authz.go:185:24 -/
 noncomputable def arbAuthorizer.EvaluateConditions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "z"
   (Lam "ctx"
@@ -751,7 +751,7 @@ noncomputable def arbAuthorizer.EvaluateConditions.impl [GooseExts] [GoGlobalCon
 /-- legacyAuthorize is a conditions-unaware authorizer (authorizer.AuthorizerFunc) with arbitrary
     decisions, including values outside Deny, Allow, NoOpinion.
 
-    go: authz.go:208:6 -/
+    go: authz.go:209:6 -/
 noncomputable def legacyAuthorize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "a"
@@ -777,7 +777,7 @@ noncomputable def legacyAuthorize.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Pair (Var "$res0") (Var "$r0")))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Decision.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))
 
-/-- go: authz.go:215:18 -/
+/-- go: authz.go:216:18 -/
 noncomputable def emptyData.GetName.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -791,7 +791,7 @@ noncomputable def emptyData.GetName.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: authz.go:216:18 -/
+/-- go: authz.go:217:18 -/
 noncomputable def emptyData.GetNamespace.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -805,7 +805,7 @@ noncomputable def emptyData.GetNamespace.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: authz.go:217:18 -/
+/-- go: authz.go:218:18 -/
 noncomputable def emptyData.GetResource.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -819,7 +819,7 @@ noncomputable def emptyData.GetResource.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty))) (Var "$res0"))))))
 
-/-- go: authz.go:218:18 -/
+/-- go: authz.go:219:18 -/
 noncomputable def emptyData.GetSubresource.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -833,7 +833,7 @@ noncomputable def emptyData.GetSubresource.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: authz.go:219:18 -/
+/-- go: authz.go:220:18 -/
 noncomputable def emptyData.GetOperation.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -847,7 +847,7 @@ noncomputable def emptyData.GetOperation.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.AdmissionOperation.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.AdmissionOperation.ty))) (Var "$res0"))))))
 
-/-- go: authz.go:220:18 -/
+/-- go: authz.go:221:18 -/
 noncomputable def emptyData.GetOperationOptions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -861,7 +861,7 @@ noncomputable def emptyData.GetOperationOptions.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0"))))))
 
-/-- go: authz.go:221:18 -/
+/-- go: authz.go:222:18 -/
 noncomputable def emptyData.IsDryRun.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -875,7 +875,7 @@ noncomputable def emptyData.IsDryRun.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: authz.go:222:18 -/
+/-- go: authz.go:223:18 -/
 noncomputable def emptyData.GetObject.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -889,7 +889,7 @@ noncomputable def emptyData.GetObject.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0"))))))
 
-/-- go: authz.go:223:18 -/
+/-- go: authz.go:224:18 -/
 noncomputable def emptyData.GetOldObject.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -903,7 +903,7 @@ noncomputable def emptyData.GetOldObject.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "$res0"))))))
 
-/-- go: authz.go:224:18 -/
+/-- go: authz.go:225:18 -/
 noncomputable def emptyData.GetKind.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -917,7 +917,7 @@ noncomputable def emptyData.GetKind.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty))) (Var "$res0"))))))
 
-/-- go: authz.go:225:18 -/
+/-- go: authz.go:226:18 -/
 noncomputable def emptyData.GetUserInfo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -934,7 +934,7 @@ noncomputable def emptyData.GetUserInfo.impl [GooseExts] [GoGlobalContext] : val
 /-- newChain is the authorizer chain: two arbitrary conditions-aware authorizers around a legacy one,
     in a union.
 
-    go: authz.go:229:6 -/
+    go: authz.go:230:6 -/
 noncomputable def newChain.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Authorizer.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Authorizer.ty))) (Val #())))
@@ -970,7 +970,7 @@ noncomputable def newChain.impl [GooseExts] [GoGlobalContext] : val :=
 /-- twoPhase runs phase 2 on phase 1's decision d where kube-apiserver would, and checks C1-C3 (C3
     also when d is Allow if strict).
 
-    go: authz.go:239:6 -/
+    go: authz.go:240:6 -/
 noncomputable def twoPhase.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "a"
@@ -1053,7 +1053,7 @@ noncomputable def twoPhase.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main runs one request through the two phases and checks C1-C3.
 
-    go: authz.go:265:6 -/
+    go: authz.go:266:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -1099,7 +1099,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MainStrict is Main with C3 checked also when phase 1 allows (it fails then; see the package
     comment).
 
-    go: authz.go:277:6 -/
+    go: authz.go:278:6 -/
 noncomputable def MainStrict.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)

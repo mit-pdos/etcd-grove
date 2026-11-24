@@ -8,7 +8,7 @@ module
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion__Add
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion__ContainsUnconditionalAllowOrDeny
 public import Spec.fmt.ErrorfLeaf
-public import Spec.fmt.ErrorfSlice
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.SliceRange
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion__hasConditionalAuthorizerName
 public import Spec.k8s_io.apimachinery.pkg.util.validation.IsDNS1123Subdomain
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__ContainsUnconditionalAllowOrDeny
@@ -34,6 +34,10 @@ namespace authorizer
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode k8s_io.apiserver.pkg.authorization.authorizer
 
+/-! The loop spelling out the messages is proved by `wp_slice_for_range_ro`, at the `slice.forRange`
+it is about, not unfolded by `wp_auto`. -/
+attribute [-instance] pure_wp_slice_for_range
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -50,13 +54,15 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     (wp_sets_New : EtcdGrove.sets.New.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecision_PossibleDecisions : EtcdGrove.authorizer.ConditionsAwareDecision.PossibleDecisions.spec (GF := GF) (hG := hG))
     (wp_Set__UnsortedList : EtcdGrove.sets.Set.UnsortedList.spec (GF := GF) (hG := hG))
-    (wp_Set__Insert : EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG))
-    (wp_ErrorfSlice : EtcdGrove.fmt.ErrorfSlice.spec (GF := GF) (hG := hG)) :
+    (wp_Set__Insert : EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecisionUnion.Add.spec (GF := GF) (hG := hG) := by
-  intro p ks name d m
-  wp_start as ⟨Hb, #Hd, %Hwf⟩
+  intro p ks name d m N
+  wp_start as ⟨Hb, #Hd, #Hdn, %Hwf'⟩
+  have Hwf : m.WF ∧ m.depth + 1 < 2 ^ 63 := ⟨Hwf'.1, Hwf'.2.1⟩
+  have Hname := Hwf'.2.2
   iunfold ownBuilder at Hb
-  icases Hb with ⟨%u, %nds, %es, %Hwfl, Hp, Hin, Hinc, #HL, Hes, Hesc, #Hest, Hsub⟩
+  icases Hb with ⟨%u, %nds, %es, %Hwn, Hp, Hin, Hinc, #HL, Hes, Hesc, #Hest, Hsub, #HN⟩
+  obtain ⟨Hwfl, Hnm⟩ := Hwn
   wp_auto
   wp_apply (wp_ConditionsAwareDecisionUnion_ContainsUnconditionalAllowOrDeny p (DFrac.own 1) u)
     $$ [$Hp] as Hp
@@ -144,19 +150,33 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
         unionMap_ptr ↦ p ∗ authorizerName_ptr ↦ name ∗ [∗list] e ∈ es', utilerrors.errTree e) at next
       with [Hp Hes Hesc unionMap authorizerName]
       as ⟨%u3, %es3, Hp, %Hu3, Hes, Hesc, unionMap, authorizerName, #Hest3⟩
-    · wp_apply (wp_IsDNS1123Subdomain name) as %sl ⟨%msgs, Hmsgs⟩
-      imod ownSlice_persist $$ Hmsgs with #Hmsgs
+    · wp_apply (wp_IsDNS1123Subdomain name) as %sl ⟨%ms0, Hms0⟩
       wp_if_destruct
-      · wp_apply wp_slice_literal
+      · -- the messages spelled out, as `%v` prints a `[]string` (without its brackets)
+        wp_apply (wp_slice_for_range_ro (V := GoString) _ sl ms0 (DFrac.own 1) _
+          (fun _ => iprop(∃ (ms : GoString), msgs_ptr ↦ ms ∗ (∃ x : GoString, e_ptr ↦ x) ∗
+            ∃ j : w64, i_ptr ↦ j))) $$ [$Hms0] [msgs e i]
+        · iexists _; iframe
+        · imodintro
+          iintro %j %x %hx ⟨%ms, msgs, ⟨%x0, e⟩, %j0, i⟩ Hms0
+          wp_auto
+          wp_if_destruct
+          · try wp_auto
+            isplitr
+            · ipureintro; trivial
+            iframe
+          · try wp_auto
+            isplitr
+            · ipureintro; trivial
+            iframe
+        iintro ⟨%ms, msgs, ⟨%x0, e⟩, %j0, i⟩ Hms0
+        try wp_auto
+        wp_apply wp_slice_literal
         isplitr
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
-        wp_apply (wp_ErrorfSlice _ _ _ _) $$ [$Hasl] as %e1 ⟨-, #He1, %he1⟩
-        · fmt_args_intro_sl
-          isplitl
-          · iapply (fmt.argOkAt_strSlice sl msgs ⟨by decide, Or.inl rfl, rfl⟩)
-            iexact Hmsgs
-          · itrivial
+        wp_apply (wp_ErrorfLeaf _ _ _ _) $$ [$Hasl] as %e1 ⟨-, #He1, %he1⟩
+        · fmt_args_ok
         wp_apply wp_slice_literal
         isplitr
         · ipureintro; rfl
@@ -254,11 +274,18 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     · ipureintro
       obtain ⟨Hwfl1, Hwfl2⟩ := Hwfl
       obtain ⟨Hwf1, Hwf2⟩ := Hwf
-      exact ⟨Dec.WFL_append ks m Hwfl1 Hwf1, by rw [Dec.depthL_append]; omega⟩
+      refine ⟨⟨Dec.WFL_append ks m Hwfl1 Hwf1, by rw [Dec.depthL_append]; omega⟩, fun nd hnd => ?_⟩
+      rcases List.mem_append.mp hnd with hnd | hnd
+      · exact Hnm nd hnd
+      · simp only [List.mem_singleton] at hnd; subst hnd; exact Hname
     isplitr
     · rw [List.map_append, List.map_singleton]; iexact HL'
     isplitr
     · iexact Hest3
+    isplitl
+    rotate_left
+    · rw [List.map_append, List.map_singleton]
+      iapply decNamesL_snoc N _ ks d m $$ HN Hdn
     iunfold subOk
     isplitr
     · ipureintro; rw [h3, h4, Dec.cuadL_append]
@@ -275,7 +302,7 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     iframe
     iframe #
     isplitr
-    · ipureintro; exact Hwfl
+    · ipureintro; exact ⟨Hwfl, Hnm⟩
     iunfold subOk
     iframe
     ipureintro; rw [Hflag, hc]

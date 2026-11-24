@@ -110,8 +110,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
       iunfold pipeRes at Hres
       icases Hres with ⟨Hperm, Hp⟩
       ihave Ht := zerosA_trFile i m hmaps hcut hlo (OsMeta.ZeroPg.zfGe hzp) $$ [$Hm $Hz]
+      ihave #Hpko : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+      · iPkgInit
       wp_apply wp_removeTmp wp_Remove C Mr jr r X R dir dq j (pipeTmp n) i h _ (pipeTmp_nameOk n)
-        (pipeTmp_mem n) hcur $$ [$Hos $Hsi $Hwi $Hkey $Hp $Hperm $Hn $Ht] as %re ⟨Hp, Hperm, Hc⟩
+        (pipeTmp_mem n) hcur $$ [$Hpko $Hos $Hsi $Hwi $Hkey $Hp $Hperm $Hn $Ht] as %re ⟨Hp, Hperm, Hc⟩
       (try wp_auto)
       wp_method_call
       wp_call

@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import GeneratedProof.hash
+public import Perennial.GeneratedProof.hash
 public import Perennial.Golang.Theory
 public import Code.hash.fnv
 

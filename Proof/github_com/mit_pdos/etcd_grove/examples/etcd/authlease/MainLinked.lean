@@ -118,7 +118,7 @@ theorem etcd_authlease.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_
     etcd_authlease.Main.spec (GF := GF) (hG := hG) :=
   etcd_authlease.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     (etcdstart.StartMembersAuth.wp_proof (etcdstart.StartMemberAuth.wp_proof
-      etcdstart.features.wp_NewDefaultServerFeatureGate server_new_auth_on etcdstart.net.wp_Listen
+      etcdstart.features.wp_NewDefaultServerFeatureGate server_new_auth_on etcdstart.net.wp_ListenHttp
       EtcdServer.wp_RaftHandler server_Start)) etcd_authlease.wp_run
     (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)
     mvcc.api.mvccApi_names_nonempty_law_holds

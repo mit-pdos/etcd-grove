@@ -30,6 +30,7 @@ Each example's closed theorem is an instance: its proof gives its initializer's 
 module
 
 public import Proof.runtime.Start
+public import Proof.runtime.InitEmpty
 public import Perennial.GooseLang.AdequacyAlong
 public import Proof.runtime.Threads
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Metrics
@@ -63,18 +64,6 @@ section adequacy
 variable [GooseExts] [GooseInterp]
 variable [GooseSemantics] [GoGlobalContext]
 variable {GF : BundledGFunctors}
-
-/-- **The right to initialize, from the empty package state.** -/
-theorem ownInitializing_of_empty [hG : HeapGS .hasLC GF] (getInit : GoString → IProp GF) :
-    ownGoState (∅ : GMap GoString Bool) ⊢ ownInitializing getInit := by
-  iintro Hgs
-  rw [ownInitializing_unseal]
-  unfold ownInitializingDef
-  iexists ∅
-  iframe Hgs
-  imodintro
-  iapply BigSepM.bigSepM_empty.2
-  itrivial
 
 /-- **A program `init #() ;; body`, proved** (at the instance `hG`): the initializer's triple
 for some post-initialization map `getInit`, from the right to initialize and `R`, giving the

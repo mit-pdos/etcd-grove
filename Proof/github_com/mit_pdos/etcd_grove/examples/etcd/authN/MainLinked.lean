@@ -52,7 +52,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assum
 theorem etcd_authN.wp_StartMemberAuth [_root_.Perennial.net.FieldAssumptions] :
     etcdstart.StartMemberAuth.spec (GF := GF) (hG := hG) :=
   etcdstart.StartMemberAuth.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-    server_new_auth_on etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
+    server_new_auth_on etcdstart.net.wp_ListenHttp EtcdServer.wp_RaftHandler server_Start
 
 /-- **The `k` members started with auth on** (`StartMembersAuth.lean`). -/
 theorem etcd_authN.wp_StartMembersAuth [_root_.Perennial.net.FieldAssumptions] :

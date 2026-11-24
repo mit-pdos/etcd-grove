@@ -35,17 +35,18 @@ theorem fileutil.errOk_of_fmtErrorOk (e : GoInterfaceOk) :
 
 /-- The try-lock's errors: an errno's, replaced by `ErrLocked` when `errors.Is` says so. -/
 theorem fileutil.errnoErr_errOk (e : w64) (he : e ≠ 0) :
-    ⊢ (∃ ii : GoInterfaceOk, ⌜errnoErr e = GoInterface.ok ii⌝ ∗ errOk (GF := GF) ii) := by
+    syscall.errnoOk (GF := GF) ⊢
+      (∃ ii : GoInterfaceOk, ⌜errnoErr e = GoInterface.ok ii⌝ ∗ errOk (GF := GF) ii) := by
   have h := errnoErr_fmtErrorOk (GF := GF) e he
   have hne : errnoErr e = interface.mkOk syscall.Errno.ty #e := by
     unfold errnoErr; simp only [he, ↓reduceIte]
   rw [hne] at h ⊢
-  iintro
+  iintro #Hsys
   iexists _
   isplitr
   · ipureintro; rfl
   iapply fileutil.errOk_of_fmtErrorOk
-  iapply h
+  iapply h $$ Hsys
 
 theorem fileutil.wp_ofdTryLockFile
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
@@ -64,6 +65,9 @@ theorem fileutil.wp_ofdTryLockFile
         fileutil.lockPost A C path flag lf err ∗
         (⌜err = interface.nil⌝ ∨ ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) }} := by
   wp_start as ⟨#Hinv, #Hpkg, #Hkind, HP⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   ihave #Hdef := fileutil.pkgInit_fact $$ Hpkg
   icases Hdef with ⟨-, ⟨%w, #Hw, %hw⟩, %eL, #HeL, #HeLok⟩
   wp_auto
@@ -134,7 +138,7 @@ theorem fileutil.wp_ofdTryLockFile
       iexact «$r0»
     ileft
     ipureintro; rfl
-  · ihave #Hek := fileutil.errnoErr_errOk (GF := GF) e he
+  · ihave #Hek := fileutil.errnoErr_errOk (GF := GF) e he $$ Hsys
     icases Hek with ⟨%ek, %hek, #Hek⟩
     have hne : errnoErr e = interface.mkOk syscall.Errno.ty #e := by unfold errnoErr; simp only [he, ↓reduceIte]
     rw [hne] at hek ⊢
@@ -191,6 +195,9 @@ theorem fileutil.wp_flockTryLockFile
         fileutil.lockPost A C path flag lf err ∗
         (⌜err = interface.nil⌝ ∨ ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) }} := by
   wp_start as ⟨#Hinv, #Hpkg, #Hkind, HP⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   ihave #Hdef := fileutil.pkgInit_fact $$ Hpkg
   icases Hdef with ⟨-, ⟨%w, #Hw, %hw⟩, %eL, #HeL, #HeLok⟩
   wp_auto
@@ -252,7 +259,7 @@ theorem fileutil.wp_flockTryLockFile
       iexact «$r0»
     ileft
     ipureintro; rfl
-  · ihave #Hek := fileutil.errnoErr_errOk (GF := GF) e he
+  · ihave #Hek := fileutil.errnoErr_errOk (GF := GF) e he $$ Hsys
     icases Hek with ⟨%ek, %hek, #Hek⟩
     have hne : errnoErr e = interface.mkOk syscall.Errno.ty #e := by unfold errnoErr; simp only [he, ↓reduceIte]
     rw [hne] at hek ⊢
