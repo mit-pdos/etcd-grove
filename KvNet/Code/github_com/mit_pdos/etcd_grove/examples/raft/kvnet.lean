@@ -646,6 +646,9 @@ noncomputable def newTCPTransport [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newTransport [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.newTransport"
 
+noncomputable def putUint32 [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.putUint32"
+
 noncomputable def putHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.putHeader"
 
@@ -9805,9 +9808,38 @@ noncomputable def Transport.runPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Val #()))))
 
+/-- putUint32 appends x to buf in little-endian order, as putUint64 does for 64 bits (PutUint32 into
+    a local array, then append: binary.LittleEndian.AppendUint32 has no spec in Perennial).
+
+    go: udptransport.go:73:6 -/
+noncomputable def putUint32.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "buf"
+  (Lam "x"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "x"))
+  (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "buf"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 4 go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 4 go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
+  (Let "$a1" (Let "$s" (Var "n")
+  (App (Val (GoInstruction (Slice (go.GoType.ArrayType 4 go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 4)))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (Var "n")
+  (App (Val (GoInstruction (Slice (go.GoType.ArrayType 4 go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 4)))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "x"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.littleEndian.ty) go!"PutUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.LittleEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
+
 /-- putHeader appends the header of a datagram of the given kind to buf.
 
-    go: udptransport.go:72:6 -/
+    go: udptransport.go:80:6 -/
 noncomputable def putHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "kind"
@@ -9825,7 +9857,7 @@ noncomputable def putHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "buf"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.uint32))) (Val udpMagic))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.littleEndian.ty) go!"AppendUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.LittleEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve putUint32 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "kind"))
@@ -9866,7 +9898,7 @@ noncomputable def putHeader.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- putFragment is a fragment: chunk, the index-th of total, of message (boot, seq) from from to to.
 
-    go: udptransport.go:82:6 -/
+    go: udptransport.go:90:6 -/
 noncomputable def putFragment.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "from"
   (Lam "to"
@@ -9896,11 +9928,11 @@ noncomputable def putFragment.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "index"))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.littleEndian.ty) go!"AppendUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.LittleEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve putUint32 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "total"))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.littleEndian.ty) go!"AppendUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.LittleEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve putUint32 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "chunk"))
@@ -9920,7 +9952,7 @@ noncomputable def putFragment.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- putAck is the ack of message (boot, seq) of replica to, which replica from received.
 
-    go: udptransport.go:90:6 -/
+    go: udptransport.go:98:6 -/
 noncomputable def putAck.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "from"
   (Lam "to"
@@ -9950,7 +9982,7 @@ noncomputable def putAck.impl [GooseExts] [GoGlobalContext] : val :=
     else (a fragment whose chunk is empty or longer than chunkSize, or whose index is not below its
     total, or whose total is 0 or above maxFragments, included). The chunk is a copy.
 
-    go: udptransport.go:97:6 -/
+    go: udptransport.go:105:6 -/
 noncomputable def getDatagram.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc datagram.ty))) (App (Val (GoInstruction (GoZeroVal datagram.ty))) (Val #())))
@@ -10082,7 +10114,7 @@ noncomputable def getDatagram.impl [GooseExts] [GoGlobalContext] : val :=
     of chunkSize bytes (the last one shorter), each at most maxDatagram bytes; nil if body is empty
     or needs more than maxFragments of them.
 
-    go: udptransport.go:125:6 -/
+    go: udptransport.go:133:6 -/
 noncomputable def fragments.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "from"
   (Lam "to"
@@ -10163,7 +10195,7 @@ noncomputable def fragments.impl [GooseExts] [GoGlobalContext] : val :=
 /-- parseAddr is the IPv4 address (4 bytes) and the port of a, an address AddrOk accepts
     (a.b.c.d:p); ok is false for any other string.
 
-    go: udptransport.go:143:6 -/
+    go: udptransport.go:151:6 -/
 noncomputable def parseAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Let "ip" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 4 go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 4 go.byte)))) (Val #())))
@@ -10304,7 +10336,7 @@ noncomputable def parseAddr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- udpAddr is a as a UDP address (parseAddr); false if AddrOk refuses a.
 
-    go: udptransport.go:168:6 -/
+    go: udptransport.go:176:6 -/
 noncomputable def udpAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.UDPAddr.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.UDPAddr.ty)))) (Val #())))
@@ -10363,7 +10395,7 @@ noncomputable def udpAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 4 go.byte)))) (Pair (Var "ip") (Var "$r0")))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.UDPAddr.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1")))))))
 
-/-- go: udptransport.go:211:6 -/
+/-- go: udptransport.go:219:6 -/
 noncomputable def newReassembler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "stats"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType reassembler.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType reassembler.ty)))) (Val #())))
@@ -10385,7 +10417,7 @@ noncomputable def newReassembler.impl [GooseExts] [GoGlobalContext] : val :=
     returns the message's body and complete true; the caller then remembers it (remember). reack is
     true if d is the first fragment of a snapshot already completed (its ack is to be sent again).
 
-    go: udptransport.go:219:23 -/
+    go: udptransport.go:227:23 -/
 noncomputable def reassembler.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "d"
@@ -10647,7 +10679,7 @@ noncomputable def reassembler.add.impl [GooseExts] [GoGlobalContext] : val :=
     fragments still to come can only be late copies), or more than staleLag messages older (a
     snapshot is sent again for snapAckWait*(snapResends+1) at most, which takes fewer).
 
-    go: udptransport.go:281:23 -/
+    go: udptransport.go:289:23 -/
 noncomputable def reassembler.remember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "from"
@@ -10740,7 +10772,7 @@ noncomputable def reassembler.remember.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- nextSeq is a sequence number never used before in this process; false once they are used up.
 
-    go: udptransport.go:326:18 -/
+    go: udptransport.go:334:18 -/
 noncomputable def udpNet.nextSeq.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam BAnon
@@ -10791,7 +10823,7 @@ noncomputable def udpNet.nextSeq.impl [GooseExts] [GoGlobalContext] : val :=
 /-- expectAck registers snapshot seq, sent to replica to, as waiting for its ack: the channel
     returned is closed when it arrives (acked).
 
-    go: udptransport.go:338:18 -/
+    go: udptransport.go:346:18 -/
 noncomputable def udpNet.expectAck.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "to"
@@ -10828,7 +10860,7 @@ noncomputable def udpNet.expectAck.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- forgetAck stops waiting for snapshot seq's ack.
 
-    go: udptransport.go:347:18 -/
+    go: udptransport.go:355:18 -/
 noncomputable def udpNet.forgetAck.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "seq"
@@ -10850,7 +10882,7 @@ noncomputable def udpNet.forgetAck.impl [GooseExts] [GoGlobalContext] : val :=
 /-- acked takes the ack of this process's message seq from replica from: if a snapshot sent to from
     waits for it, it wakes it (once) and says true.
 
-    go: udptransport.go:355:18 -/
+    go: udptransport.go:363:18 -/
 noncomputable def udpNet.acked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "from"
@@ -10913,7 +10945,7 @@ noncomputable def udpNet.acked.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- write sends datagram b to replica to; false if it has no address or the write fails.
 
-    go: udptransport.go:368:18 -/
+    go: udptransport.go:376:18 -/
 noncomputable def udpNet.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "to"
@@ -10971,7 +11003,7 @@ noncomputable def udpNet.write.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newTransport is the incarnation's transport over u, as a newPeerTransport (u's replica's: id
     and addrs are u's).
 
-    go: udptransport.go:400:18 -/
+    go: udptransport.go:408:18 -/
 noncomputable def udpNet.newTransport.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (Lam "id"
@@ -11019,7 +11051,7 @@ noncomputable def udpNet.newTransport.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- start starts the senders, a goroutine per peer, once the node exists.
 
-    go: udptransport.go:411:24 -/
+    go: udptransport.go:419:24 -/
 noncomputable def udpTransport.start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "node"
@@ -11051,7 +11083,7 @@ noncomputable def udpTransport.start.impl [GooseExts] [GoGlobalContext] : val :=
 /-- stop ends the senders and the snapshot waiters (the incarnation's node is stopped), leaving what
     the queues hold unsent.
 
-    go: udptransport.go:420:24 -/
+    go: udptransport.go:428:24 -/
 noncomputable def udpTransport.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -11065,7 +11097,7 @@ noncomputable def udpTransport.stop.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Send hands each of ms to its peer's sender, without waiting; one to an unknown peer, or one
     whose peer's queue is full, is dropped.
 
-    go: udptransport.go:426:24 -/
+    go: udptransport.go:434:24 -/
 noncomputable def udpTransport.Send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "ms"
@@ -11115,7 +11147,7 @@ noncomputable def udpTransport.Send.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dropped tells the node that m was not sent.
 
-    go: udptransport.go:442:24 -/
+    go: udptransport.go:450:24 -/
 noncomputable def udpTransport.dropped.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "m"
@@ -11141,7 +11173,7 @@ noncomputable def udpTransport.dropped.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- writeAll sends the datagrams ds to replica to; false at the first that fails.
 
-    go: udptransport.go:451:24 -/
+    go: udptransport.go:459:24 -/
 noncomputable def udpTransport.writeAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "to"
@@ -11195,7 +11227,7 @@ noncomputable def udpTransport.writeAll.impl [GooseExts] [GoGlobalContext] : val
     written, is dropped. A snapshot is handed to a goroutine of its own (sendSnapshot), which waits
     for its ack.
 
-    go: udptransport.go:466:24 -/
+    go: udptransport.go:474:24 -/
 noncomputable def udpTransport.runPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "p"
@@ -11292,7 +11324,7 @@ noncomputable def udpTransport.runPeer.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- timer is a channel that receives once, d from now (a timer: nothing reads the clock).
 
-    go: udptransport.go:497:6 -/
+    go: udptransport.go:505:6 -/
 noncomputable def timer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val #())))
@@ -11327,7 +11359,7 @@ noncomputable def timer.impl [GooseExts] [GoGlobalContext] : val :=
     snapAckWait without one, up to snapResends times, then reports it failed. It returns without a
     report if the transport stops meanwhile.
 
-    go: udptransport.go:507:24 -/
+    go: udptransport.go:515:24 -/
 noncomputable def udpTransport.sendSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "to"
@@ -14294,6 +14326,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   closeAfter_unfold : FuncUnfold closeAfter [] closeAfter.impl
   newTCPTransport_unfold : FuncUnfold newTCPTransport [] newTCPTransport.impl
   newTransport_unfold : FuncUnfold newTransport [] newTransport.impl
+  putUint32_unfold : FuncUnfold putUint32 [] putUint32.impl
   putHeader_unfold : FuncUnfold putHeader [] putHeader.impl
   putFragment_unfold : FuncUnfold putFragment [] putFragment.impl
   putAck_unfold : FuncUnfold putAck [] putAck.impl
@@ -14425,6 +14458,7 @@ attribute [instance] Assumptions.Dialer_instance
   Assumptions.closeAfter_unfold
   Assumptions.newTCPTransport_unfold
   Assumptions.newTransport_unfold
+  Assumptions.putUint32_unfold
   Assumptions.putHeader_unfold
   Assumptions.putFragment_unfold
   Assumptions.putAck_unfold

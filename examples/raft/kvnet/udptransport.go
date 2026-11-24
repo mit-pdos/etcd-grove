@@ -68,9 +68,17 @@ type datagram struct {
 	chunk []byte
 }
 
+// putUint32 appends x to buf in little-endian order, as putUint64 does for 64 bits (PutUint32 into
+// a local array, then append: binary.LittleEndian.AppendUint32 has no spec in Perennial).
+func putUint32(buf []byte, x uint32) []byte {
+	var n [4]byte
+	binary.LittleEndian.PutUint32(n[:], x)
+	return append(buf, n[:]...)
+}
+
 // putHeader appends the header of a datagram of the given kind to buf.
 func putHeader(buf []byte, kind byte, from, to, boot, seq uint64) []byte {
-	buf = binary.LittleEndian.AppendUint32(buf, udpMagic)
+	buf = putUint32(buf, udpMagic)
 	buf = append(buf, kind)
 	buf = putUint64(buf, from)
 	buf = putUint64(buf, to)
@@ -81,8 +89,8 @@ func putHeader(buf []byte, kind byte, from, to, boot, seq uint64) []byte {
 // putFragment is a fragment: chunk, the index-th of total, of message (boot, seq) from from to to.
 func putFragment(from, to, boot, seq uint64, index, total uint32, chunk []byte) []byte {
 	buf := putHeader(make([]byte, 0, fragHeaderLen+len(chunk)), kindFragment, from, to, boot, seq)
-	buf = binary.LittleEndian.AppendUint32(buf, index)
-	buf = binary.LittleEndian.AppendUint32(buf, total)
+	buf = putUint32(buf, index)
+	buf = putUint32(buf, total)
 	return append(buf, chunk...)
 }
 
