@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.hash
-public import Code.internal.byteorder
+public import Perennial.Code.internal.byteorder
 public import Perennial.Code.sync
 public import Perennial.Code.sync.atomic
 public import Perennial.Golang.Defn

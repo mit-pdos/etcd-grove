@@ -8,9 +8,9 @@ module
 
 public import Proof.hash.crc32.Init
 public import Perennial.Proof.hash.Link
+public import Perennial.Proof.internal.byteorder.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
-public import Proof.internal.byteorder.Init
 public import Proof.hash.crc32.simpleMakeTable
 public import Proof.hash.crc32.simplePopulateTable
 public import Proof.hash.crc32.simpleUpdate
@@ -72,7 +72,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (_root_.Perennial.internal.byteorder.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.byteorder _root_.Perennial.internal.byteorder.initialize'
+      EtcdGrove.ExternalInit.internal_byteorder _root_.Perennial.internal.byteorder.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.hash _root_.Perennial.hash.initialize'
       EtcdGrove.ExternalInit.hash _root_.Perennial.hash.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of IEEETable))
