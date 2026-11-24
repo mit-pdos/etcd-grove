@@ -81,11 +81,15 @@ theorem Check.wp_proof
   try wp_auto
   wp_apply wp_ValidAddrs sl (DFrac.own 1) (splitAddrs addrs) voters $$ [$Hkpkg $Hsl] as Hsl
   -- invalid addresses: `Check` returns at once
-  cases Hvalid : validAddrs (splitAddrs addrs) (uint.nat voters)
-  · try wp_auto
+  by_cases Hvalid : validAddrs (splitAddrs addrs) (uint.nat voters) = true
+  case neg =>
+    rw [Bool.not_eq_true] at Hvalid
+    rw [Hvalid]
+    try wp_auto
     iapply HΦ
     itrivial
   ihave ⟨#Hinv, Hval, Hopn, Hrseq, #Hprot⟩ := Hres $$ %Hvalid
+  rw [Hvalid]
   have Hv := Hvalid
   simp only [validAddrs, decide_eq_true_eq] at Hv
   obtain ⟨Hok, Hnd, Hlen32, Hv1, Hv2⟩ := Hv

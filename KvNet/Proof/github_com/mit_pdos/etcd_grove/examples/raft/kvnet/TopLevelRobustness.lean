@@ -366,8 +366,8 @@ theorem raft_kvnet_robust :
     rw [List.length_map] at h
     exact h
   by_cases hva : validAddrs (splitAddrs addrs) (uint.nat cl.voters) = true
-  swap
-  · -- invalid addresses: every program returns at once
+  case neg =>
+    -- invalid addresses: every program returns at once
     refine Net.robust_of_netFsBoot_addrs (GF := kvnetGF) [] _ _ g _ _ List.nodup_nil
       (fun _ h => by cases h) ?_ hfresh hig hil
     intro G hrb
@@ -433,8 +433,8 @@ theorem raft_kvnet_robust :
   by_cases hrun : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
       (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true ∧
       dir.length < 2 ^ 39
-  swap
-  · -- `RunNode`'s check fails: the replicas return at once, the client runs
+  case neg =>
+    -- `RunNode`'s check fails: the replicas return at once, the client runs
     imodintro
     iexists (fun _ => kvPcSkip (GF := kvnetGF))
     iexists (fun _ => kvClient γ (splitAddrs addrs))
