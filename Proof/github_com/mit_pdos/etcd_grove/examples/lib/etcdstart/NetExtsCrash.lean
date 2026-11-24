@@ -12,15 +12,15 @@ and the issue record's (`etcdNet_crashStart_split`), and the initial states' con
 `Robust`'s premises and each crashing machine's `FsInit` (`etcdNetExts_crashInitP`; `etcdFsSem`,
 `Fs.fsSemWithS`, has no `initLocal` until D4a).
 
-`idIssue_crash_interp_keep` shows that the issue record's semantics today (a crash keeps the record)
-already has a crash interpretation: the ghost state kept (`crashStart L L' := ⌜L' = L⌝`, the pattern of
-`ExtCrashInterp`'s docstring for durable state). It is an instance of `C`, not a choice for the proofs.
+On this branch (stacked on D4b, `etcd-safe-d4b/2026-11-24`, a trusted change pending sign-off): `C` is
+D4b's `idIssue_crash_interp` (`etcdNetExtsCrashInterpD4b`), whose crash rest is `idIssueCrashStart`.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Net.Statement.NetFsBridgeG
 public import GooseLang.Ext.Fs.FilteredSem
+public import GooseLang.Ext.IdIssue.Crash
 
 @[expose] public section
 
@@ -108,20 +108,18 @@ theorem robust_of_etcdNetFsBoot (C : @ExtCrashInterp idIssueExt idIssue_semantic
     (etcdNet_crashStart_split C) addrs crashing stable g threads bound lo hlo Hnd Hok
     (etcdNetExts_crashInitP g crashing stable Hfs) Hstart
 
-/-- **A crash interpretation of the issue record as it is today** (`idIssue_semantics`: a crash keeps
-the record): the ghost state kept, `crashStart L L' := ⌜L' = L⌝`. An instance of `C` above (the bridge
-applies to today's semantics); D4b's record keyed by incarnation replaces it. -/
-@[instance_reducible] def idIssue_crash_interp_keep :
-    @ExtCrashInterp idIssueExt idIssue_semantics idIssue_interp where
-  crashStart hL hL' := iprop(⌜hL' = hL⌝)
-  local_crash _ _ hL σ σ' hc := by
-    obtain rfl := (show σ' = σ from hc)
-    iintro H
-    imodintro
-    iexists hL
-    iframe H
-    ipureintro
-    rfl
+/-- **The crash interpretations of `etcdNetExts` with D4b's issue record** (`idIssue_crash_interp`,
+`GooseLang/Ext/IdIssue/Crash.lean`: the record keyed by incarnation; its crash rest is
+`idIssueCrashStart`). -/
+@[reducible] def etcdNetExtsCrashInterpD4b : GooseCrashInterp :=
+  etcdNetExtsCrashInterp idIssue_crash_interp
+
+/-- The issue record's crash rest under D4b's interpretation is `idIssueCrashStart` of the two
+generations' issue-record ghost states. -/
+theorem etcdIdCrashRest_d4b {GF : BundledGFunctors} (L L' : GooseLocalGS GF) :
+    etcdIdCrashRest idIssue_crash_interp L L' =
+      idIssueCrashStart (extLocalGS idIssueExt (L := L)) (extLocalGS idIssueExt (L := L')) :=
+  rfl
 
 end EtcdGrove
 end Perennial
