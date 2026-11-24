@@ -78,10 +78,70 @@ facts would change what their premises say; their switch to `Net/`'s initializer
 The two instances are never imported together (nor, so, their `wp_initialize'`s). The `True` facts of
 net/http's closure (`Net/Proof/<pkg>/Base.lean`) are shared.
 
-## gRPC and net/http
+## net/http: `examples/net/httpdriver`
 
-To come, in that order: gRPC's driver in the main tree (`models/grpc`; unary calls, the three stream
+The driver (`httpdriver.go`): the server serves a `ServeMux` (`NewServeMux`, `HandleFunc("/echo")`,
+`HandleFunc("/status")`, `http.Serve`); the client opens random connections from random goroutines,
+writes random raw HTTP/1.1 requests on each (`/echo` with a random method, `X-Driver` value and body;
+`GET /status`; `GET /nope/<word>`; a malformed line), reads each response with `http.ReadResponse` over
+one `bufio.Reader` per connection and its body with `io.ReadAll`, and checks it (sections echo, status,
+mux, bad-request, keep-alive, concurrent-connections). Not `http.Client`: the model's `Transport` is
+`notModelled`.
+
+Statement (2026-11-24, `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/httpdriver/TopLevelRobustness.lean`):
+`DistDeploy httpAddrs (system σs σc) g → Robust [] (system σs σc) g httpThreads httpSteps`, with
+`httpAddrs = ["127.0.0.1:7401"]`, `httpThreads = 2 ^ 30` (net/http's first initialization, the mux's
+reader slots), `httpSteps = 2 ^ 63 - 1` (rpcdriver's; no spec bounds the receipts). No other premise.
+The boot table is `etc/gen-driver-boottable.py`'s (generic over the drivers since this one).
+
+### The interim axioms (draft for review, 2026-11-24; nothing proved over them yet)
+
+Vocabulary: `Net/Proof/net/http/ProtoDefs.lean` (phase 7 S5's draft vocabulary, defined; its header
+lists the departures from S5's draft) and `muxAt` in `MuxDefs.lean`. Four axioms, each in its
+function's file, each retired by S5:
+
+1. `net.http.ServeMux.HandleFunc.wp_proof` (`Net/{Spec,Proof}/net/http/ServeMux__HandleFunc.lean`):
+   `Handle.spec`'s shape for a mux of the program's own: `litPattern p → p ∉ Ps → f ≠ func.nil →
+   {{ isPkgInit http ∗ muxOwn m Ps }} m.HandleFunc(p, f) {{ muxOwn m (p :: Ps) ∗ muxRoute m p
+   (HandlerFunc f) }}`.
+2. `net.http.ServeMux.ServeHTTP.wp_proof` (`ServeMux__ServeHTTP.lean`): for literal patterns `L`, a
+   protocol allowing the mux's own answers to the requests clients send (`muxNoRoute P L`: a `301` to a
+   path it redirects, i.e. not clean or unrouted with `path + "/"` a pattern; a `404` with `NotFound`'s
+   body to the other unrouted ones), and a body reader bounded below `2 ^ 60`:
+   `⌜threadBound ≤ 2 ^ 30⌝ ∗ isPkgInit http ∗ muxAt m (L.map fst) ∗ [∗] (p, h) ∈ L, muxRoute m p h ∗
+   handlerOk h P p ∗ servePre P pfx w r R τ rd I S E ⊢ WP m.ServeHTTP(w, r) {{ v, serveDone P R τ I S v }}`.
+3. `net.http.Serve.wp_proof` (`Serve.lean`, beside `Serve.wp_proof_rpc`):
+   `{{ isPkgInit http ∗ httpSrvEnv ∗ protoLis la P ∗ handlerOk h P "/" ∗ isListener lis l ∗ netLisOn l
+   la ∗ lisInv l la ∗ threadTok }} http.Serve(lis, h) {{ err, threadTok }}`: the server writes, on each
+   connection, for the `i`-th request slot the dialer wrote, the handler's complete response (status,
+   header lines `hdrView` the handler's, `Content-Length` body, `□ P.resp` and `□ P.respEnd` of it), the
+   head of a chunked one (only after the handler wrote more than `2048` bytes, with `□ P.resp` of them),
+   or net/http's `400` answer (`httpRespP P`).
+4. `net.http.ReadResponse.wp_proof_resp` (`ReadResponse.lean`, beside the proved `CONNECT` case):
+   `ReadResponse(b, nil)` over a `bufio.Reader` that has delivered `D` of a progressing stream whose
+   bytes past `D` are, as long as it is read, nothing yet or consistent with the wire of a response `ρ`
+   the model reads as written (`respOk`: no chunked body, a `Content-Length` line or close-delimited),
+   with the caller's `□ Q ρ`, and nothing after an error: an error (with the reader), or `ρ`'s status,
+   its header lines (`hdrOwn`, without `Connection: close`) and a body reader (`io.readerOk`) whose
+   `io.EOF` gives `□ Q ρ` of a response with that head whose body is what was read (`Content-Length`) or
+   extends it (close-delimited), and gives back the reader past the response.
+
+Proved, not assumed (step 4): `NewServeMux` (`&ServeMux{}`: `muxOwn m []`), `muxOwn_freeze`
+(`muxOwn m Ps ⊢ |={E}=> muxAt m Ps`), `HandlerFunc.ServeHTTP` (`f(w, r)`: `handlerOk` of a
+`HandlerFunc` from its function's), `Header.Get`/`Header.Set` on canonical keys (textproto's
+`CanonicalMIMEHeaderKey` is proved for them), the protocol's registry (`httpRegInv`, allocated at the
+start; a dialer registers with its fresh token), and the driver's own code. Reused interim axiom:
+`net.http.wp_init_first`.
+
+How the driver uses them: its protocol `P` (`P.hreq R τ`: the request is one the client writes, with
+its body saved at `τ`; `P.resp`/`P.respEnd`: a body of at most 32 bytes, `/echo`'s `200` with the
+request's method, path, `X-Driver` value and (end) body, `/status`'s `418` with (a prefix of) `"short
+and stout"`, `404` with `NotFound`'s body) excludes chunked answers (`2048 < |w|`), so every answer the
+client reads is `respOk`; the `i`-th `ReadResponse` on a connection is at the `i`-th answer, which
+answers the `i`-th request written (keep-alive).
+
+## gRPC
+
+To come: gRPC's driver in the main tree (`models/grpc`; unary calls, the three stream
 kinds as watch and lease use them, metadata, status codes and messages, context errors, concurrent
-calls on one `ClientConn`, `Close`), whose collection drives phase 7's S2/S3; then net/http's with
-the S5 server work, its client side limited by the model (the `Transport` and chunked bodies panic
-`NotModelled`).
+calls on one `ClientConn`, `Close`), whose collection drives phase 7's S2/S3.
