@@ -78,8 +78,9 @@ three):
   `wp_isHex`, `wp_scanString`, tactics `ldidx`/`ldagain`/`fin_ret`; `ScanNumber.lean`,
   `ScanScalar.lean`; `DecBase.lean`: `wp_SkipSpace_ns`, `wp_noEscape`). The decoders' specs are
   the lab's (at valid input of the shapes decoders meet), not full functional specs.
-- Not done: `FoldEq`, `Valid`, `AppendInt`, `AppendCompact`, `Bool`, `Int` (not needed so far; the
-  frame's `JSONModelUnmarshal` needs `Valid`, lab `wp_Valid_ok`).
+- `Valid` (on one complete value with nothing after it, lab `wp_Valid_ok`; what the frame's
+  `JSONModelUnmarshal` needs, step 4). Not done: `FoldEq`, `AppendInt`, `AppendCompact`, `Bool`,
+  `Int` (not needed so far: with exact keys the decoders never reach `FoldEq`).
 
 **Done (2): `scanOk`.** `Net/Proof/models_lab/jsoncodec/ScanOk.lean` (`scanOk_of`), linked
 `models_lab.jsoncodec.scanOk_scanF : ⊢ scanOk JsonScan.scanF scanFn`. It left
@@ -111,9 +112,17 @@ Frame.lean`, `Unmarshal.lean`); (5) the 11 payloads' `JSONModelUnmarshal` (lab `
 removes a field of `TypeCodecs` (restate `TypeCodecs` without it and have `codecOk_of` take the
 proof, as `codec` went).
 
-**Checks (round 8):** fk-lean1: vr's `TopLevelRobustness` + `Net.Proof.models_lab.Results`
-built (2973 jobs), `vr_remote_robust` and every jsoncodec `.wp` print `[propext,
-Classical.choice, Quot.sound]` (see the final round-8 entry below for the six landed statements).
+**Checks (round 8, final head).** Builds: fk-lean1 for the work; the final checks on this host
+(fk-lean1's lock had a queue of five; coordinator's instruction): `.lake/package-overrides.json` →
+`/shared/perennial-ccfeb3895`, and `/shared/tmp/build-slot.sh` fails here at `systemd-run --scope`
+(needs interactive auth), so scratchpad `bslot.sh` (the same script with `systemd-run --user
+--scope`). Scratch `Dsverify/Scratch/Axioms.lean` (committed cee5c4242b, built, dropped): 5154 jobs;
+`vr_remote_robust`, `swiftpaxos_remote_robust`, `rabia_remote_robust`, `epaxos_remote_robust`,
+`quepaxa_remote_robust`, `paxos_remote_robust`, `counter_remote_robust`, `typeCodecOk_logs`,
+`codecOk_of`, `dsvvr.vsrRegisteredCodecOk`, `dsvvr.vsrScanOk`, `jsoncodec.scanOk_scanF`: each
+`[propext, Classical.choice, Quot.sound]`. Final head: `Net.Proof.models_lab.Results`, vr's
+`TopLevelRobustness`, `Vacuous` built (2975 jobs), every jsoncodec `.wp` (with `Valid.wp`) on
+Lean's three axioms.
 Here: `tier-check --check` ok, 227 known (no new); `gen-init --check` 274 up to date;
 `goose --check --project dsv-vr` up to date; `_vr_boot.py --check`, `_swiftpaxos_boot.py --check`
 rc 0; `copy-part --check` 0 differ; `proof_roots.namespace()` `Perennial.EtcdGrove.`; dups 4 (the
