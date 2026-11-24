@@ -1,0 +1,225 @@
+# Handoff: reflection S0 / S0.5 (2026-11-24)
+
+Self-contained: everything here is on GitHub (mit-pdos/perennial, mit-pdos/etcd-grove).
+
+## Goal and Upamanyu's decisions
+
+- Build a reflection semantics for Perennial from a few trusted primitives, plus Go models of `reflect` and
+  `internal/reflectlite` (no `unsafe`), and prove etcd-grove's `examples/specreq/reflect` snippets with it.
+- **Hard rule (Upamanyu):** nothing reflect-related merges anywhere without his explicit approval. That
+  includes Perennial `lean`, etcd-grove `lean`, and the specreq coverage branch. Use branches and VM builds only.
+- **Upamanyu (perennial#698, comment 7136196811):** no package-specific GooseLang instructions. Perennial's
+  `AsAssign` (the reflection of `errors.As`, landed on Perennial lean in d840e4d7b) is to be retired in favour of
+  `errors/wrap.go` over a `reflectlite` model built on the S0 primitives. That is S0.5, below.
+- **The S0 review packet below has not been reviewed by Upamanyu yet.** S0 and S0.5 go to him together, as one
+  trusted review.
+
+## Branches
+
+| repo | branch | head | state / purpose |
+|---|---|---|---|
+| perennial | `reflect-s0` | `31718fbea` | S0. The trusted part ends at 523339171 (full Perennial VM build green). The S0 proofs sit on top (no sorry; `#print axioms` clean). Base: Perennial lean 00b4280a9. |
+| perennial | `reflect-s0-go`, `reflect-s0-ev` | `523339171`, `aa917f18c` | Already merged into reflect-s0 (the Go side and the evidence harness). Keep for history. |
+| perennial | `reflect-s05` | `567b4226f` | S0.5 WIP (on merge `6a49ef67e` = reflect-s0 + origin/lean, conflicts resolved as unions). Go side done and tested; NO Lean build yet. |
+| etcd-grove | `reflect-s0/2026-11-24` | this file's commit | The S0 retirements and snippet proofs. Pins Perennial reflect-s0 31718fbea. Stacked on `specreq-reflect-cov/2026-11-24` (731f616d58, held). Full VM build: 27,893 jobs, green at d78a216a43. VM gates at e3d0c9e62f: everything passed except `axiom-tok` (see below). The last two commits are a docstring and the WIP axiom-tok fix. |
+| etcd-grove | `specreq-reflect-cov/2026-11-24` | `731f616d58` | The reflection requirement snippets (22 files): gates green, held for approval. |
+
+The etcd-grove branch has not merged the newer origin/lean (lean has since moved: etcd_wal_safe, dsv tooling,
+bootstrap/hash/grpc-tcb). Merge it before the next gates run.
+
+## S0 review packet (trusted; for Upamanyu)
+
+**Primitives** (Perennial `reflect-s0`):
+- **Seven `GoInstruction`s** in `GooseLang/Lang.lean`, with their `Countable` instances: `FuncResolveAt shs f`,
+  `ConvertAt`, `FieldRefAt`, `ArraySliceAt`, `EqNilAt`, `PointerOfAt`, `TypeQuery q`. The supporting types are
+  `go.Shape` and `go.TypeQ`.
+- **Thirteen step rules** in `Golang/Defn/Reflect.lean`'s `ReflectSemantics` (registered in `go.Semantics`):
+  `func_resolve_at_step`, `convert_at_step`, `field_ref_at_step`, `array_slice_at_step`, `eq_nil_at_step`,
+  `pointer_of_at_{ptr,unsafe,map,chan,slice_nil,slice}` and `type_query_step`. The last is over the function
+  `typeQuery`, whose rows are kind, numTypeArgs, elem, key, len, chanDir, numField, field{Name,Type,Embedded},
+  numIn/inType, numOut/outType, variadic and arrayOf.
+- **Fifteen TrustedCode stubs** in `TrustedCode/internal/reflectcore.lean`, one line each:
+  - `TokOf`, `Box`, `Load`, `Alloc`, `PtrTok` (via `FuncResolveAt` to the translated generic helpers);
+  - `ConvertAt`, `FieldRefAt`, `ArraySliceAt`, `EqNilAt`, `PointerOfAt`;
+  - `TypeKind`, `TypeElem`, `TypeLen`, `TypeNumField`, `TypeFieldType`.
+
+**goose:**
+- C0: `[model] names_only` (in `declfilter`, `util/model.go`).
+- `layout.go`: refuses `unsafe.Sizeof`/`Alignof`/`Offsetof` of a type whose layout a model changes.
+- A promoted method's `MethodUnfold` follows its declaring method's filter.
+
+**Overlay Go (a translated model; trusted as a model):**
+- `goose/model/overlay/internal/reflectcore/{core,helpers}.go`
+- `goose/model/overlay/reflect/{type,value,map,makefunc,unmodelled}.go`
+- configs `Code/reflect.toml` and `Code/internal/reflectcore.toml`
+
+`etc/trusted-delta.py 00b4280a9..523339171` lists 53 tier-0 files, including the harness and the tests.
+
+**Adversarial review** found six issues, all fixed:
+1. `Sizeof` of a type whose layout a model changes;
+2. reflection on reflect's own `rtype` values (now stuck);
+3. `isDirectIface` (now go1.26 gc's rule: one pointer word);
+4. `error` and `interface{ Error() string }` are one type (documented in KNOWN_LIMITATIONS);
+5. `==` on reflect Values that hold a func or a map directly (documented in KNOWN_LIMITATIONS);
+6. promoted-method unfolds.
+
+**Known open items in the rules (evidence harness):** `convert_channel` has no direction premise, and
+`convert_underlying` with `convert_pointer_same_underlying` is more defined than Go on named pointer types.
+These are pre-existing Convert rules that `ConvertAt` reaches. The S0 model only calls `ConvertAt` on legal
+pairs. They are a separate fix-semantics item.
+
+**Trust delta in etcd-grove:**
+- **Removed (-8):** `reflect.{ValueOf, Value.IsNil, Value.Kind, Value.Type, Value.Interface, Type.Elem}.wp_proof`,
+  `reflectM.reflNew_pointsto`, and `reflect.TypeOf.wp_proof`.
+- **Added (+1):** `reflect.rtype.String.wp_proof`:
+  `∀ T, {{isPkgInit reflect}} (rtype.mk (go.tok T)).String() {{s, RET #s; True}}`.
+- **Soundness finding behind the TypeOf change:** the old `TypeOf` axiom became false under the model, because
+  the model is stuck on reflect's own rtype values. TypeOf is now a theorem with the premise `notRType x`; only
+  the names-only `String` stays trusted.
+- **rtype.String review:**
+  - The coordinator's light review: survives.
+  - An independent axiom-skill review: **sound**, minimal for its users, and `notRType` weakens no top-level
+    theorem (all three users discharge it from a pointer: `notRType_ptr`).
+  - The reviewer's caveat: the axiom holds only while `rtype.String` is names-only. The model's Go body is
+    `gomodel.Stuck()`, so retire the axiom when that body is modelled. This is now in the axiom's docstring.
+  - The S0 model mints type tokens only from the dynamic types of real values (`TokOf`) and from their
+    components (`TypeElem`/`TypeFieldType`). `arrayOf` is unreachable in S0.
+- **VM gates:** 59 collections matched the hand-edited baseline.
+
+**Statement changes** (none weakens a top-level theorem):
+- `txn.isNil.wp_proof` is now unconditional.
+- `reflect.ValueOf.spec`'s `Elem` triple needs `∃ k, kindOf (underlying T) = some k`.
+- The k8s `ObjSpec` gains `objTy_kind` (the driver proves it). `ObjSpec` and `StoreCfg` take `[HeapGS] [go.Semantics]`.
+- `getTypeName.spec` and etcd3 `New.spec`: the premise `x ≠ nil` becomes `notRType x`.
+
+**Snippets proved** (`specreq/reflect/Results.lean`): `wp_isNil`, `wp_typedNilString`, `wp_typedNilString_int`,
+`wp_MustPanicIsNilZeroValue` and `wp_MustPanicIsNilStruct`. All have clean axioms.
+
+**Decided overnight:**
+- The TypeOf split above. The alternatives were to make rtype values non-stuck in the model (a larger trusted
+  change), or to keep an axiom with a premise.
+- `ValueOf` of structs and arrays is specified over a fuel-based `directIfaceN`, because the recursion goes
+  through `underlying` and isn't structural.
+
+## The axiom-tok gate: an open item, last commit on the etcd-grove branch, WIP
+
+- **Failure:** the gates at e3d0c9e62f failed only `axiom-tok`, with "Truncations: reflect.New.wp_proof … stuck:
+  Perennial.typedPointsto".
+- **Cause:** `reflNew T p` is now Perennial's
+  `∀ V (_ : ZeroVal V) (_ : TypedPointsto V) (_ : IntoValTyped V T), p ↦ zero_val V`, and the user-picked
+  `TypedPointsto` instance under the Iris `∀` was walked as a user atom. Before S0, `reflNew` was opaque.
+- **Fix (decided): the tool, not a `trunc` line,** because the allow file's ratchet says none may be added.
+  `etc/AxiomTokCheck.lean`'s `lawBoundTP` makes such a binder `plain` when the same `∀` telescope binds
+  `IntoValTyped` over it: `IntoValTyped.wp_alloc` makes its points-to what an allocation yields from `True`, so it
+  holds no token and nothing the user chose. The selftest toy is `st_pass_typedpt`.
+- **Not validated:** the file compiles, but `etc/axiom-tok-check.py --selftest` exited 1 on the VM, and the driver
+  hides the Lean run's stderr. Next: run
+  `vmlake env lean --run etc/AxiomTokCheck.lean --selftest=etc/axiom-tok-selftest/Selftest.lean Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt Perennial.ProgramLogic.Bounds`,
+  read the error, fix it, then rerun the gates.
+- This changes a soundness gate, so it is for review too.
+
+## S0.5 plan (approved by the coordinator; trusted, for review with S0)
+
+**`TypeQuery` rows** (with stubs `TypeUnderlying` and `TypeIdentByName`):
+- `.underlying` → `tok (underlying t)`;
+- `.identByName` → `identByName t`. This is the identity guard: token equality counts as Go identity only when
+  `identByName`. S1's `typeident` shares it.
+
+**`internal/reflectlite` overlay model** over S0:
+- **`AssignableTo(V, T)`:**
+  - `T` an interface: a translated helper `assertOk[T](x any) bool` on a boxed zero `V`. An interface `V` is Stuck.
+  - `T` not an interface:
+    - equal tokens: true if `identByName`, else Stuck;
+    - different underlying tokens: false;
+    - otherwise: Stuck.
+- **`Implements`:** likewise, through `assertOk`.
+- **`Set`:** through a translated helper `store[T](p, x any)`.
+
+**`errors`:**
+- Translate the real `wrap.go` with its bodies; remove the overlay's `asAssign` and the `errorType` skip.
+- Retire the `AsAssign` constructor, its `Countable` entry, `as_assign_step` and `TrustedCode/errors.lean`.
+- Re-prove Perennial's `errors.As` specs over the model, with the statements unchanged.
+
+**Size:**
+- 150–250 lines of Go model;
+- trust: minus one instruction and its rule, minus one stub; plus two rows and two stubs;
+- proofs: about 1–2 helper-days.
+
+**State of `reflect-s05` @ `567b4226f` (WIP).**
+
+Done:
+- the rows `.underlying` and `.identByName` (encoded 23 and 24 in `Countable`);
+- the stubs `TypeUnderlying`, `TypeIdentByName`, `Store` and `AssertOk`, with their TrustedCode impls and toml entries;
+- the helpers `store[T]` (a nil `x` stores the zero `T`) and `assertOk[T]`;
+- the `internal/reflectlite` overlay, with `names_only` for the rest;
+- `errors` translates the real `As`, `as` and `errorType` (the overlay keeps only `Is`, because `Comparable` is
+  not modelled);
+- the `AsAssign` constructor, its rule and `TrustedCode/errors.lean` removed;
+- the asAssign and asWalk spec and proof files deleted, and `errors.As.wp_proof` a marked `sorry`.
+
+Tests:
+- `go test ./goose/...` passes.
+- The harness is green, including about 7,000 differential comparisons each of reflectlite against real reflect,
+  and the real `errors.As` against `wrap.go` over the model, with no mismatches.
+- `etc/model-tests.sh` passes; it now drops the reflectlite overlay.
+
+Not done:
+- No Lean build at all.
+- `errors.initialize'.wp_proof` will break (`errorType` is now initialized through reflectlite).
+- No specs or proofs for reflectlite or the four new stubs.
+- `etc/trusted-delta.py origin/reflect-s0..HEAD --no-diff` has not been run.
+- Regenerating with go1.26.11 changes `Code/strconv.lean`'s `IsPrint` tables; the helper reverted that file, so
+  check that drift separately.
+
+**Soundness findings (for the packet):**
+1. **The retired `AsAssign` rule, and the current `errors.As` spec's `AsDecided`, are wrong for tagged structs.**
+   Go returns true for `errors.As(tagSE{}, &struct{E2 `json:"t"`}{})`, but goose drops a defined struct's tags, so
+   the old rule said false. The new model is stuck there (a harness test checks this). `AsDecided` must exclude
+   the Struct, Chan and Func kinds.
+2. **`directlyAssignable` is stuck for Chan, Func, Struct and Interface,** on purpose: reflectlite's
+   bidirectional-channel case, its ignoring of whether a function is variadic, and the dropped tags.
+3. **`isModelRType` is now a layout check** (a struct whose only field has type `any`). It also makes stuck any
+   user error type with that layout. That over-approximates, but it is never more defined than Go.
+4. **`.underlying` returns Lean's underlying type,** which for a defined struct is tagless and so not always Go's.
+   Model code that uses it must allow for that.
+5. **reflectlite's `rtype` lacks the `abi.Type` methods** the real one gets by embedding. No current caller can
+   observe this.
+
+**Next on S0.5:**
+1. Run `vmlake build Perennial`; make `errors.initialize'` a marked `sorry` if it breaks.
+2. Run the trusted-delta.
+3. Strengthen `AsDecided` (point 1 above).
+4. Write specs and proofs for reflectlite and the four stubs; re-prove `As`, `as` and `initialize'`.
+5. Get an independent adversarial review of the new trusted text.
+
+## Next steps
+
+1. **etcd-grove:**
+   - Validate or fix the axiom-tok change; merge origin/lean; rerun the VM gates (`vm-build:` request on
+     etcd-grove#8).
+   - Expect only `axiom-tok` to matter.
+2. **Perennial `reflect-s05`:**
+   - Finish the rows and stubs, the reflectlite model with its harness tests, `errors` over the model, and
+     AsAssign's removal; regenerate.
+   - Build the whole of Perennial on the VM.
+   - Run `etc/trusted-delta.py`.
+   - Get an independent adversarial review of the new trusted text (the fix-semantics skill).
+3. **Re-prove** Perennial's `errors.As`/`asWalk` specs over the model (untrusted, a separate helper). Then
+   repoint etcd-grove's pin to reflect-s05 and rebuild.
+4. **Send Upamanyu ONE combined trusted packet (S0 + S0.5):** the primitives above, the two new rows, the
+   overlays, goose C0/layout, the `rtype.String` axiom and the axiom-tok gate change. Use one item per message,
+   each self-contained.
+5. **Later stages** (S1 names/identity, S2 Set/Convert, S3 slices/maps/sort/errors): follow
+   `plan-reflect.md` §E.
+
+## Pitfalls
+
+- `vmlake` sync directories can be garbage-collected mid-sync (rsync exit 23 or "VM unreachable"); just rerun.
+  Always read the exit code and log before pushing.
+- `etc/axiom-tok-check.py` hides the Lean run's stderr: run `AxiomTokCheck.lean` directly to see errors.
+- The local machine is overloaded: build on the VM only.
+- Generated files (`Code/`, `GeneratedProof/`, PkgTables, `SpecPlan/Spec/PkgInit`, the swiftnet `BootTable`
+  via `etc/dsv/kitgen.py`) are regenerated, never edited. A Perennial pin that adds packages
+  (`internal/gomodel`, `internal/reflectcore`) needs `etc/gen-init.py`, `etc/gen-specs-pkginit.py`
+  (with `PERENNIAL_DIR`) and `kitgen` reruns. The hand-written `pkgInitTable` in `RaftWitness/.../kvwitness/Adequacy.lean`
+  needs a manual edit.
