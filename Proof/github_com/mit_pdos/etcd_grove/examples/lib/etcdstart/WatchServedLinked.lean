@@ -87,7 +87,7 @@ theorem kvWatch_served_tbl (Hp : mvcc.api.persistent.law (GF := GF))
   iexists _, _, _, _
   iframe Hsat
   iintro !> %a #Ha
-  imod (Htab $$ %a Ha) with ⟨#Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+  imod Htab $$ %a Ha with ⟨#Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   ihave #Hst := BigSepL.bigSepL_singleton.1 $$ Hss
   try simp only [v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
   imodintro
@@ -117,7 +117,7 @@ theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
   iintro H
   imod (kvWatch_served_tbl Hp Hr s E ρ γr cfg gs lis addr cid mid R Hrb Hrf hρ HL Hms Htb) $$ H
     with ⟨Htok, #Ht⟩
-  imod (tableAt_self addr _ $$ Ht) with ⟨#Hkv, #Hw⟩
+  imod (tableAt_self addr _) $$ Ht with ⟨#Hkv, #Hw⟩
   imodintro
   iframe Htok Hkv Hw
 

@@ -72,7 +72,7 @@ theorem kv_served_tbl (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iexists _, _, _, _
   iframe Hsat
   iintro !> %a #Ha
-  imod (Htab $$ %a Ha) with ⟨-, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+  imod Htab $$ %a Ha with ⟨-, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   imodintro
   iunfold etcdKVAt
   iframe #
@@ -90,7 +90,7 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
       |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid := by
   iintro H
   imod (kv_served_tbl s E ρ γr gs lis addr cid mid R Hrb Hrf hρ HL) $$ H with ⟨Htok, #Ht⟩
-  imod (tableAt_self addr _ $$ Ht) with #Hkv
+  imod (tableAt_self addr _) $$ Ht with #Hkv
   imodintro
   iframe Htok Hkv
 

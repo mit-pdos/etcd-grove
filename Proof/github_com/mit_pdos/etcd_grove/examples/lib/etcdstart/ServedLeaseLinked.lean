@@ -181,7 +181,7 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         [∗list] x ∈ Wo.toList.map (fun W => v3rpc.watchMethod pw R W),
           isGrpcStreamMd a x.name x.Up x.spec) $$ []
     · iintro !> %a #Ha
-      imod (Htab $$ %a Ha) with ⟨Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
+      imod Htab $$ %a Ha with ⟨Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
       simp only [client.etcdLeaseReadMethods, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
       icases Hle with ⟨#H1, #H2, -⟩
       ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
@@ -192,7 +192,7 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
       iunfold etcdKVAt
       iunfold client.etcdLeaseReadAt
       iframe #
-    imod (Htab' $$ %addr Hsat) with ⟨#HRd, #HSv, -⟩
+    imod Htab' $$ %addr Hsat with ⟨#HRd, #HSv, -⟩
     imodintro
     iexists _
     iframe Hserv Hgo HRd HSv
@@ -259,7 +259,7 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         [∗list] x ∈ Wo.toList.map (fun W => v3rpc.watchMethod pw R W),
           isGrpcStreamMd a x.name x.Up x.spec) $$ []
     · iintro !> %a #Ha
-      imod (Htab $$ %a Ha) with ⟨Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
+      imod Htab $$ %a Ha with ⟨Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
       simp only [client.etcdLeaseGrantMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
       icases Hle with ⟨#H1, #H2, #H3, -⟩
       ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
@@ -272,7 +272,7 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
       iunfold etcdLeaseGrantAt
       iunfold client.etcdLeaseReadAt
       iframe #
-    imod (Htab' $$ %addr Hsat) with ⟨#HRd, #HSv, -⟩
+    imod Htab' $$ %addr Hsat with ⟨#HRd, #HSv, -⟩
     imodintro
     iexists _
     iframe Hserv Hgo HRd HSv
@@ -340,7 +340,7 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
         [∗list] x ∈ Wo.toList.map (fun W => v3rpc.watchMethod pw R W),
           isGrpcStreamMd a x.name x.Up x.spec) $$ []
     · iintro !> %a #Ha
-      imod (Htab $$ %a Ha) with ⟨Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
+      imod Htab $$ %a Ha with ⟨Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
       simp only [client.etcdLeaseGrantLiveMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
       icases Hle with ⟨#H1, #H2, #H3, -⟩
       ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
@@ -355,7 +355,7 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
       iunfold etcdLeaseGrantLiveAt
       iunfold client.etcdLeaseReadAt
       iframe #
-    imod (Htab' $$ %addr Hsat) with ⟨#HRd, #HSv, -⟩
+    imod Htab' $$ %addr Hsat with ⟨#HRd, #HSv, -⟩
     imodintro
     iexists _
     iframe Hserv Hgo HRd HSv
@@ -489,7 +489,7 @@ theorem kv_lease_served_watch (s : Loc)
       v3rpc.pbWatchResponseT]
     imodintro
     iframe #
-  imod (tableAt_self addr _ $$ Htb) with ⟨-, -, #Hwst⟩
+  imod (tableAt_self addr _) $$ Htb with ⟨-, -, #Hwst⟩
   imodintro
   iframe Hgo Hr Hl
   isplitl [Hserv]

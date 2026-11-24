@@ -2089,15 +2089,16 @@ theorem etcd_watch_served_chain (p : Loc) (R : WSrv GF) (W : SrvW GF)
   have := srvWOk_persistent (mvcc.api.mvccApi_persistent_law_holds (GF := GF)) W R.wsl wsN
   have hb := srvStreamBundle_watchSlot (GF := GF) R.s R.E γr
   rw [← hγ] at hb
+  have h := etcd_watch_served p R W [im] [iprop(True)] is (levelTok 0) γr _ hb.1 hb.2 hγ Htb HL hset
+  simp only [List.cons_append, List.nil_append] at h
   iintro ⟨#Hpb, #Hinit, #Hws, #HW, #Him, #His, #Hb, #Hrp⟩
-  iapply (etcd_watch_served p R W [im] [iprop(True)] is (levelTok 0) γr _ hb.1 hb.2
-    hγ Htb HL hset)
+  iapply h
   iframe #
   iunfold srvStreamInterceptorsOk
   iframe #
-  iunfold srvStreamInterceptorsOk
-  simp only [List.cons_append, List.nil_append]
-  itrivial
+  try iunfold srvStreamInterceptorsOk
+  try simp only [List.cons_append, List.nil_append]
+  try itrivial
 
 /-- **etcd's stream interceptor** (`newStreamInterceptor`, linked; the watch slice's unit W-W): it
 starts the leader monitor and returns a transparent stream interceptor (`srvStreamInterceptorOk`,

@@ -329,7 +329,7 @@ theorem StartMember.wp_proof
     iexists _, _, _, _
     iframe Hsat
     iintro !> %a #Ha
-    imod (Htab $$ %a Ha) with ⟨#Hsa, #G1, #G2, #G3, #G4, #G5⟩
+    imod Htab $$ %a Ha with ⟨#Hsa, #G1, #G2, #G3, #G4, #G5⟩
     ihave #Hwa := BigSepL.bigSepL_singleton.1 $$ Hsa
     try simp only [EtcdGrove.v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
     imodintro

@@ -3617,7 +3617,7 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
     imodintro
     iframe Hss
     iexact H
-  imod (Htab $$ %addr Hat') with ⟨Hss, #H1, #H2, #H3, #H4, #H5, H6⟩
+  imod Htab $$ %addr Hat' with ⟨Hss, #H1, #H2, #H3, #H4, #H5, H6⟩
   imodintro
   iframe; iframe #
 
@@ -3682,7 +3682,7 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
   iframe Htok Hst
   iframe H1 H2 H3 H4 H5 Hsat
   iintro !> %a #Ha
-  imod (Htab $$ %a Ha) with ⟨Hss, #G1, #G2, #G3, #G4, #G5, -⟩
+  imod Htab $$ %a Ha with ⟨Hss, #G1, #G2, #G3, #G4, #G5, -⟩
   imodintro
   iframe Hss; iframe #
 

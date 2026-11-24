@@ -798,7 +798,7 @@ theorem tableAt_mono (c : GoString) (P Q : GoString → IProp GF) :
   iexists ics, regs, tys, sms
   iframe Hc
   iintro !> %a #Ha
-  imod (Hw $$ %a Ha) with HP
+  imod Hw $$ %a Ha with HP
   iapply Hpq $$ %a HP
 
 open Iris.ProofMode Net in

@@ -52,7 +52,7 @@ theorem StartBridge.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     wp_auto
     wp_apply wp_New client addr l (grpcStartSvc ics regs tys sms) $$ [Hl Hab] as %br ⟨Hob, %Hnr⟩
     · iframe #; iframe
-    imod (Hw $$ %addr Hb) with HP
+    imod Hw $$ %addr Hb with HP
     iapply HΦ
     ileft
     isplitr
