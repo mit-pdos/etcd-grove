@@ -38,6 +38,13 @@ def ReadOut (bs0 : List w8) (r : ReadRes) (k : w64) (bs' : List w8) : Prop :=
       bs' = bs.take bs0.length ++ bs0.drop bs.length
   | _ => k = 0 ∧ bs' = bs0
 
+/-- `ReadOut` with the count as a signed integer (`sint.Z k`, not its natural part). -/
+def ReadOutZ (bs0 : List w8) (r : ReadRes) (k : w64) (bs' : List w8) : Prop :=
+  match r with
+  | .bytes bs => sint.Z k = min bs0.length bs.length ∧
+      bs' = bs.take bs0.length ++ bs0.drop bs.length
+  | _ => k = 0 ∧ bs' = bs0
+
 /-- The error `c.Read(b)` returns for the extension's result `r`: `nil` for bytes, `eof` (`io.EOF`)
 for EOF, and the `*OpError` of the failure's kind. -/
 def ReadErr (r : ReadRes) (eof la ra ed err : GoInterface) : IProp GF :=
@@ -59,6 +66,23 @@ abbrev Conn.Read.spec : Prop :=
   {{ (k : w64) (err : GoInterface), RET (PairV #k #err);
       ∃ (r : ReadRes) (bs' : List w8), Q r ∗ b ↦* bs' ∗ ⌜ReadOut bs0 r k bs'⌝ ∗
         ReadErr r eof la ra ed err }}
+
+/-- `Conn.Read.spec` with two later credits in the post (from the steps after the extension's `Read`)
+and the count exact (`ReadOutZ`):
+for a caller whose own post follows the call at once (a stream reader's `Read` is the connection's,
+`DialHTTPPath`'s `bufio.Reader`), to strip the later off the update's result. -/
+abbrev Conn.Read.specLc : Prop :=
+  ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (b : GoSlice)
+    (bs0 : List w8) (eof ed : GoInterface) (Q : ReadRes → IProp GF),
+  {{ connAt (GF := GF) t cn s a la ra ∗ b ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
+      (|={⊤,∅}=> ∃ st d, netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ∗ netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn (!s) d ∗
+        ∀ r d', ⌜ReadOutcome st d b.len.toNat r d'⌝ -∗
+          netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st -∗ netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn (!s) d' ={∅,⊤}=∗ Q r) }}
+    (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"Read" #t)) (Val #b))
+  {{ (k : w64) (err : GoInterface), RET (PairV #k #err);
+      ∃ (r : ReadRes) (bs' : List w8), Q r ∗ b ↦* bs' ∗ ⌜ReadOutZ bs0 r k bs'⌝ ∗
+        ReadErr r eof la ra ed err ∗ £ 1 ∗ £ 1 }}
 
 end spec
 
