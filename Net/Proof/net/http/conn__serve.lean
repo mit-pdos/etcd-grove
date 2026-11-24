@@ -61,7 +61,50 @@ theorem conn.serve.wp_proof
   wp_apply wp_with_defer_recover as %defer %pnc defer pnc
   iunfold ctxKeys at Hkeys
   icases Hkeys with ⟨%sk, %lk, #Hsk, #Hlk⟩
+  iunfold connNew at Hc
+  icases Hc with ⟨#Hsrv, #Hrwc, Hcc, Hrma, Htls, Hwerr, Hr, Hbufr, Hbufw, Hlm, Hcur, Hst, Hmu, Hhj⟩
+  ihave #Hca' := Hca
+  iunfold connAt at Hca'
+  icases Hca' with ⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hcat⟩
+  iunfold netAddr at Hra
+  icases Hra with ⟨%rp, %rv, %Hraeq, #Hrp⟩
+  iunfold netAddr at Hla
+  icases Hla with ⟨%lp, %lv, %Hlaeq, #Hlp⟩
+  wp_load
+  wp_apply wp_RemoteAddr $$ [$Hca]
+  subst Hraeq
   wp_auto
+  rw [method_unfold (t := go.GoType.PointerType net.TCPAddr.ty) (m := go!"String")]
+  unfold net.TCPAddr.String.impl
+  wp_auto
+  wp_bind (ExternalOp _ _ _)
+  iapply wp_net_AnyString
+  iintro %rmt
+  wp_auto
+  ipersist Hrma
+  wp_apply wp_LocalAddr $$ [$Hca]
+  subst Hlaeq
+  try wp_auto
+  wp_apply wp_WithValue ctx contextKey.ty lk _ $$ [$Hctxi] as %q ⟨#Hq1, #Hq2, #Hq3⟩
+  try wp_auto
+  have hcs : go.typeSetContains (go.GoType.PointerType net.TCPConn.ty) connectionStater.ty = false := by
+    go_type_set
+  simp only [hcs]
+  try wp_auto
+  simp only [hcs]
+  try wp_auto
+  ihave #Hbg1 : context.ctxBg (GF := GF) (interface.mk (go.GoType.PointerType context.valueCtx.ty) #q) $$ []
+  · iunfold context.ctxBg at Hbg
+    icases Hbg with ⟨%n, #Hn⟩
+    iunfold context.ctxBg
+    iexists n + 1
+    simp only [context.ctxBgN]
+    iright
+    iexists q, ctx, (interface.mk (go.GoType.PointerType contextKey.ty) #lk), _
+    iframe #
+    ipureintro; rfl
+  wp_apply wp_WithCancelBg $$ [$Hctxi $Hbg1] as %ctx2 %γc %cancel ⟨#Hcancel, #Hctx2, #Hcctx2⟩
+  try wp_auto
   sorry
 /-PLAN
   -- 1. `with_defer_recover`; RemoteAddr (+ `TCPAddr.String`: `wp_net_AnyString`), store remoteAddr;
