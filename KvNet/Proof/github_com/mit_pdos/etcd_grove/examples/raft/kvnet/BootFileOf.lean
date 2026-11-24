@@ -32,7 +32,13 @@ variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 theorem BootFileOf.wp_proof
     (wp_itoa : itoa.spec (GF := GF) (hG := hG)) :
     BootFileOf.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro dir id
+  wp_start as #Hpkg
+  wp_auto
+  wp_apply wp_itoa id $$ [$Hpkg]
+  unfold kvBootFileName
+  iapply HΦ
+  itrivial
 
 end proof
 
