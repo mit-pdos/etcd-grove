@@ -101,11 +101,16 @@ theorem kErrOk_intro (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG)) 
   have hund' : go.isInterfaceType (underlying (go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)) = false →
       underlying e.ty ≠ underlying (go.GoType.PointerType
-        k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty) := by
+        k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty) ∧
+      (_root_.Perennial.errors.undecidedKind (underlying (go.GoType.PointerType
+          k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)) = false ∨
+        go.kindOf (underlying e.ty) ≠ go.kindOf (underlying (go.GoType.PointerType
+          k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty))) := by
     intro _
     rw [go.is_underlying (t := go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)]
-    exact hund
+    -- the target `*corruptObjectDeletedError` is a pointer: no struct, channel or function kind
+    exact ⟨hund, Or.inl rfl⟩
   wp_apply (wp_AsLeafTy e l v corrupt_asTarget hleaf hts hund') $$ [Hl]
   · iframe
   iintro Hl
