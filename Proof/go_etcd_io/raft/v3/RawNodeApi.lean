@@ -88,6 +88,12 @@ abbrev rawNode_noSnap.law : Prop :=
     ⌜ps.base = base0 ∧ rs.slent = none ∧ ∀ m ∈ ps.outbox, m.ty ≠ .snap⌝ ∗
     rawNode γ rn id rs ps qs ip
 
+/-- (#33 S4, drain) The log's terms at most the node's term (raft's ghost `TermsLe`). -/
+abbrev rawNode_logTerms.law : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
+    ⌜∀ e ∈ ps.log, uint.Z e.Term' ≤ uint.Z ps.term⌝ ∗ rawNode γ rn id rs ps qs ip
+
 /-- The static mode (the scope's part a client sees). -/
 abbrev rawNode_scope.law : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),

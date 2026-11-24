@@ -105,6 +105,18 @@ theorem rawNode_noSnap : rawNode_noSnap.law (GF := GF) := by
   subst Hps
   exact ⟨Hprev, Hsl, Hout⟩
 
+theorem rawNode_logTerms : rawNode_logTerms.law (GF := GF) := by
+  intro γ rn id rs ps qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
+  iintro Hg
+  icases ownRaftGhost_terms_le γ id ps $$ Hg with ⟨%Ht, Hg⟩
+  icases ownRaftGhost_logRecs γ id ps md $$ Hg with ⟨%Hw, -⟩
+  ipureintro
+  intro e he
+  obtain ⟨k, hk, hke⟩ := List.getElem_of_mem he
+  have hk' : ps.log[k]? = some e := by rw [List.getElem?_eq_getElem hk, hke]
+  exact Ht e.Index' e.Term' (plogTermAt_lookup ps.base ps.log e.Index' k e hk' (Hw k e hk'))
+
 theorem rawNode_scope : rawNode_scope.law (GF := GF) := by
   intro γ rn id rs ps qs ip
   refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)

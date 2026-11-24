@@ -102,7 +102,7 @@ theorem RawNode.Ready.wp_absProof
   obtain ⟨Hrole, Hdpre, Hdlen⟩ := Hscf hsc
   refine ⟨Hq, ⟨Hrole1.trans Hrole.symm, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
     by show _ ≡ₚ List.filter _ s.outbox; simpa using Hmsperm, Hto,
-    Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip'⟩
+    Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew⟩
 
 end proof
 

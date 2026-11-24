@@ -293,7 +293,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- it bounds every committed log handed out within it, the snapshot's too (`Hhsw` below)
   ihave #HHP : iprop(∃ h, hsOptC HP h ∗ phsWit γ (phsNext rs.phs h) ∗
       -- (2026-11-01, durability stage II (k), fix C) the hard state after it is the node's
-      ⌜phsNext rs.phs h = HardStateM.mk s.term s.vote s.logst.committed⌝)
+      ⌜phsNext rs.phs h = HardStateM.mk s.term s.vote s.logst.committed ∧
+        -- (#33 S4) a non-empty one differs from `prevHardSt` (`isHardStateEqual`'s `false`)
+        (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs)⌝)
     $$ []
   · rw [← HHP]
     by_cases He : nodeHardstate s = hsAbs hprev
@@ -303,6 +305,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       isplitr
       rotate_left
       · ipureintro
+        refine ⟨?_, fun hn => absurd ⟨rfl, rfl, rfl⟩ hn⟩
         rw [phsNext_zero, ← Hphe]
         have Hh : hardstateVal (nodeHardstate s) = hardstateVal (hsAbs hprev) := congrArg hardstateVal He
         rw [show hardstateVal (hsAbs hprev) = hprev by cases hprev; rfl] at Hh
@@ -319,6 +322,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
         isplitr
         rotate_left
         · ipureintro
+          refine ⟨?_, fun hn => absurd Hz hn⟩
           -- (2026-11-01, durability stage II (m)) the node's hard state empty: `prevHardSt`'s
           -- record, below it (`PhsOk`), is empty too
           have Hz' : hsOf s = HardStateM.mk (W64 0) (W64 0) (W64 0) := by
@@ -332,7 +336,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
       rw [phsNext_ne _ _ Hz]
       isplitr
       rotate_left
-      · ipureintro; rfl
+      · ipureintro
+        exact ⟨rfl, fun _ heq => He (Hhs_iff.1 (by rw [heq, ← Hphe]; exact ⟨rfl, rfl, rfl⟩))⟩
       unfold phsWit
       rw [show (hardstateVal (nodeHardstate s)).Term' = (toPState s).term from rfl,
         show (hardstateVal (nodeHardstate s)).Commit' = (toPState s).commit from rfl]
@@ -603,7 +608,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iexists s.rd.states
     iframe Hrdrs
     ipureintro; exact fun h => h
-  icases HHP with ⟨%hrd, #HHP, #Hphn, %Hhseq⟩
+  icases HHP with ⟨%hrd, #HHP, #Hphn, %Hhseq2⟩
+  obtain ⟨Hhseq, Hhnew⟩ := Hhseq2
   have Hcge : uint.Z s.logst.committed ≤ uint.Z (phsNext rs.phs hrd).Commit' := by
     rw [Hhseq]; exact Int.le_refl _
   ihave #Hrdhard : iprop(∃ h, hsOptC HP h ∗ phsWit γ h ∗
@@ -858,6 +864,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
     iexact Hrs_ok
   isplitr
   · iexact HHP
+  isplitr
+  · ipureintro; exact Hhnew
   · iapply hsWit_of_phsWit γ _ _ ?_ $$ Hphn
     cases L with
     | none => show ((rs.delivered ++ ce).length : Int) ≤ _; omega

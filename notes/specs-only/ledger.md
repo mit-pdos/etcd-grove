@@ -5550,6 +5550,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   harness's only.
 - **Decision.** Applied (branch `antithesis-s4`, the lead).
 
+## 2026-11-24: `RawNode.Ready.form`'s post, a new hard state differs from the last one (#33 S4, P-raft-3)
+
+- **Spec.** `RawNode.Ready.form` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the strengthened triple's
+  `%Hout`; and `RawNode.readyWithoutAccept.spec` (`Spec/go_etcd_io/raft/v3/RawNode__readyWithoutAccept.lean`).
+- **Defect.** Too weak for the Antithesis harness's drain: the `Ready`'s hard state `h` is related to the node's
+  only through `phsNext rs.phs h`, so a client cannot tell a non-empty `h` that repeats the last hard state
+  handed out from a new one. The TLA+ binding reports a hard-state change only when there is one.
+- **Evidence.** raft v3.7 `rawnode.go`, `readyWithoutAccept`: `if hardSt := r.hardState();
+  !isHardStateEqual(hardSt, rn.prevHardSt) { rd.HardState = hardSt }` (`prevHardSt`'s record is `rs.phs`,
+  `prevHS`).
+- **Proposed change.** Add, under the scope guard of `%Hout`, `¬ (h.Term' = 0 ∧ h.Vote' = 0 ∧ h.Commit' = 0) →
+  h ≠ rs.phs`; `readyWithoutAccept.spec` gains it unguarded (`%Hhnew`), from its `isHardStateEqual` branch.
+  A strengthening: the old specs (`RawNode.Ready.spec`, through `spec_of_abs`) are unchanged.
+- **Decision.** Applied (branch `antithesis-s4`, the lead's decision; helper F).
+
 ## 2026-11-24: `TickEnd`'s heartbeats and `stepLeader`'s `MsgBeat` clause leave the heartbeat's context free (#33 S4, msgShape)
 
 - **Spec.** `LeaderNonpropResultC`'s `MsgBeat` clause (`Spec/go_etcd_io/raft/v3/stepLeader.lean`, in
