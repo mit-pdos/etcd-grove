@@ -1,6 +1,6 @@
 /-
-`slices.Clone(s)` (Go's `slices`, names only in Perennial): **the trust boundary**. Lean-first (no
-Rocq counterpart).
+`slices.Clone(s)`: an instance of Perennial's `slices.Clone.spec`, proved in `Proof/slices/Clone.lean`
+(mit-pdos/perennial#670). Lean-first (no Rocq counterpart).
 -/
 module
 

@@ -1,10 +1,11 @@
 /-
-`slices.Clone(s)` (Go's `slices`, names only in Perennial): **the trust boundary**. The axiom (see
-its docstring for why it is faithful). Lean-first (no Rocq counterpart).
+Proof of `Spec/slices/Clone.lean`: an instance of Perennial's proved `slices.Clone`
+(mit-pdos/perennial#670). Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Spec.slices.Clone
+public import Perennial.Spec.slices.Clone
 
 @[expose] public section
 
@@ -16,19 +17,23 @@ namespace Perennial
 namespace EtcdGrove
 namespace slices
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode 
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.slices.Assumptions]
 
-/-- **The trust boundary.** Go's `slices.Clone(s)` (go1.22+: `append(s[:0:0], s...)`) returns a new slice holding
-the elements of `s` (a shallow copy; `nil` for a `nil` `s`, whose points-to of `[]` holds), with its
-whole capacity owned, and only reads `s`. It does not panic: the copy's length is `s`'s, which is in
-memory. -/
-axiom Clone.wp_proof : Clone.spec (GF := GF) (hG := hG)
+theorem Clone.wp_proof
+    (wp_Clone : _root_.Perennial.slices.Clone.spec (GF := GF) (hG := hG)) :
+    Clone.spec (GF := GF) (hG := hG) := by
+  intro V _ _ E _ s dq xs
+  wp_start as Hs
+  wp_apply (wp_Clone (S := go.GoType.SliceType E)) $$ [$Hs] as %s' ⟨Hs, Hs', Hcap, -⟩
+  iapply HΦ
+  iframe
 
 end proof
 

@@ -58,11 +58,8 @@ axiom bridge.bridge.Blackhole.wp_proof
 axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
-axiom bytes.Buffer.Bytes.wp_proof
-axiom bytes.Buffer.Write.wp_proof
 axiom cache.wp_Errorf_setArgs
 axiom cmp.Diff.wp_proof_eventRefs
-axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
@@ -309,8 +306,6 @@ axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
 axiom semver.semverValid_simple
-axiom slices.Clone.wp_proof
-axiom slices.Concat.wp_proof
 axiom slices.ContainsFunc.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof

@@ -60,10 +60,7 @@ axiom bridge.bridge.Blackhole.wp_proof
 axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
-axiom bytes.Buffer.Bytes.wp_proof
-axiom bytes.Buffer.Write.wp_proof
 axiom cmp.Diff.wp_proof_eventRefs
-axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom conversion.EnforcePtr.wp_proof
