@@ -51,8 +51,8 @@ theorem Main.wp_proof
     wp_auto
     wp_apply wp_unionAuthzHandler_ConditionsAwareAuthorize as %d Hwfd
     · iexact Hu
-    iunfold isWFDecision at Hwfd
-    icases Hwfd with ⟨%m, #Hd, %Hwf⟩
+    iunfold isWFDecisionBnd at Hwfd
+    icases Hwfd with ⟨%m, #Hd, %Hwf, #Hdn⟩
     (try wp_auto)
     wp_apply (wp_twoPhase _ h d m)
     · iframe #

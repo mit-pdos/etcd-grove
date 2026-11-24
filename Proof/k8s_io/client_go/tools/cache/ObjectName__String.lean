@@ -30,9 +30,10 @@ theorem ObjectName.String.wp_proof : ObjectName.String.spec (GF := GF) (hG := hG
   wp_auto
   wp_func_call
   wp_call
-  by_cases hl : on.Namespace'.length < 2 ^ 63
+  by_cases hl : ((on.Namespace').length : Int) ≤ maxAddr
   case neg => rw [if_neg hl]; wp_apply wp_AngelicExit
   rw [if_pos hl]
+  have hl_lt : (on.Namespace').length < 2 ^ 63 := by unfold maxAddr at hl; omega
   wp_auto
   have hz : sint.Z (W64 (on.Namespace'.length : Int)) = on.Namespace'.length := by word
   wp_if_destruct

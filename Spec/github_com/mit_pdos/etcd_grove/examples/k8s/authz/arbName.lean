@@ -1,5 +1,5 @@
 /-
-`arbName()` (`authz.go`): some name. Lean-first (no Rocq counterpart).
+`arbName()` (`authz.go`): some name (one of its literals, at most `authzNameMax` bytes). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -29,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 abbrev arbName.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbName)) (Val #()))
-  {{ (s : GoString), RET #s; True }}
+  {{ (s : GoString), RET #s; ⌜s.length ≤ authzNameMax⌝ }}
 
 end spec
 

@@ -45,9 +45,10 @@ theorem extractNodeFields.wp_proof (h_body : extractNodeFields_body.spec (sem :=
   wp_auto
   wp_func_call
   wp_call
-  by_cases hl : v.ObjectMeta'.Name'.length < 2 ^ 63
+  by_cases hl : ((v.ObjectMeta'.Name').length : Int) ≤ maxAddr
   case neg => simp only [hl, ↓reduceIte]; wp_apply wp_AngelicExit
   simp only [hl, ↓reduceIte]
+  have hl_lt : (v.ObjectMeta'.Name').length < 2 ^ 63 := by unfold maxAddr at hl; omega
   wp_auto
   have hz : sint.Z (W64 (v.ObjectMeta'.Name'.length : Int)) = v.ObjectMeta'.Name'.length := by word
   wp_if_destruct

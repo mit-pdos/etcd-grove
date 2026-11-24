@@ -38,7 +38,7 @@ theorem startMembers.wp_proof (wp_build : build.spec (GF := GF) (hG := hG))
     (wp_newMember : newMember.spec (GF := GF) (hG := hG)) :
     startMembers.spec (GF := GF) (hG := hG) := by
   intro CS N msl lg xs ps bootLog ctxs dir Φs γn ThB RcB RcN HwbN Hbl Hγnd Hdok Hbc
-    Hnd Hutf HnL Hx Haf Hbuq Hdbo
+    Hnd Hutf HnL HaF Hx Haf Hbuq Hdbo
   wp_start as ⟨#Hlg, Htok, #Hms, #Hcom, #Hcc, Hpre⟩
   ihave %Hmsl := ownSlice_len $$ Hms
   (try wp_auto)
@@ -184,7 +184,7 @@ theorem startMembers.wp_proof (wp_build : build.spec (GF := GF) (hG := hG))
       wp_apply (wp_build N xj.1.Name' xj.1.Peer' xj.1.Client' sl pm lg M
           (iuOf (xs.map (·.1))) (urlsN (xs.map (·.1)) xj.1) ps bootLog ctxs dir xj.2.id xj.2.γ
           xj.2.ρ xj.2.E Φs γn HwbN h1 h2 h3 Hbl h4 Hγnd Hdok h5 Hbc
-          ⟨rfl, rfl, Hdom, rfl⟩ hutf (HnL xj hxj) Haf Hbuq Hdbo) $$ [Htok Hmb Hfr] as %s %err Hr
+          ⟨rfl, rfl, Hdom, rfl⟩ (HaF xj hxj).1 (HaF xj hxj).2 hutf (HnL xj hxj) Haf Hbuq Hdbo) $$ [Htok Hmb Hfr] as %s %err Hr
       · iframe; iframe #
       icases Hr with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, #Hdd⟩)
       · cases err with
