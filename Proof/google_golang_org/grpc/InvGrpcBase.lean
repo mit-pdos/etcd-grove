@@ -27,9 +27,8 @@ such a run must meet. Since per-type stage B (B1b), a run is a fork of grpc's `S
 (its trusted model, `TrustedCode/google_golang_org/grpc.lean`), given the fork's thread
 token and one later credit and returning the token (`grpcRunOkMd`, the run contract; handlers
 proved against `grpcMethodOkMd` at a bundle get it from the adapters, `InvGrpcRun.lean`). The server's
-configuration is Go's (`grpcSrvNew`), which the start makes the address's service table (since phase
-7's switch, SW1, 2026-11-24: until then a server name `γ`, `grpcSrvCfg γ c`, made only by the axiom
-`grpc.start`); `grpc.serve` (a theorem) packages it with the run contracts into registrations. (Until B1b, `grpc.serve` was an axiom taking a caller-chosen run
+configuration is Go's (`grpcSrvNew`), which the start (`grpc.start'`) makes the address's service
+table; `grpc.serve` (a theorem) packages it with the run contracts into registrations. (Until B1b, `grpc.serve` was an axiom taking a caller-chosen run
 resource `S` and count `n`, `axiom/grpc-serve-pool`.)
 Interceptors are specified as transparent (`srvInterceptorOk`, `srvChainWP_of_ok`).
 
@@ -704,7 +703,7 @@ runtime: the codec's unmarshaling of the request's bytes): called on a zero `*T`
 decoded copy, read-only; `Req.recvOwn l m`: what the caller still owns of it) or fails, with an
 error `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: `serverStream.RecvMsg`'s
 `*status.Error`s and the raw `io.ErrUnexpectedEOF` of its second `recv`, a leaf). That holds for
-`Server.Serve`'s HTTP/2 transport only, the one `grpc.start` covers: under `ServeHTTP`,
+`Server.Serve`'s HTTP/2 transport only, the one `Server.Serve`'s axiom covers: under `ServeHTTP`,
 `mapRecvMsgError` returns a raw `transport.ConnectionError`, not a leaf
 (`notes/axiom-review/hs6.md`). -/
 def grpcDecOk (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) : IProp GF :=
@@ -1074,17 +1073,12 @@ structure GrpcSrvCfg (GF : BundledGFunctors) where
   regs : List (GoString × GoFunc × GoInterface)
   sregs : List (GoString × GoFunc × GoInterface)
 
-/-- **The full names of `c`'s methods and streams are jointly distinct** (`grpc.start`'s premise, M1:
+/-- **The full names of `c`'s methods and streams are jointly distinct** (`grpc.start'`'s premise, M1:
 what makes the one entry named by a call's path the handler Go's split lookup finds). -/
 def grpcSrvNodup {GF : BundledGFunctors} (c : GrpcSrvCfg GF) : Prop :=
   ((c.regs ++ c.sregs).map Prod.fst).Nodup
 
 end cfg
-
-/-! The server names (`grpcAddrIsRaw`, `grpcSrvCfgRaw`, `grpcSrvLink`, `grpcAddrIs`, `grpcSrvCfg`) and
-their two agreement axioms were deleted by phase 7's switch (SW1, 2026-11-24,
-`notes/phase7-endstate.md` §1.3): a registration is read off its address's service table, and nothing
-reads a server name. -/
 
 /-! ## The run contracts -/
 

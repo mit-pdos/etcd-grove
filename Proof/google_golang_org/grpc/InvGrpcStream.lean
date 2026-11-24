@@ -593,8 +593,7 @@ instance srvStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep :
 
 /-- **The client end of a stream, raw** (persistent): grpc's `ClientStream` `cs` that
 `ClientConn.NewStream` returns. `SendMsg(&l)` of a request `Req.send l m` (given back; its
-encoding below `grpcMsgMax`, `Req.wireLen`, since 2026-10-30: grpc marshals before it checks a
-size, the unary call's defect, `grpcInvokerOk`) with the
+encoding below `grpcMsgMax`, `Req.wireLen`: grpc marshals before it checks a size) with the
 client's content `Up i m` for its position `i` grows the sender's token, or fails, the request
 delivered or not (the token at the old or the new list); `RecvMsg(&out)` into an owned message
 (`Rep.own out`) decodes the next response into it (`Rep.recv out m`) with the server's content
@@ -603,27 +602,19 @@ responses received (`downClosed`), or another error (`out` back owned); `CloseSe
 up queue after the requests sent (`upClosed`); `Context()` returns the stream's context, of the
 descriptor `cd` (derived from the caller's: done when it is, or when the stream ends).
 
-Since phase 7's switch (SW1, 2026-11-24, `notes/phase7-endstate.md` §2, R2): the responses' content
-is indexed by the address and the metadata the stream was dispatched with (`Dn a md`), which the
-client learns with each response (`streamDispIs γ a md`, with `Md a md`: the call's family of
-dispatches, `NewStream`'s: an address of the connection and an attempt's metadata), since a
-transparent retry before the stream is committed recomputes the head and its per-RPC credentials
-(R2: until then one `md` fixed when `NewStream` returned) and may re-pick the address. A bare `io.EOF`
-with no handler run (R1: a refused first attempt whose replay's write fails, grpc/grpc-go#9443) is in
-the last arm (`cliStreamErr`: `io.EOF` is a client error), so `downClosed` is claimed only by the
-second arm, which an implementation chooses only when the handler returned.
+The responses' content is indexed by the dispatch, the address and the metadata (`Dn a md`), which
+the client learns with each response (`streamDispIs γ a md`, with `Md a md`, the call's family of
+dispatches), since a transparent retry before the stream is committed recomputes the head and its
+per-RPC credentials and may re-pick the address. A bare `io.EOF` with no handler run (a refused first
+attempt whose replay's write fails, grpc/grpc-go#9443) is in the last arm (`cliStreamErr`), so
+`downClosed` is claimed only by the second arm, which an implementation chooses only when the handler
+returned.
 
-Since 2026-11-23 (#24's S2 signatures, the resource parameter): `SendMsg`, `RecvMsg` and `CloseSend`
-are each given a resource `R` of the connection's family (`Ok R`, `grpcConn`'s) and give it back,
-because each may call the per-RPC credentials (`perRPCCredsOk pc Ok Q`): until the stream is
-committed (grpc-go v1.84, `clientStream.commitAttemptLocked`, `stream.go:778`: on the first message
-received, or when the replay buffer overflows), a failed operation is retried transparently
-(`csAttempt.shouldRetry`, `stream.go:800-819`: a first attempt the server never processed), and the
-retry (`clientStream.withRetry`, `stream.go:930`; `SendMsg`, `RecvMsg` at `stream.go:1105,1136`,
-`CloseSend` at `1167`) makes a new attempt (`newAttemptLocked`, `csAttempt.newStream`), whose
-transport stream calls the credentials (`http2Client.createHeaderFields` → `getTrAuthData`),
-synchronously, on the goroutine of the operation's caller (the transport model the network part
-runs: `models/grpc/model_transport.go:242,277-345`). `Context()` makes no attempt. -/
+`SendMsg`, `RecvMsg` and `CloseSend` are each given a resource `R` of the connection's family (`Ok R`,
+`grpcConn`'s) and give it back: until the stream is committed (`stream.go:778`), a failed operation is
+retried transparently (`stream.go:800-819`) by a new attempt whose transport stream calls the per-RPC
+credentials synchronously, on the caller's goroutine (`models/grpc/model_transport.go:242,277-345`).
+`Context()` makes no attempt. -/
 def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Md : GoString → GrpcMd → IProp GF)
     (Dn : GoString → GrpcMd → Nat → Rep.M → IProp GF)
@@ -1417,11 +1408,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The streaming method `name` at `addr` meets `Spec` at each metadata a stream may carry, with
-the client's content `Up`** (persistent, no heap; G2, 2026-10-30, the stream analogue of
-`isGrpcRpcMd`; since phase 7's switch, SW1, 2026-11-24, read off `addr`'s service table,
-`grpcStreamSvcAt`: until then the server listening at `addr` was some `γ` whose Go configuration
-registered `name` with a handler meeting the run contract, a WP at the server's heap). What a
-client's `NewStream` needs. -/
+the client's content `Up`** (persistent, no heap; the stream analogue of `isGrpcRpcMd`, read off
+`addr`'s service table, `grpcStreamSvcAt`). What a client's `NewStream` needs. -/
 def isGrpcStreamMd {Req Rep : StreamMsg GF} (addr name : GoString) (Up : Nat → Req.M → IProp GF)
     (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
   iprop(∃ (_ : HasExt Net.netExt) (π : Net.NetProtoGS) (σ : Net.NetSlotGS),

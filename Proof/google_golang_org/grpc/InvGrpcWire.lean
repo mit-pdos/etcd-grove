@@ -189,9 +189,8 @@ def fieldLast (fs : List (GoString × GoString)) (k : GoString) : Option GoStrin
 /-- The method a head names (`operateHeaders`: the last `:path`). -/
 def pathOf (fs : List (GoString × GoString)) : Option GoString := fieldLast fs go!":path"
 
-/-- `base64.RawStdEncoding.EncodeToString` (no padding): base64's `rawStdEnc` (2026-11-23, S2 core:
-until then a copy of the encoder here, `b64Char`/`b64Alphabet`; one definition now, the one base64's
-package fact gives `RawStdEncoding.EncodeToString`). -/
+/-- `base64.RawStdEncoding.EncodeToString` (no padding): base64's `rawStdEnc`, the definition
+base64's package fact gives `RawStdEncoding.EncodeToString`. -/
 abbrev b64Raw (d : List w8) : List w8 := _root_.Perennial.encoding.base64.rawStdEnc d
 
 /-- **The incoming metadata `md` the server makes of the head `fs`** (`operateHeaders`), on every key
@@ -461,8 +460,7 @@ section svc
 variable [GooseExts]
 variable {GF : BundledGFunctors}
 
-/-- **A message type's wire part** (no heap): its Go type, its model (countable since phase 7, SW1:
-a call's queues are ghost lists of models), and its stored form (the tree `storeInto ty` writes for a
+/-- **A message type's wire part** (no heap): its Go type, its model (countable: a call's queues are ghost lists of models), and its stored form (the tree `storeInto ty` writes for a
 message of model `m`; its bytes are any `protoEncodes ty (tree m)` relates it to, O7). -/
 structure ProtoWire where
   ty : go.GoType
@@ -482,7 +480,7 @@ structure GrpcEntry (GF : BundledGFunctors) [GooseExts] where
   Wp : ProtoWire
   spec : GrpcMd → Wq.M → (Wp.M → IProp GF) → (GoString → IProp GF) → IProp GF
 
-/-- **A streaming method of a service** (no heap; phase 7, SW1, 2026-11-24): its messages' wire
+/-- **A streaming method of a service** (no heap): its messages' wire
 parts, the client's content `up i m` of its `i`-th request, the server's content `dn md γ j m` of its
 `j`-th response at the metadata `md` the stream `γ` was dispatched with, and what a client learns of a
 stream (`spec md γ Dn`, persistent where it is held). -/
@@ -610,8 +608,8 @@ def grpcSvcAt (a name : GoString) (Wq Wp : ProtoWire)
     grpcAddrAt (Gg := Gg) a Svc ∗ ⌜Svc name = some (.unary ⟨Wq, Wp, Spec₀⟩)⌝ ∗
     □ ∀ md m Φ Ψe, Spec md m Φ Ψe ==∗ Spec₀ md m Φ Ψe)
 
-/-- **The streaming method `name` at `a` meets `Up` and `Spec`** (persistent, no heap; phase 7, SW1,
-2026-11-24): the table `a` serves has a stream entry for `name` at the wire parts `Wq`, `Wp`, whose
+/-- **The streaming method `name` at `a` meets `Up` and `Spec`** (persistent, no heap): the table `a`
+serves has a stream entry for `name` at the wire parts `Wq`, `Wp`, whose
 specification holds of every stream at its own content (`spec₀ md γ (dn₀ md γ)`), whose request
 content a client of `Up` meets after an update, and whose specification gives `Spec`. -/
 def grpcStreamSvcAt (a name : GoString) (Wq Wp : ProtoWire) (Up : Nat → Wq.M → IProp GF)

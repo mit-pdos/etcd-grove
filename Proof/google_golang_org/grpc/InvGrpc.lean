@@ -1,11 +1,10 @@
 /-
-**gRPC's registrations and its client attempt** (split from `InvGrpcBase.lean`, phase 7 S2's
-interface, 2026-11-24, so that the registration can name `InvGrpcWire.lean`'s service table; the file
-header of `InvGrpcBase.lean` describes both). Since S2's interface a registration
-`isGrpcRpcMd addr name Spec` is heap-free: `addr`'s service table, fixed when its protocols were set,
-has an entry for `name` that a caller of `Spec` meets (`grpcSvcAt`). Since phase 7's switch (SW1,
-2026-11-24) there is no reach: a bridge's address serves its target's table (`bridge.New`), so a
-registration is read off the dialed address's own table, as at any address. The single-process start sets the address's table to Go's
+**gRPC's registrations and its client attempt** (split from `InvGrpcBase.lean`, so that the
+registration can name `InvGrpcWire.lean`'s service table; the file header of `InvGrpcBase.lean`
+describes both). A registration `isGrpcRpcMd addr name Spec` is heap-free: `addr`'s service table,
+fixed when its protocols were set, has an entry for `name` that a caller of `Spec` meets
+(`grpcSvcAt`). A bridge's address serves its target's table (`bridge.New`), so a registration is read
+off the dialed address's own table, as at any address. The single-process start sets the address's table to Go's
 configuration (`grpcGoSvc`, `InvGrpcRun.lean`), so `grpc.serve` stays a theorem.
 -/
 module
@@ -29,9 +28,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The method `name` at `addr` meets `Spec`** (persistent; phase 7 S2's interface, 2026-11-24:
-until then `∃ γ, grpcAddrIs addr γ ∗ isGrpcRpcAt γ name Spec`, a WP of the server's handler at the
-holder's heap; without `grpcReach` since phase 7's switch, SW1): `addr`'s service table, fixed when
+/-- **The method `name` at `addr` meets `Spec`** (persistent): `addr`'s service table, fixed when
 its protocols were set, has an entry for `name` at the messages' wire parts that a caller of `Spec`
 meets after an update (`grpcSvcAt`, no heap). -/
 def isGrpcRpcMd {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpecMd Req Rep) :
@@ -211,7 +208,7 @@ theorem grpcMethodOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInte
 /-! ## The single-process table: Go's configuration -/
 
 /-- **The entry of Go's configuration for `name` at the message models `Req`, `Rep`** (heap-dependent:
-for one process, whose start sets the table; phase 7 S2's interface, 2026-11-24): a caller's
+for one process, whose start sets the table): a caller's
 precondition is some spec `S` that a handler registered under `name` meets as a run
 (`grpcRunOkMd`), with `S`'s precondition. -/
 def grpcGoEntry (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface)) (name : GoString)
@@ -220,7 +217,7 @@ def grpcGoEntry (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterf
     iprop(∃ (mh : GoFunc) (srv : GoInterface) (S : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg),
       ⌜(name, mh, srv) ∈ regs⌝ ∗ □ grpcRunOkMd #mh srv ics S ∗ S md m Φ Ψe)⟩
 
-/-- **Go's configuration as a service table** (one process; phase 7 S2's interface): an entry for each
+/-- **Go's configuration as a service table** (one process): an entry for each
 registered unary method `tys` gives message models for (`tys`: the program's unary methods by full
 name, with their registered models), none for a stream or an unregistered name. -/
 def grpcGoSvc (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface))
@@ -236,8 +233,7 @@ theorem grpcGoSvc_some (ics : List GoFunc) (regs : List (GoString × GoFunc × G
   have hm : name ∈ regs.map Prod.fst := List.mem_map.2 ⟨_, hin, rfl⟩
   simp [grpcGoSvc, hm, hty]
 
-/-! `grpcServerAt` and `grpc.serve` are in `InvGrpcRun.lean` since phase 7's switch (SW1,
-2026-11-24): the table they read (`grpcStartSvc`) holds the streams too. -/
+/-! `grpcServerAt` and `grpc.serve` are in `InvGrpcRun.lean`: the table they read (`grpcStartSvc`) holds the streams too. -/
 
 /-! ## The client side: one attempt, the interceptor chain (unit P3a) -/
 
@@ -518,10 +514,8 @@ opaque noOtherRefusalAt : GoString → Prop
 
 include hG in
 /-- **The per-RPC credentials of the connection `conn` returned the metadata `cm` to an attempt**
-(raw, opaque; the auth plan's C1, 2026-10-28; an `IProp` since phase 7's switch, SW1, 2026-11-24,
-`notes/phase7-endstate.md` §1.2, D6: it was the opaque `Prop` `credsYield`, which the attempt's proof
-over the model could not produce; in the end state a definition over `grpcConn`'s ghost record of the
-credentials' outputs): `none` if it has none or they returned none; what is known of `cm` is the
+(raw, opaque; in the end state a definition over `grpcConn`'s ghost record of the credentials'
+outputs): `none` if it has none or they returned none; what is known of `cm` is the
 credentials' contract at the dial (`grpc.NewClient`'s `connCredsOk`). Trusted text with no law. Its
 signature carries the heap's instance (`hG`), which its definition over `grpcConn`'s ghost state will
 need. -/
@@ -535,16 +529,13 @@ instance credsYieldI_persistent (conn : Loc) (cm : GrpcMd) :
   unfold credsYieldI; infer_instance
 
 /-- **The handler of an attempt on the connection `conn` with a caller's context whose outgoing
-metadata is `om` sees the metadata `md`** (the auth plan's E3zb; a definition since C1, 2026-10-28, until
-then opaque): on every key grpc does not set itself, the values of the connection's per-RPC credentials'
+metadata is `om` sees the metadata `md`** (persistent): on every key grpc does not set itself, the values of the connection's per-RPC credentials'
 metadata `cm` for the attempt (`credsYieldI`), then the context's outgoing metadata `om`; and no key with
 no values (grpc writes one header field per value, so a key the context carries with none is not sent;
 C1's review, F2). True of grpc-go v1.84 (`http2Client.createHeaderFields`, to check in C1's phase 2); the
-attempt contract (`grpcInvokerOk`) gives the method's spec at such an `md`. (errdesc stage 1,
-2026-11-20) Over the context's metadata value `om`, which the attempt contract's precondition relates to
-the context (`metadata.outMD ctx om`); until then over the pure `metadata.outgoingOf ctx`. (Phase 7's
-switch, SW1, 2026-11-24) An `IProp` (persistent), over `credsYieldI`: it was the `Prop`
-`grpcAttemptMd`. -/
+attempt contract (`grpcInvokerOk`) gives the method's spec at such an `md`. `om` is the context's
+metadata value, which the attempt contract's precondition relates to the context
+(`metadata.outMD ctx om`). -/
 def grpcAttemptMdI (conn : Loc) (om md : GrpcMd) : IProp GF :=
   iprop(∃ cm, credsYieldI conn cm ∗ ⌜(∀ k, ¬ grpcReservedKey k →
       metadata.mdVals md k = metadata.mdVals cm k ++ metadata.mdVals om k) ∧ ∀ k, mdGet md k ≠ some []⌝)
@@ -671,8 +662,7 @@ instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (Ok : IPr
     (inv : GoFunc) : Persistent (grpcInvokerOk (GF := GF) conn addrs Ok inv) := by
   unfold grpcInvokerOk; infer_instance
 
-/-- **No key of the credentials' metadata `cm` is a pseudo-header** (phase 7's switch, SW1,
-2026-11-24, D6; S2's core §0a: grpc's `createHeaderFields` appends the credentials' fields after the
+/-- **No key of the credentials' metadata `cm` is a pseudo-header** (grpc's `createHeaderFields` appends the credentials' fields after the
 real `:path`, and a key starting with `:` would be read by the server as the method's path, as
 `metadata.ValidateKey`, which grpc does not call on them, would refuse). -/
 def credKeysOk (cm : GrpcMd) : Prop :=
@@ -693,7 +683,7 @@ def credsMapIs (mp : Loc) (cm : GrpcMd) : IProp GF :=
 handler's, but grpc-go v1.84 returns a credentials error that carries a status, or wraps one with
 `%w`, unchanged as the attempt's (`http2_client.go:697-702`), a `*fmt.wrapError` or the caller's own
 type: neither a leaf nor of `clientErrTys`, so `grpcInvokerOk`/`cliStreamErr` overclaimed under such
-credentials; etcd's `perRPCCredential` returns `nil`), and, a map whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`) and no pseudo-header key (`credKeysOk`, since phase 7's switch, SW1); and
+credentials; etcd's `perRPCCredential` returns `nil`), and, a map whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`) and no pseudo-header key (`credKeysOk`); and
 `pc.RequireTransportSecurity()` can be called (grpc calls it at the dial to refuse credentials that
 need a secure transport on an insecure one; C1's review, F4). Since 2026-11-23 (#24's S2
 signatures) `GetRequestMetadata` is called with a resource `R` of the family `Ok` fixed at the dial,
@@ -723,8 +713,7 @@ instance perRPCCredsOk_persistent (pc : GoInterface) (Ok : IProp GF → Prop) (Q
 /-- **What the per-RPC credentials `pcs` of the connection `conn` returned to its attempts**
 (persistent; the auth plan's C1, 2026-10-28; `grpc.NewClient`'s post, from the credentials'
 contract at the dial, `perRPCCredsOk`): with no credentials, nothing (`none`); with one, metadata
-meeting `Q`; with more, nothing is stated. (Phase 7's switch, SW1, 2026-11-24) Over the `IProp`
-`credsYieldI`, the same three arms. -/
+meeting `Q`; with more, nothing is stated. -/
 def connCredsOk (conn : Loc) (pcs : List GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
   match pcs with
   | [] => iprop(□ ∀ cm, credsYieldI conn cm -∗ ⌜cm = none⌝)

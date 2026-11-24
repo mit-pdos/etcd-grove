@@ -27,22 +27,19 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
 /-- **`New(addr, l)`**, `l` a listener bound at `a` (`net.Listen`'s, unused), where `a` and `addr`
-serve one service table `Svc` (`grpcAddrAt`, phase 7's switch, SW1, 2026-11-24,
-`notes/phase7-endstate.md` §1.2, decision D4 corrected in §1.5 item 5): it returns a bridge to `addr`,
-not blackholed; and (D29, 2026-10-21) `a` is refusal-free if `addr` is: the bridge relays bytes, so a
+serve one service table `Svc` (`grpcAddrAt`): it returns a bridge to `addr`, not blackholed; and `a`
+is refusal-free if `addr` is: the bridge relays bytes, so a
 status from `addr` reaches the client unchanged, and a cut's (a blackhole's, a dropped connection's)
 errors are grpc's own. The bridge relays bytes, so a call or stream on `a` is one on the server at
-`addr` (D32, 2026-10-21: grpc hands a stream's receiver only whole length-prefixed messages, in order,
+`addr` (grpc hands a stream's receiver only whole length-prefixed messages, in order,
 each once, so each side receives a prefix of what the other sent, and a cut ends the stream with an
 error); both addresses run grpc's protocols for the same table, so what a client of `a` writes meets
 `addr`'s dialer protocol and what `addr`'s server writes meets `a`'s acceptor protocol. `a`'s own
 listener is consumed (no server listens at `a`).
 
-Since phase 7's switch the bridge's address serves its target's table: the caller sets `a`'s table to
+The bridge's address serves its target's table: the caller sets `a`'s table to
 the target's `Svc` from what `Listen` left (`netAddrLeft a`, spent by `grpc_addr_set` or
-`addr_set_proto_tok`), and registrations at `a` are read off `a`'s table, as at any address. Until then
-it consumed `netAddrLeft a` itself and gave `□ ∀ γ, grpcAddrIs addr γ -∗ grpcAddrIs a γ`, which
-`grpcReach` read. `cf333b5be9`'s condition (2026-11-24) holds unchanged: whoever bridges `a` has spent
+`addr_set_proto_tok`), and registrations at `a` are read off `a`'s table, as at any address. Whoever bridges `a` has spent
 what sets `a`'s protocols, and set them to the target's table: a program that listened at `a`, set
 `a`'s grpc table at specs of its choosing and bridged `a` to a server meeting none of them
 (`notes/audit.md`, "`bridge.New` and `netAddrLeft`") cannot meet this precondition, which asks for one

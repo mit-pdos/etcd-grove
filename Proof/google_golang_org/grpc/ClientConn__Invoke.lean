@@ -28,8 +28,7 @@ variable [peer_sem : google_golang_org.grpc.peer.Assumptions]
 phase 7 S2's interface, 2026-11-24, its text unchanged): a unary call through grpc's `ClientConn` is
 its interceptor chain (`chainWP`, as `chainUnaryClientInterceptors` composes it) over grpc's `invoke`,
 which makes one attempt (`grpcInvokerOk`). An attempt dials one of `addrs`, `a₀`. `a₀`'s table, set
-once at the start (a bridge's address: to its target's table, `bridge.New`; phase 7's switch, SW1,
-2026-11-24: until then `a₀` was reached through `grpcReach`), has an entry for `method` at the
+once at the start (a bridge's address: to its target's table, `bridge.New`), has an entry for `method` at the
 attempt's registered message models (`grpcSvcAt`, inside `isGrpcRpcsMd`, no heap). The attempt
 converts the caller's `Spec md m Φ Ψe` into the entry's spec by `grpcSvcAt`'s update; the handler's
 view of the metadata is an attempt's (`grpcAttemptMdI`). It writes as

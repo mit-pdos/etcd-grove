@@ -2,8 +2,7 @@
 **grpc's server, built and started** (item 4 of the client→server path, 2026-10-17; Lean-first,
 no Rocq counterpart; restated in per-type stage B, B1b): what produces Go's configuration of a
 server, which `grpc.start'` (`InvGrpcRun.lean`) turns into the address's service table and the facts
-`grpcServerAt` and `isGrpcStreamMd` (phase 7's switch, SW1: until then a server name `γ` with
-`grpcSrvCfg γ c`). The Go-level specs of grpc's `NewServer`, its options,
+`grpcServerAt` and `isGrpcStreamMd`. The Go-level specs of grpc's `NewServer`, its options,
 `Server.RegisterService` and `Server.Serve`, and of `net.Listen`, are trust-boundary axioms
 (`Spec/google_golang_org/grpc/`, `Spec/net/Listen.lean`); this file is their vocabulary.
 
@@ -34,8 +33,7 @@ setting `ClientStreams` or `ServerStreams`: premises stronger than grpc checks, 
 method and stream names, the unary one winning (test T9b), and runs an unflagged stream's handler
 without the stream interceptor, `server.go:1446-1450` (test T10b)).
 
-**The start** (`grpc.start'`, a theorem in `InvGrpcRun.lean` since phase 7's switch, SW1,
-2026-11-24, which deleted the axiom `grpc.start` and its server name `γ`): the server being built, whose
+**The start** (`grpc.start'`, a theorem in `InvGrpcRun.lean`): the server being built, whose
 full method and stream names are jointly distinct, and a listener bound at `addr` (`netListenerAt`,
 `Proof/net/InvNet.lean`) with what `Listen` left, set `addr`'s service table to Go's configuration, and
 give the right to serve it (`grpcServeTok gs lis addr Svc`, what `gs.Serve(lis)` takes). A ghost step,
@@ -123,15 +121,15 @@ represent. -/
 axiom grpcSrvNew {GF : BundledGFunctors} [GooseExts] (gs : Loc) (ics sics : List GoFunc)
   (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF
 
-/-- **The server being built, bound to the listener `lis` at `addr`** (exclusive; phase 7's switch,
-SW1, 2026-11-24, the review's finding 1; interim, retired with decision E's table form of no-refusal):
-what `etcd_noRefusal` and `etcd_noOtherRefusal` make of `grpcSrvNew gs … ∗ netListenerAt lis addr`
-when they certify `gs`'s answers at `addr` (`noRefusalAt addr`, a fact about the address string).
-Nothing gives the server or the listener back: `grpcServeTok` holds it in place of `grpcSrvNew gs … ∗
-netListenerOpen lis addr` (`grpc.startBound`), so the server `Serve` runs at `addr` is the one the fact
-was certified of. Without it a program could take the certificate, drop `gs`, and serve another server
-`gs2` (one whose KV `Range` answers with the learner's refusal) on the same listener: `grpcInvokerOk`
-would then promise the client a refusal it receives. -/
+/-- **The server being built, bound to the listener `lis` at `addr`** (exclusive), as certified by
+`etcd_noRefusal`/`etcd_noOtherRefusal`; intended reading `grpcSrvNew gs … ∗ netListenerAt lis addr`;
+consumed only by `grpc.startBound`, inside `grpcServeTok`. It covers only the server certified at the
+listener it was certified with, the FIRST server at `addr`: the certificate `noRefusalAt addr` is a
+fact about the address string and outlives that listener. Once the listener is closed (a synchronous
+`Serve` returning on an `Accept` failure, a crash) or on another node, a new listener at `addr`
+(`listen_au` from `grpcAddrAt`) can host a server that refuses while `noRefusalAt addr` still holds
+(`notes/axiom-review/phase7-switch.md`, finding 1). Interim: retired by decision E (no-refusal a
+property of the table's entries). -/
 axiom grpcSrvBound {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (addr : GoString)
   (ics sics : List GoFunc) (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
   IProp GF

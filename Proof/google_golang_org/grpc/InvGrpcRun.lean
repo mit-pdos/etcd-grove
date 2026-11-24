@@ -1,9 +1,8 @@
 /-
-**grpc's server: the right to serve and the start** (per-type stage B, B1a, 2026-11-11; Scope r5
-§2.1-2.2; restated at phase 7 S2's interface, 2026-11-24; Lean-first, no Rocq counterpart).
+**grpc's server: the right to serve and the start** (Lean-first, no Rocq counterpart; history:
+`notes/phase7-endstate.md`).
 
-**The service table** (S2's interface; one table of both kinds since phase 7's switch, SW1,
-2026-11-24, `notes/phase7-endstate.md` §1). A registration is heap-free: `isGrpcRpcMd addr name Spec`
+**The service table** (one table of both kinds). A registration is heap-free: `isGrpcRpcMd addr name Spec`
 (`InvGrpc.lean`) and `isGrpcStreamMd addr name Up Spec` (`InvGrpcStream.lean`) say that `addr`'s table
 `Svc`, set once with its protocols (`grpcAddrAt`, `InvGrpcWire.lean`), has an entry for `name` that a
 caller meets (`grpcSvcAt`, `grpcStreamSvcAt`). What makes this sound is `Server.Serve`'s axiom, which
@@ -16,8 +15,7 @@ under its name as a run (`grpcStreamRunOk`), through the conversions between the
 the handler's own. `Serve`'s post is `True`; its axiom says the server meets `Svc` on every connection
 to `a`, as the opaque protocols `grpcCliPI Svc`/`grpcSrvPI Svc` state it: no program but grpc's
 transport writes or reads such a connection meaningfully (`notes/axiom-review/s2-interface.md`, C1 and
-C2). There is no server name: `grpc.start`, `grpcAddrIs`, `grpcSrvCfg`, `grpcSrvLink` and their
-agreement axioms were deleted by the switch.
+C2). There is no server name.
 
 **One process.** The single-process start (`grpc.start'`, a theorem) sets the address's table to Go's
 configuration (`grpcStartSvc ics regs tys sms`: an entry for each registered unary method `tys` gives
@@ -29,7 +27,8 @@ method at the spec it is proved at.
 
 **Streams** share one call protocol with unary calls in the end state (S3); until S3 the stream's
 transport is `ClientConn.NewStream`'s axiom, paired with `Serve`'s: both ends share the stream's names
-`γ`, the dispatched metadata (`streamMdIs`) and the persistent stream specification.
+`γ` and the persistent stream specification; the client learns the dispatch `(a, md)` with each
+response (`streamDispIs`), the handler is given `md` through its context.
 
 **The pair's argument, as `Serve`'s and `Invoke`'s axioms rest on it.** One deposit, one run: grpc's
 transparent retry resends only a stream the server never processed (`stream.go`, `shouldRetry`'s
@@ -41,10 +40,7 @@ streams). The message models are the client's registered ones (model-param, opti
 invoker contract (`grpcInvokerOk`) takes `grpcReqModelOf GF Req.ty = some Req` and
 `grpcRepModelOf GF Rep.ty = some Rep` before the deposit, and a table's entry is at the registered
 models' wire parts (`grpcServes`). Go facts, not pair facts: `(name, mh, srv) ∈ c.regs` (Go's
-dispatch), `grpcSrvChainAll c.ics`, `grpcSrvStreamChainAll c.sics`, `grpcDecOk`, `grpcRunCtx`. Until
-S2's interface the server half was the trusted model `Serve` (`Server.Serve.impl := model.Serve`)
-and its leaves' axioms (`acceptRun`, `acceptRunConns`, `respond`, `finishStream`, with
-`grpcAccepted`, `grpcReplyTo`, `grpcConnsLink`), now retired.
+dispatch), `grpcSrvChainAll c.ics`, `grpcSrvStreamChainAll c.sics`, `grpcDecOk`, `grpcRunCtx`.
 -/
 module
 
@@ -140,8 +136,7 @@ instance grpcSrvStreamChainAll_persistent (sics : List GoFunc) (si : GoFunc) :
     Persistent (grpcSrvStreamChainAll (GF := GF) sics si) := by
   unfold grpcSrvStreamChainAll; infer_instance
 
-/-- **What `gs` serves for the entry `ent` of the name `name`** (phase 7's switch, SW1, 2026-11-24,
-`notes/phase7-endstate.md` §1.2): a clause per kind.
+/-- **What `gs` serves for the entry `ent` of the name `name`**: a clause per kind.
 * A unary entry names no stream (C3 of `notes/axiom-review/s2-interface.md`: a unary call of a
   stream's name would run the stream's handler), and a unary method `gs` registers under its name has
   that entry, at its registered message models, met by its handler as a run (`grpcRunOkMd`).
@@ -174,8 +169,7 @@ def grpcServesEnt (ics sics : List GoFunc) (regs sregs : List (GoString × GoFun
         grpcStreamRunOk #mh srv sics Up Spec)
 
 /-- **`gs` serves the table `Svc` with Go's chains `ics`, `sics`, methods `regs` and streams `sregs`**
-(persistent; phase 7 S2's interface, 2026-11-24; a clause per entry kind since phase 7's switch, SW1:
-`grpcServesEnt`). -/
+(persistent; a clause per entry kind, `grpcServesEnt`). -/
 def grpcServes (Svc : GrpcSvc GF) (ics sics : List GoFunc)
     (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF :=
   iprop(□ ∀ (name : GoString) (ent : GrpcSvcEntry GF), ⌜Svc name = some ent⌝ -∗
@@ -186,12 +180,9 @@ instance grpcServes_persistent (Svc : GrpcSvc GF) (ics sics : List GoFunc)
     Persistent (grpcServes Svc ics sics regs sregs) := by
   unfold grpcServes; infer_instance
 
-/-- **The right to serve `gs` on `lis` at `a`, for the table `Svc`** (what `gs.Serve(lis)` takes;
-phase 7 S2's interface, 2026-11-24; one form since phase 7's switch, SW1, 2026-11-24: the started
-disjunct, with its server name `γ`, `grpcSrvLink`, `grpcAddrIs` and `grpcSrvCfg`, is gone, nothing
-reads a server name): Go's configuration `c` of `gs`, being built (`grpcSrvNew`), with the node's open
-listener at `a`, or both bound together by a no-refusal certificate (`grpcSrvBound`, the review of
-SW1's finding 1); full names jointly distinct; the replies' size premise; `a` serving `Svc`
+/-- **The right to serve `gs` on `lis` at `a`, for the table `Svc`** (what `gs.Serve(lis)` takes):
+Go's configuration `c` of `gs`, being built (`grpcSrvNew`), with the node's open listener at `a`, or
+both bound together by a no-refusal certificate (`grpcSrvBound`); full names jointly distinct; the replies' size premise; `a` serving `Svc`
 (`grpcAddrAt`); `gs` serving `Svc` (`grpcServes`). -/
 def grpcServeTok (gs : Loc) (lis : GoInterface) (a : GoString) (Svc : GrpcSvc GF) : IProp GF :=
   iprop(∃ (c : GrpcSrvCfg GF) (svcs : List GoString),
@@ -224,7 +215,7 @@ theorem grpcRunOkMd_goEntry (ics : List GoFunc) (regs sregs : List (GoString × 
   iexists md
   iframe
 
-/-- **Go's configuration as a table** (one process; phase 7's switch, SW1, 2026-11-24): the unary
+/-- **Go's configuration as a table** (one process): the unary
 methods as `grpcGoSvc` has them (an entry for each registered method `tys` gives models for), then the
 streams `sms` (the first of a name), each at its registered models, its content and specification,
 and its response content `dn`. The single-process start sets the address's table to it
@@ -368,10 +359,7 @@ theorem grpcServes_start (ics sics : List GoFunc) (regs sregs : List (GoString �
     iexact Hrun
 
 /-- **The server listening at `addr` serves Go's configuration, with the unary chain `ics`, the unary
-methods `regs` at the models `tys`, and the streams `sms`** (persistent; per-type stage B, B1b; the
-table since phase 7 S2's interface; moved here from `InvGrpc.lean` and without its server name `γ`
-and its `grpcAddrIs`/`grpcSrvCfg` conjuncts since phase 7's switch, SW1, 2026-11-24, which nothing
-read): `addr`'s table is `grpcStartSvc ics regs tys sms`. Made by `grpc.start'`. -/
+methods `regs` at the models `tys`, and the streams `sms`** (persistent): `addr`'s table is `grpcStartSvc ics regs tys sms`. Made by `grpc.start'`. -/
 def grpcServerAt (addr : GoString) (ics : List GoFunc)
     (regs : List (GoString × GoFunc × GoInterface))
     (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF)) (sms : List (GrpcStreamMethod GF)) :
@@ -385,9 +373,7 @@ instance grpcServerAt_persistent (addr : GoString) (ics : List GoFunc)
     Persistent (grpcServerAt (GF := GF) addr ics regs tys sms) := by
   unfold grpcServerAt; infer_instance
 
-/-- **Serving** (a theorem since per-type stage B, B1b; it was an axiom whose caller-chosen run
-resource and count made every handler meet every spec, `axiom/grpc-serve-pool`; over the address's
-table since phase 7 S2's interface): the methods `ms` of the server at `addr` with the unary chain
+/-- **Serving** (a theorem): the methods `ms` of the server at `addr` with the unary chain
 `ics`, the registrations `regs` and the table's models `tys` (`grpcServerAt`, made by `grpc.start'`),
 each registered with its handler and service, at its models, and meeting its run contract
 (`grpcRunOkMd`), are registered at `addr` (`isGrpcRpcMd`): the table's entry is met by the method's
@@ -499,8 +485,7 @@ theorem grpc.startCore (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sic
     iexact Ha
   iexact Hsv
 
-/-- **The single-process start** (a theorem, no longer over `grpc.start`, which phase 7's switch
-deleted, SW1, 2026-11-24): the server being built and a listener bound at `addr`, with what `Listen`
+/-- **The single-process start** (a theorem): the server being built and a listener bound at `addr`, with what `Listen`
 left (`netAddrLeft`), set `addr`'s table to Go's configuration (`grpcStartSvc ics regs tys sms`: the
 unary methods `tys` gives models for, and the streams `sms`), in one ghost step that allocates the net
 library's registry and slot map (`netProto_alloc`, `depSlots_alloc`), and give: the server at `addr`
@@ -529,8 +514,8 @@ theorem grpc.start' (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics :
   ileft
   iframe
 
-/-- **The single-process start of a server certified at its listener** (`grpcSrvBound`, the review
-of SW1's finding 1): as `grpc.start'`. -/
+/-- **The single-process start of a server certified at its listener** (`grpcSrvBound`): as
+`grpc.start'`. -/
 theorem grpc.startBound (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
     (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface))
     (tys : GoString → Option (ProtoMsgT GF × ProtoMsgT GF))

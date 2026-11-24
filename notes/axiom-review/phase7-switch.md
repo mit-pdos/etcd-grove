@@ -62,12 +62,40 @@ their resolutions follow.
    handler that always errors meets every unary spec), serve it on `lis`, and a client panicking on the
    refusal is proved safe by `grpcInvokerOk`. (A second route: a later listener at `addr` serving the same
    table with other handlers.)
-   **Resolved (interim):** both axioms return `grpcSrvBound gs lis addr …` (a new axiomatized exclusive
-   predicate), which only `grpc.startBound` consumes and `grpcServeTok` holds as its bound form of the
-   server at the listener: the server `Serve` runs at `addr` is the one certified. The second route needs
-   the listener back, which nothing returns. End state: decision E's table form (no-refusal a property of
-   the unary entries, checked by `grpcServes`, read by `grpcInvokerOk` from `grpcSvcAt`), which retires
-   `grpcSrvBound`.
+   **Partially resolved (first server only); the second route is open.** Both axioms return
+   `grpcSrvBound gs lis addr …` (a new axiomatized exclusive predicate, intended reading
+   `grpcSrvNew gs … ∗ netListenerAt lis addr`), which only `grpc.startBound` consumes and `grpcServeTok`
+   holds as its bound form of the server at the listener: the server `Serve` runs on *that* listener is
+   the one certified, which closes the first route. It binds only the FIRST server at `addr`:
+   `noRefusalAt addr` is a fact about the address string and outlives the listener. The second route
+   (the independent spec review of SW1, `fea0c78ee7`, B1; inferred, not built):
+   1. `etcd_noRefusal` gives `grpcSrvBound gs lis a …` and `⌜noRefusalAt a⌝`;
+   2. `grpc.startBound` gives the token; the program calls `gs.Serve(lis)` synchronously; grpc-go returns
+      on a non-temporary `Accept` error and closes `lis` (`server.go:938-944,979`), the model allows a
+      `sys` failure of `Accept` (`GooseLang/Ext/Net/Impl.lean` D7), and `Serve`'s post is `True`;
+   3. a new listener at `a`: `grpcAddrAt a Svc` (persistent, every client has it through `isGrpcRpcMd`)
+      contains `addrProto`, from which `listen_au` (`GooseLang/Ext/Net/Proto.lean`) gives `a`'s listening
+      token, and `net.Listen.spec_addrOk` gives `netListenerOpen lis2 a`;
+   4. `NewServer`/`RegisterService` build `gs2`, whose KV `Range` returns the learner refusal (a handler
+      that always errors meets every unary spec): `grpcServes Svc`, then `grpcServeTok gs2 lis2 a Svc`
+      through its first disjunct, then `Serve`;
+   5. a client that reads `noRefusalAt a` is promised no refusal and receives one.
+   The same route opens without step 2 when another node listens at `a`, or after a crash (`Impl.lean`
+   D6: any node may listen at any valid address). Latent: no theorem on `lean` uses `noRefusalAt` with
+   a re-listen at a certified address, crashes or several nodes, or a synchronous `Serve` (checked
+   2026-11-24 at `lean` `fb028c8088`: every top-level result reaching `etcd_noRefusal`/
+   `etcd_noOtherRefusal` is single-process, one machine that never crashes, and its programs listen at
+   each gRPC address once and serve it on a goroutine, `etcdstart.Serve`, `cluster3`; the restart
+   examples re-listen only their peer addresses and do not use the certificate).
+   **Restriction until decision E lands:** distributed and restart work must not use `etcd_noRefusal`
+   or `etcd_noOtherRefusal` (or `noRefusalAt` of an address that may be listened at again). The fix is
+   decision E's table form (no-refusal a property of the unary entries, checked by `grpcServes`, read
+   by `grpcInvokerOk` from `grpcSvcAt`), which retires `grpcSrvBound`.
+
+   The first route, as `grpcSrvBound`'s docstring told it before the review: without the binding a
+   program could take the certificate, drop `gs`, and serve another server `gs2` (one whose KV `Range`
+   answers with the learner's refusal) on the same listener; `grpcInvokerOk` would then promise the
+   client a refusal it receives.
 2. **A transparent retry can move a stream to another address** (`getTransportConn`, the model's
    `modelChooseAddr`, `model_clientconn.go:322`): a post fixing `a` when `NewStream` returns is true only
    with a prophecy, and §1.4's call protocol could not prove it. **Resolved:** the address is learned with
@@ -107,8 +135,10 @@ beyond the one-`D` argument.
 
 ## Verdict
 
-**Survives after the fixes** (findings 1, 2, 4 applied in SW1; 3 a recorded obligation of S3.1; 5, 6
-text). The user's review of SW1's trusted text is pending.
+**Survives after the fixes** (finding 1 partially: the first server only, the second route open
+until decision E, with the restriction above; findings 2, 4 applied in SW1; 3 a recorded obligation of S3.1; 5, 6
+text). The user approved SW1 on condition of an independent spec review, which agreed (its B1 is finding
+1's second route above; its minor items M1-M4, M6 applied before landing).
 
 **Trust base** (`etc/tcb-report.py --check` on the VM's full build of `phase7-switch`, 2026-11-24): the
 axioms `grpc.start`, `grpcAddrIsRaw`, `grpcSrvCfgRaw`, `grpcSrvLink` gone, `grpcSrvBound` new (in every

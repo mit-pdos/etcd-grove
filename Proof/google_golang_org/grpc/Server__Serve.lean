@@ -23,19 +23,18 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Trust boundary** (phase 7 S2's interface, 2026-11-24; until then a theorem over the trusted
-model `Server.Serve.impl` and its leaves, now retired). grpc-go v1.84's `Serve(lis)` (the model's
+/-- **Trust boundary**. grpc-go v1.84's `Serve(lis)` (the model's
 `Serve` → `handleRawConn` → `serveStreams` → `HandleStreams` → `handleStream` → `processRPC`) serves
 every connection accepted on `lis`, and every byte it writes on a connection to `a` meets `a`'s
 acceptor protocol (`grpcSrvPI Svc`) given that the dialer met `grpcCliPI Svc`: a unary call of a
 method with an entry `e` runs Go's handler for it (`grpcServes`) on the request the call's deposit
 holds, with the deposit `e.spec md m Φ Ψe` at the run's incoming metadata, and the reply's `Φ m'`
 (or `Ψe d` for a handler's description `d`) is what the attempt gets back; a method without an entry
-gets `Unimplemented`. (Phase 7's switch, SW1, 2026-11-24, `notes/phase7-endstate.md` §1.3: the text
-unchanged, `grpcServeTok` one form, `grpcServes` a clause per entry kind.) A stream of a method with a
+gets `Unimplemented`. A stream of a method with a
 stream entry `e` runs Go's stream handler for it (`grpcServes`' stream clause) as `ClientConn.NewStream`'s
-axiom pairs it: both ends share the stream's names `γ`; the dispatched metadata is an attempt's and both
-ends agree on it (`streamMdIs`); the handler is given its specification at its content family, and its
+axiom pairs it: both ends share the stream's names `γ`; the dispatched metadata is an attempt's; the
+client learns the dispatch `(a, md)` with each response (`streamDispIs`), and the handler is given `md`
+through its context; the handler is given its specification at its content family, and its
 responses' content converts to the entry's `dn₀ md γ`, which the client receives; messages are
 delivered in order, intact, once; a server `SendMsg` after the status may return `nil` undelivered
 (R3). A unary call of a stream's name and a stream of a unary method's name are excluded by the kind
