@@ -6,8 +6,8 @@
 for deployments whose machines crash and restart (`notes/etcd-dist-plan.md` §12): the file extension's
 at `etcdFsSem` (`Fs.fs_crash_interpS etcdSQ True`: `etcdFsSem`'s crash is `OsCrash ∧ True`), the net
 extension's (`Net.net_crash_interp`: nothing), and **any** crash interpretation `C` of the issue record
-(D4b designs the one the proofs will use: the record keyed by incarnation). Over it, `NetFsBridgeG.lean`'s
-general bridge applies (`robust_of_etcdNetFsBoot`): the crash resources split into the file extension's
+(D4b designs the one the proofs will use: the record keyed by incarnation). Over it, `DistCrashAdequacy.lean`'s
+general corollary applies (`robust_of_dist_crash_adequacy_etcdNet`): the crash resources split into the file extension's
 and the issue record's (`etcdNet_crashStart_split`), and the initial states' conditions come from
 `Robust`'s premises and each crashing machine's `FsInit` (`etcdNetExts_crashInitP`; `etcdFsSem`,
 `Fs.fsSemWithS`, has no `initLocal` until D4a).
@@ -19,7 +19,7 @@ already has a crash interpretation: the ghost state kept (`crashStart L L' := �
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
-public import Net.Statement.NetFsBridgeG
+public import Net.Statement.DistCrashAdequacy
 public import GooseLang.Ext.Fs.FilteredSem
 
 @[expose] public section
@@ -48,7 +48,7 @@ def etcdIdCrashRest (C : @ExtCrashInterp idIssueExt idIssue_semantics idIssue_in
   @ExtCrashInterp.crashStart idIssueExt idIssue_semantics idIssue_interp C GF
     (extLocalGS idIssueExt (L := L)) (extLocalGS idIssueExt (L := L'))
 
-/-- **The crash resources of `etcdNetExts` split** as `robust_of_netFsBootG` asks: the file extension's
+/-- **The crash resources of `etcdNetExts` split** as `robust_of_dist_crash_adequacy_fs` asks: the file extension's
 (crash premise `True`) and the issue record's (`etcdIdCrashRest C`); the net extension's are `emp`. -/
 theorem etcdNet_crashStart_split (C : @ExtCrashInterp idIssueExt idIssue_semantics idIssue_interp)
     {GF : BundledGFunctors} (L L' : GooseLocalGS GF) :
@@ -79,10 +79,10 @@ theorem etcdNetExts_crashInitP (g : GlobalState) (crashing stable : List (Expr �
     let H := etcdNetExts_initP g (crashing ++ stable) Hfs hg hl
     ⟨H.1, H.2, fun m hm => Hfs m (List.mem_append_left _ hm)⟩
 
-/-- **The crash bridge for `etcdNetExts`** (`Net.robust_of_netFsBootG` at the crash interpretations
+/-- **Distributed crash adequacy as `Robust` for `etcdNetExts`** (`Net.robust_of_dist_crash_adequacy_fs` at the crash interpretations
 `etcdNetExtsCrashInterp C`): a crashing machine's generations get, after a crash, the cells' invariant,
 the file system's crash rest and the issue record's crash resources under `C` (`etcdIdCrashRest C`). -/
-theorem robust_of_etcdNetFsBoot (C : @ExtCrashInterp idIssueExt idIssue_semantics idIssue_interp)
+theorem robust_of_dist_crash_adequacy_etcdNet (C : @ExtCrashInterp idIssueExt idIssue_semantics idIssue_interp)
     [GoGlobalContext] {GF : BundledGFunctors} [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (addrs : List GoString) (crashing stable : List (Expr × state)) (g : GlobalState)
     (threads bound lo : Nat) (hlo : lo ≤ bound)
@@ -104,12 +104,12 @@ theorem robust_of_etcdNetFsBoot (C : @ExtCrashInterp idIssueExt idIssue_semantic
           [∗list] j ↦ _m ∈ stable, Ps j) :
     Robust crashing stable g threads bound :=
   letI := etcdNetExtsCrashInterp C
-  Net.robust_of_netFsBootG (GF := GF) (fun _ _ => True) (etcdIdCrashRest C)
+  Net.robust_of_dist_crash_adequacy_fs (GF := GF) (fun _ _ => True) (etcdIdCrashRest C)
     (etcdNet_crashStart_split C) addrs crashing stable g threads bound lo hlo Hnd Hok
     (etcdNetExts_crashInitP g crashing stable Hfs) Hstart
 
 /-- **A crash interpretation of the issue record as it is today** (`idIssue_semantics`: a crash keeps
-the record): the ghost state kept, `crashStart L L' := ⌜L' = L⌝`. An instance of `C` above (the bridge
+the record): the ghost state kept, `crashStart L L' := ⌜L' = L⌝`. An instance of `C` above (the corollary
 applies to today's semantics); D4b's record keyed by incarnation replaces it. -/
 @[instance_reducible] def idIssue_crash_interp_keep :
     @ExtCrashInterp idIssueExt idIssue_semantics idIssue_interp where
