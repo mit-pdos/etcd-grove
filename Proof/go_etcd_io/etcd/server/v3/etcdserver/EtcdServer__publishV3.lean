@@ -309,12 +309,12 @@ theorem EtcdServer.publishV3.wp_proof
     iexists _; iframe #; try (ipureintro; simp)
   imod HNR with Hid
   -- `s.raftRequest(ctx, …)`, with the monitors' permission for the request
-  ihave #Hpm := Hprop $$ %(irrMemberAttrSet ⟨lid, name, urls⟩) %(hdrBoundM true s E tok)
-    %(monitorReq_irrMemberAttrSet lid name urls)
   wp_apply hRR s E ρ cctx { cd with Deadline := some dl, PDone := iprop(True), Done_gn := γc } tok «$a1_ptr» (irrMemberAttrSet ⟨lid, name, urls⟩) (fun _ _ => iprop(True))
       log₀ rfl (apply.irrDepthOk_of_txnW_none rfl) $$ [Hlt HRD Hid Header]
     as %resp %err ⟨Hlt, HRD, -⟩
   · iframe; iframe #
+    iapply Hprop
+    ipureintro; exact monitorReq_irrMemberAttrSet lid name urls
   (try wp_auto)
   wp_apply Hcancel
   (try wp_auto)
