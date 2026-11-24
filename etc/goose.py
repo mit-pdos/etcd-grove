@@ -2258,12 +2258,13 @@ CLIENT_GO_PINS = {
 def go_mod_requires(f):
     """The versions a go.mod file selects, by module path: its requirements, except that a module
     replaced by the same path at a version (`M => M vX`, as examples/k8s/daemonset/go.mod replaces
-    the staging modules k8s.io/kubernetes requires at v0.0.0) is at the replacement's version."""
+    the staging modules k8s.io/kubernetes requires at v0.0.0) is at the replacement's version, and
+    one replaced by another path (a fork: `k8s.io/apimachinery => github.com/upamanyus/kubernetes/
+    staging/src/k8s.io/apimachinery vX`, real fmt stage 1, 2026-11-24) is `NEW@vX`."""
     text = open(os.path.join(ROOT, f), encoding="utf-8").read()
     reqs = dict(re.findall(r"^\s*(?:require\s+)?(\S+)\s+(v\S+)(?:\s*//.*)?$", text, re.M))
     for old, new, ver in re.findall(r"^\s*(?:replace\s+)?(\S+)\s+=>\s+(\S+)\s+(v\S+)\s*$", text, re.M):
-        if old == new:
-            reqs[old] = ver
+        reqs[old] = ver if old == new else f"{new}@{ver}"
     return reqs
 
 
