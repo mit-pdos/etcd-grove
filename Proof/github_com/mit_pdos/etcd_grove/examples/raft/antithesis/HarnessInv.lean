@@ -30,7 +30,8 @@ specs of `Cluster.deliver`, `send`, `reportCause`, `drain` and `run`
   (`loop`: `Reach` from the view, the in-progress boundary at the common prefix), after a drain
   (`drained`: as `idle`, the cause cell not yet reset).
 
-Statements only: what the specs are written in. The bodies of `nodeRaft`, `NetFacts`, `AntRun`
+What the specs are written in, with the laws the reports' proofs share (the invariant's
+timelessness, `nodeLive_over`: no report once the run is over, `view_update`: a view moved). The bodies of `nodeRaft`, `NetFacts`, `AntRun`
 and `raftFactsOwn` are what the proofs need as far as the specs' statements are concerned; the
 harness's proof (P-harness) may strengthen them (more conjuncts), which leaves every spec's text
 unchanged.
@@ -59,7 +60,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace AntHarness
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-! ## Countability (the views and the sent list are ghost values) -/
 
@@ -164,11 +165,12 @@ def antNetN : Namespace := nroot.@"antithesis_net"
 /-- **What the run's invariant knows of the stream so far** (pure): the checker took it, rejected
 nothing, and is at `S` (`Prefix`); `S` is related to the views and the sent messages (`AntSim`);
 the stream is within the Go `int`'s budget and has no configuration change (`check.Run`'s
-premises, `Stream.Bounded`, `Stream.ConfBounded`). -/
+premises, `Stream.Bounded`, `Stream.ConfBounded`; no report carries an entry that changes a name,
+`Event.ChgOk 0`, so that the next stream's `ConfBounded` holds at `E = 0`). -/
 def AntRun (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin 3 → AntSim.NodeView)
     (net : List Msg) : Prop :=
   AntSim.Prefix AntSim.cfg3 evs S ∧ AntSim.AntSim S V net ∧ AntCheck.Stream.Bounded evs ∧
-    AntCheck.Stream.ConfBounded AntSim.cfg3 evs
+    AntCheck.Stream.ConfBounded AntSim.cfg3 evs ∧ ∀ ev ∈ evs, ev.ChgOk 0
 
 /-- **What an in-flight message's receiver needs of it** (pure): `RawNode.Step`'s premises at its
 destination (`NetMsgOk`, the harness's types, a heartbeat response with no context), the entries
@@ -214,6 +216,13 @@ def sentW (γ : AntNames) (m : Msg) : IProp GF := iprop(∃ i : Nat, monoListIdx
 /-- **At least `net` was sent** (persistent). -/
 def sentLb (γ : AntNames) (net : List Msg) : IProp GF := monoListLbOwn γ.sent net
 
+instance sentW_persistent (γ : AntNames) (m : Msg) : Persistent (sentW (GF := GF) γ m) := by
+  unfold sentW; infer_instance
+
+instance sentLb_persistent (γ : AntNames) (net : List Msg) :
+    Persistent (sentLb (GF := GF) γ net) := by
+  unfold sentLb; infer_instance
+
 /-- **Raft's global facts `G`, as persistent ghost facts** (`AntSim.RaftFacts`' reading,
 `notes/antithesis-rawnode-design.md` §3.4): each leader's witness, each vote, each log's records,
 each campaign log, the committed log, each commit recorded in a term. -/
@@ -225,6 +234,14 @@ def raftFactsOwn (γ : RaftNames) (G : AntSim.RaftFacts) : IProp GF :=
     isCommitted γ G.committed ∗
     ([∗list] x ∈ G.commits, ∃ F : List EntryM,
       commitIn γ F (W64 (x.2 : Int)) x.1 ∗ ⌜F.take x.2 = G.committed.take x.2⌝))
+
+instance raftFactsOwn_persistent (γ : RaftNames) (G : AntSim.RaftFacts) :
+    Persistent (raftFactsOwn (GF := GF) γ G) := by
+  unfold raftFactsOwn; infer_instance
+
+instance raftFactsOwn_timeless (γ : RaftNames) (G : AntSim.RaftFacts) :
+    Timeless (raftFactsOwn (GF := GF) γ G) := by
+  unfold raftFactsOwn; infer_instance
 
 /-! ## The invariant -/
 
@@ -244,10 +261,16 @@ def antOpen (γ : AntNames) : IProp GF :=
       ∀ j : Fin 3, (V j).ps.log ∈ G.logs⌝ ∗
     raftFactsOwn γ.raft.raftNames G)
 
+instance antOpen_timeless (γ : AntNames) : Timeless (antOpen (GF := GF) γ) := by
+  unfold antOpen; infer_instance
+
 /-- **The run's invariant** (`antN`; `notes/antithesis-s4-design.md` §3): open, or over (the three
 nodes' `live` tokens given up: `RunCluster` took the stream out). -/
 def antInv (γ : AntNames) : IProp GF :=
   iprop(antOpen γ ∨ (nodeLive γ 0 ∗ nodeLive γ 1 ∗ nodeLive γ 2))
+
+instance antInv_timeless (γ : AntNames) : Timeless (antInv (GF := GF) γ) := by
+  unfold antInv nodeLive; infer_instance
 
 /-! ## The network -/
 
@@ -260,11 +283,12 @@ def netMsg (γ : AntNames) (ml : Loc) (st : MsgSt) (m : Msg) : IProp GF :=
     ⌜NetFacts st m⌝ ∗ □ isMessage γ.raft.raftNames m ∗ rnTermLB γ.raft st.msg.Term' ∗ sentW γ m)
 
 /-- **A message `Cluster.send` takes** (`drain` hands it every message of a `Ready`, cloned): a
-forwarded proposal, which `send` drops (`notes/antithesis-s4-design.md` §7), or an in-flight
+forwarded proposal, which `send` drops (`notes/antithesis-s4-design.md` §7; `csUfNil`, as an
+in-flight message's, so that `send` reads its type through the getters' `msgPtsC`), or an in-flight
 message. -/
 def sendMsg (γ : AntNames) (ml : Loc) (st : MsgSt) : IProp GF :=
   iprop((⌜st.msg.Type' = MsgProp⌝ ∗ ∃ c : MsgC, msgPtsCC ml (DFrac.own 1) DFrac.discard
-      (needsCap st.msg) c ∗ ⌜c.model = st⌝) ∨
+      (needsCap st.msg) c ∗ ⌜c.model = st ∧ c.csUfNil⌝) ∨
     (∃ m : Msg, netMsg γ ml st m))
 
 /-- **A proposal's raft resources** (`RawNode.Propose`'s premises): the data's certificate and its
@@ -295,7 +319,8 @@ instance nodeRO_persistent (γ : AntNames) (n : Loc) (j : Fin 3) :
 
 /-- **The cluster `c` of the run `γ`** (persistent): its configuration (`CfgOk`), its recorder,
 its three nodes (`clusterRO`, each `nodeRO`), its stop channel (broadcast, nothing carried), the
-network's join, the run's invariant. (Raft's term budget, `rnBudget`, is sealed and its
+network's join, the run's invariant, and the receipts' fit (`antRunFits`: with `Stream.Fits`, a
+report's new stream within `Stream.Bounded`'s size bound). (Raft's term budget, `rnBudget`, is sealed and its
 persistence a law, `rnBudget_persistent.law`; each node carries it, `nodeRaft`.) -/
 def antCluster (c : Loc) (γ : AntNames) : IProp GF :=
   iprop(∃ (cfg : H.Config) (r : Loc) (ns : List Loc) (stop : Loc),
@@ -305,7 +330,7 @@ def antCluster (c : Loc) (γ : AntNames) : IProp GF :=
     nodeRO γ ns[0]! 0 ∗ nodeRO γ ns[1]! 1 ∗ nodeRO γ ns[2]! 2 ∗
     c.[H.Cluster, go!"stop"] ↦□ stop ∗ ownBroadcastChan stop γ.stopCh iprop(True) .Unknown ∗
     isNetJoin antNetN (c.[H.Cluster, go!"netWg"]) γ.net ∗
-    inv antN (antInv γ))
+    inv antN (antInv γ) ∗ ⌜antRunFits GF⌝)
 
 instance antCluster_persistent (c : Loc) (γ : AntNames) :
     Persistent (antCluster (GF := GF) c γ) := by
@@ -322,7 +347,7 @@ instance antCluster_persistent (c : Loc) (γ : AntNames) :
   have : ∀ (stop : Loc), Persistent (c.[H.Cluster, go!"stop"] ↦□ stop : IProp GF) := fun _ => inferInstance
   have : ∀ (cfg : H.Config), Persistent (iprop(⌜CfgOk cfg⌝) : IProp GF) := fun _ => inferInstance
   have : ∀ (stop : Loc), Persistent (iprop(c.[H.Cluster, go!"stop"] ↦□ stop ∗ ownBroadcastChan stop γ.stopCh iprop(True) .Unknown ∗
-    isNetJoin antNetN (c.[H.Cluster, go!"netWg"]) γ.net ∗ inv antN (antInv γ)) : IProp GF) := fun _ => inferInstance
+    isNetJoin antNetN (c.[H.Cluster, go!"netWg"]) γ.net ∗ inv antN (antInv γ) ∗ ⌜antRunFits GF⌝) : IProp GF) := fun _ => inferInstance
   infer_instance
 
 /-- **A share `q` of the right to add network goroutines** (`netWg`). -/
@@ -396,6 +421,65 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.NodeView
 its share of the network's adders. -/
 def nodeExit (c : Loc) (γ : AntNames) (j : Fin 3) (q : Qp) : IProp GF :=
   iprop(nodeLive γ j ∗ netAdder c γ q)
+
+/-! ## Laws of the node's tokens and views (the reports' atomic updates) -/
+
+/-- The run is not over while a node goroutine holds its `live` token. -/
+theorem nodeLive_over (γ : AntNames) (j : Fin 3) :
+    nodeLive (GF := GF) γ j ∗ (nodeLive γ 0 ∗ nodeLive γ 1 ∗ nodeLive γ 2) ⊢ False := by
+  have h : ∀ k : Fin 3, nodeLive (GF := GF) γ k ∗ nodeLive γ k ⊢ False := by
+    intro k
+    unfold nodeLive
+    iintro ⟨H1, H2⟩
+    icombine H1 H2 gives %Hv
+    exfalso
+    have := DFrac.valid_own_op Hv.1
+    simp at this
+  obtain ⟨k, hk⟩ := j
+  match k, hk with
+  | 0, hk => rw [show (⟨0, hk⟩ : Fin 3) = 0 from rfl]; iintro ⟨H, H0, -, -⟩; iapply h 0; iframe H H0
+  | 1, hk => rw [show (⟨1, hk⟩ : Fin 3) = 1 from rfl]; iintro ⟨H, -, H1, -⟩; iapply h 1; iframe H H1
+  | 2, hk => rw [show (⟨2, hk⟩ : Fin 3) = 2 from rfl]; iintro ⟨H, -, -, H2⟩; iapply h 2; iframe H H2
+
+/-- **Node `j`'s view updated**: the goroutine's half and the invariant's agree, and both move. -/
+theorem view_update (E : CoPset) (γ : AntNames) (j : Fin 3) (V : Fin 3 → AntSim.NodeView)
+    (v v' : AntSim.NodeView) :
+    viewFrag (GF := GF) γ j v ∗ ghostVar (γ.view 0) (1 : Qp).half (V 0) ∗
+        ghostVar (γ.view 1) (1 : Qp).half (V 1) ∗ ghostVar (γ.view 2) (1 : Qp).half (V 2) ⊢
+      |={E}=> ⌜V j = v⌝ ∗ viewFrag γ j v' ∗
+        ghostVar (γ.view 0) (1 : Qp).half (AntSim.setV V j v' 0) ∗
+        ghostVar (γ.view 1) (1 : Qp).half (AntSim.setV V j v' 1) ∗
+        ghostVar (γ.view 2) (1 : Qp).half (AntSim.setV V j v' 2) := by
+  unfold viewFrag
+  obtain ⟨k, hk⟩ := j
+  match k, hk with
+  | 0, hk =>
+    rw [show (⟨0, hk⟩ : Fin 3) = 0 from rfl]
+    iintro ⟨Hv, H0, H1, H2⟩
+    ihave %Heq := ghostVar_agree (GF := GF) _ v _ (V 0) _ $$ Hv H0
+    imod ghostVar_update_halves (GF := GF) v' _ v (V 0) $$ Hv H0 with ⟨Hv, H0⟩
+    imodintro
+    simp (config := { decide := true }) only [AntSim.setV, ite_true, ite_false]
+    isplitr; · ipureintro; exact Heq.symm
+    iframe Hv H0 H1 H2
+  | 1, hk =>
+    rw [show (⟨1, hk⟩ : Fin 3) = 1 from rfl]
+    iintro ⟨Hv, H0, H1, H2⟩
+    ihave %Heq := ghostVar_agree (GF := GF) _ v _ (V 1) _ $$ Hv H1
+    imod ghostVar_update_halves (GF := GF) v' _ v (V 1) $$ Hv H1 with ⟨Hv, H1⟩
+    imodintro
+    simp (config := { decide := true }) only [AntSim.setV, ite_true, ite_false]
+    isplitr; · ipureintro; exact Heq.symm
+    iframe Hv H0 H1 H2
+  | 2, hk =>
+    rw [show (⟨2, hk⟩ : Fin 3) = 2 from rfl]
+    iintro ⟨Hv, H0, H1, H2⟩
+    ihave %Heq := ghostVar_agree (GF := GF) _ v _ (V 2) _ $$ Hv H2
+    imod ghostVar_update_halves (GF := GF) v' _ v (V 2) $$ Hv H2 with ⟨Hv, H2⟩
+    imodintro
+    simp (config := { decide := true }) only [AntSim.setV, ite_true, ite_false]
+    isplitr; · ipureintro; exact Heq.symm
+    iframe Hv H0 H1 H2
 
 end defs
 
