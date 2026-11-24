@@ -108,9 +108,7 @@ theorem serverBootBad [srv_sem : server.Assumptions]
   unfold serverProg
   wp_apply (server.wp_initialize' _ server.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
   · iframe
-  first
-    | wp_bind (deploymentLit d)
-    | (wp_pure; wp_bind (deploymentLit d))
+  wp_bind (deploymentLit d)
   iapply wp_deploymentLit
   iintro %v #Hrepr
   -- `MainDeployment(d, i)`
@@ -130,7 +128,6 @@ theorem serverBootBad [srv_sem : server.Assumptions]
   | nil => exact absurd rfl hne
   | ok i =>
     bad_finish hne
-    all_goals (trace_state; sorry)
 
 /-- **A workload's orchestrator machine on a malformed deployment** (see the file header). -/
 theorem clientBootBad [cl_sem : client.Assumptions]
@@ -154,9 +151,7 @@ theorem clientBootBad [cl_sem : client.Assumptions]
   unfold clientProg
   wp_apply (client.wp_initialize' _ client.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
   · iframe
-  first
-    | wp_bind (deploymentLit d)
-    | (wp_pure; wp_bind (deploymentLit d))
+  wp_bind (deploymentLit d)
   iapply wp_deploymentLit
   iintro %v #Hrepr
   -- `Orchestrator(d, j)`
@@ -175,7 +170,6 @@ theorem clientBootBad [cl_sem : client.Assumptions]
   | nil => exact absurd rfl hne
   | ok i =>
     bad_finish hne
-    all_goals (trace_state; sorry)
 
 /-- **A client machine on a malformed deployment** (see the file header). -/
 theorem nodeBootBad [cl_sem : client.Assumptions]
@@ -199,9 +193,7 @@ theorem nodeBootBad [cl_sem : client.Assumptions]
   unfold nodeProg
   wp_apply (client.wp_initialize' _ client.getIsPkgInit_wf) $$ [Hown Hns] as ⟨-, #Hpkg⟩
   · iframe
-  first
-    | wp_bind (deploymentLit d)
-    | (wp_pure; wp_bind (deploymentLit d))
+  wp_bind (deploymentLit d)
   iapply wp_deploymentLit
   iintro %v #Hrepr
   -- `NodeDeployment(d, n)`
@@ -215,7 +207,6 @@ theorem nodeBootBad [cl_sem : client.Assumptions]
   | nil => exact absurd rfl hne
   | ok i =>
     bad_finish hne
-    all_goals (trace_state; sorry)
 
 end boot
 
