@@ -32,7 +32,7 @@ theorem kv.Compact.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Compact.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd rev Hr1 Hcmp
-  wp_start as ⟨Hlt, #Hkv, #Hctx, #Hce, #Hrv⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hkv, #Hctx, #Hce, #Hrv⟩
   ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩

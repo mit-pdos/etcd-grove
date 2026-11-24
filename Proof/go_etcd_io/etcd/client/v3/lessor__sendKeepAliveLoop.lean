@@ -34,7 +34,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     lessor.sendKeepAliveLoop.spec (GF := GF) (hG := hG) := by
   intro l addr st γ Up Dn cd L
-  wp_start as ⟨Hlt, #Hl, #Hst, #Hz, Htok⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hl, #Hst, #Hz, Htok⟩
   iunfold lessorAt at Hl
   icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩

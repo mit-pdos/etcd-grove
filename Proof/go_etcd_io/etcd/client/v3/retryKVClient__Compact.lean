@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem retryKVClient.Compact.wp_proof (wp_kVClient_Compact : kVClient.Compact.spec (GF := GF) (hG := hG)) :
     retryKVClient.Compact.spec (GF := GF) (hG := hG) := by
   intro rkv conn addr Spec Q ctx om cd inp req opts vs
-  wp_start as ⟨Hlt, #Hrkv, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hrkv, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   iunfold retryKVAt at Hrkv
   icases Hrkv with ⟨%kc, #Hkc, #Hstub⟩
   wp_auto

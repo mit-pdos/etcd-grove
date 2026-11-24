@@ -33,7 +33,7 @@ theorem retryLeaseClient.LeaseKeepAlive.wp_proof
     (wp_stub : leaseClient.LeaseKeepAlive.spec (GF := GF) (hG := hG)) :
     retryLeaseClient.LeaseKeepAlive.spec (GF := GF) (hG := hG) := by
   intro rlc conn addr ctx cd opts vs
-  wp_start as ⟨Hlt, #Hrlc, #Hconn, #Hstr, #Hctx, #Hopts, Hocap, #Hok⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hrlc, #Hconn, #Hstr, #Hctx, #Hopts, Hocap, #Hok⟩
   iunfold retryLeaseAt at Hrlc
   icases Hrlc with ⟨%lc, #Hlc, #Hstub⟩
   wp_auto

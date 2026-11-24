@@ -33,7 +33,7 @@ theorem kv.Delete.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Delete.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci om cd key sl gs Sd Qd
-  wp_start as ⟨Hlt, #Hkv, #Hom, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hkv, #Hom, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
@@ -118,7 +118,7 @@ theorem kv.Delete.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Delete.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key sl gs Q
-  wp_start as ⟨Hlt, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht, Hz⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat

@@ -29,7 +29,7 @@ theorem retryKVClient.Range.wp_proof
     (wp_kVClient_Range : kVClient.Range.spec (GF := GF) (hG := hG)) :
     retryKVClient.Range.spec (GF := GF) (hG := hG) := by
   intro rkv conn addr Spec Q ctx om cd inp req k e opts vs Ψe
-  wp_start as ⟨Hlt, #Hrkv, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, %Hcap, #Hok, %Hsz⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hrkv, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, %Hcap, #Hok, %Hsz⟩
   iunfold retryKVAt at Hrkv
   icases Hrkv with ⟨%kc, #Hkc, #Hstub⟩
   wp_auto

@@ -33,7 +33,7 @@ theorem kv.Get.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci om cd key sl gs R Sr Qr Ψr
-  wp_start as ⟨Hlt, #Hkv, #Hom, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hkv, #Hom, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
@@ -198,7 +198,7 @@ theorem kv.Get.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key sl gs R Q
-  wp_start as ⟨Hlt, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩

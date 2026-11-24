@@ -27,7 +27,7 @@ theorem retryAuthClient.UserGrantRole.wp_proof
     (wp_authClient_UserGrantRole : etcdserverpb.authClient.UserGrantRole.spec (GF := GF) (hG := hG)) :
     retryAuthClient.UserGrantRole.spec (GF := GF) (hG := hG) := by
   intro rac conn addr Spec Q ctx om cd inp m opts vs
-  wp_start as ⟨Hlt, #Hrac, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hrac, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   iunfold retryAuthAt at Hrac
   icases Hrac with ⟨%ac, #Hac, #Hstub⟩
   wp_auto

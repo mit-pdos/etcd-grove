@@ -28,7 +28,7 @@ theorem authClient.Authenticate.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.Authenticate.spec (GF := GF) (hG := hG) := by
   intro api addr ci cd name pw Spec Q
-  wp_start as ⟨Hlt, #Hapi, #Hctx, #Hce, #Hrpc, #Hpre, %Hsz⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hapi, #Hctx, #Hce, #Hrpc, #Hpre, %Hsz⟩
   iunfold authObjAt at Hapi
   icases Hapi with ⟨%rac, %conn, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto

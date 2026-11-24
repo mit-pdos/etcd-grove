@@ -57,7 +57,7 @@ theorem Client.dial.wp_proof
     (wp_WithPerRPCCredentials : grpc.WithPerRPCCredentials.spec (GF := GF) (hG := hG)) :
     Client.dial.spec (GF := GF) (hG := hG) := by
   intro c cfg cr sl rb esl eps atb P
-  wp_start as ⟨Hlt, #Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
+  wp_start as ⟨Hlt, #Hpkg, #Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
   obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
     cases eps with
     | nil => exact absurd rfl Hplain.1
