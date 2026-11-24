@@ -25,15 +25,19 @@ section pure
 variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- A dynamic type outside `T`'s type set and, for a non-interface `T`, of another underlying type
-(and of another kind, or of a kind other than struct, channel and function) is not assignable to
-`T`, and the model decides it. -/
+(and of another kind, or of a kind other than struct, channel and function), on which the model's
+reflection is defined (`asModelled`), for a `T` of a kind, is not assignable to `T`, and the model
+decides it. -/
 theorem errors.asNoMatch_notAssignable {T : go.GoType} {ii : GoInterfaceOk}
+    (hmod : _root_.Perennial.errors.asModelled ii.ty) (hk : ∃ k, go.kindOf (underlying T) = some k)
+    (hn : go.isUntypedNil (underlying T) = false)
     (hts : go.typeSetContains ii.ty T = false)
     (hu : go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T ∧
       (_root_.Perennial.errors.undecidedKind (underlying T) = false ∨
         go.kindOf (underlying ii.ty) ≠ go.kindOf (underlying T))) :
     _root_.Perennial.errors.asAssignable T ii = false ∧ _root_.Perennial.errors.AsDecided T ii := by
-  refine ⟨?_, fun hI => ⟨fun heq => absurd (congrArg underlying heq) (hu hI).1, fun _ => hu hI⟩⟩
+  refine ⟨?_, hmod, hk, hn,
+    fun hI => ⟨fun heq => absurd (congrArg underlying heq) (hu hI).1, fun _ => hu hI⟩⟩
   unfold _root_.Perennial.errors.asAssignable
   cases hI : go.isInterfaceType (underlying T)
   · simp only [Bool.false_eq_true, ↓reduceIte, decide_eq_false_iff_not]
@@ -41,10 +45,11 @@ theorem errors.asNoMatch_notAssignable {T : go.GoType} {ii : GoInterfaceOk}
   · simpa using hts
 
 theorem errors.asNoMatchLeaf_perennial {T : go.GoType} {e : GoInterface}
+    (hk : ∃ k, go.kindOf (underlying T) = some k) (hn : go.isUntypedNil (underlying T) = false)
     (h : errors.asNoMatchLeaf T e) : _root_.Perennial.errors.asNoMatchLeaf T e := by
-  rcases h with h | ⟨ii, rfl, hleaf, hts, hu⟩
+  rcases h with h | ⟨ii, rfl, hleaf, hts, hmod, -, hu⟩
   · exact Or.inl h
-  · exact Or.inr ⟨ii, rfl, hleaf, errors.asNoMatch_notAssignable hts hu⟩
+  · exact Or.inr ⟨ii, rfl, hleaf, errors.asNoMatch_notAssignable hmod hk hn hts hu⟩
 
 end pure
 
@@ -55,8 +60,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
+/-- A leaf of `asNoMatchLeaf` has a Lean representation for an interface `T`: it is a pointer. -/
+theorem errors.errRepr_of_leaf {T : go.GoType} {e : GoInterface} (h : errors.asNoMatchLeaf T e) :
+    _root_.Perennial.errors.errRepr (GF := GF) T e := by
+  intro ii he
+  rcases h with h | ⟨ii', h', -, -, -, hp, -⟩
+  · subst h; cases he
+  · rw [h'] at he
+    cases he
+    exact fun hI => _root_.Perennial.errors.asRepr_pointer T ii' (hp hI) hI
+
 theorem errors.AsNoMatch.wp_proof : errors.AsNoMatch.spec (GF := GF) (hG := hG) := by
-  intro err l T' _ _ T _ v hT
+  intro err l T' _ _ T _ v hT hk hn
   iintro %Φ ⟨Hinit, Hl, Hno⟩ HΦ
   wp_apply (_root_.Perennial.errors.wp_As.2.2 1 err l v hT) $$ [Hinit Hl Hno] as Hl
   · iframe
@@ -64,20 +79,21 @@ theorem errors.AsNoMatch.wp_proof : errors.AsNoMatch.spec (GF := GF) (hG := hG) 
     icases Hno with (%Hleaf | ⟨%ii, %Hw, Hun⟩)
     · ileft
       ipureintro
-      exact errors.asNoMatchLeaf_perennial Hleaf
+      exact ⟨errors.asNoMatchLeaf_perennial hk hn Hleaf, errors.errRepr_of_leaf Hleaf⟩
     · iright
-      obtain ⟨Herr, Hts, Hu, HAs, HUnwrap⟩ := Hw
-      obtain ⟨Hna, Hdec⟩ := errors.asNoMatch_notAssignable Hts Hu
+      obtain ⟨Herr, Hts, Hmod, Hp, Hu, HAs, HUnwrap⟩ := Hw
+      obtain ⟨Hna, Hdec⟩ := errors.asNoMatch_notAssignable Hmod hk hn Hts Hu
       iexists ii
       isplitr
       · ipureintro
-        exact ⟨Herr, Hna, Hdec, HAs, HUnwrap⟩
+        exact ⟨Herr, Hna, Hdec, fun hI => _root_.Perennial.errors.asRepr_pointer T ii (Hp hI) hI,
+          HAs, HUnwrap⟩
       iintro %Ψ HΨ
       iapply Hun
       iintro %e %He
       iapply HΨ
       ipureintro
-      exact errors.asNoMatchLeaf_perennial He
+      exact ⟨errors.asNoMatchLeaf_perennial hk hn He, errors.errRepr_of_leaf He⟩
   iapply HΦ
   iexact Hl
 

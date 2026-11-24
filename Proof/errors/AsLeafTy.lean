@@ -26,13 +26,13 @@ variable [package_sem : _root_.Perennial.errors.Assumptions]
 
 theorem errors.AsLeafTy.wp_proof (wp_AsNoMatch : errors.AsNoMatch.spec (GF := GF) (hG := hG)) :
     errors.AsLeafTy.spec (GF := GF) (hG := hG) := by
-  intro ii l T' _ _ T _ v hT hleaf hts hu
+  intro ii l T' _ _ T _ v hT hleaf hts hmod hp hk hn hu
   iintro %Φ ⟨#Hpkg, Hl⟩ HΦ
-  iapply (wp_AsNoMatch (GoInterface.ok ii) l v hT) $$ [Hl] HΦ
+  iapply (wp_AsNoMatch (GoInterface.ok ii) l v hT hk hn) $$ [Hl] HΦ
   iframe Hpkg Hl
   ileft
   ipureintro
-  exact Or.inr ⟨ii, rfl, hleaf, hts, hu⟩
+  exact Or.inr ⟨ii, rfl, hleaf, hts, hmod, hp, hu⟩
 
 end proof
 

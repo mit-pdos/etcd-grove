@@ -243,7 +243,7 @@ theorem errString_plainLeaf (p : Loc) :
   have hA := go.method_set_is
     (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"As"
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hU hA
-  refine Or.inr ⟨_, rfl, ?_, ?_, ?_, ?_⟩
+  refine Or.inr ⟨_, rfl, ?_, ?_, ?_, ?_, ⟨_, p, rfl, rfl⟩⟩
   · simp only
     go_type_set
   all_goals simp only [hU, hA, ne_eq, reduceCtorEq, not_false_eq_true]
@@ -286,7 +286,7 @@ theorem deepRO_plain (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF) (h
     iexists _
     isplitr
     · ipureintro
-      refine ⟨rfl, ?_, hU, ?_⟩
+      refine ⟨rfl, ?_, hU, ?_, ⟨_, p, rfl, rfl⟩⟩
       · simp only
         go_type_set
       · simp only [hA, ne_eq, reduceCtorEq, not_false_eq_true]

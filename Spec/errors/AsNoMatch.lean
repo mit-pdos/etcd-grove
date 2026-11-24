@@ -58,10 +58,14 @@ variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 /-- **An error `errors.As` ends at without a match against `T`**: `nil`, or a leaf error (no
 `As(any) bool`, no `Unwrap`) whose dynamic type is outside `T`'s type set and, for a non-interface
 `T`, of another underlying type and either of another kind or of a kind other than struct, channel
-and function (Perennial's `AsDecided`: where the `reflectlite` model decides it). -/
+and function (Perennial's `AsDecided`: where the `reflectlite` model decides it); the model's
+reflection on its dynamic type is defined (`asModelled`), and for an interface `T` it is a pointer
+error (`IsPointerError`: a Lean representation of its type, Perennial's `asRepr`). -/
 def errors.asNoMatchLeaf (T : go.GoType) (e : GoInterface) : Prop :=
   e = interface.nil ∨ ∃ ii : GoInterfaceOk, e = GoInterface.ok ii ∧
     _root_.Perennial.errors.isLeafError ii ∧ go.typeSetContains ii.ty T = false ∧
+    _root_.Perennial.errors.asModelled ii.ty ∧
+    (go.isInterfaceType (underlying T) = true → _root_.Perennial.errors.IsPointerError ii) ∧
     (go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T ∧
       (_root_.Perennial.errors.undecidedKind (underlying T) = false ∨
         go.kindOf (underlying ii.ty) ≠ go.kindOf (underlying T)))
@@ -81,6 +85,8 @@ type set (of another underlying type than a non-interface `T`) with `Unwrap() er
 def errors.asNoMatchWrap (T : go.GoType) (err : GoInterface) : IProp GF :=
   iprop(∃ ii : GoInterfaceOk,
     ⌜err = GoInterface.ok ii ∧ go.typeSetContains ii.ty T = false ∧
+      _root_.Perennial.errors.asModelled ii.ty ∧
+      (go.isInterfaceType (underlying T) = true → _root_.Perennial.errors.IsPointerError ii) ∧
       (go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T ∧
         (_root_.Perennial.errors.undecidedKind (underlying T) = false ∨
           go.kindOf (underlying ii.ty) ≠ go.kindOf (underlying T))) ∧
@@ -96,6 +102,7 @@ abbrev errors.AsNoMatch.spec : Prop :=
   ∀ (err : GoInterface) (l : Loc) {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T']
     {T : go.GoType} [IntoValTyped (GF := GF) T' T] (v : T'),
     _root_.Perennial.errors.AsTarget T →
+    (∃ k, go.kindOf (underlying T) = some k) → go.isUntypedNil (underlying T) = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ l ↦ v ∗
         (⌜errors.asNoMatchLeaf T err⌝ ∨ errors.asNoMatchWrap T err) }}
       (App (App (Val (@! _root_.Perennial.errors.As)) (Val #err))

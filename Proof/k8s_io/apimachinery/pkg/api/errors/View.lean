@@ -96,7 +96,7 @@ whose dynamic type is outside `APIStatus`'s type set. -/
 def plainLeaf (err : GoInterface) : Prop :=
   err = interface.nil ∨ ∃ ii : GoInterfaceOk, err = GoInterface.ok ii ∧
     go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false ∧
-    leafErrTy ii.ty
+    leafErrTy ii.ty ∧ _root_.Perennial.errors.IsPointerError ii
 
 end leaf
 
@@ -143,7 +143,8 @@ def apiErrAt (err : GoInterface) : ApiErrView → IProp GF
         GoSemanticsFunctions.methodSet ii.ty !! go!"Unwrap" =
           some (go.signature.Signature [] false [go.error]) ∧
         GoSemanticsFunctions.methodSet ii.ty !! go!"As" ≠
-          some (go.signature.Signature [go.any] false [go.bool])⌝ ∗
+          some (go.signature.Signature [go.any] false [go.bool]) ∧
+        _root_.Perennial.errors.IsPointerError ii⌝ ∗
       □ ∀ Φ : val → IProp GF, (∀ e : GoInterface, ⌜plainLeaf e⌝ -∗ Φ #e) -∗
           WP (App (Val #(methods ii.ty go!"Unwrap" ii.v)) (Val #())) {{ Φ }})
 

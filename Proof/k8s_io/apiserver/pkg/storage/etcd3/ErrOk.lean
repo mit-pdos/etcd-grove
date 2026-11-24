@@ -50,6 +50,36 @@ theorem corrupt_asTarget :
   right
   go_type_set
 
+/-- The model's reflection on an `rpctypes.EtcdError` (a struct of a `codes.Code` and a `string`) is
+defined (`errors.As`'s premise). -/
+theorem asModelled_etcdError :
+    _root_.Perennial.errors.asModelled go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
+  have hu : underlying go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty =
+      go.GoType.StructType [go.field_decl.FieldDecl go!"code" google_golang_org.grpc.codes.Code.ty,
+        go.field_decl.FieldDecl go!"desc" go.string] := by
+    rw [go.is_underlying (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)]
+    unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying
+      go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.fields
+    rfl
+  haveI : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty ↓u
+      go.GoType.StructType [go.field_decl.FieldDecl go!"code" google_golang_org.grpc.codes.Code.ty,
+        go.field_decl.FieldDecl go!"desc" go.string] := ⟨hu⟩
+  refine ⟨by rw [hu]; rfl, by rw [hu]; rfl, ⟨25, by rw [hu]; rfl⟩, by rw [hu]; rfl, 2, false, ?_⟩
+  exact reflect.directIfaceN_struct_last (f := go.field_decl.FieldDecl go!"desc" go.string)
+    (u := go.string) (k := 24) 0 (by simp) (by simp) go.is_underlying (by simp [go.kindOf])
+    (by omega) (by omega) (by decide)
+
+/-- The model's reflection on a `context.deadlineExceededError` (an empty struct) is defined. -/
+theorem asModelled_deadlineExceeded :
+    _root_.Perennial.errors.asModelled _root_.Perennial.context.deadlineExceededError.ty := by
+  have hu : underlying _root_.Perennial.context.deadlineExceededError.ty = go.GoType.StructType [] := by
+    rw [go.is_underlying (t := _root_.Perennial.context.deadlineExceededError.ty)]
+    unfold _root_.Perennial.context.deadlineExceededError.underlying
+      _root_.Perennial.context.deadlineExceededError.fields
+    rfl
+  refine ⟨by rw [hu]; rfl, by rw [hu]; rfl, ⟨25, by rw [hu]; rfl⟩, by rw [hu]; rfl, 1, false, ?_⟩
+  simp [reflect.directIfaceN, hu]
+
 /-- **The shape of `kErrOk`**: a leaf error (`isLeafError`) whose dynamic type is not
 `*corruptObjectDeletedError` (`errors.AsLeafTy` gives `As` false), with no `Format` method, its
 value of the comparands' shapes, its `Error()` returning, and its `Code()` (as an `etcdError`),
@@ -62,7 +92,8 @@ theorem kErrOk_intro (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG)) 
     (hleaf : _root_.Perennial.errors.isLeafError e)
     (hne : e.ty ≠ go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)
     (hund : underlying e.ty ≠
-      go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty) :
+      go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)
+    (hmod : _root_.Perennial.errors.asModelled e.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.errors ⊢
     fmt.stringMethodSpec (GF := GF) e go!"Error" -∗
     □ (⌜go.typeSetContains e.ty k8s_io.apiserver.pkg.storage.etcd3.etcdError.ty = true⌝ -∗
@@ -111,7 +142,14 @@ theorem kErrOk_intro (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG)) 
       k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)]
     -- the target `*corruptObjectDeletedError` is a pointer: no struct, channel or function kind
     exact ⟨hund, Or.inl rfl⟩
-  wp_apply (wp_AsLeafTy e l v corrupt_asTarget hleaf hts hund') $$ [Hl]
+  have hk := _root_.Perennial.errors.asTargetKind_pointer
+    k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty
+  wp_apply (wp_AsLeafTy e l v corrupt_asTarget hleaf hts hmod
+    (fun h => by
+      rw [go.is_underlying (t := go.GoType.PointerType
+        k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)] at h
+      cases h)
+    hk.1 hk.2 hund') $$ [Hl]
   · iframe
   iintro Hl
   iapply HΦ $$ Hl
@@ -149,7 +187,7 @@ theorem kErrOk_errorString (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG :=
           _root_.Perennial.errors.errorString.ty; simp)
     (by rw [go.is_underlying (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty)]
         unfold k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty
-          _root_.Perennial.errors.errorString.ty; simp)) $$ Perr Hs
+          _root_.Perennial.errors.errorString.ty; simp) (_root_.Perennial.errors.asModelled_pointer _)) $$ Perr Hs
   · iintro !> %h
     exfalso
     revert h
@@ -235,7 +273,7 @@ theorem kErrOk_clientP [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
             google_golang_org.grpc.internal.status.Error.ty; simp)
       (by rw [go.is_underlying (t := go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty)]
           unfold k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty
-            google_golang_org.grpc.internal.status.Error.ty; simp)) $$ Perr Hstr
+            google_golang_org.grpc.internal.status.Error.ty; simp) (_root_.Perennial.errors.asModelled_pointer _)) $$ Perr Hstr
     · iapply kErrOk_none_etcd
       go_type_set <;> simp
     · iintro !> %-
@@ -276,7 +314,8 @@ theorem kErrOk_clientP [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
       HF Hleaf
       (by unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; simp)
       (by rw [go.is_underlying (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)]
-          unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying; simp)) $$ Perr Hstr
+          unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying; simp)
+      asModelled_etcdError) $$ Perr Hstr
     · iintro !> %- %Φ HΦ
       wp_apply (wp_ECode y)
       iapply HΦ
@@ -295,7 +334,7 @@ theorem kErrOk_clientP [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
             _root_.Perennial.errors.errorString.ty; simp)
       (by rw [go.is_underlying (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty)]
           unfold k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty
-            _root_.Perennial.errors.errorString.ty; simp)) $$ Perr Hstr
+            _root_.Perennial.errors.errorString.ty; simp) (_root_.Perennial.errors.asModelled_pointer _)) $$ Perr Hstr
     · iapply kErrOk_none_etcd
       go_type_set <;> simp
     · iapply kErrOk_none_grpc
@@ -314,7 +353,8 @@ theorem kErrOk_clientP [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
       HF Hleaf
       (by unfold _root_.Perennial.context.deadlineExceededError.ty; simp)
       (by rw [go.is_underlying (t := _root_.Perennial.context.deadlineExceededError.ty)]
-          unfold _root_.Perennial.context.deadlineExceededError.underlying; simp)) $$ Perr Hstr
+          unfold _root_.Perennial.context.deadlineExceededError.underlying; simp)
+      asModelled_deadlineExceeded) $$ Perr Hstr
     · iapply kErrOk_none_etcd
       go_type_set <;> simp
     · iapply kErrOk_none_grpc
