@@ -17,6 +17,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.NeedsAuth
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.WellFormedLemmas
 public import Spec.fmt.ErrorfStrs
+public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section
 
@@ -76,7 +77,7 @@ local macro "err_exit" : tactic => `(tactic| (
        · iframe
          iapply strArgOk_list
          intro a ha
-         simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
+         simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
          first
            | (rcases ha with rfl | rfl <;> exact ⟨_, rfl, by first | exact argWf_int _ | exact argWf_string _⟩)
            | (subst ha; exact ⟨_, rfl, by first | exact argWf_int _ | exact argWf_string _⟩))
@@ -84,6 +85,20 @@ local macro "err_exit" : tactic => `(tactic| (
   repeat wp_for_post
   iapply HΦ
   ipureintro; intro h; cases h))
+
+theorem idx_facts (s : GoSlice) (j len : Nat) (hl : len = sint.nat s.len) (h0l : 0 ≤ sint.Z s.len)
+    (h : sint.Z (W64 (j : Int)) < sint.Z s.len) (hj : j ≤ len) :
+    j < len ∧ 0 ≤ sint.Z (W64 (j : Int)) ∧ (sint.Z (W64 (j : Int))).toNat = j ∧
+      W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by
+  refine ⟨by word, by word, by word, by word⟩
+
+theorem idx_end (s : GoSlice) (j len : Nat) (hl : len = sint.nat s.len) (h0l : 0 ≤ sint.Z s.len)
+    (h : ¬ sint.Z (W64 (j : Int)) < sint.Z s.len) (hj : j ≤ len) : j = len := by
+  word
+
+theorem strlen_le (n k : Nat) (hn : n < 2 ^ 63) (hk : k < 2 ^ 63)
+    (h : ¬ sint.Z (W64 (n : Int)) > sint.Z (W64 (k : Int))) : n ≤ k := by
+  word
 
 theorem deployment.WellFormed.wp_proof
     (hNameOk : etcd_dist.deployment.nameOk.spec (GF := GF) (hG := hG))
@@ -128,7 +143,61 @@ theorem deployment.WellFormed.wp_proof
   wp_for HI
   obtain ⟨Hj1, Hj2, Hj3, Hj4⟩ := Hj
   wp_if_destruct
-  · skip
+  · obtain ⟨hj, h0, hsj, hw⟩ := idx_facts _ _ _ Hlm.1 Hlm.2 Hif Hj1
+    simp only [h0, Hif, and_self, ↓reduceIte]
+    obtain ⟨mm, hmm⟩ : ∃ mm, d.members[j]? = some mm := ⟨_, List.getElem?_eq_getElem hj⟩
+    wp_apply (wp_load_slice_index v.Members' (sint.Z (W64 (j : Int))) (d.members.map Member.val) DFrac.discard mm.val h0) $$ [] as -
+    · iframe #; ipureintro; rw [hsj, List.getElem?_map, hmm]; rfl
+    have htake : d.members.take (j + 1) = d.members.take j ++ [mm] := by
+      rw [List.take_add_one, hmm]; rfl
+    wp_apply hNameOk
+    by_cases hn : typed.nameOk mm.name = true
+    · rw [hn]
+      simp only [Bool.not_true]
+      wp_auto
+      wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hsl
+      wp_if_destruct
+      · err_exit
+      · have hl255 := strlen_le _ 255 Hsl (by decide) Hif
+        wp_apply (wp_map_lookup1 _ _ nm mp mm.name) $$ [Hnm] as Hnm
+        · iframe
+        rw [Hj2]
+        by_cases hin : mm.name ∈ (d.members.take j).map Member.name
+        · rw [if_pos hin]
+          simp only [Option.getD_some]
+          err_exit
+        · rw [if_neg hin]
+          simp only [Option.getD_none]
+          rw [show (zero_val Bool) = false from rfl]
+          wp_auto
+          wp_apply wp_mapInsert $$ [Hnm] as Hnm
+          · iframe
+          wp_for_post
+          iframe
+          iexists (j + 1), _, _
+          rw [hw]
+          iframe
+          ipureintro
+          refine ⟨by omega, ?_, ?_, ?_⟩
+          · intro k
+            rw [htake, List.map_append]
+            by_cases hk : k = mm.name
+            · subst hk; simp
+            · rw [lookup_insert_ne mp true (Ne.symm hk), Hj2 k]; simp [hk]
+          · rw [htake, List.map_append, List.nodup_append]
+            refine ⟨Hj3, by simp, ?_⟩
+            intro a ha b hb hab
+            simp only [List.map_cons, List.map_nil, List.mem_singleton] at hb
+            subst hb; subst hab; exact hin ha
+          · intro m hm
+            rw [htake, List.mem_append, List.mem_singleton] at hm
+            rcases hm with hm | rfl
+            · exact Hj4 m hm
+            · exact ⟨hn, hl255⟩
+    · rw [Bool.not_eq_true] at hn
+      rw [hn]
+      simp only [Bool.not_false]
+      err_exit
   · skip
 
 end proof
