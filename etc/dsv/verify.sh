@@ -20,7 +20,7 @@ GOAL=/home/agent/work/.goal
 [ -f "$GOAL/challenge" ] || { echo "FAIL no $GOAL/challenge (not a challenge run's checkout)"; exit 1; }
 
 step "checkout"
-git log --oneline -1 --decorate
+git -c color.ui=never log --oneline -1 --decorate
 # (the checkout has the built packages in .lake/packages, and nothing else there)
 [ -z "$(ls -A .lake | grep -v "^packages$")" ] || bad ".lake holds more than the built packages"
 
