@@ -412,3 +412,10 @@ and P2/P4/P6 can run beside it once P0 lands. The upstream-report candidate is r
 issue files' `## Fix` sections (an etcd fix, with the format caveat above); an etcd-side issue file of
 its own (the WAL keeps a torn `Save`'s entries, with `TestRestartWithEntriesButNotCommit` against the
 real WAL) is the natural report if the lead wants one.
+
+### Phase B progress (P6, branch `etcd-safe-walfix-p6`)
+
+- 2026-11-24: E0 (`WalNorm.lean`), E1 mostly written (not compiled), E3's pure core begun
+  (`WalEncFoldPend.lean`). **Hard stop**: `encodeState` of an empty `w.state` needs `proto.Marshal` to
+  return a non-nil empty slice, which `proto.MarshalPb.spec` (trusted) does not say; write-up and the
+  proposed change in `notes/wal-p6-handoff.md`, "The hard stop".

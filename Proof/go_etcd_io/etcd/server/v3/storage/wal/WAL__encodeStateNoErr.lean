@@ -47,7 +47,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.wp_proofNoErr (P :
     He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
   obtain ⟨hsplit, hfd, hoff, hsz, hidx, hidx2⟩ := Hpure
   try wp_auto
-  wp_apply (wp_marshal hp hs hne) $$ [] as %d ⟨Hd, %Hdn⟩
+  wp_apply (wp_marshal hp hs hne -- BLOCKED (P6 hard stop, notes/wal-p6-handoff.md): `hs` may be empty here; needs `MarshalPb.spec` to give a non-nil empty slice) $$ [] as %d ⟨Hd, %Hdn⟩
   · iexact Hhs
   imod ownSlice_persist $$ Hd with #Hd
   unfold go_etcd_io.etcd.server.v3.storage.wal.StateType

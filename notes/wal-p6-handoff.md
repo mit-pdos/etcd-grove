@@ -6,6 +6,9 @@
 - **Done before this session**: the fork fix (`goose-lean-fmt1c-tornsave` @ `2bd3048d7`), the retranslation
   (`Code/.../storage/wal.lean`, `etcdserver.lean`), `examples/` go.mod, `etc/goose.py --check` green.
 - **This session**: see "Progress" below (kept current at each milestone).
+- **STOPPED at a hard stop (trusted text), 2026-11-24**: "The hard stop: `proto.Marshal` of an empty
+  hard state" below. Nothing is compiled yet (the `.lake/build` seed was still building); the next
+  session seeds, compiles bottom-up and goes on once the coordinator decides.
 - **Build**: every lake command takes `--packages=/shared/tmp/manifest-fce59af7.json`; builds through
   `/shared/tmp/build-slot.sh`; `export TMPDIR=/shared/tmp`.
 
@@ -48,3 +51,53 @@ The fork's Go behavior is `notes/etcd-dist-d6.md` §10. The Lean shape:
 ## Progress
 
 - E0: `Proof/go_etcd_io/etcd/server/v3/storage/WalNorm.lean` (normalization and its invariance lemmas).
+- E0/E1 (written, **not yet compiled**; commits `ca99231ff5`, `f9e6cee809` and the stop commit):
+  `opDs` (state record after the entries unless `es = [] ∧ hsEmptyP`), `histM d := histN d.H`, the
+  scripted `segsOf (histN ·)` rewrite in the handle files, `SaveRecs`/`SaveAbs`/`SavePure`/`HandleAppend`
+  over `wop`, `WalEncFold` with the normalization hypotheses (`hNo`; callers in `ReadAllOk` etc. not
+  yet updated), `histCut` whole ops + `histCutRest` (`WalEncRecs`, `WalEncSegsImg`, `WalEncSuffix`,
+  `ReadAllDecode`), `encodeState.spec`/`specNoErr` and their proofs, `saveState` as a wrapper,
+  `walCov_encodeState` (`CalleeCov`). `WAL__Save.lean` not yet changed for the new branch (plan:
+  `hs2 := saveHS (walLastHS (h.H.map toM)) hs es`; `hk`/`HI`'s room over `encState hs2`; `hroom1` and
+  the `generalize` over `wop h.H`; `finEmpty` takes `⟨rfl, hse⟩`; a `wp_join (Q := executeVal ∗ handle
+  at SaveFin ∨ returnVal ∗ err)` `at next` over `if len(ents) > 0 {…encodeState…} else {saveState}`,
+  the inner `if IsEmptyHardState(st) { st = w.state }` joined at `∃ hp2, st ↦ hp2 ∗ P.hsIn hp2 hs2`,
+  `w.state` from `walHandleIn_state` with `hc.st = walLastHS` by `Hs.st.trans hD.2`).
+- E3 started: `Proof/.../storage/WalEncFoldPend.lean` (`raStepP`, `readAllFoldP`, `foldlM_raStepP_eq`,
+  `readAllFoldP_append`: over records ending in a non-entry record followed by decodable entry records
+  the new read is the old `readAllFold` of the former). Not compiled.
+
+## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
+
+`Save(st, ents)` with `ents ≠ []` and `st` empty now writes `encodeState(w.state)`, and `w.state` can
+be the empty hard state (a WAL with no state record yet: `Save` sets `w.state = &raftpb.HardState{}`,
+wal.go:1345-1347). `encodeState` marshals it: `pbutil.MustMarshalMessage(s)` = `proto.Marshal(s)`
+(pbutil.go:53-58), and builds `&walpb.Record{Type: …, Data: b}`. `walpb.Record` is proto2 with
+`optional bytes data = 3` (record.proto:1,11): a nil `Data` is not encoded, a non-nil empty one is
+(field 3, length 0). The frame bytes therefore depend on whether `b` is nil.
+
+1. **Minimal program and the failed proof.**
+   ```go
+   st := &raftpb.HardState{}
+   b, _ := proto.Marshal(st)                         // non-nil empty in protobuf-go
+   out, _ := proto.Marshal(&walpb.Record{Type: proto.Int64(3), Data: b})
+   if len(out) != 4 { panic("Data's presence") }    // 2 bytes for Type, 2 for an empty Data
+   ```
+   The `encodeState` proof needs `d ≠ slice.nil` for `recBytes v.Data' (some [])` (`encRecIn`,
+   `walpb/PbRecord.lean:97`); for a non-empty state `MarshalHsLaw` gets it from the encoding's length.
+   `proto.MarshalPb.spec`'s post is `d ↦* pbEncC I c ∗ ownSliceCap w8 d (DFrac.own 1)`, which a nil
+   slice satisfies when the encoding is empty (Perennial's `ownSlice_nil`, `ownSliceCap_nil`,
+   `Golang/Theory/Slice.lean:118,326`); no other `proto` spec here says more (`Spec/google_golang_org/
+   protobuf/proto/`). Its docstring already claims "an empty encoding is a non-nil empty slice".
+2. **The real code.** protobuf-go v1.36.11 `proto/encode.go:119-146`: `Marshal` returns
+   `emptyBytesForMessage(m)` for an empty encoding, `emptyBuf[:]` (non-nil) for a valid message, nil
+   only for an invalid one (a nil `*T`). etcd: `server/storage/wal/wal.go` `(*WAL).encodeState` called
+   from `(*WAL).Save` at fork `2bd3048d7` with `st = w.state` (non-nil pointer, possibly empty).
+
+**Proposed change (for the coordinator / Upamanyu):** `proto.MarshalPb.spec`'s post gains
+`⌜l ≠ null → d ≠ slice.nil⌝` (or the premise `l ≠ null` and `⌜d ≠ slice.nil⌝`), axiom
+`proto.MarshalPb.wp_proof` in `etc/tcb-baseline.txt`; then `WalPbIn.MarshalHsLaw` drops `¬ hsEmptyP hs`
+for `hp ≠ null` (proved in `RaftModel/LawsHsMarshal.lean` from the stronger post). Alternative without
+the trusted change: none found (the encoding layer must know whether the empty state's `Data` is
+present; a `Save` spec premise excluding an empty `w.state` would add a premise up to the top-level
+theorems).
