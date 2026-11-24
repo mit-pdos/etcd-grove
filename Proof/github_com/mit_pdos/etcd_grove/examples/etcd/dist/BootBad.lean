@@ -118,16 +118,18 @@ theorem serverBootBad [srv_sem : server.Assumptions]
   wp_call
   try wp_auto
   wp_apply zap.NewNop.wp_proof as %lg -
-  wp_auto
+  try wp_auto
   -- `MainDeploymentLogger(d, i, lg)`
   wp_func_call
   wp_call
   try wp_auto
   wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
-  · iframe #
   have hne : err ≠ interface.nil := fun h => Hd (Herr h)
-  bad_finish hne
-  all_goals (trace_state; sorry)
+  cases err with
+  | nil => exact absurd rfl hne
+  | ok i =>
+    bad_finish hne
+    all_goals (trace_state; sorry)
 
 /-- **A workload's orchestrator machine on a malformed deployment** (see the file header). -/
 theorem clientBootBad [cl_sem : client.Assumptions]
@@ -166,10 +168,12 @@ theorem clientBootBad [cl_sem : client.Assumptions]
   try wp_func_lits
   try wp_auto
   wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
-  · iframe #
   have hne : err ≠ interface.nil := fun h => Hd (Herr h)
-  bad_finish hne
-  all_goals (trace_state; sorry)
+  cases err with
+  | nil => exact absurd rfl hne
+  | ok i =>
+    bad_finish hne
+    all_goals (trace_state; sorry)
 
 /-- **A client machine on a malformed deployment** (see the file header). -/
 theorem nodeBootBad [cl_sem : client.Assumptions]
@@ -203,10 +207,12 @@ theorem nodeBootBad [cl_sem : client.Assumptions]
   wp_call
   wp_auto
   wp_apply (wp_WellFormed v d Hfips) $$ [Hrepr] as %err %Herr
-  · iframe #
   have hne : err ≠ interface.nil := fun h => Hd (Herr h)
-  bad_finish hne
-  all_goals (trace_state; sorry)
+  cases err with
+  | nil => exact absurd rfl hne
+  | ok i =>
+    bad_finish hne
+    all_goals (trace_state; sorry)
 
 end boot
 
