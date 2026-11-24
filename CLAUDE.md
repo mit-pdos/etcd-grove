@@ -190,7 +190,9 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   definition (`Robust crashing stable g threads bound`: in every execution of Perennial's `DistCrashNstepsBelow`
   (fewer than `threads` live threads on every machine, fewer than `bound` steps) of programs on machines that crash and restart and programs on machines that never crash, with
   any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
-  is checked by a program of the deployment that panics, never stated over traces in Lean), and
+  is checked by a program of the deployment that panics, never stated over traces in Lean; an exit
+  (`os.Exit`, `log.Fatal`: Perennial's `AngelicExit`) counts as a safe run, so checkers panic,
+  `etc/exit-check.py`), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
   kernel and the harness, never by the program): `notes/robustness.md`. Every example's top-level
   result is an instance, in two files named `TopLevelRobustness.lean`:

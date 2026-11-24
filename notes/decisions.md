@@ -42348,3 +42348,43 @@ bridges `a` keeps nothing to set them with. Trust-shrinking (a stronger precondi
 `client_Get_own` (over `grpc.ClientConn.Invoke`) promises a value the real store lacks (`examples/axiomcx/bridgeinvoke/`);
 with the fix it found no route (`notes/axiom-review/bridge-addrleft.md`).
 
+
+## Go's process exit stays angelic, and checkers panic (2026-11-24 · branch `angelic-exit-doc/2026-11-24`)
+
+**The user's approval** (2026-11-24): Go's process exit (`os.Exit` → `syscall.Exit`, so `log.Fatal` and
+zap's and klog's `Fatal`) stays modelled as `AngelicExit` (Perennial `ca6df841b`:
+`Exit.impl := λ: "code", AngelicExit #()`, Perennial's `TrustedCode/syscall.lean` and this
+repository's), on the condition that the consequence is documented.
+
+**The consequence.** `AngelicExit` steps to itself forever: the exiting goroutine is neither stuck nor
+panicking, and the machine's other goroutines keep running (Go ends the process). So under `Robust`
+(`Robustness/Statement.lean`) an exit of any status is a safe run, not "the program ends with a
+failure": a program that checks a property and reports a violation with `os.Exit(1)` or `log.Fatal`
+proves nothing about the property. A check must panic. Go's run of a machine that exits is, up to the
+exit, an execution of the model, and after it is like a machine the scheduler stops picking; the
+model's extra executions (the other goroutines running on) only add to what the proof must show safe.
+
+**Documented** in `Robust`'s docstring and the header of `Robustness/Statement.lean`,
+`notes/robustness.md` ("An exit is a safe run, so a checker panics"), CLAUDE.md's `Robustness/` bullet,
+and Perennial's `docs/KNOWN_LIMITATIONS.md` (branch `angelic-exit-doc`).
+
+**Enforced** by a gate, `etc/exit-check.py` (in `etc/gates.sh` and CI), untrusted tooling: for every
+program a `TopLevelDefs.lean` boots (`<X>.initialize'`, resolved to its Go package through the
+translations' `go!"..."` package names), `etc/exitcheck` type-checks the program's own packages (its
+`go list -deps` closure under `examples/`; dependencies such as raft and etcd are not checked) and
+lists every use of an exit (`os.Exit`, `syscall.Exit`, `runtime.Goexit`, `log.Fatal*`, zap's, klog's,
+glog's, logrus's and zerolog's `Fatal`, `testing`'s `Fatal`/`FailNow`/`Skip*`), calls and function
+values, and of every wrapper of its own that forwards a parameter to one (callers decide what it
+reports). Each needs an entry in `etc/exit-allow.txt` with its reason; a stale entry fails.
+
+**What it found at landing** (36 `TopLevelDefs.lean`, 108 program packages, 206 own packages): no
+exit in any check written in this repository. Thirty exits, all in the Dsverify kits' forked protocols
+(`examples/dsverify/{epaxos,swiftpaxos,quepaxa}`), none reporting a check's failure: SwiftPaxos's
+`dlog.Logger.Fatal` (exits only for a nil or verbose logger, and every deployment's logger is the kits'
+`&dlog.Logger{}`, so the protocol's `r.Fatal(...)` self-checks return, in Go as in the model), and
+QuePaxa's exits on a failed `grpc.Dial` or debug-dump file (environment failures). Two
+`TopLevelDefs.lean` name no program (`etcd/dist`'s draft, `etcdstart`'s shared definitions).
+
+Not done: a whole-program analysis (an exit in a dependency, or a wrapper that decides by itself whose
+callers' conditions matter, is not followed); the gate is a review aid for the checks' own code, which
+is where a vacuous check would be written.

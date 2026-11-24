@@ -38,6 +38,19 @@ checking it and panicking if it fails, e.g. a client on a machine that does not 
 keeps its history: the property is then written in Go, where it is tested, and not in a trusted
 Lean definition over traces.
 
+**An exit is a safe run, so a checker must panic.** Perennial models Go's process exit
+(`syscall.Exit`, which `os.Exit` and the loggers' `Fatal` call; Perennial's
+`TrustedCode/syscall.lean`, and this repository's) as `AngelicExit`: the exiting goroutine steps to
+itself forever, neither stuck nor panicking, and the machine's other goroutines keep running (in Go
+the process ends). An execution in which a program exits, with any status, is thus one this statement
+counts as safe: a check that ends its program with `os.Exit(1)` or `log.Fatal` on a violation is
+checked by nothing. A Go run of a machine that exits is, up to the exit, an execution of this
+statement, and after it is as a machine the scheduler stops picking; the statement also covers the
+model's executions in which the other goroutines run on. `etc/exit-check.py` (a gate) keeps exits out
+of the own code of the programs the robustness theorems are about (the user's approval of the model on
+this condition, 2026-11-24; `notes/decisions.md`, "Go's process exit stays angelic, and checkers
+panic").
+
 The step bound is the proofs' (time receipts, as the closed adequacy theorems' `n < 2^61`).
 
 **The thread bound is a premise about the execution, not about the program**, and independent of
@@ -81,7 +94,12 @@ steps along which every machine keeps fewer than `threads` live threads, of the 
 `crashing` (which may crash and restart) and `stable` (which never crash), each running its
 program from its local state, a fresh Go process with the context `lctx` in its extensions'
 initial state, on the shared state `g`, in its extensions' initial state, no thread of any machine
-is stuck or has an unrecovered panic. -/
+is stuck or has an unrecovered panic.
+
+A process exit is a safe run (see the file header): Go's `os.Exit`/`syscall.Exit` (and so a
+logger's `Fatal`), of any status, is Perennial's `AngelicExit`, under which the exiting goroutine
+steps to itself forever while the machine's other goroutines keep running; so a program that
+checks a property must report a violation by panicking, never by exiting. -/
 def Robust [lctx : GoLocalContext] (crashing stable : List (Expr × state)) (g : GlobalState)
     (threads bound : Nat) : Prop :=
   (∀ m, m ∈ crashing ++ stable → Fresh lctx m.2) →
