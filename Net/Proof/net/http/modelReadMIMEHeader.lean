@@ -641,10 +641,13 @@ local macro "mh_ret_err" : tactic => `(tactic| (
   ileft
   isplitr
   · ipureintro; exact ⟨He, Hty⟩
-  iunfold mimeErr
-  ileft
+  isplitl []
+  · iunfold mimeErr
+    ileft
+    iexists _
+    iexact HEe
   iexists _
-  iexact HEe))
+  iexact Hb))
 
 theorem mh_hdrOwn_snoc (mp : Loc) (l : List HdrLine) (ms : GMap GoString GoSlice) (K v : GoString)
     (s' : GoSlice) (hdom : ∀ k, (ms !! k).isSome = decide (k ∈ l.map Prod.fst))
@@ -696,10 +699,13 @@ set_option hygiene false in
 local macro "mh_proto_post" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact mh_proto_ptrTyped msg
-  iunfold mimeErr
-  iright
-  ipureintro
-  exact ⟨msg, rfl, mh_proto_prefix (by decide) Hout⟩))
+  isplitl []
+  · iunfold mimeErr
+    iright
+    ipureintro
+    exact ⟨msg, rfl, mh_proto_prefix (by decide) Hout⟩
+  iexists _
+  iexact Hb))
 
 set_option hygiene false in
 /-- The new header line's insertion into the map (after the value's skip loop), then `fin`. -/
