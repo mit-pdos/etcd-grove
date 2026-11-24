@@ -202,7 +202,40 @@ full builds and gates through the VM land queue.
 - **S-sim statements** (`Sim/Abs`, `Rel`, `Stmts`, `Smoke`): written, typecheck; `Prefix.accepts` proved; a
   51-report honest smoke stream built from `Abs`'s reports is accepted (`decide +kernel`); deviations in
   the rawnode note §3.5.
-- **S-harness statements**: in progress (`HarnessDefs.lean`, one spec file per harness function).
+- **S-harness statements** (first part, typecheck): `Proof/.../antithesis/Base.lean` (the package's
+  `IsPkgInit`, `True`: no package variable), `HarnessDefs.lean` (the pure readings `msgTypeStr`, `roleStr`,
+  `entOfE`, `msgOfSt`; `CfgOk`, `defaultCfg`; `Stream.Fits`, `antRunFits`; `recAuth`/`recDone`,
+  `isRecorder`; `runOver`; `bootStorRec`, `bootConfState`; `clusterRO`, `nodeOf`; `Pos.Countable` for the
+  stream's types), and the specs of `below`, `Name`, `names`, `entryOf`, `entriesOf`, `msgType`, `msgOf`,
+  `roleOf`, `DefaultConfig`, `Recorder.record`/`Events`, `Cluster.node`/`isolatedNow`/`isolate`/`Servers`/
+  `Events`, `RunCluster`, `Main`, the six `bootStorage` methods. Deviations from §1-§2:
+  * `RunCluster` takes `CfgOk cfg`, not only `Nodes = 3`: `time.NewTicker(c.cfg.Tick)` panics at a tick
+    `≤ 0` (each node's `run`), and at `MaxDelay = -1` `send`'s `below(uint64(MaxDelay) + 1)` is `below(0)`,
+    a division by zero, at the first message. `raft_antithesis_accepts` at any `cfg` with `Nodes = 3` is
+    false as stated; it needs `CfgOk` (`DefaultConfig` meets it).
+  * `Cluster.Events`' post (and `runOver`) has `Stream.ConfBounded cfg3 evs` beside `Accepts ∧ Bounded`:
+    `check.Run` takes it, and it does not follow from acceptance (a stream with a conf entry may be accepted).
+  * `runOver` is the recorder, `recDone` and `Nodes = 3` with the facts, not `isCluster` (which `Events`,
+    `Servers` and `Main` do not need); the recorder's receipts are `⧗ (Σ Event.weight)` in its lock,
+    `record` takes `⧗ ev.weight` from its caller (the caller's steps: `entriesOf`, `names` loop per entry),
+    and its atomic update receives `Stream.Fits` at the commit; `quietLogger` gets no spec (raft's
+    `isLogger` covers the four formatting methods only, which return `()` trivially; `Fatal*`/`Panic*` need
+    none: raft's proof shows them unreachable).
+- **S-harness, missing** (waiting on the open items and on the view's ghost state):
+  * `antInv`, `isCluster`, `nodeOwn` with its phases, `inputOk`, `sentMsg`, the net join (the three nodes
+    and `RunCluster` each `Add` to `netWg`: tracecheck's `NetJoin` shape, not importable from `RaftTla/`),
+    and the specs over them: `Cluster.deliver`, `send`, `reportCause`, `drain`, `run`. The view ghost state
+    (`γ.view`, a ghost variable of `AntSim.NodeView`) needs `Pos.Countable NodeView` (so `PState`, the
+    protocol `Msg`, `Role`, `RdState`, ... countable), not yet written.
+  * **`reportCause` after `Step` reads a message the harness no longer owns.** `run` does `n.cause =
+    inp.msg; n.rn.Step(inp.msg); c.drain(n, "recv")`, and `drain`'s first report calls `reportCause`, which
+    reads `n.cause` through its getters (`msgOf`). `RawNode.Step`'s precondition consumes the message
+    (`msgPtsCC ml (DFrac.own 1) …`, not returned), and raft does write it (a follower's forward sets
+    `m.To`, `stepFollower`; moot with forwarding off). So `run`'s proof cannot establish `reportCause`'s
+    premise. Fix in the Go (recommended): compute the report before `Step` (`n.cause` a `*check.Msg` of
+    `msgOf(inp.msg, n.id)`), or `Step` a `proto.Clone`; either needs a re-translation.
+  * `Cluster.run`/`deliver`'s input invariant is to be stated without forwarding (open item 1), and
+    `drain`'s `ready` report waits for the `ip` boundary (open item 2).
 - **Open items for the coordinator:**
   1. *A forwarded `MsgProp`* at a leader is outside `raft.Step.spec`'s premise (`From = 0 ∨ From = id`) and
      `NetMsgOk`; `ProposeEnd`'s forward arm has the wrong `src` for a twice-forwarded proposal. Options: (a)
@@ -242,7 +275,7 @@ leader (those handed to a follower are dropped), so fewer entries are committed 
 specs to a network `MsgProp` whose entries carry the proposal resources (the forwarded proposal's
 tickets, `fwdP`), re-prove raft's `MsgProp` step paths (`stepLeader`'s, `stepFollower`'s forward) for
 `From ≠ 0`, fix `ProposeEnd`'s forward arm (`src := if m.src = 0 then id else m.src`), and drop the
-config line. A GitHub issue tracks it.
+config line. Tracked by mit-pdos/etcd-grove#44.
 
 **Re-run (2026-11-23), forwarding off:** S2's `TestRuns`, 5 variants x 100 runs, and the three stress
 variants of §6 x 100 runs: see the commit that made the change for the counts.
