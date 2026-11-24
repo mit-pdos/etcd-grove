@@ -111,11 +111,6 @@ TESTS = [
      ["-tags", "netgo", "-run", "^TestIsExportedASCII$", "./internal/rpcdifftest"],
      "IsExported's model against Go's results on every ASCII first byte (non-ASCII is the model's "
      "choice point, gomodel.Choose, whose Go body returns false)"),
-    ("membership", "Code", "project:etcd", ["go.etcd.io/etcd/server/v3/etcdserver/api/membership"],
-     ["go.etcd.io/etcd/server/v3/etcdserver/api/membership"],
-     "none left out (the generated JSONModel* methods are additions: the package's own tests run "
-     "with them in; examples/models/jsonetcd/jsonmodel_forks.py tests the methods against "
-     "encoding/json)"),
 ]
 TAGS = "goose,netgo"
 

@@ -30,9 +30,7 @@ theorem hash.crc32.archUpdateCastagnoli.wp_proof
     (hmk : hash.crc32.simpleMakeTable.spec (GF := GF) (hG := hG))
     (hupd : hash.crc32.simpleUpdate.spec (GF := GF) (hG := hG)) :
     hash.crc32.archUpdateCastagnoli.spec (GF := GF) (hG := hG) := by
-  -- the model names its callees by their Go names (`go!"hash/crc32.simpleMakeTable"`)
-  unfold hash.crc32.simpleMakeTable.spec hash.crc32.simpleMakeTable at hmk
-  unfold hash.crc32.simpleUpdate.spec hash.crc32.simpleUpdate at hupd
+  -- the Go model: `return simpleUpdate(crc, simpleMakeTable(Castagnoli), p)`
   intro c s bs dq
   wp_start as Hs
   try wp_auto

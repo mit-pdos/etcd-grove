@@ -43,6 +43,31 @@ in PATH) is the supported path there, and the one the difftests use (`internal/r
 Where a model does not model the library it panics with a value that has a
 `NotModelled` method.
 
+## Go model overlays (`[model]` tables)
+
+Since 2026-11-24 (perennial#692) a model may replace single declarations of a real package instead
+of the whole package: Go files in the package's own package clause at `models/<import path>/` (each
+top-level directory a Go module that nothing builds), named by the `[model]` table of the package's
+goose config (`dir`, `replaces`, `added_methods`; Perennial's goose/README.md, "Go model overlays").
+Goose splices them into the real package before translating it; each replaced declaration's
+`MODEL:` doc comment says why it has at least the real one's behaviours, and its choice and stuck
+points are Perennial's `internal/gomodel` (`Choose`, `Stuck`; its Go files are Perennial's at the
+pin, put in place by `etc/gomodels.py`). Today: `hash/crc32`'s three Castagnoli arch hooks
+(`hash/crc32/model.go`) and `go/token.IsExported` (`go/token/model.go`); the OS models of `os`,
+`syscall`, `x/sys/unix` and `net` are the same mechanism. `etc/tcb-report.py` lists every table
+("The Go models"), and `etc/model-tests.sh` runs each modelled package's own tests and its models'
+difftests under the overlay.
+
+**Limitation: packages under GOMODCACHE.** A `[model]` table applies to every translation that loads
+the package, and Go refuses an overlay of a file beneath GOMODCACHE ("Files beneath GOMODCACHE must
+not be replaced"). So a package that most projects load from the module cache (etcd's server module,
+`github.com/upamanyus/etcd/server/v3@…` through `examples/go.mod`) cannot have one yet: J3's
+generated `JSONModel*` methods of etcd's membership package stay a per-project `-overlay` of project
+etcd, which translates from a git checkout (`etc/goose.py`'s `jsonmodel_roots`), and so would #37's
+`PbModel*`. The follow-up (one mechanism change, shared with Perennial's `primitive.Mutex`):
+materialize a module-cache package that has a `[model]` outside GOMODCACHE, as `goroot.py farm` does
+for GOROOT's.
+
 ## The grpc model (`grpc/`)
 
 `grpc/` is grpc-go v1.84.0 (the version `examples/go.mod` pins), the packages a program of this
