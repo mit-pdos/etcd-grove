@@ -31,8 +31,8 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions]
+variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [RA : RpcHttpAddr GF] [sem : go.Semantics]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [H : RpcHttpHyp GF]
 variable (wp_Register : net.rpc.Register.spec (GF := GF) (hG := hG))
 
 include wp_Register in

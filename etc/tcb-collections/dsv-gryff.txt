@@ -2,11 +2,11 @@
 # extension and examples/lib/remote, in the part Dsverify/: the Gryff fork (gryff, genericsmr,
 # masterlib, serverlib, the wire protocols) and its proof, the kit's links
 # (examples/gryffnet/Link.lean) and its closed theorem `gryff_remote_robust`
-# (examples/gryffnet/TopLevelRobustness.lean: eleven machines, Robust [] under DistDeploy for fewer
-# than 2^31 - 1 steps, over the statement's premises: the InitHyps of net/rpc, net/http, math/rand,
-# BinaryVarintHyps, StringsIndexHyp, SortSliceHyp, MathPowHyp, RandSeedHyp, RpcHttpAddr, RpcHttpHyp,
-# RpcBootHyp, net/rpc's DialHTTP.spec). Its `#print axioms`: `propext`, `Classical.choice`,
-# `Quot.sound` only.
+# (examples/gryffnet/TopLevelRobustness.lean: eleven machines, Robust [] under DistDeploy, 2^31
+# threads, 2^63 steps, over the statement's premises: the InitHyps of net/rpc, net/http, math/rand,
+# StringsIndexHyp, SortSliceHyp, MathPowHyp, RandSeedHyp, RpcHttpHyp, RpcBootHyp; proved as
+# `gryff_remote_robust_of_strings` until the pin has Perennial's strings.Cut/TrimLeft). Its
+# `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` only.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-gryff.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-gryff.txt --check    against the lines below

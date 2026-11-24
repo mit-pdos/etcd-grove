@@ -1,16 +1,13 @@
 # dsv-gryff: dsverify-lab's gryff kit on the net extension (phase 6)
 
-> **LANDING DEPENDENCY (2026-11-23, session 9, pre-adaptation): land this branch only after
-> `models-rpc-http` has landed on `lean`.** This branch merges `origin/lean` `76c00a8d81` and
-> `origin/models-rpc-http` `fda1e58c0a` (not landed: its trusted-model changes await review); landing
-> gryff first would land them. What gryff depends on from it: `RpcWorld`'s `hs`/`hsAns` handshake
-> fields and `rpcAddrP`/`connectReq`/`connectAns` (the server's protocol behind the HTTP CONNECT),
-> and the proved client over HTTP, `net.rpc.DialHTTP.wp` (`Net/Proof/net/rpc/Results.lean`:
-> `DialHTTPPath` over net/http's `ReadResponse`), which replaced the statement's `DialHTTP.spec`
-> premise; `etc/goose.py` differs from lean's by exactly models-rpc-http's `mime/multipart` hunk.
-> After it lands: merge `origin/lean`, rerun `etc/gen-init.py` (PERENNIAL_DIR at the pin) and
-> `etc/dsv/_gryff_boot.py`, rebuild on fk-lean1, `#print axioms`. See "Session 9" below.
-> (`dsv-hyp-imports` has landed; gryff no longer needs it: `HYP_IMPORTS` is the default.)
+> **STATE (2026-11-24, session 12, on lean 37bfea9484): merged `origin/lean` `37bfea9484` (Perennial
+> `b3f2fc485`; models-rpc-http, net-rpc-rerr, rpc-defaultserver, dsv-steps63, kitgen, the proph-patch
+> rule all landed). Statement: `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)`; `RpcHttpAddr` and
+> `BinaryVarintHyps` discharged (Net's `rpcLisP`; Perennial's `encoding/binary` proofs); `DialHTTP`
+> is Net's `net.rpc.DialHTTP.wp` over Perennial's `strings.Cut`/`TrimLeft`, names only at b3f2fc485:
+> the proved theorem is `gryff_remote_robust_of_strings` until the real-`fmt` pin bump
+> (`52d62e83c`, which contains ed1955557). Non-vacuity: `examples/gryffnet/NonVacuityLinked.lean`
+> (axiom-free instances only). See "Session 11/12" below.**
 
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
@@ -831,6 +828,36 @@ blocked by prophcheck's grammar" above and the recorded deviation (option 3 ther
   = `Perennial.EtcdGrove.`; dups.py: the same 4 false positives as lean; `git diff origin/lean --
   etc/goose.py etc/gen-init.py`: only models-rpc-http's net/http lines in goose.py (mime/multipart,
   net/http/internal/ascii), as before.
+
+## Session 11/12 (2026-11-24): lean, steps63, frames, varints, strings, non-vacuity
+
+- **Session 11** (the ninth agent, unpushed f6a43c41d0..a5f91c8e46): merged `origin/lean` 5c7f7d2e59
+  and `origin/dsv-steps63`; adapted to lean's net/rpc (`Client.Call`'s frame bound, Net's
+  `defaultServer`/`Register`), the `*OpError` fields' points-to for `errAny`; `RpcHttpAddr`
+  discharged (`netRpcHttpAddr`, Net's `rpcLisP`); a `DialHTTP_spec` field in `RpcHttpHyp`.
+- **Session 12** (2026-11-24, from a5f91c8e46): merged `origin/lean` 37bfea9484 (no conflict; the
+  generated files check clean: `gen-init --check`, `kitgen --check`, `_gryff_boot.py --check`,
+  `goose.py --check --project dsv-gryff`).
+  * **`BinaryVarintHyps` discharged**: `Wire/Proof/VarintHolds.lean`'s `binaryVarintHyps_holds`
+    (a `*bufio.Reader` is an `io.ByteReader` over dsv-bufio's `ownReader`, `bufReader_byteReaderOk`;
+    Perennial's `ReadUvarint`/`ReadVarint`/`PutUvarint`/`PutVarint` proofs, perennial#689;
+    `errOverflow_of_init`), `Link.lean`'s `binaryVarintHyps`; the statement loses the premise.
+    `#print axioms binaryVarintHyps_holds`: Lean's three.
+  * **Strings**: `RpcHttpHyp.DialHTTP_spec` removed (it was a new premise); as craq: `Link.lean`'s
+    `StringsPending` (Perennial's `strings.Cut.spec`/`TrimLeft.spec`) feeds `wp_Server`'s
+    `net.rpc.DialHTTP.wp sp.cut sp.trimLeft`; the proved theorem is
+    `gryff_remote_robust_of_strings (hs : stringsPending.spec) : gryff_remote_robust.spec`. After
+    the pin bump: `gryff_remote_robust := gryff_remote_robust_of_strings (fun => ⟨…⟩)` and
+    `StringsPending` goes.
+  * **Non-vacuity, no new axioms**: the session-11 instances over local axioms (NonVacuityLinked's
+    and the twelve `Dsverify/Proof/**/InitInstancesLinked.lean` walks of net/rpc's and net/http's
+    closure, which rest on local axioms for the names-only initializers) are removed (in history,
+    a5f91c8e46). Kept: `math.rand.InitHyp` (the walk, no axiom) and `lib.MathPowHyp` (the main
+    tree's existing `math.Pow` axiom). **Remaining** (no axiom-free instance at b3f2fc485):
+    `net.rpc.InitHyp`, `net.http.InitHyp`, `StringsIndexHyp`, `SortSliceHyp`, `RandSeedHyp`
+    (`strings.Index`, `sort.Slice`, `math/rand.Seed` names only), `RpcHttpHyp` (net/http's server,
+    `HandleHTTP`), `RpcBootHyp`.
+  * `notes/perennial-changes.md`: the merge's duplicated models-rpc-http sections dropped (lean's).
 
 ## Which lab run
 

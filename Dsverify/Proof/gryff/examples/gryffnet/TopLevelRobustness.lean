@@ -116,9 +116,20 @@ theorem init_of_gen [hG : HeapGS .hasLC GF] (init : val) (pkg : GoString)
 
 end boot
 
-/-- **The gryff kit, closed** (see the statement's file). -/
-theorem gryff_remote_robust : gryff_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hmr hbv hsi hss hmp hrs H hboot σ g
+/-- Perennial's `strings.Cut` and `strings.TrimLeft` specs, at every heap: Net's `DialHTTP.wp`
+takes them as pending callee hypotheses at the pin b3f2fc485 (`Link.lean`'s `StringsPending`);
+Perennial ed1955557 proves them. Not a premise of the statement. -/
+def stringsPending.spec : Prop :=
+  ∀ [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors}
+    [hG : HeapGS HasLC.hasLC GF] [go.Semantics],
+    EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG) ∧
+      EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG)
+
+/-- **The gryff kit, closed up to the pin bump** (see the statement's file): the statement, given
+Perennial's `strings.Cut`/`TrimLeft` specs (`stringsPending.spec`), which the pin after b3f2fc485
+proves; then `gryff_remote_robust` is this theorem applied to Perennial's proofs. -/
+theorem gryff_remote_robust_of_strings (hs : stringsPending.spec) : gryff_remote_robust.spec := by
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hmr hsi hss hmp hrs H hboot σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g (2 ^ 31)
     (2 ^ 63) gryffLas_pairwise gryffLas_disj ?_
   intro G π hrb
@@ -173,13 +184,14 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
     letI : net.rpc.InitHyp remoteGF := hri G' hG.goose_localGS
     letI : net.http.InitHyp remoteGF := hhi G' hG.goose_localGS
     letI : math.rand.InitHyp remoteGF := hmr G' hG.goose_localGS
-    letI : wire.BinaryVarintHyps remoteGF := hbv G' hG.goose_localGS
+    letI : wire.BinaryVarintHyps remoteGF := EtcdGrove.dsvgryff.binaryVarintHyps
     letI : netN.StringsIndexHyp remoteGF := hsi G' hG.goose_localGS
     letI : replica2.SortSliceHyp remoteGF := hss G' hG.goose_localGS
     letI : lib.MathPowHyp remoteGF := hmp G' hG.goose_localGS
     letI : lib.RandSeedHyp remoteGF := hrs G' hG.goose_localGS
     letI : RpcHttpHyp remoteGF := H G' hG.goose_localGS π
     letI : RpcBootHyp remoteGF := hboot G' hG.goose_localGS π
+    letI : EtcdGrove.dsvgryff.StringsPending remoteGF := ⟨(hs (GF := remoteGF)).1, (hs (GF := remoteGF)).2⟩
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega
     have hb' : threadBound remoteGF ≤ 2 ^ 31 ∧ receiptBound remoteGF ≤ 2 ^ 64 := by
       constructor <;> omega
@@ -402,7 +414,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
   iapply BigSepL.bigSepL_nil.2
   iempintro
 
-#print axioms gryff_remote_robust
+#print axioms gryff_remote_robust_of_strings
 
 end gryff.examples.gryffnet
 end Perennial

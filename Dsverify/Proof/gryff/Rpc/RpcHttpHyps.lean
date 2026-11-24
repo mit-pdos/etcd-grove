@@ -97,7 +97,7 @@ attribute [instance] RpcHttpAddr.rpcLisP_persistent
 `Net/Proof/net/rpc/Proto.lean`'s `rpcLisP` and its proved laws `rpcLisP_addr`, `rpcLisP_lis`,
 `rpcLisP_ok`, `rpcLisP_set`). A `def`, not an `instance`: the statement gives it to the theorems
 taking `[RpcHttpAddr GF]` (so `RpcHttpAddr` is no premise of the statement any more). -/
-def netRpcHttpAddr [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+def netRpcHttpAddr [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     (GF : BundledGFunctors) [Gg : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS] :
     RpcHttpAddr GF where
   rpcLisP := net.rpc.rpcLisP (Gg := Gg)
@@ -145,14 +145,6 @@ class RpcHttpHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
         defaultServer γs ∗ (□ ∀ a, ⌜A a⌝ → srvServes γs C W a) ∗ srvEnv ∗ codecSet C }}
       (App (Val (@! net.rpc.HandleHTTP)) (Val #()))
     {{ RET #(); muxHas W A defaultRPCPath }}
-  /-- `rpc.DialHTTP` (Net's `net.rpc.DialHTTP.spec`, as it is). Net proves it,
-  `net.rpc.DialHTTP.wp` (`Net/Proof/net/rpc/Results.lean`, `DialHTTPPath` over net/http's
-  `ReadResponse`), but over two pending hypotheses, Perennial's `strings.Cut` and `strings.TrimLeft`
-  (`EtcdGrove.strings.Cut.spec`/`TrimLeft.spec`: names only at the pin b3f2fc485; their bodies are
-  translated from Perennial ed1955557 on). Until the pin has them it is this field, which
-  `DialHTTP.wp` shows true of Go (given Go's `strings.Cut`/`TrimLeft`); then it is dropped and
-  `net.rpc.DialHTTP.wp` discharges it. -/
-  DialHTTP_spec : net.rpc.DialHTTP.spec (GF := GF) (hG := hG)
   /-- A server `NewServer` made has no service yet (`γ`'s service map is empty: Net's
   `NewServer.spec` gives `isServer` only, so a first `Register` on it could not be shown to
   succeed: a finding for models-rpc-server). -/

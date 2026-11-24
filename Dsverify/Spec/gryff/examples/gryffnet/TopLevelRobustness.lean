@@ -31,8 +31,7 @@ operations run under its `Sys` lock.
 **Premises** (library pieces not proved in the model; each a hypothesis about real Go, never an
 instance; notes/dsv-gryff.md, "Hypotheses"): the initializers of the names-only packages
 `net/rpc`, `net/http`, `math/rand` (`InitHyp`: they run without panicking; their conditions name
-every package the initializers reach, dsv-inithyp-fix); `encoding/binary`'s varint functions
-(`BinaryVarintHyps`); `strings.Index` on a one-byte separator (`StringsIndexHyp`); `sort.Slice` on
+every package the initializers reach, dsv-inithyp-fix); `strings.Index` on a one-byte separator (`StringsIndexHyp`); `sort.Slice` on
 `[]int32` with `<` (`SortSliceHyp`); `math.Pow` (`MathPowHyp`, the main tree's `math.Pow.spec`);
 `math/rand.Seed` (`RandSeedHyp`, the shared `math.rand.Seed.spec`); net/rpc's server over HTTP up
 to the hijack (`RpcHttpHyp`, the specs, per heap; Upamanyu's intended shapes; over the listeners'
@@ -41,9 +40,9 @@ machine where they have not run yet (`RpcBootHyp`: the codec state, `DefaultServ
 variables their client and server read, the unclaimed `DefaultServeMux`; the table before and
 after agree beyond the package, and the `InitHyp` conditions (`GetIsPkgInitProp`) it takes constrain
 every package of the initializer's closure, as swiftpaxos's `RpcFirstInit`). Net's net/rpc client
-(`Client.Call`) and the package-level `Register` on `DefaultServer` are proved (Net), not premises;
-`RpcHttpHyp`'s `DialHTTP_spec` is Net's `DialHTTP.spec`, which Net proves over Perennial's
-`strings.Cut`/`TrimLeft`, names only at this pin. Each holds of every machine heap (`heapAt`) and
+(`Client.Call`, `DialHTTP`), the package-level `Register` on `DefaultServer` (Net) and
+`encoding/binary`'s varint functions (Perennial, over dsv-bufio's reader) are proved, not premises (`DialHTTP` over Perennial's `strings.Cut`/`TrimLeft`, names only at the pin b3f2fc485:
+the proof's `gryff_remote_robust_of_strings` takes their specs until the pin bump). Each holds of every machine heap (`heapAt`) and
 protocol registry.
 -/
 module
@@ -55,7 +54,6 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.count
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.net.http.Init
 public import Dsverify.Proof.math.rand.Init
-public import Dsverify.Proof.gryff.Wire.Proof.VarintWp
 public import Dsverify.Proof.gryff.N.StrIndex
 public import Dsverify.Proof.gryff.Lib.SortHyps
 public import Dsverify.Proof.gryff.Lib.MathHyps
@@ -101,7 +99,6 @@ def gryff_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; net.rpc.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; net.http.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; math.rand.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; wire.BinaryVarintHyps remoteGF) →
     (∀ G L, letI := heapAt G L; netN.StringsIndexHyp remoteGF) →
     (∀ G L, letI := heapAt G L; replica2.SortSliceHyp remoteGF) →
     (∀ G L, letI := heapAt G L; lib.MathPowHyp remoteGF) →

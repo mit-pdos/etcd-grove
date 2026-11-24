@@ -44,10 +44,11 @@ variable [sem : go.Semantics]
 /-- **The varint functions of `encoding/binary`** (hypotheses; notes/dsv-gryff.md, "Hypotheses").
 Perennial `7b2259a12` translated `ReadUvarint`, `ReadVarint`, `PutUvarint`, `PutVarint` names only;
 since perennial#689 (in the pin b3f2fc485) Perennial translates and proves them over an
-`io.ByteReader` contract, and deriving these fields from those specs over dsv-bufio's reader would
-discharge the class. Each field is the lab's statement of the same name (`Wire/Proof/VarintWp.lean`, which
-proved them over its own translation of the Go bodies, `Harness/Code/binary_extra.lean`), over
-dsv-bufio's reader here. Never an instance: a premise of the kit's statement. -/
+`io.ByteReader` contract, and `VarintHolds.lean`'s `binaryVarintHyps_holds` derives these fields
+from those proofs over dsv-bufio's reader (no longer a premise of the statement). Each field is the
+lab's statement of the same name (`Wire/Proof/VarintWp.lean`, which proved them over its own
+translation of the Go bodies, `Harness/Code/binary_extra.lean`), over dsv-bufio's reader here.
+Never an `instance`: the kit's `Link.lean` passes it. -/
 class BinaryVarintHyps : Prop where
   readUvarint : ∀ (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8),
     {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗
