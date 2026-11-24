@@ -670,7 +670,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # the reader tokens, 2026-11-06)
                  "--apply": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
                  # Perennial's `time` and `sync/atomic` results minibolt's proofs take as terms (`=` callees)
-                 "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link"],
+                 "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link",
+                               # (fs single view) the shared open, `Open`'s `=` callee
+                               "Proof.os.OpenFileS"],
                  # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
                  "--kv": ["Proof.go_etcd_io.raft.v3.Linked"],
                  # raft's importable `confchange`/`tracker` specs (`=RaftLink.*` callees),
@@ -734,6 +736,11 @@ EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                                  "Proof.go_etcd_io.etcd.client.v3.LinkMembers"]
 # (the import tiers, 2026-11-18) the linking modules whose laws (`=*_law_holds`) the modes' proofs take
 EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
+# (#26, 2026-11-24) `bytes.Buffer`'s `Write` and `Bytes` proved over Perennial's (`=_root_.Perennial.bytes.*`)
+EXTRA_IMPORTS["--k8setcd3"] += ["Perennial.Proof.bytes.Link"]
+EXTRA_IMPORTS["--server"] += ["Proof.bytes.BufferLinked"]
+# (#26, 2026-11-24) `WithCancel(TODO())` over Perennial's context proofs (`=_root_.Perennial.context.*`)
+EXTRA_IMPORTS["--client"] += ["Perennial.Proof.context.Link", "Perennial.Proof.sync.atomic.Link"]
 # (net-swap, etcd-dist D2, 2026-11-22) `net.Listen`'s proof takes the part `Net/`'s `Listen` spec, its
 # proof over the net extension
 for _m in ["--common", "--cluster3"]:

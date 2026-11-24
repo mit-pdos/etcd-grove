@@ -23,8 +23,24 @@ The request's URI (2026-11-23): the model's `modelParseRequestURI` (`url.ParseRe
 `isTokenTable`: `tokenTable`, a premise).
 
 The request (2026-11-23): `readRequestLimit` on net/rpc's `CONNECT` request, and
-`Server.maxHeaderValueCount`.
+`Server.maxHeaderValueCount`; and (2026-11-24, phase 7 S5) what `conn.readRequest` calls on it:
+`http1ServerSupportsRequest`, `Request.ProtoAtLeast`, `Request.isH2Upgrade`, `Request.wantsClose` and
+`Request.wantsHttp10KeepAlive` (over `Header.get` and `hasToken`, both on a header with no
+`Connection` entry: `hasToken`'s loop calls `isTokenBoundary` and `ascii.EqualFold`, names only),
+`conn.hijacked`, and the read limit's `connReader.setReadLimit`/`setInfiniteReadLimit`/`hitReadLimit`.
 
+net/url's escaping (2026-11-24, phase 7 S5; what the ServeMux runs on a request's path): `shouldEscape`,
+`ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`, `escape` (for the result's length within `int`: `3 * len(s) < 2^63`);
+`unescape` (for `len(s) + 1` within `int`), `PathUnescape` and `URL.EscapedPath` (both premises,
+on `Path` and `RawPath`). `unescape` calls `strings.Builder.Grow`, which Perennial translates but does
+not specify at the pin (`notes/perennial-changes.md`): linked over its spec on a zero Builder
+(`Spec/strings/Builder__Grow.lean`) as a hypothesis `h_Grow` (`section url`); `WriteByte` and
+`String` are Perennial's linked proofs.
+
+The chunked writer (2026-11-24, phase 7 S5): `net/http/internal`'s `NewChunkedWriter`,
+`chunkedWriter.Write` (over Perennial's `fmt.Fprintf`) and `chunkedWriter.Close`; both methods call
+`io.WriteString`, names only at the pin (`notes/perennial-changes.md`): linked over its spec
+(`Spec/io/WriteString.lean`) as a hypothesis `h_WriteString` (`section chunked`).
 **Pending** (`section links_pending`, 2026-11-23): the model calls `strings.Cut` and
 `strings.TrimLeft` as Go's net/http does; Perennial translates them as names only at the pin (its
 branch `strings-cut-lastindex`, `8ff6a1c79a`, translates their bodies, not proved yet:
@@ -82,8 +98,30 @@ public import Net.Proof.net.http.modelPathBytes
 public import Net.Proof.net.http.modelPathByte
 public import Net.Proof.net.http.parseRequestLine
 public import Net.Proof.net.http.validMethod
+public import Net.Proof.net.http.internal.NewChunkedWriter
+public import Proof.net.url.shouldEscape
+public import Proof.net.url.ishex
+public import Proof.net.url.unhex
+public import Proof.net.url.validEncoded
+public import Proof.net.url.escape
+public import Proof.net.url.unescape
+public import Proof.net.url.PathUnescape
+public import Proof.net.url.URL__EscapedPath
+public import Net.Proof.net.http.internal.chunkedWriter__Write
+public import Net.Proof.net.http.internal.chunkedWriter__Close
 public import Net.Proof.net.http.isToken
 public import Net.Proof.vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName
+public import Net.Proof.net.http.Header__get
+public import Net.Proof.net.http.hasToken
+public import Net.Proof.net.http.Request__isH2Upgrade
+public import Net.Proof.net.http.Request__wantsClose
+public import Net.Proof.net.http.Request__wantsHttp10KeepAlive
+public import Net.Proof.net.http.conn__hijacked
+public import Net.Proof.net.http.connReader__setReadLimit
+public import Net.Proof.net.http.connReader__setInfiniteReadLimit
+public import Net.Proof.net.http.connReader__hitReadLimit
+public import Net.Proof.net.http.Request__ProtoAtLeast
+public import Net.Proof.net.http.http1ServerSupportsRequest
 
 @[expose] public section
 
@@ -143,6 +181,26 @@ theorem validMethod.wp : validMethod.spec (GF := GF) (hG := hG) :=
 
 theorem Server.maxHeaderValueCount.wp : Server.maxHeaderValueCount.spec (GF := GF) (hG := hG) :=
   Server.maxHeaderValueCount.wp_proof
+
+theorem Request.ProtoAtLeast.wp : Request.ProtoAtLeast.spec (GF := GF) (hG := hG) :=
+  Request.ProtoAtLeast.wp_proof
+theorem http1ServerSupportsRequest.wp : http1ServerSupportsRequest.spec (GF := GF) (hG := hG) :=
+  http1ServerSupportsRequest.wp_proof
+theorem Request.isH2Upgrade.wp : Request.isH2Upgrade.spec (GF := GF) (hG := hG) :=
+  Request.isH2Upgrade.wp_proof
+theorem Header.get.wp : Header.get.spec (GF := GF) (hG := hG) := Header.get.wp_proof
+theorem hasToken.wp : hasToken.spec (GF := GF) (hG := hG) := hasToken.wp_proof
+theorem Request.wantsHttp10KeepAlive.wp : Request.wantsHttp10KeepAlive.spec (GF := GF) (hG := hG) :=
+  Request.wantsHttp10KeepAlive.wp_proof Header.get.wp hasToken.wp
+theorem Request.wantsClose.wp : Request.wantsClose.spec (GF := GF) (hG := hG) :=
+  Request.wantsClose.wp_proof Header.get.wp hasToken.wp
+theorem connReader.setReadLimit.wp : connReader.setReadLimit.spec (GF := GF) (hG := hG) :=
+  connReader.setReadLimit.wp_proof
+theorem connReader.setInfiniteReadLimit.wp :
+    connReader.setInfiniteReadLimit.spec (GF := GF) (hG := hG) :=
+  connReader.setInfiniteReadLimit.wp_proof
+theorem connReader.hitReadLimit.wp : connReader.hitReadLimit.spec (GF := GF) (hG := hG) :=
+  connReader.hitReadLimit.wp_proof
 
 end link
 
@@ -205,14 +263,83 @@ theorem conn.hijackLocked.wp : conn.hijackLocked.spec (GF := GF) (hG := hG) :=
   conn.hijackLocked.wp_proof connReader.abortPendingRead.wp net.Conn.SetDeadline.wp_proof
     EtcdGrove.bufio.Writer.Reset.wp_proof
 
+theorem conn.hijacked.wp : conn.hijacked.spec (GF := GF) (hG := hG) := conn.hijacked.wp_proof
+
 theorem response.Hijack.wp : response.Hijack.spec (GF := GF) (hG := hG) :=
   response.Hijack.wp_proof conn.hijackLocked.wp EtcdGrove.bufio.Writer.Reset.wp_proof
 
 end server
 
 end net.http
+
+namespace net.http.internal
+
+section chunked
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.internal.Assumptions]
+
+theorem NewChunkedWriter.wp : NewChunkedWriter.spec (GF := GF) (hG := hG) :=
+  NewChunkedWriter.wp_proof
+
+-- Pending: Perennial's `io.WriteString` (see the file header).
+variable (h_WriteString : EtcdGrove.io.WriteString.spec (GF := GF) (hG := hG))
+
+include h_WriteString in
+theorem chunkedWriter.Write.wp : chunkedWriter.Write.spec (GF := GF) (hG := hG) :=
+  chunkedWriter.Write.wp_proof fmt.wp_Fprintf h_WriteString
+
+include h_WriteString in
+theorem chunkedWriter.Close.wp : chunkedWriter.Close.spec (GF := GF) (hG := hG) :=
+  chunkedWriter.Close.wp_proof h_WriteString
+
+end chunked
+
+end net.http.internal
+
+namespace net.url
+
+/-! ### net/url's escaping, for the ServeMux (phase 7 S5, 2026-11-24) -/
+
+section url
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.url.Assumptions]
+
+theorem shouldEscape.wp : shouldEscape.spec (GF := GF) (hG := hG) := shouldEscape.wp_proof
+theorem ishex.wp : ishex.spec (GF := GF) (hG := hG) := ishex.wp_proof
+theorem unhex.wp : unhex.spec (GF := GF) (hG := hG) := unhex.wp_proof
+theorem validEncoded.wp : validEncoded.spec (GF := GF) (hG := hG) :=
+  validEncoded.wp_proof shouldEscape.wp
+theorem escape.wp : escape.spec (GF := GF) (hG := hG) := escape.wp_proof shouldEscape.wp
+
+-- Pending: a spec of Perennial's `strings.Builder.Grow` (see the file header).
+variable [package_sem_strings : _root_.Perennial.strings.Assumptions]
+variable (h_Grow : EtcdGrove.strings.Builder.Grow.spec (GF := GF) (hG := hG))
+
+include h_Grow in
+theorem unescape.wp : unescape.spec (GF := GF) (hG := hG) :=
+  unescape.wp_proof ishex.wp unhex.wp shouldEscape.wp h_Grow strings.Builder.wp_WriteByte
+    strings.Builder.wp_String
+
+include h_Grow in
+theorem PathUnescape.wp : PathUnescape.spec (GF := GF) (hG := hG) :=
+  PathUnescape.wp_proof (unescape.wp h_Grow)
+
+include h_Grow in
+theorem URL.EscapedPath.wp : URL.EscapedPath.spec (GF := GF) (hG := hG) :=
+  URL.EscapedPath.wp_proof (unescape.wp h_Grow) escape.wp validEncoded.wp
+
+end url
+
+end net.url
 end Perennial
 
+#print axioms Perennial.net.http.internal.NewChunkedWriter.wp
+#print axioms Perennial.net.http.internal.chunkedWriter.Write.wp
+#print axioms Perennial.net.http.internal.chunkedWriter.Close.wp
 #print axioms Perennial.net.http.ReadResponse.wp
 #print axioms Perennial.net.http.modelReadMIMEHeader.wp
 #print axioms Perennial.net.http.connReader.backgroundRead.wp
@@ -225,3 +352,22 @@ end Perennial
 #print axioms Perennial.net.http.validMethod.wp
 #print axioms Perennial.net.http.readRequestLimit.wp
 #print axioms Perennial.net.http.Server.maxHeaderValueCount.wp
+#print axioms Perennial.net.http.Request.ProtoAtLeast.wp
+#print axioms Perennial.net.http.http1ServerSupportsRequest.wp
+#print axioms Perennial.net.http.Request.isH2Upgrade.wp
+#print axioms Perennial.net.http.Header.get.wp
+#print axioms Perennial.net.http.hasToken.wp
+#print axioms Perennial.net.http.Request.wantsHttp10KeepAlive.wp
+#print axioms Perennial.net.http.Request.wantsClose.wp
+#print axioms Perennial.net.http.connReader.setReadLimit.wp
+#print axioms Perennial.net.http.connReader.setInfiniteReadLimit.wp
+#print axioms Perennial.net.http.connReader.hitReadLimit.wp
+#print axioms Perennial.net.http.conn.hijacked.wp
+#print axioms Perennial.net.url.shouldEscape.wp
+#print axioms Perennial.net.url.ishex.wp
+#print axioms Perennial.net.url.unhex.wp
+#print axioms Perennial.net.url.validEncoded.wp
+#print axioms Perennial.net.url.escape.wp
+#print axioms Perennial.net.url.unescape.wp
+#print axioms Perennial.net.url.PathUnescape.wp
+#print axioms Perennial.net.url.URL.EscapedPath.wp

@@ -71,20 +71,26 @@ theorem tcLogger_isLogger :
     iapply HΦ
     itrivial
 
-/-- The peers' contexts: none. -/
+/-- The peers' contexts: none (`Peer{ID: i}`: each `nil`). -/
 theorem tcPeers_ctx [StorageModel GF] : ⊢ peersCtx (GF := GF) (tcPeers 3) tcCtxs := by
   unfold peersCtx tcPeers
   simp only [List.range, List.range.loop, List.map_cons, List.map_nil]
   iintro
   iapply (BigSepL2.bigSepL2_cons).2
   isplitl []
-  · iapply ownSlice_nil
+  · isplitl []
+    · iapply ownSlice_nil
+    · ipureintro; intro _; rfl
   iapply (BigSepL2.bigSepL2_cons).2
   isplitl []
-  · iapply ownSlice_nil
+  · isplitl []
+    · iapply ownSlice_nil
+    · ipureintro; intro _; rfl
   iapply (BigSepL2.bigSepL2_cons).2
   isplitl []
-  · iapply ownSlice_nil
+  · isplitl []
+    · iapply ownSlice_nil
+    · ipureintro; intro _; rfl
   iapply (BigSepL2.bigSepL2_nil).2
   iempintro
 

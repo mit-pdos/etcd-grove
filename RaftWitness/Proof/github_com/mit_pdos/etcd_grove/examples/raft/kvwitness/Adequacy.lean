@@ -171,6 +171,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.internal.poll, isPkgInit pkg_id.internal.poll),
    (pkg_id.internal.syscall.unix, isPkgInit pkg_id.internal.syscall.unix),
    (pkg_id.internal.oserror, isPkgInit pkg_id.internal.oserror),
+   (pkg_id.internal.testlog, isPkgInit pkg_id.internal.testlog),
    (pkg_id.log, isPkgInit pkg_id.log)]
 
 /-- `get_is_pkg_init` for the store's program: a package's entry in `pkgInitTable`. -/

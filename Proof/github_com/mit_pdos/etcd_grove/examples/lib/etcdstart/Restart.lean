@@ -68,7 +68,7 @@ def memberBuiltR (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γ
       (srvEr ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
       γrn b (W64 0) at₀ (W64 0) (restartKV ρ.rd.kv A) N ∗
     srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvMonitorRes s ∗
-    srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
+    srvReadyCloser s E ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     memberPeerServeRes γn τ served ∗
     srvLeaseRd s E .none ∗ srvStop.keep s cfg E γrn γk)
 

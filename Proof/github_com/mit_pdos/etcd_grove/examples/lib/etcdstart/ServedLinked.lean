@@ -41,17 +41,17 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ etcdKVAt addr E ρ γr cid mid := by
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -⟩
   obtain ⟨HCA, -, Hregs, -, -, -, -, -, Hnd⟩ := HC
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
   rw [HCA]
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis] with ⟨%γ, Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe; iframe #
     iintro !>
     imodintro
@@ -59,7 +59,7 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     ipureintro; exact Hrb
   imodintro
   isplitl [Hserv]
-  · iexists γ; iexact Hserv
+  · iexists _; iexact Hserv
   iunfold etcdKVAt
   iframe #
 

@@ -2,8 +2,9 @@
 The results of the net/rpc model (`models/net/rpc`, project models-net; phase 5.2 of
 `notes/dsverify-net-port-plan.md`, the Lean half): each proved spec with its callees' proofs
 plugged in (the net extension's `Conn.Read` for the reads, Perennial's `sync.Mutex`), restated, with
-`#print axioms` of each (none beyond Lean's; the translation's trusted `go/token.IsExported` is not
-reached by these).
+`#print axioms` of each (none beyond Lean's; the translation's trusted code, `go/token.IsExported`
+and the model's stuck point `stuck`, `Net/TrustedCode/net/rpc.lean`, is not an axiom: the proofs
+show `stuck` is never reached).
 
 * the wire's helpers: `putU64`, `getU64`, `putString`, `putFrame`, `getString`;
 * the reads: `readFull` (gob's `recvMessage` errors: `io.EOF` between frames,
@@ -11,7 +12,8 @@ reached by these).
   codec's `ReadResponseHeader` (a frame of `respHdr seq sm e`, or `errFrame`, or a read error) and
   `ReadResponseBody` (a frame, decoded into the body unless it is `nil`);
 * the client codec's `WriteRequest` (the sticky error, or `reqWire` written through the library's
-  `sendTok`) and `Close`;
+  `sendTok`; a frame longer than `maxFrame`, the model's stuck point, excluded by the caller's
+  bound) and `Close`;
 * the codec registry: `SetCodec`, `getCodec` (`Codec.lean`: `CodecSpec`, `codecIs`, `codecSet`).
 
 * the client (`ClientDefs.lean`, over the protocol `Proto.lean`): `newClientCodec`, `Call.done`,
@@ -21,7 +23,8 @@ reached by these).
 * the server (`ServerDefs.lean`): the server codec's `ReadRequestHeader`, `ReadRequestBody`,
   `WriteResponse` (`respWire`, an error response's body not encoded) and `Close` (the `closed`
   flag), `newServerCodec`; `NewServer`, the free lists, `register` (the codec's `Receiver`, `rcvOk`)
-  with `Register`, `RegisterName`, and `go/token.IsExported` on an ASCII upper-case first byte.
+  with `Register`, `RegisterName`, the package-level `Register` and `RegisterName` (on
+  `DefaultServer`, `defaultServer`), and `go/token.IsExported` on an ASCII upper-case first byte.
 
 * the request loop (`ServerGhost.lean`: a request read is a client's, taken once; an answer
   recorded at its response's write): `sendResponse`, `service.call`, `readRequestHeader`,
@@ -87,6 +90,8 @@ public import Net.Proof.net.rpc.Server__freeResponse
 public import Net.Proof.net.rpc.Server__register
 public import Net.Proof.net.rpc.Server__Register
 public import Net.Proof.net.rpc.Server__RegisterName
+public import Net.Proof.net.rpc.Register
+public import Net.Proof.net.rpc.RegisterName
 public import Net.Proof.go.token.IsExported
 public import Net.Proof.net.rpc.Server__sendResponse
 public import Net.Proof.net.rpc.service__call
@@ -249,6 +254,12 @@ theorem Server.Register.wp [errors.Assumptions] [go.token.Assumptions] :
 theorem Server.RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
     Server.RegisterName.spec (GF := GF) (hG := hG) := Server.RegisterName.wp_proof Server.register.wp
 
+theorem Register.wp [errors.Assumptions] [go.token.Assumptions] :
+    Register.spec (GF := GF) (hG := hG) := Register.wp_proof Server.Register.wp
+
+theorem RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
+    RegisterName.spec (GF := GF) (hG := hG) := RegisterName.wp_proof Server.RegisterName.wp
+
 theorem Server.sendResponse.wp : Server.sendResponse.spec (GF := GF) (hG := hG) :=
   Server.sendResponse.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Server.getResponse.wp
     Server.freeResponse.wp serverCodec.WriteResponse.wp
@@ -366,6 +377,8 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.register.wp
 #print axioms Perennial.net.rpc.Server.Register.wp
 #print axioms Perennial.net.rpc.Server.RegisterName.wp
+#print axioms Perennial.net.rpc.Register.wp
+#print axioms Perennial.net.rpc.RegisterName.wp
 #print axioms Perennial.net.rpc.Server.sendResponse.wp
 #print axioms Perennial.net.rpc.service.call.wp
 #print axioms Perennial.net.rpc.Server.readRequestHeader.wp
