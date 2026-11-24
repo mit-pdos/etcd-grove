@@ -1794,7 +1794,7 @@ theorem config.ServerConfig.wp_BootstrapTimeoutEffective :
 
 theorem config.ServerConfig.wp_MemberDir :
     config.ServerConfig.MemberDir.spec (GF := GF) (hG := hG) :=
-  config.ServerConfig.MemberDir.wp_proof
+  config.ServerConfig.MemberDir.wp_proof datadir.wp_ToMemberDir
 
 theorem config.ServerConfig.wp_PeerDialTimeout :
     config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) :=
