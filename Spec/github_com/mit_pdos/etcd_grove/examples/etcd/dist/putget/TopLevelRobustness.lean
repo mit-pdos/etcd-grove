@@ -104,8 +104,8 @@ def putget_safe.spec : Prop :=
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
     -- the member's named premises, at every ghost-state instance (the single-process theorems', at
-    -- `etcd_all`'s range: `n + 1 ≤ 2 ^ 48`, the member's receipts less one)
-    (Hprem : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC putgetGF,
+    -- `etcd_all`'s range: `n + 1 ≤ putgetSteps`, the member's receipts less one)
+    (Hprem : ∀ n : Nat, n + 1 ≤ putgetSteps → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
           boot)
     -- the machines' start states
