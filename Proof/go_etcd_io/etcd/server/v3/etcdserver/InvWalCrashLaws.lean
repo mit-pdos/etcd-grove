@@ -27,7 +27,7 @@ variable [GooseExts]
 /-- **The records' snapshot comes from the history `A`**: they start at index `0`, or their
 snapshot is (the metadata of) a snapshot record of `A` at their base. -/
 def SnapSrc (A : WalHist) (σ : StorContents) : Prop :=
-  σ.b = 0 ∨ ∃ m al, WalOpG.snap m al ∈ A ∧ σ.snap = some (SnapshotM.mk [] m) ∧ uint.nat m.Index' = σ.b
+  (σ.b = 0 ∧ σ.snap = none) ∨ ∃ m al, WalOpG.snap m al ∈ A ∧ σ.snap = some (SnapshotM.mk [] m) ∧ uint.nat m.Index' = σ.b
 
 theorem walFold_snapSrc (A : WalHist) :
     ∀ (H : WalHist) (τ σ : StorContents), (∀ o ∈ H, o ∈ A) → SnapSrc A τ →
@@ -56,7 +56,7 @@ theorem walFold_snapSrc (A : WalHist) :
 /-- **What a restart reads has a snapshot from the history read** (`SnapSrc`). -/
 theorem walRead_snapSrc {I : WalHist} {σ : StorContents} (h : walRead I = some σ) : SnapSrc I σ := by
   unfold walRead at h
-  refine walFold_snapSrc I _ walFresh σ (fun o ho => (List.mem_filter.1 ho).1) (Or.inl rfl) h
+  refine walFold_snapSrc I _ walFresh σ (fun o ho => (List.mem_filter.1 ho).1) (Or.inl ⟨rfl, rfl⟩) h
 
 end pure
 
@@ -68,33 +68,43 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **A record set whose snapshot comes from a certified history is certified.** -/
-theorem walHistCerts_snapCert (cl : Cluster) (Hs I : WalHist) (σ : StorContents)
+theorem walHistCerts_snapCert (cl : Cluster) (sd : w64 → IProp GF) (Hs I : WalHist) (σ : StorContents)
     (hI : ∀ o ∈ I, o ∈ Hs) (hs : SnapSrc I σ) :
-    walHistCerts (GF := GF) cl Hs ⊢ walSnapCert cl σ := by
+    walHistCerts (GF := GF) cl sd Hs ⊢ walSnapCert cl σ ∗ walSnapDur sd σ := by
   iintro #Hc
   iunfold walSnapCert
-  rcases hs with hb | ⟨m, al, hm, hsn, hidx⟩
-  · ileft; ipureintro; exact hb
+  iunfold walSnapDur
+  rcases hs with ⟨hb, hn⟩ | ⟨m, al, hm, hsn, hidx⟩
+  · isplitl
+    · ileft; ipureintro; exact hb
+    · ileft; ipureintro; exact hn
   · obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 (hI _ hm)
     iunfold walHistCerts at Hc
-    ihave #Hv := BigSepL.bigSepL_lookup (Φ := fun _ (o : WalOp) => match o with
-      | .snap m _ => snapshotValid (GF := GF) cl (SnapshotM.mk [] m)
-      | .save _ _ => iprop(True)) hi $$ Hc
-    iright
-    iexists m
-    iframe Hv
-    ipureintro
-    exact ⟨hsn, hidx⟩
+    ihave #Hv := BigSepL.bigSepL_lookup (Φ := fun _ (o : WalOp) => walOpCert (GF := GF) cl sd o) hi $$ Hc
+    iunfold walOpCert at Hv
+    icases Hv with ⟨#Hv, #Hd⟩
+    isplitl
+    · iright
+      iexists m
+      iframe Hv
+      ipureintro
+      exact ⟨hsn, hidx⟩
+    · iright
+      iexists m
+      iframe Hd
+      ipureintro
+      exact hsn
 
 /-- `rnPendK` at a pending view, unfolded. -/
-theorem rnPendK_some (γn : SrvRaft) (id : w64) (x : CrashNames) (v v0 : WalView) (γb : GName) :
-    rnPendK (GF := GF) γn id x (v, some (v0, γb)) =
+theorem rnPendK_some (γn : SrvRaft) (id : w64) (x : CrashNames) (v v0 : WalView) (γb : GName)
+    (pos : Nat) :
+    rnPendK (GF := GF) γn id x (v, some (v0, γb, pos)) =
       iprop(∃ (n : NodeH) (st st' : NodeDriverState) (ms : List QMsg) (q : Qp),
         savedPropOwn γb DFrac.discard (rnPendRec γn id x v0.S v.S n st st' ms q) ∗
         rnPendRec γn id x v0.S v.S n st st' ms q) := rfl
 
-theorem rnLogLbsK_some (cl : Cluster) (v v0 : WalView) (γb : GName) :
-    rnLogLbsK (GF := GF) cl (v, some (v0, γb)) =
+theorem rnLogLbsK_some (cl : Cluster) (v v0 : WalView) (γb : GName) (pos : Nat) :
+    rnLogLbsK (GF := GF) cl (v, some (v0, γb, pos)) =
       iprop(isCommittedLogLb cl v.l ∗ isCommittedLogLb cl v0.l) := rfl
 
 theorem rnLogLbsK_none (cl : Cluster) (v : WalView) :
@@ -128,7 +138,7 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
   rw [hrd] at hrd'
   cases hrd'
   -- the image's certificate
-  ihave #Hcert := walHistCerts_snapCert γn.cl Hs (Hs.take j) σ''
+  ihave ⟨#Hcert, #Hsdur⟩ := walHistCerts_snapCert γn.cl νk.sd Hs (Hs.take j) σ''
     (fun o ho => List.mem_of_mem_take ho) (walRead_snapSrc hrd) $$ Hhc
   -- close with the crash's side
   imod Hclose $$ [Hv Hcm Htn Hr Htk] with -
@@ -145,12 +155,9 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
     imod nodeCrash γn.cl srvClusterN id νk.x E hN $$ Hcl Hcr Hct with Hvac
     imodintro
     ileft
-    have hS : ImgOk v.S v.l σ'' := by
-      rcases hok with hok | ⟨v0, γb, hc, -⟩
-      · exact hok
-      · cases hc
+    have hS : ImgOk v.S v.l σ'' := hok
     iexists v.S, σ'', v.l
-    iframe HΦ Hvac Hcert
+    iframe HΦ Hvac Hcert Hsdur
     rw [rnLogLbsK_none]
     icases Hlb with ⟨Hl, -⟩
     iframe Hl
@@ -159,11 +166,14 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
     ipureintro
     exact ⟨hS.1, hS.2, Hview.2.2.2.2.1⟩
   | some p =>
-    obtain ⟨v0, γb⟩ := p
+    obtain ⟨v0, γb, pos⟩ := p
     rw [rnLogLbsK_some]
     icases Hlb with ⟨Hl, Hl0⟩
-    rcases hok with hok | ⟨v0', γb', hc, hok⟩
-    · -- the image holds the batch: a crash enters it
+    simp only [crashOk] at hok
+    by_cases hjp : j ≤ pos
+    rotate_left
+    · rw [if_neg hjp] at hok
+      -- the image holds the batch: a crash enters it
       rw [rnPendK_some]
       icases Hpend with ⟨%nd, %st, %st', %ms, %q, -, Hrec⟩
       iunfold rnPendRec at Hrec
@@ -176,23 +186,22 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
       imodintro
       ileft
       iexists v.S, σ'', v.l
-      iframe HΦ Hvac Hcert Hl
+      iframe HΦ Hvac Hcert Hsdur Hl
       isplitl [HrS]
       · rw [← Hst2]; iexact HrS
       ipureintro
       exact ⟨hok.1, hok.2, Hview.2.2.2.2.1⟩
     · -- the image holds the state before it: a crash drops it
-      simp only [Option.some.injEq, Prod.mk.injEq] at hc
-      obtain ⟨rfl, rfl⟩ := hc
+      rw [if_pos hjp] at hok
       imod nodeCrash γn.cl srvClusterN id νk.x E hN $$ Hcl Hcr Hct with Hvac
       imodintro
       ileft
-      iexists v0'.S, σ'', v0'.l
-      iframe HΦ Hvac Hcert Hl0
+      iexists v0.S, σ'', v0.l
+      iframe HΦ Hvac Hcert Hsdur Hl0
       isplitl [HrS]
       · iexact HrS
       ipureintro
-      exact ⟨hok.1, hok.2, (Hpo v0' γb' rfl).2⟩
+      exact ⟨hok.1, hok.2, (Hpo v0 γb pos rfl).2⟩
 
 end defs
 
