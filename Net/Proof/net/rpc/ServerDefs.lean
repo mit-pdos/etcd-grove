@@ -224,6 +224,14 @@ def isServer (s : Loc) (γ : GName) : IProp GF :=
 instance isServer_persistent (s : Loc) (γ : GName) : Persistent (isServer (GF := GF) s γ) := by
   unfold isServer; infer_instance
 
+/-- The package's `DefaultServer` holds, for good, a server with the registry `γ` (persistent):
+what the package-level `Register`, `RegisterName` (and `ServeConn`, `HandleHTTP`, ...) run on. -/
+def defaultServer (γ : GName) : IProp GF :=
+  iprop(∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗ isServer s γ)
+
+instance defaultServer_persistent (γ : GName) : Persistent (defaultServer (GF := GF) γ) := by
+  unfold defaultServer; infer_instance
+
 /-- The service `name` of the registry `γ` is a `*service` whose methods meet `S`, for good
 (persistent). -/
 def svcReg (γ : GName) (C : CodecSpec GF) (name : GoString) (S : MethodSpec GF) : IProp GF :=
