@@ -295,7 +295,7 @@ theorem bootstrapRaftFromCluster.wp_proof
   wp_apply hStr as %f1 -
   try (· iframe #)
   try wp_auto
-  wp_apply (hClID cl (bootGo.cid U cfg.InitialClusterToken')) as -
+  wp_apply (hClID cl (bootGo.cid U cfg.InitialClusterToken'))
   try (· iframe #)
   wp_apply (hIDStr (bootGo.cid U cfg.InitialClusterToken')) as %s2 -
   try (· iframe #)

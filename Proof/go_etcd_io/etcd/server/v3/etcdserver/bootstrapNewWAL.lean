@@ -70,12 +70,14 @@ theorem bootstrapNewWAL.wp_proof
     (t := go_etcd_io.etcd.api.v3.etcdserverpb.Metadata.ty) _) as %ml Hml
   try wp_auto
   -- `MustMarshalMessage(&Metadata{NodeID: new(nodeID), ClusterID: new(cid)})`
-  wp_apply (hMeta _ _ bc.nodeID' cid (DFrac.own 1) (DFrac.own 1)) as %md ⟨Hmd, -, -, -, -⟩
-  · first
-    | (ipureintro; rfl)
-    | (isplitr; (· ipureintro; rfl); iframe)
-    | (iframe; ipureintro; rfl)
-    | trace_state
+  wp_apply (hMeta _ _ bc.nodeID' cid (DFrac.own 1) (DFrac.own 1)) $$ [Hml «$v0» «$v1»]
+    as %md ⟨Hmd, -, -, -, -⟩
+  · isplitl [Hml]
+    · iexact Hml
+    isplitr
+    · ipureintro; rfl
+    simp only
+    iframe
   try wp_auto
   imod ownSlice_persist md _ _ $$ Hmd with #Hmd
   -- `wal.Create(cfg.Logger, cfg.WALDir(), metadata)`
