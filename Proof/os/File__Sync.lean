@@ -54,7 +54,7 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     ileft
     isplitr; · ipureintro; rfl
     iframe
@@ -69,7 +69,7 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     iright
     iframe
     ipureintro; intro h; cases h
@@ -124,7 +124,7 @@ private theorem os.File.Sync.wp_oldB : os.File.Sync.tripleOldB (GF := GF) (hG :=
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     ileft
     isplitr; · ipureintro; rfl
     iframe
@@ -139,7 +139,7 @@ private theorem os.File.Sync.wp_oldB : os.File.Sync.tripleOldB (GF := GF) (hG :=
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     iright
     iframe
     ipureintro; intro h; cases h
@@ -160,7 +160,7 @@ private theorem os.File.Sync.wp_NEB : os.File.Sync.tripleNEB (GF := GF) (hG := h
   wp_for_post
   iapply HΦ
   iframe
-  isplitl [] <;> iassumption
+  isplitl [] <;> (try isplitl []) <;> iassumption
 
 /-- **`specB`**: by cases on `FsNoErr`, the error-free triple or the one without the witness, whose
 error arm then has `¬ FsNoErr`. -/

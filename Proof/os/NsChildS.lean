@@ -79,7 +79,7 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
     unfold os.ownFile
     iexists inner_ptr
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
   · iclear Hfd
     have hne : e ≠ ENOENT := by
       rcases hres with ⟨h0, -⟩ | ⟨-, h1, -⟩
@@ -119,7 +119,7 @@ theorem os.Open.wp_dirChildS (d b : GoString) (R : Roots) (jp J : Ino) (Np : Nam
   try wp_auto
   wp_apply os.OpenFile.wp_dirChildS d b (W32 0) R jp J Np dq dqn hp qc hb hNp hJ
     $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 
@@ -181,7 +181,7 @@ theorem os.Open.wp_absentErrS (d b : GoString) (R : Roots) (j : Ino) (N : NameSe
   wp_apply os.OpenFile.wp_absentErrS d b (W64 0) (W32 0) R j N dq dqn h qc
     (by rw [e]; exact flRO_ok) (by rw [e]; decide) (by rw [e]; decide) hb hN hi
     $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 
@@ -281,7 +281,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     ileft
     iexists rs.reverse
     iframe
@@ -311,7 +311,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
       iapply HΦ
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · isplitl [] <;> (try isplitl []) <;> iassumption
       iright
       isplitr
       · iexists e; iframe Herr; ipureintro; exact ⟨he, hne⟩

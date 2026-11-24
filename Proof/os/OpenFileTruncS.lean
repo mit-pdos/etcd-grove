@@ -121,7 +121,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          isplitl [] <;> (try isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -207,7 +207,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
       isplitr [off]
       · iexists inner_ptr
         iframe
-        isplitl [] <;> iassumption
+        isplitl [] <;> (try isplitl []) <;> iassumption
       · iexists inner_ptr
         iframe
         iassumption

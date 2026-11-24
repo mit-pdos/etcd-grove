@@ -155,7 +155,7 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
     unfold os.ownFile
     iexists inner_ptr
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
   · iclear Hfd
     rw [decide_eq_false he0]
     try wp_auto
@@ -222,13 +222,13 @@ theorem os.File.Sync.wp_outS (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     try wp_auto
     iapply HΦ
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
   · simp only [decide_eq_false he, Bool.not_false]
     try wp_auto
     wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
     iapply HΦ
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
 
 /-- `f.Close()` of an outside fd: any error; the fd gone. -/
 theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
@@ -243,7 +243,7 @@ theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
   rw [decide_eq_false hnn]
   try wp_auto
   ihave %hfd0 := osOutFd_nonneg _ $$ Hosfd
-  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
+  rw [decide_eq_false (show fd ≠ W64 (-1) by rintro rfl; exact absurd hfd0 (by decide))]
   try wp_auto
   try wp_auto
   wp_stub os.fsFdKind.impl

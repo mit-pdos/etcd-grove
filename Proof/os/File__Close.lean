@@ -49,10 +49,11 @@ private theorem os.File.Close.wp_old : os.File.Close.tripleOld (GF := GF) (hG :=
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try wp_auto
   rw [decide_eq_false hnn]
   try wp_auto
   ihave %hfd0 := osFd_nonneg _ _ _ $$ Hosfd
-  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
+  rw [decide_eq_false (show fd ≠ W64 (-1) by rintro rfl; exact absurd hfd0 (by decide))]
   try wp_auto
   try wp_auto
   wp_stub os.fsFdKind.impl
@@ -69,7 +70,7 @@ private theorem os.File.Close.wp_old : os.File.Close.tripleOld (GF := GF) (hG :=
     iframe Hokn
     iexists inner
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
   · rw [decide_eq_false he]
     try wp_auto
     wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn as %pe #Hok
@@ -78,7 +79,7 @@ private theorem os.File.Close.wp_old : os.File.Close.tripleOld (GF := GF) (hG :=
     iframe Hokn
     iexists inner
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
 
 private theorem os.File.Close.wp_NE : os.File.Close.tripleNE (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name d
@@ -87,10 +88,11 @@ private theorem os.File.Close.wp_NE : os.File.Close.tripleNE (GF := GF) (hG := h
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try wp_auto
   rw [decide_eq_false hnn]
   try wp_auto
   ihave %hfd0 := osFd_nonneg _ _ _ $$ Hosfd
-  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
+  rw [decide_eq_false (show fd ≠ W64 (-1) by rintro rfl; exact absurd hfd0 (by decide))]
   try wp_auto
   try wp_auto
   wp_stub os.fsFdKind.impl
@@ -102,7 +104,7 @@ private theorem os.File.Close.wp_NE : os.File.Close.tripleNE (GF := GF) (hG := h
   iapply HΦ
   iexists inner
   iframe
-  isplitl [] <;> iassumption
+  isplitl [] <;> (try isplitl []) <;> iassumption
 
 /-- **`Close.spec`**: by cases on `FsNoErr`, the error-free triple (`nil`) or the one without the
 witness. -/

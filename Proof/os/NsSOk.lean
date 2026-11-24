@@ -67,7 +67,7 @@ theorem os.OpenFile.wp_dirSOk (p : GoString) (perm : w32) (R : Roots) (j : Ino) 
     unfold os.ownFile
     iexists inner_ptr
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
   · iclear Hfd
     rw [decide_eq_false he0]
     try wp_auto
@@ -98,7 +98,7 @@ theorem os.Open.wp_dirSOk (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc 
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
   try wp_auto
   wp_apply os.OpenFile.wp_dirSOk p (W32 0) R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 

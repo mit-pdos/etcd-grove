@@ -8,6 +8,7 @@ reached (`WReach`), with the bytes written so far (`fin_vals`); a truncate's a s
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Spec.os.CrashSt
 public import Proof.golang_org.x.sys.unix.Munmap
 public import Perennial.Golang.Theory.Plain
@@ -149,7 +150,7 @@ theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG :=
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     ileft
     isplitr; · ipureintro; rfl
     iframe
@@ -160,7 +161,7 @@ theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG :=
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     iright
     iframe
     ipureintro; intro h; cases h
@@ -219,7 +220,7 @@ theorem os.OpenFile.wp_proof_crashS :
       unfold os.ownFile
       iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      isplitl [] <;> (try isplitl []) <;> iassumption
     · obtain ⟨he0, rfl⟩ := he
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       try wp_auto
@@ -291,7 +292,7 @@ theorem os.OpenFile.wp_proof_crashS :
       unfold os.ownFile
       iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      isplitl [] <;> (try isplitl []) <;> iassumption
     · rw [decide_eq_false he0]
       iclear Hfd
       try wp_auto
@@ -459,7 +460,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨_, hRs _ (.inl rfl), .inl ⟨hsln, rfl, hfk, by show _ ≤ pwSize _ _ _; omega,
             fun i hi => hpre' i (by omega)⟩⟩
@@ -471,7 +472,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨_, hRs _ (.inl rfl), .inr ⟨rfl, by intro h; cases h⟩⟩
     · rw [decide_eq_false hfull]
@@ -494,7 +495,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨_, hRs _ (.inl rfl), .inr ⟨rfl, by intro h; cases h⟩⟩
 
@@ -572,7 +573,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         ileft
         isplitr; · ipureintro; rfl
         iexists n, m0; iframe; ipureintro; exact hm0
@@ -583,7 +584,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         iright
         isplitr; · ipureintro; intro h; cases h
         icases HS with (Hg | ⟨Hown, Hc⟩)
@@ -681,7 +682,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         ileft
         isplitr; · ipureintro; rfl
         iexists n0, m0; iframe; ipureintro; exact hm0
@@ -691,7 +692,7 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         iright
         isplitr; · ipureintro; intro h; cases h
         ileft; iexists n0, m0; iframe; ipureintro; exact hm0

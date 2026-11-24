@@ -41,7 +41,7 @@ theorem os.WriteFile.wp_proofEmptyS (wp_Open : os.OpenFile.specCreateTruncS (GF 
       (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) (by decide)
       hb hnone (Qp.half_add_half 1) $$ [Hp Hperm Hq Hau]
     as %f %err ⟨Hp, Hperm, %o, HQ, Hout, Htr, Hr⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   ihave Hout := os.crOut_join j b h o $$ [HQ Hout]
   · iframe
   ihave Htr := os.crTr_false _ o $$ Htr

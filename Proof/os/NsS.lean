@@ -94,7 +94,7 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
     isplitr [off]
     · iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      isplitl [] <;> (try isplitl []) <;> iassumption
     · iexists inner_ptr
       iframe
       iassumption
@@ -173,7 +173,7 @@ theorem os.OpenFile.wp_dirErrS (p : GoString) (perm : w32) (R : Roots) (j : Ino)
     unfold os.ownFile
     iexists inner_ptr
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
   · iclear Hfd
     rw [decide_eq_false he0]
     try wp_auto
@@ -237,7 +237,7 @@ theorem os.OpenFile.wp_dirS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (d
     unfold os.ownFile
     iexists inner_ptr
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
   · iclear Hfd
     rw [decide_eq_false he0]
     try wp_auto
@@ -268,7 +268,7 @@ theorem os.Open.wp_dirErrS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
   try wp_auto
   wp_apply os.OpenFile.wp_dirErrS p (W32 0) R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 
@@ -283,7 +283,7 @@ theorem os.Open.wp_dirS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : 
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
   try wp_auto
   wp_apply os.OpenFile.wp_dirS p (W32 0) R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 
@@ -301,7 +301,7 @@ theorem os.File.Close.wp_dirS (f : Loc) (fd : w64) (name : GoString) (j : Ino) (
   rw [decide_eq_false hnn]
   try wp_auto
   ihave %hfd0 := osDirFdS_nonneg _ _ _ $$ Hosfd
-  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
+  rw [decide_eq_false (show fd ≠ W64 (-1) by rintro rfl; exact absurd hfd0 (by decide))]
   try wp_auto
   try wp_auto
   wp_stub os.fsFdKind.impl
@@ -412,7 +412,7 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     ileft
     iexists rs.reverse
     iframe
@@ -442,7 +442,7 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
       iapply HΦ
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · isplitl [] <;> (try isplitl []) <;> iassumption
       iright
       isplitr
       · iexists e; iframe Herr; ipureintro; exact he

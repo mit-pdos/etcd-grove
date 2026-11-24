@@ -8,6 +8,7 @@ os.ErrNotExist)`). Lean-first.
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Proof.os.NsChildS
 public import GooseLang.Ext.Fs.TreeSharedOpenFileN
 
@@ -89,7 +90,7 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     isplitr [off]
     · iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      isplitl [] <;> (try isplitl []) <;> iassumption
     · iexists inner_ptr
       iframe
       iassumption
@@ -137,7 +138,7 @@ theorem os.Open.wp_fileSN (d b : GoString) (R : Roots) (j i : Ino) (N : NameSet)
   wp_apply os.OpenFile.wp_fileSN d b (W64 0) (W32 0) R j i N dq dqn h qc
     (by rw [e]; exact flRO_ok) (by rw [e]; decide) hb hN hi
     $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 

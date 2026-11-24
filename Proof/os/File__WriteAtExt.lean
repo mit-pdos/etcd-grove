@@ -9,6 +9,7 @@ restated as specLong's post).
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Proof.os.File__WriteAt
 public import Proof.os.WriteChunks
 public import Proof.os.WriteLongStep
@@ -509,7 +510,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj', .inl ⟨by omega, hsln, rfl⟩⟩
       · rw [decide_eq_false (show ¬ W64 ↑nn + W64 ↑k = sl.len by
@@ -546,7 +547,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj',
             .inr ⟨rfl, (by intro h; cases h), oc.toNat, e, by omega, hPe, he0'⟩⟩
@@ -560,7 +561,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj',
             .inr ⟨rfl, (by intro h; cases h), oc.toNat, e, by omega, hPe, he0'⟩⟩

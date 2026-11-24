@@ -5,6 +5,7 @@ the file as a write of the first `j` bytes left it (`pwPost_step`, `pwOut_step`)
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Proof.os.ErrorOk
 public import Spec.os.File__WriteAt
 public import GooseLang.Ext.Fs.NoErrSpecsOpen
@@ -462,7 +463,7 @@ theorem os.File.WriteAt.wp_proofQ (B : Nat) (Pe : w64 → Prop)
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hj', hys', hcj', .inl ⟨by omega, hsln, rfl⟩⟩
       · rw [decide_eq_false he0]
@@ -475,7 +476,7 @@ theorem os.File.WriteAt.wp_proofQ (B : Nat) (Pe : w64 → Prop)
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hj', hys', hcj', .inr ⟨rfl, (by intro h; cases h), e, hPe, he0⟩⟩
     · rw [decide_eq_false hfull]
@@ -516,7 +517,7 @@ theorem os.File.WriteAt.wp_proofQ (B : Nat) (Pe : w64 → Prop)
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hj', hys', hcj', .inr ⟨rfl, (by intro h; cases h), e, hPe, he0⟩⟩
 

@@ -160,7 +160,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     isplitr [off]
     · iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      isplitl [] <;> (try isplitl []) <;> iassumption
     · iexists inner_ptr
       iframe
       iassumption

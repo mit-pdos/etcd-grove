@@ -4,6 +4,7 @@ needs `fileStat.FieldAssumptions` (`TrustedCode/os.lean`).
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Proof.os.ErrorOk
 public import Proof.os.PathParent
 public import Spec.os.File__Stat
@@ -61,7 +62,9 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
+  wp_for_bind
   iloeb as IH generalizing Hosfd Hm Hfd HΦ
+  wp_for_step
   try wp_auto
   wp_stub os.fsFstat.impl
   wp_apply wp_osFstat fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %sz %e %hr Hosfd Hm
@@ -69,7 +72,9 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
   · rw [decide_eq_true he4]
     try wp_auto
     try rw [os.fileStat_ty_eq]
-    iapply IH $$ Hosfd Hm Hfd HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hosfd Hm Hfd HΦ [$] [$] [$] [$]
   · rw [decide_eq_false he4]
     try wp_auto
     rcases hr with ⟨rfl, rfl⟩ | ⟨he0, rfl⟩
@@ -87,11 +92,12 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       ipersist mode
       imodintro
       ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+      wp_for_post
       iapply HΦ
       iframe Hokn
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · isplitl [] <;> (try isplitl []) <;> iassumption
       isplitr
       rotate_left
       · ileft; ipureintro; rfl
@@ -113,11 +119,12 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0' $$ Hep
       ihave %Hne := os.errnoPathErr_ne perr e $$ Hep
       ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
+      wp_for_post
       iapply HΦ
       iframe Hokn
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · isplitl [] <;> (try isplitl []) <;> iassumption
       isplitr
       rotate_left
       · iright; iexists e; iframe Hep; ipureintro; exact he0'
@@ -148,7 +155,7 @@ private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG)
   iapply HΦ
   iframe
   isplitl []
-  · isplitl [] <;> iassumption
+  · isplitl [] <;> (try isplitl []) <;> iassumption
   iexists fs_ptr
   unfold os.ownFileStat
   isplitr

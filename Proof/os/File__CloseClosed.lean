@@ -33,6 +33,7 @@ theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG :
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try wp_auto
   rw [decide_eq_false hnn]
   try wp_auto
   unfold os.model.pathError
@@ -47,7 +48,7 @@ theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG :
   isplitl [Hfd]
   · iexists inner
     iframe
-    isplitl [] <;> iassumption
+    isplitl [] <;> (try isplitl []) <;> iassumption
   · iapply EtcdGrove.fmtErrorOkOrNil_of
     iapply (os.pathError_fmtErrorOk pe_ptr _ _ e) $$ Op Path Err Heok
 

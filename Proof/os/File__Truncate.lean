@@ -8,6 +8,7 @@ module
 
 public import Proof.os.ErrorOk
 public import Spec.os.File__Truncate
+public import Proof.os.ForLoeb
 
 @[expose] public section
 
@@ -71,7 +72,9 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
   try wp_auto
   ihave HS : ftState d.ino m sz.toNat xs $$ [Hm Hb Hc]
   · unfold ftState; ileft; iexists m, xs; iframe; ipureintro; exact ⟨.inl rfl, rfl, hxs⟩
+  wp_for_bind
   iloeb as IH generalizing HS Hosfd Hfd HΦ
+  wp_for_step
   unfold ftState
   icases HS with (⟨%m0, %xs0, %hm0, Hm, Hb, Hc⟩ | Hd)
   · obtain ⟨hm0, hv, hl⟩ := hm0
@@ -114,7 +117,9 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
       try wp_auto
       icases Hr with (⟨%he, -⟩ | ⟨-, HS⟩)
       · exact absurd (he4 ▸ he) (by decide)
-      iapply IH $$ [HS] Hosfd Hfd HΦ
+      wp_for_post
+      inext
+      iapply IH $$ [HS] Hosfd Hfd HΦ [$] [$] [$] [$]
       icases HS with (H | ⟨%xs1, %hxs1, Hm, Hb, Hc⟩)
       · iright; iexact H
       · ileft; iexists _, xs1; iframe; ipureintro; exact ⟨.inr rfl, hxs1⟩
@@ -126,11 +131,12 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
         simp only [Bool.not_true]
         try wp_auto
         ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         ileft
         iframe
         ipureintro; rfl
@@ -139,11 +145,12 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
         try wp_auto
         wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         iright
         isplitr
         · ipureintro; intro h; cases h
@@ -191,7 +198,9 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       try wp_auto
-      iapply IH $$ [Hd] Hosfd Hfd HΦ
+      wp_for_post
+      inext
+      iapply IH $$ [Hd] Hosfd Hfd HΦ [$] [$] [$] [$]
       iright; iexact Hd
     · rw [decide_eq_false he4]
       try wp_auto
@@ -200,11 +209,12 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
         simp only [Bool.not_true]
         try wp_auto
         ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         ileft
         iframe
         ipureintro; rfl
@@ -212,11 +222,12 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
         try wp_auto
         wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
+        wp_for_post
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         iright
         ipureintro; intro h; cases h
 

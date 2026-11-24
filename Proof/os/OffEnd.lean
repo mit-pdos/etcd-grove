@@ -86,7 +86,7 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
       iapply HΦ
       iframe Hosfd Hm
       isplitl [Hfd]
-      · iexists inner; iframe; isplitl [] <;> iassumption
+      · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
       · iright
         isplitr
         · ipureintro; intro h; cases h
@@ -97,7 +97,7 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
       iapply HΦ
       iframe Hosfd Hm
       isplitl [Hfd]
-      · iexists inner; iframe; isplitl [] <;> iassumption
+      · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
       · ileft
         isplitr
         · ipureintro
@@ -113,7 +113,7 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     iapply HΦ
     iframe Hosfd Hm
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
     · iright
       isplitr
       · ipureintro; intro h; cases h

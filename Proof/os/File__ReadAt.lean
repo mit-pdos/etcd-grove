@@ -7,6 +7,7 @@ so far (exact at every held byte) and the rest of `b` (anything).
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Proof.os.ErrorOk
 public import Spec.os.File__ReadAt
 public import Proof.os.ReadAtOwn
@@ -89,7 +90,7 @@ local macro "readat_tail" : tactic => `(tactic| (
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         ipureintro
         exact ⟨by simp [hpl, hcl]; omega, .inr (by intro h; cases h)⟩
     · have hrl : (((xs.drop n.toNat).map Prod.fst).take k).length = k := by simp; omega
@@ -183,7 +184,7 @@ local macro "readat_tail" : tactic => `(tactic| (
           iframe Hokn
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · isplitl [] <;> (try isplitl []) <;> iassumption
           ipureintro
           refine ⟨?_, .inr (by intro h; cases h)⟩
           rw [List.length_append, hpl, hc2l, hcl]; omega
@@ -286,7 +287,7 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     ipureintro
     have hnl : n.toNat = vs.length := by omega
     have hc' : cur = [] := List.length_eq_zero_iff.1 hc0
@@ -529,7 +530,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · isplitl [] <;> (try isplitl []) <;> iassumption
     obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
     isplitr
     · ipureintro; exact ⟨hl, by omega, hx⟩
@@ -566,7 +567,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           iapply HΦ
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · isplitl [] <;> (try isplitl []) <;> iassumption
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
           isplitr
           · ipureintro; exact ⟨hl, by omega, hx⟩
@@ -584,7 +585,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           iapply HΦ
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · isplitl [] <;> (try isplitl []) <;> iassumption
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
           isplitr
           · ipureintro; exact ⟨hl, by omega, hx⟩
@@ -669,7 +670,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           iapply HΦ
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · isplitl [] <;> (try isplitl []) <;> iassumption
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin _ hc2l
           isplitr
           · ipureintro; exact ⟨hl, by omega, hx⟩

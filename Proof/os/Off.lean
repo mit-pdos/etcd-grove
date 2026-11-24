@@ -67,7 +67,7 @@ theorem os.File.Seek.wp_start (f : Loc) (fd : w64) (name : GoString) (dqf : DFra
   try wp_auto
   iapply HΦ
   isplitl [Hfd]
-  · iexists inner; iframe; isplitl [] <;> iassumption
+  · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   · iexists inner; iframe; iassumption
 
 /-- `f.Seek(0, io.SeekCurrent)` on an open fd, the offset `0 ≤ o`, at most ext4's maximum: `o`,
@@ -109,7 +109,7 @@ theorem os.File.Seek.wp_cur (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
   try wp_auto
   iapply HΦ
   isplitl [Hfd]
-  · iexists inner; iframe; isplitl [] <;> iassumption
+  · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   · iexists inner; iframe; iassumption
 
 /-- `f.Seek(0, io.SeekEnd)` on an open fd of a file of size at most ext4's maximum, with a fraction
@@ -164,7 +164,7 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
     iapply HΦ
     iframe Hosfd Hm
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
     · ileft
       isplitr
       · ipureintro; exact ⟨rfl, rfl⟩
@@ -176,7 +176,7 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
     iapply HΦ
     iframe Hosfd Hm
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
     · iright
       isplitr
       · ipureintro; intro h; cases h
@@ -227,7 +227,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
   try wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
   try wp_auto
@@ -348,7 +348,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
     iexists vs
     iframe Hsl
     isplitr
@@ -387,7 +387,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
   iapply HΦ
   iframe Hosfd Hm Hbs
   isplitl [Hfd]
-  · iexists inner; iframe; isplitl [] <;> iassumption
+  · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   iexists _
   iframe Hsl
   isplitr

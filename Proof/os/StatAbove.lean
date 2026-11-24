@@ -30,7 +30,7 @@ theorem os.Stat.wp_proofAboveRoot : os.Stat.specAboveRoot (GF := GF) (hG := hG) 
   wp_start as ⟨#Hos, #Hsi⟩
   wp_apply os.model.wp_stat_aboveS _ p R (os.aboveRoot_rootsAbove hp) $$ [Hos Hsi]
     as %fi %err -
-  · isplitl [] <;> iassumption
+  · isplitl [] <;> (try isplitl []) <;> iassumption
   iapply HΦ
   itrivial
 

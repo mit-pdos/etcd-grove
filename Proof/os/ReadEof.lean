@@ -98,7 +98,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
     iexists 0
     simp only [List.take_zero, List.drop_zero, List.nil_append]
     iframe Hsl
@@ -149,7 +149,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
     iexists 0
     simp only [List.take_zero, List.drop_zero, List.nil_append]
     iframe Hsl
@@ -181,7 +181,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
   iapply HΦ
   iframe Hosfd Hm Hbs
   isplitl [Hfd]
-  · iexists inner; iframe; isplitl [] <;> iassumption
+  · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   iexists k
   iframe Hsl
   isplitr
@@ -238,7 +238,7 @@ theorem os.File.Read.wp_eof (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
     iexists 0
     simp only [List.take_zero, List.drop_zero, List.nil_append, List.length_nil]
     iframe Hsl

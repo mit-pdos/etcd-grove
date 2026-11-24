@@ -306,7 +306,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
           iframe Hokn
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · isplitl [] <;> (try isplitl []) <;> iassumption
           · ipureintro
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
               .inl ⟨by omega, hsln, rfl⟩⟩
@@ -320,7 +320,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
           iframe Hokn
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · isplitl [] <;> (try isplitl []) <;> iassumption
           · ipureintro
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
               .inr ⟨rfl, (by intro h; cases h), (hneW he0).imp_right (fun h => by rw [hoffv] at h; omega)⟩⟩
@@ -351,7 +351,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
           iframe Hokn
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · isplitl [] <;> (try isplitl []) <;> iassumption
           · ipureintro
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
               .inr ⟨rfl, (by intro h; cases h), (hneW he0).imp_right (fun h => by rw [hoffv] at h; omega)⟩⟩

@@ -65,7 +65,7 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
   try wp_auto
   wp_apply wp_ArbitraryInt as %e _
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   by_cases he : e = W64 0
   · subst he
     rw [decide_eq_true (rfl : W64 0 = W64 0)]
@@ -137,7 +137,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
   try wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
   try wp_auto

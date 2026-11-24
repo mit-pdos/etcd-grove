@@ -119,7 +119,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          isplitl [] <;> (try isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -178,7 +178,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          isplitl [] <;> (try isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -254,7 +254,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
       isplitr [off]
       · iexists inner_ptr
         iframe
-        isplitl [] <;> iassumption
+        isplitl [] <;> (try isplitl []) <;> iassumption
       · iexists inner_ptr
         iframe
         iassumption
@@ -395,7 +395,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          isplitl [] <;> (try isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -444,7 +444,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          isplitl [] <;> (try isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -498,7 +498,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
       isplitr [off]
       · iexists inner_ptr
         iframe
-        isplitl [] <;> iassumption
+        isplitl [] <;> (try isplitl []) <;> iassumption
       · iexists inner_ptr
         iframe
         iassumption

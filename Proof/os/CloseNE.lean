@@ -37,10 +37,11 @@ theorem os.File.Close.wp_dirSNE {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : âˆ
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try wp_auto
   rw [decide_eq_false hnn]
   try wp_auto
   ihave %hfd0 := osDirFdS_nonneg _ _ _ $$ Hosfd
-  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
+  rw [decide_eq_false (show fd â‰  W64 (-1) by rintro rfl; exact absurd hfd0 (by decide))]
   try wp_auto
   try wp_auto
   wp_stub os.fsFdKind.impl

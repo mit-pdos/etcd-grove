@@ -32,7 +32,7 @@ theorem os.File.Name.wp_proof : os.File.Name.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iexists inner
   iframe
-  isplitl [] <;> iassumption
+  isplitl [] <;> (try isplitl []) <;> iassumption
 
 end proof
 

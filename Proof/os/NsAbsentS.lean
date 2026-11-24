@@ -7,6 +7,7 @@ directory reaches it through `fileutil.ReadDir` (`os.Open(dir)`; W3/W5's gap 2,
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Proof.os.NsS
 
 @[expose] public section
@@ -82,7 +83,7 @@ theorem os.Open.wp_absentS (d b : GoString) (R : Roots) (j : Ino) (N : NameSet) 
   have e : W64 0 ||| W64 0x80000 = flRO := by decide
   wp_apply os.OpenFile.wp_absentS d b (W64 0) (W32 0) R j N dq dqn h qc (by rw [e]; exact flRO_ok)
     (by rw [e]; decide) (by rw [e]; decide) hb hN hi $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; isplitl [] <;> (try isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 

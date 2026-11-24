@@ -7,6 +7,7 @@ Lean-first; untrusted.
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Proof.os.RemoveAllParts
 public import Proof.os.RemoveAllNE
 

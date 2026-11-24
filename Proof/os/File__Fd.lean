@@ -29,10 +29,15 @@ theorem os.File.Fd.wp_proof : os.File.Fd.spec (GF := GF) (hG := hG) := by
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
+  wp_method_call
+  try wp_auto
+  ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try rw [decide_eq_false hnn]
+  try wp_auto
   iapply HΦ
   iexists inner
   iframe
-  isplitl [] <;> iassumption
+  isplitl [] <;> (try isplitl []) <;> iassumption
 
 end proof
 

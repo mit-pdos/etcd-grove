@@ -8,6 +8,7 @@ may pass through (`WIn`, `wIn_fin`), whose crashes the caller's `WriteOk` covers
 -/
 module
 
+public import Proof.os.ForLoeb
 public import Spec.os.Crash
 
 @[expose] public section
@@ -96,7 +97,7 @@ theorem os.OpenFile.wp_proof_crash :
       unfold os.ownFile
       iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      isplitl [] <;> (try isplitl []) <;> iassumption
     · obtain ⟨he0, rfl⟩ := he
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       try wp_auto
@@ -168,7 +169,7 @@ theorem os.OpenFile.wp_proof_crash :
       unfold os.ownFile
       iexists inner_ptr
       iframe
-      isplitl [] <;> iassumption
+      isplitl [] <;> (try isplitl []) <;> iassumption
     · rw [decide_eq_false he0]
       iclear Hfd
       try wp_auto
@@ -316,7 +317,7 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           refine ⟨hIn', .inl ⟨hsln, rfl, by omega, fun i hi => hpre' i (by omega)⟩⟩
       · rw [decide_eq_false he0]
@@ -327,7 +328,7 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hIn', .inr ⟨rfl, by intro h; cases h⟩⟩
     · rw [decide_eq_false hfull]
@@ -349,7 +350,7 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         iapply HΦ
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · isplitl [] <;> (try isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hIn', .inr ⟨rfl, by intro h; cases h⟩⟩
 
