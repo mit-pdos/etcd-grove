@@ -562,3 +562,59 @@ the form (L1/L2, and how the server gets `T0 < rt`) before writing it.
 
 Checkpoint 2026-11-24: leader-completeness law stopped at the design (above); no Lean changed; last
 green build still `fec7d8cf82`.
+
+**2026-11-24, L1/L2 approved; stopped again before Lean, on `T0 < rt` (the approval's stop condition).**
+
+*`T0 < rt` cannot come from L1's campaign bound.* `snapshotLeader γ id rt` (`isLeader`) and
+`sentMsg … sm` are persistent, so they hold for a term `id` led in an *earlier lifetime*, and the
+server's `rnReplayJob` quantifies over every sent `MsgSnap` at `rt`, old ones included. With `rt = T0`
+L2 is false: `id` leads `rt`, commits `e` through the followers before saving it (the run above),
+crashes; it restarts with `S0` (`S0.term = rt`, no `e`); L1 is taken there (`T0 = rt`; `e`'s
+certificate is at `t = rt` with leader `id`, and `t ≤ T0` holds); `S = S0`, `snapshotLeader γ id rt`
+from before the crash, `DurAgrees S l` false. So L2 needs `T0 < S.term` from outside: either the server
+narrows `rnReplayJob` to snapshots sent in the current lifetime and gets `rt > T0` from that, or raft
+gives a lifetime-scoped leadership fact (a third law). Decision needed; nothing is written.
+
+*What the rest needs (read off the code; for whoever continues).*
+
+(A) The campaign link. A pure `E.camps` link is false (a candidate that loses `T` becomes a follower at
+`T` and the winner's `MsgApp` can cut its campaign log), and a leader can become a follower at its own
+term (CheckQuorum step-down, `becomeFollower(r.Term, None)`; and every restart). Proposed:
+`campLink γ id camps T F := ∀ F0 k, ⌜camps !! T = some (F0, k)⌝ -∗ ⌜F0 <+: F⌝ ∨ ∃ L, isLeader γ L T ∗ ⌜L ≠ id⌝`.
+- `campOwn` (`GhostState.lean:585`): the follower case becomes `campLink γ id camps s.term F` (today
+  `True`); the leader case adds `⌜∃ k, camps !! s.term = some (F0, k)⌝` (true at the win,
+  `Refinement.lean:937-979`, where `F0` is the candidate's own map entry).
+- Maintenance: same-term log changes of a follower come from messages with `m.src ≠ id` and
+  `isLeader m.src m.term` (`step_app_accept`, `snap_restore`, `snap_fastfwd`, `heartbeat` already
+  take `m.src ≠ id`), giving the right disjunct; a term change leaves no camp at the new term
+  (`Hcamps_ok`); a leader stepping down keeps `F0 <+: F`. Sites: `Hcown` in `Refinement.lean` (~10),
+  `StepGhost.lean` (~8), plus every step that frames `Hcown` across a follower's log change.
+- `durPers` gets `campLink γ id E.camps S.term (fp ++ S.ents)`: `cut_durPers` (`Enter.lean:372`, from
+  `campOwn` at the cut's virtual maps), `durPers_rebase` (same full log), the restart (`Enter.lean`
+  ~1566/1882: the follower's `campOwn` from it), `durPers_init` (`Facts.lean:799`, empty map).
+- At L2: `isLeader γ id T` gives `isCampK γ id T F0 k`; the fragment against `raftState`'s half of the
+  camps authority (`durShares`) gives `E.camps !! T = some (F0, k)`; the right disjunct contradicts
+  `isLeader_unique`. So `F0 <+: fp ++ S.ents`.
+
+(B) The `t > T` exclusion. A voter `v` of both the commit quorum (ack `(t, n)`, minted before the
+witness) and `id`'s winning quorum at `T < t` (vote via `votesTbl_just`). Needed changes:
+- `voteEv` carries `⌜EvSorted (L0 ++ [Aev.vote T d F])⌝` (as `ackEv` does), from `EvsOk` at *enter*.
+  Then `ackEv`'s `La` and the vote's prefix are comparable (`mono_list_lb_valid`) and sorting puts
+  the vote event in `La`.
+- `EvsOk` gets a vote clause (`Aev.vote T d F ∈ evs → (voted !! T).isSome`), and `ackEv` carries
+  `□ ∀ T' d F, ⌜Aev.vote T' d F ∈ La⌝ → ∃ c, isVote γ v T' c`, minted at *enter* from `durFrags`.
+- `cmtBefore` (L1) then records, for the certificate's quorum, `∃ c, isVote γ v T' c ∗ ⌜c = id → T' ≤ T0⌝`
+  for every vote event of each acknowledgement's `La`, proved at the witness (`votesTbl_just` →
+  `isCamp γ id T'` → `raftState`'s camps authority → `T' ≤ T0`). At L2 the vote at `T` for `id` agrees
+  with it (fragments of `v`'s vote map), so `T ≤ T0 < T`.
+
+(C) L1 also needs `isCommittedLogLb γ l` back to a raft certificate: `isCommitted γ L` with
+`strip L = l`, then `cq γ t n G` covering `|L|` (or the bootstrap log), from `raftCommitInv`.
+(D) L2: `t < T` by `lc_core` + `full_match` on `fp ++ S.ents` (reaching `F0`'s last entry,
+`prefix_camp_last`); `t = T` by `isLeader_unique` and `cmtBefore`'s `c = id → t ≤ T0`; `t > T` by (B).
+
+*Size.* (A) and (B) both change step-level invariants (`campOwn`, `voteEv`, `ackEv`, `EvsOk`), which
+reach `Refinement.lean` (5800 lines) and `StepGhost.lean`/`Enter.lean`: about 1-2k lines and several
+VM builds of the raft tree, then (C)-(D) and the API, interface and copies.
+
+Checkpoint 2026-11-24: no Lean changed; waiting on the `T0 < rt` decision; last green build `fec7d8cf82`.
