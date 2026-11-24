@@ -87,12 +87,33 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
   icases Himage with ⟨%hsp, %sp, %es, Hhs, #HhsO, Hsnap, #HsnapO, Hprev, HprevTerm, Hents, #HentsO,
     %Hwf⟩
   try wp_auto
-  -- the snapshot requests' channel
+  -- the channels
+  wp_apply chan.wp_make1 (V := Unit) as %sc %γsc ⟨#Hsc, %_, Hsoc⟩
+  imod alloc_broadcast_chan (E := ⊤) (iprop(True) : IProp GF) γsc sc $$ Hsc Hsoc with Hpend
+  icases ownBroadcastChan_open _ _ _ _ $$ Hpend with ⟨%γbi, #Hbi, Hpend⟩
+  ihave #Hunk := ownBroadcastChan_close sc γsc iprop(True) Broadcast.Unknown γbi $$ [$Hbi]
+  ihave Hpend := ownBroadcastChan_close sc γsc iprop(True) Broadcast.Pending γbi $$ [$Hbi $Hpend]
   wp_apply chan.wp_make2 (V := KSnapReq) (W64 1) as %snc %γsn ⟨#Hsnc, %_, Hsnoc⟩
   · ipureintro; decide
   ihave Hsnoc : ownChan γsn KSnapReq (.Buffered []) $$ Hsnoc
   imod start_bag (snapReqOk γ K γs ⟨γph, γic, γis, γcm, fl⟩) (.Buffered []) snc γsn trivial
     $$ Hsnc Hsnoc with #HsnB
+  wp_apply chan.wp_make2 (V := Unit) (W64 1) as %rdc %γrc ⟨#Hrdc, %_, Hroc⟩
+  · ipureintro; decide
+  ihave Hroc : ownChan γrc Unit (.Buffered []) $$ Hroc
+  imod start_handoff rdc (fun _ => iprop(nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half ∗
+      ∃ v : Option GName × RaftState, ghostVar γph (1 : Qp).half v)) iprop(True) iprop(False) γrc
+    $$ Hrdc Hroc with ⟨%γrd, -, #HrdH, HrdP, HrdC⟩
+  wp_apply chan.wp_make2 (V := Unit) (W64 1) as %tdc %γtc ⟨#Htdc, %_, Htoc⟩
+  · ipureintro; decide
+  ihave Htoc : ownChan γtc Unit (.Buffered []) $$ Htoc
+  imod start_handoff tdc (fun _ => iprop(True)) iprop(True) iprop(False) γtc
+    $$ Htdc Htoc with ⟨%γtd, -, #HtdH, HtdP, HtdC⟩
+  wp_apply chan.wp_make2 (V := Unit) (W64 1) as %sdc %γdc ⟨#Hsdc, %_, Hsdoc⟩
+  · ipureintro; decide
+  ihave Hsdoc : ownChan γdc Unit (.Buffered []) $$ Hsdoc
+  imod start_handoff sdc (fun _ => nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) iprop(True)
+    iprop(False) γdc $$ Hsdc Hsdoc with ⟨%γsd, -, #HsdH, HsdP, HsdC⟩
   try wp_auto
   wp_apply wp_cloneOpt wp_Clone csp cfg $$ [$Hproto $Hcs0] as %csp' #HcsO
   try wp_auto
@@ -105,7 +126,11 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
   ipersist storage
   ipersist stats
   ipersist tick
+  ipersist stopc
   ipersist snapc
+  ipersist runDone
+  ipersist tickDone
+  ipersist snapDone
   icases (typedPointsto_half_split _ _ 1).1 $$ applied with ⟨applied1, applied2⟩
   icases (typedPointsto_half_split _ _ 1).1 $$ kv with ⟨kv1, kv2⟩
   icases (typedPointsto_half_split _ _ 1).1 $$ cs with ⟨cs1, cs2⟩
@@ -174,7 +199,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     simp only [named]
     iframe #
     ipureintro; exact ⟨⟨Hid1, Hid9⟩, ⟨Hdfok, Hdfn⟩, Hmd⟩
-  ihave #HR : isReplicaR γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩ $$ []
+  ihave #HR : isReplicaR γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, sc, γsc, rdc, γrd, tdc, γtd, snc, γsn, sdc, γsd, K, ⟨γph, γic, γis, γcm, fl⟩⟩ $$ []
   · unfold isReplicaR
     simp only [named]
     iframe #
@@ -185,13 +210,13 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
   ihave #HhsO' : hsOpt hsp hs $$ []
   · rw [← HMhs]; iexact HhsO
   try wp_auto
-  wp_apply wp_fork $$ [Hdrv Hcfg Hrun1 kv1 HK1 applied1 HA1 cs1 index1 Hph2 Hcm2]
-  · wp_apply wp_run γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩ f l ap hs
+  wp_apply wp_fork $$ [Hdrv Hcfg Hrun1 kv1 HK1 applied1 HA1 cs1 index1 HrdP Hph2 Hcm2]
+  · wp_apply wp_run γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, sc, γsc, rdc, γrd, tdc, γtd, snc, γsn, sdc, γsd, K, ⟨γph, γic, γis, γcm, fl⟩⟩ f l ap hs
       hsp S m (W64 ap.length) rafted Hrafted (Or.inr rfl)
-      $$ [$HR $Hsend $HhsO' Hdrv Hcfg Hrun1 kv1 HK1 applied1 HA1 cs1 index1 Hph2 Hcm2]
+      $$ [$HR $Hsend $HhsO' Hdrv Hcfg Hrun1 kv1 HK1 applied1 HA1 cs1 index1 HrdP Hph2 Hcm2]
     · unfold runStart
       iexists csp', mA, A
-      iframe Hdrv Hcfg Hrun1 Hph2 Hcm2 HicLb
+      iframe Hdrv Hcfg Hrun1 HrdP Hph2 Hcm2 HicLb
       isplitl [kv1 HK1 applied1 HA1 cs1 index1]
       · unfold repOwn
         iexists mK, Kv, cfg
@@ -208,13 +233,14 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
       ipureintro; exact Hpl
     itrivial
   try wp_auto
-  wp_apply wp_fork $$ []
-  · wp_apply wp_ticker γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩ $$ [$HR]
+  wp_apply wp_fork $$ [HtdP]
+  · wp_apply wp_ticker γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, sc, γsc, rdc, γrd, tdc, γtd, snc, γsn, sdc, γsd, K, ⟨γph, γic, γis, γcm, fl⟩⟩
+      $$ [$HR $HtdP]
     itrivial
   try wp_auto
-  wp_apply wp_fork $$ [Hrun2]
-  · wp_apply wp_snapshotter γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩
-      (W64 ap.length) $$ [$HR $Hrun2]
+  wp_apply wp_fork $$ [HsdP Hrun2]
+  · wp_apply wp_snapshotter γ vs dir id «$r0_ptr» n st sts sts ⟨ms, γs, sc, γsc, rdc, γrd, tdc, γtd, snc, γsn, sdc, γsd, K, ⟨γph, γic, γis, γcm, fl⟩⟩
+      (W64 ap.length) $$ [$HR $HsdP $Hrun2]
     · have Hk : uint.nat (W64 ap.length) = uint.nat M.snap.Metadata'.Index' := by
         rw [← Hapsi]; word
       rw [Hk]
@@ -222,8 +248,12 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     itrivial
   try wp_auto
   iapply HΦ
-  iexists st, sts, sts, ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩
-  iexact HR
+  isplitr
+  · iexists st, sts, sts, ⟨ms, γs, sc, γsc, rdc, γrd, tdc, γtd, snc, γsn, sdc, γsd, K, ⟨γph, γic, γis, γcm, fl⟩⟩
+    iexact HR
+  unfold repStopper
+  iexists n, st, sts, sts, ⟨ms, γs, sc, γsc, rdc, γrd, tdc, γtd, snc, γsn, sdc, γsd, K, ⟨γph, γic, γis, γcm, fl⟩⟩
+  iframe HR Hpend HrdC HtdC HsdC
 
 end proof
 

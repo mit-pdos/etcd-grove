@@ -31,12 +31,12 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
-abbrev Node.serveClient.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
+abbrev Node.serveClient.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF)
     (cf : GoInterface → List w8 → IProp GF) : Prop :=
-  ∀ (nd : Loc) (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH)
+  ∀ (nd : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (c : GoInterface) (cn : Nat) (a : GoString) (eof ed : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
-      isNodeS F rep nd γ N id n ∗ confLaw F rep cf γ N id ∗ net.isConn (GF := GF) c cn true a ∗
+      isNodeS F rep stp nd γ N id ∗ confLaw F rep cf γ N id ∗ net.isConn (GF := GF) c cn true a ∗
       globalAddr io.EOF ↦□ eof ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
       context.isClosedchanInit ∗ recvTokL cn true (kvP F id) [helloClientB] ∗
       sendTok cn true (kvQ F id) [] }}

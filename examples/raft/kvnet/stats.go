@@ -30,6 +30,7 @@ const (
 	StDials
 	StConnErrors
 	StBadFrames
+	StRestartsInProcess
 	NumStats
 )
 
@@ -41,7 +42,7 @@ var StatNames = [NumStats]string{
 	"restarts from a snapshot", "restarts applied below the snapshot", "entries skipped",
 	"file writes", "leader sent first", "commit-only unwritten",
 	"messages sent", "messages received", "messages dropped",
-	"dials", "connection errors", "bad frames",
+	"dials", "connection errors", "bad frames", "restarts in process",
 }
 
 // Stats counts what an incarnation exercised, for the tests' coverage report (the driver reads
