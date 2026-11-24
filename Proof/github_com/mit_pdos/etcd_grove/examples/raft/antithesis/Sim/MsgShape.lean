@@ -11,11 +11,10 @@ is the context of the heartbeat its drain handles (the cause). Per input, as `Ou
 leader's empty entry (normal) or a received append's entries (the cause's, normal by premise); a
 message carries no entries, the log's (an append, `AppOk`), or the cause's (a forwarded proposal).
 
-Not proved: a heartbeat's context `[]`. `TickEnd` (`Protocol/InputEnd.lean`) leaves the heartbeats'
-`ctx` free (`sendHeartbeat`'s `Context` is the read-only queue's last request, `[]` in the
-harness's scope, which `TickEnd` does not say), and the cause's `ctx` is not a premise of the
-statement, so `msgShape.stmt`'s context clause is not derivable from the protocol model as it
-stands (`notes`: the lead's report, 2026-11-24).
+`msgShape_of`: `msgShape.stmt` from `TickHbCtx`, a tick's heartbeats carry no context, which
+`TickEnd` (`Protocol/InputEnd.lean`) does not say yet: its heartbeat arm gains `x.ctx = []`, lifted
+from `stepLeader`'s exact context (`hbCtx`, `[]` with no read request pending, the RawNode scope's);
+then `TickHbCtx` is a lemma and `msgShape := msgShape_of tickHbCtx`.
 -/
 module
 
@@ -173,7 +172,8 @@ theorem entsNormal_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg}
 response's context is the cause's, a heartbeat's (`c`). -/
 def MShape (id : w64) (c : Option Msg) (q : Msg) : Prop :=
   q.src = id ∧ (NetTy q.ty ∨ q.ty = .propose) ∧ EntsNormal q.entries ∧
-  (q.ty = .heartbeatResp → ∃ m, c = some m ∧ m.ty = .heartbeat ∧ q.ctx = m.ctx)
+  (q.ty = .heartbeatResp → ∃ m, c = some m ∧ m.ty = .heartbeat ∧ q.ctx = m.ctx) ∧
+  (q.ty = .heartbeat → q.ctx = [])
 
 /-- Every message of `s`'s outbox to another node is `MShape`. -/
 def OutShape (id : w64) (c : Option Msg) (s : PState) : Prop :=
@@ -189,19 +189,20 @@ theorem outShape_single {id : w64} {c : Option Msg} {X : PState} {q : Msg} (hX :
   rw [List.mem_singleton.mp (mem_psend hX hx)]; exact hq
 
 theorem mshape_plain {id d t : w64} {c : Option Msg} {ty : MsgType} {rj : Bool} (hty : NetTy ty)
-    (hne : ty ≠ .heartbeatResp) : MShape id c (Msg.plain ty id d t rj) :=
-  ⟨rfl, .inl hty, fun e he => by simp [Msg.plain] at he, fun h => absurd h hne⟩
+    (hne : ty ≠ .heartbeatResp) (hne' : ty ≠ .heartbeat) : MShape id c (Msg.plain ty id d t rj) :=
+  ⟨rfl, .inl hty, (fun e he => by simp [Msg.plain] at he), (fun h => absurd h hne),
+    (fun h => absurd h hne')⟩
 
 theorem mshape_mk {id d t ix lt cm rh : w64} {c : Option Msg} {ty : MsgType} {rj : Bool}
-    (hty : NetTy ty) (hne : ty ≠ .heartbeatResp) :
+    (hty : NetTy ty) (hne : ty ≠ .heartbeatResp) (hne' : ty ≠ .heartbeat) :
     MShape id c (Msg.mk ty id d t rj ix lt cm rh []) :=
-  ⟨rfl, .inl hty, entsNormal_nil, fun h => absurd h hne⟩
+  ⟨rfl, .inl hty, entsNormal_nil, fun h => absurd h hne, fun h => absurd h hne'⟩
 
 /-- An append of the log (`AppOk`). -/
 theorem mshape_app {id : w64} {c : Option Msg} {X : PState} {q : Msg} (hl : EntsNormal X.log)
     (h : AppOk id X q) : MShape id c q :=
   ⟨h.2.1, .inl (.inl h.1), fun e he => hl e (h.2.2.2.2.2.2.1 e he),
-    fun h' => by rw [h.1] at h'; cases h'⟩
+    (fun h' => by rw [h.1] at h'; cases h'), (fun h' => by rw [h.1] at h'; cases h')⟩
 
 theorem outShape_apps {id : w64} {c : Option Msg} {X : PState} {ms : List Msg}
     (hX : X.outbox = []) (hl : EntsNormal X.log) (hms : ∀ x ∈ ms, x.dst ≠ id → AppOk id X x) :
@@ -234,7 +235,7 @@ theorem outShape_propose {id : w64} {c : Option Msg} {X s' : PState} {m : Msg}
       · exact (hms x hx).1
   · split at h
     · subst h
-      exact outShape_single hX ⟨rfl, .inr rfl, hent, fun h => by cases h⟩
+      exact outShape_single hX ⟨rfl, .inr rfl, hent, (fun h => by cases h), (fun h => by cases h)⟩
     · subst h; exact outShape_nil hX
 
 /-- The type switch's messages at the state after the preamble (nothing queued), the end log
@@ -248,8 +249,8 @@ theorem outShape_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : s.
   unfold HandleEnd at h
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
-    · exact outShape_single hX (mshape_plain (by simp [NetTy]) (by decide))
-    · exact outShape_single hX (mshape_plain (by simp [NetTy]) (by decide))
+    · exact outShape_single hX (mshape_plain (by simp [NetTy]) (by decide) (by decide))
+    · exact outShape_single hX (mshape_plain (by simp [NetTy]) (by decide) (by decide))
   · split at h
     · rcases h with ⟨-, rfl⟩ | ⟨-, hw⟩ | ⟨-, rfl⟩
       · exact outShape_nil hX
@@ -259,7 +260,7 @@ theorem outShape_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : s.
   · split at h
     · subst h; exact outShape_nil hX
     · rcases h with ⟨-, rfl⟩ | ⟨-, lastnewi, es', -, rfl⟩ | ⟨-, -, hint, hintterm, -, -, rfl⟩ <;>
-        exact outShape_single hX (mshape_mk (by simp [NetTy]) (by decide))
+        exact outShape_single hX (mshape_mk (by simp [NetTy]) (by decide) (by decide))
   · split at h
     · unfold AppRespEnd at h
       rcases h with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, -, hs⟩
@@ -271,7 +272,8 @@ theorem outShape_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : s.
     · subst h; exact outShape_nil hX
     · subst h
       exact outShape_single hX ⟨rfl, .inl (by simp [NetTy, Msg.plain]),
-        fun e he => by simp [Msg.plain] at he, fun _ => ⟨m, rfl, hty, rfl⟩⟩
+        (fun e he => by simp [Msg.plain] at he), (fun _ => ⟨m, rfl, hty, rfl⟩),
+        (fun h => by simp [Msg.plain] at h)⟩
   · split at h
     · exact outShape_sends hX hl h
     · subst h; exact outShape_nil hX
@@ -289,21 +291,29 @@ theorem outShape_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : s.ou
   · obtain ⟨ho, -, -, -, -⟩ := preEnd_facts hpre
     exact outShape_handle (ho.trans hX) hl hsc hent hh
 
+/-- **A tick's heartbeats carry no context** (`sendHeartbeat`'s `Context` is the read-only queue's
+last request, nil with none: the harness's scope). What `msgShape` needs of `TickEnd` beyond what it
+says now (`msgShape_of`). -/
+def TickHbCtx : Prop :=
+  ∀ (c : CfgM) (id : w64) (s s' : PState), s.outbox = [] → TickEnd c id s s' →
+    ∀ q ∈ s'.outbox, q.ty = .heartbeat → q.ctx = []
+
 /-- A tick's messages: vote requests, a leader's heartbeats. -/
-theorem outShape_tick {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState}
+theorem outShape_tick {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState} (ht : TickHbCtx)
     (hX : s.outbox = []) (h : TickEnd c id s s') : OutShape id cm s' := by
+  have hctx := ht c id s s' hX h
   rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, hms, rfl⟩
   · exact outShape_nil hX
   · intro q hq hne
     rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
     · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
     · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
-      exact ⟨rfl, .inl (by simp [NetTy, pvoteReq]), fun e he => by simp [pvoteReq] at he,
-        fun h => by simp [pvoteReq] at h⟩
+      exact ⟨rfl, .inl (by simp [NetTy, pvoteReq]), (fun e he => by simp [pvoteReq] at he),
+        (fun h => by simp [pvoteReq] at h), (fun h => by simp [pvoteReq] at h)⟩
   · intro q hq _
     obtain ⟨hh, -, -, he⟩ := hms q (mem_psend hX hq)
-    exact ⟨hh.2.1, .inl (by simp [NetTy, hh.1]), by rw [he]; exact entsNormal_nil,
-      fun h => by rw [hh.1] at h; cases h⟩
+    exact ⟨hh.2.1, .inl (by simp [NetTy, hh.1]), (by rw [he]; exact entsNormal_nil),
+      (fun h => by rw [hh.1] at h; cases h), hctx q hq⟩
 
 /-- `Advance`'s messages: a leader's `MsgApp`s of the end log (`adv_run`). -/
 theorem outShape_advance {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState} {qs : List Msg}
@@ -316,7 +326,7 @@ theorem outShape_advance {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState}
 /-- **The log and the messages of the state a `Ready` is taken at**: the log normal, every message
 to another node `MShape` (the cause's context for a heartbeat response). -/
 theorem shape_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeView}
-    {ps₁ : PState} (hnet : NetOk S net) (hv : NodeOk S net n v)
+    {ps₁ : PState} (ht : TickHbCtx) (hnet : NetOk S net) (hv : NodeOk S net n v)
     (hr : Reach (nodeId n) net v ps₁) (hl : EntsNormal v.ps.log)
     (hcm : ∀ m, v.cause = some m → EntsNormal m.entries) :
     EntsNormal ps₁.log ∧ OutShape (nodeId n) v.cause ps₁ := by
@@ -333,7 +343,7 @@ theorem shape_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeV
       have hl' := entsNormal_recv hsc (fun _ => hme) hl hst
       rw [hca]
       exact ⟨hl', outShape_recv hX hm0 hl' hsc (fun _ => hme) hst⟩
-    | tick => exact ⟨entsNormal_tick hl hst, outShape_tick hX hst⟩
+    | tick => exact ⟨entsNormal_tick hl hst, outShape_tick ht hX hst⟩
     | propose d =>
       have hpe : EntsNormal (propMsg (nodeId n) d).entries := by
         intro e he; simp only [propMsg, List.mem_singleton] at he; rw [he]
@@ -361,15 +371,28 @@ nodes, `ReadyOutP`): the log normal; every message to another node from the node
 network carries or a proposal, its entries normal, a heartbeat response's context the handled
 heartbeat's. -/
 theorem msgShape_core {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeView}
-    {ps₁ : PState} {rd : ReadyD} (hnet : NetOk S net) (hv : NodeOk S net n v)
+    {ps₁ : PState} {rd : ReadyD} (ht : TickHbCtx) (hnet : NetOk S net) (hv : NodeOk S net n v)
     (hr : Reach (nodeId n) net v ps₁) (hro : ReadyOutP (nodeId n) v ps₁ rd)
     (hl : EntsNormal v.ps.log) (hcm : ∀ m, v.cause = some m → EntsNormal m.entries) :
     EntsNormal ps₁.log ∧ ∀ q ∈ rd.msgs, MShape (nodeId n) v.cause q := by
-  obtain ⟨hl', ho⟩ := shape_reach hnet hv hr hl hcm
+  obtain ⟨hl', ho⟩ := shape_reach ht hnet hv hr hl hcm
   refine ⟨hl', fun q hq => ?_⟩
   have hq' := (hro.2.2.2.2.2.2.2.1.mem_iff).mp hq
   rw [List.mem_filter] at hq'
   exact ho q hq'.1 (of_decide_eq_true hq'.2)
+
+/-- **`msgShape.stmt` from `TickHbCtx`**: a heartbeat response echoes the handled heartbeat's
+context, `[]` by the premise. -/
+theorem msgShape_of (ht : TickHbCtx) : msgShape.stmt := by
+  intro S net n v ps₁ rd hnet hv hr hro hl hcm
+  obtain ⟨hl', hq⟩ := msgShape_core ht hnet hv hr hro hl (fun m h => (hcm m h).1)
+  refine ⟨hl', fun q hmem => ?_⟩
+  obtain ⟨h1, h2, h3, h4, h5⟩ := hq q hmem
+  refine ⟨h1, h2, fun hh => ?_, h3⟩
+  rcases hh with hh | hh
+  · exact h5 hh
+  · obtain ⟨m, hc, hmt, hx⟩ := h4 hh
+    rw [hx]; exact (hcm m hc).2 hmt
 
 end shape
 

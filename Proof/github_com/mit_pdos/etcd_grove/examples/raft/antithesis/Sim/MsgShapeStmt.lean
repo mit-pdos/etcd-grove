@@ -15,7 +15,8 @@ the log, `ReadyOutP`), and the next view's normal log. The destination, a voter,
 
 Normality is not part of the binding's relation (an entry's type is not in the checker's state), so
 it is a premise: the view's log is normal and so are the entries of the message the drain handles
-(the network's, `NetFacts`); the node's log after an input or `Advance` is then normal (a proposal's
+(the network's, `NetFacts`), and a handled heartbeat has no context (`NetFacts`; a heartbeat response
+echoes it); the node's log after an input or `Advance` is then normal (a proposal's
 entry, `propMsg`; a new leader's empty entry; a received append's entries).
 -/
 module
@@ -58,7 +59,8 @@ abbrev msgShape.stmt : Prop :=
   ∀ (S : AntCheck.State) (net : List Msg) (n : Fin 3) (v : NodeView) (ps₁ : PState) (rd : ReadyD),
     NetOk S net → NodeOk S net n v → Reach (nodeId n) net v ps₁ →
     ReadyOutP (nodeId n) v ps₁ rd →
-    EntsNormal v.ps.log → (∀ m, v.cause = some m → EntsNormal m.entries) →
+    EntsNormal v.ps.log →
+    (∀ m, v.cause = some m → EntsNormal m.entries ∧ (m.ty = .heartbeat → m.ctx = [])) →
     EntsNormal ps₁.log ∧ ∀ q ∈ rd.msgs, ReadyMsgShape (nodeId n) q
 
 end stmt
