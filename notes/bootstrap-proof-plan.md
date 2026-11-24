@@ -393,3 +393,60 @@ The disjunct in `batchLockInv` is cheap, but it helps only once 2 exists, so it 
   stage. Why one total sum: it bounds both joins directly; a per-URL `< 2^56` bound would also need a URL count
   far below `initMapOk`'s `2^62`. Rejected: `URLsMap.String` as a pending hypothesis; a bound-free `Join`
   (false of Go). No top-level statement, `bootPremise` or axiom changes.
+
+### 7.10 The final stage, 2026-11-25: done, why the conversion stops, the statement-change packet (for Upamanyu)
+
+Branch `bootstrap-final/2026-11-25` (off `bootstrap-link/2026-11-25` `059ab3520d`).
+
+**Done (approved):** `bootCfgOk` gains `cfg.UnsafeNoFsync' = false` (coordinator-E, #34 7144914007; ledger
+2026-11-25 "bootCfgOk"): the trusted `bootstrapContract` and `bootstrapRestartContract` no longer cover a
+configuration where they are false of Go. The examples prove it by `rfl` (`bootCfgOk_of`'s new argument, five
+call sites). The bridge `bootPremise_of_spec` loses its `hnf` hypothesis (read off the contract's precondition).
+Top-level statements: no text change; `bootPremise` (inside each example's `premises`) asks less. No axiom.
+
+**Not done: no example can drop `bootPremise` today without gaining premises** (found 2026-11-25; the rule for
+this stage: statements only lose `bootPremise` and the quantified boot data, and gain `Hfips`):
+
+- **B1. `bootstrap.spec` is proved only over 16 pending hypotheses.** `wp_bootstrap` is a result of the server
+  Link's `section links_pending` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean`), over:
+  `NewRaftLoggerZap.spec`, `zap.Logger.Named.spec` (names-only trust boundary),
+  `config.ServerConfig.advertiseMatchesCluster.spec` (netutil untranslated), `bootClusterRows.spec` (§7.1 I5),
+  `bootFsTouchData`, `bootFsTouchMember` (unproved), `bootFsWalExist` (the two proved laws need
+  `WalGS`/`FieldAssumptions`: perennial#692), `bootstrapSnapshot.spec` (proved; the same #692 issue),
+  `bootstrapBackendExistFree`, `bootstrapBackendMetaSnap` (J8a-4, §7.6), `isMemberBootstrapped.spec`,
+  `RaftCluster.{Member,MemberByName,MemberIDs}.specMem`, `pbutil.MustMarshalMessage.specMeta` (`Metadata` not a
+  registered pb type), `wal.Create.specSrv` (#15's L5). The bridge's `hb : bootstrap.spec` can only come from
+  there, so each example would take these 16 as premises.
+- **B2. The bridge's `memBoot bootLog = bootGo.memMap U token` (`bootstrap.spec`'s `Hmem`) and the examples'
+  `BootFacts` are not decidable at Go's values:** `memBoot` reads the log through the opaque `ccDecodeV1`
+  (`raft/v3/CCModel.lean`) and `membership.ccMemberOf`, and the boot log exists only through the opaque
+  `MarshalsConfChange` (`BootLog`); `BootCore`'s `ccBootOk`/`bootURLsOk` likewise (`ccContextOf`). The owner's
+  §7.7 decision keeps these hypotheses until the JSON plan's J2 (#24). So `boot` stays quantified, `BootFacts`
+  stays a premise, and `Hmem` would be a new pure premise.
+- **B3 (k-member clusters).** At `k ≤ 300`/`1000`, `bootGo.initMapOk`/`idRaftOk` cannot be settled per `k` by
+  kernel evaluation (up to 1000 clusters of up to 1000 SHA-1s). `initMapOk`'s distinct and nonzero ids follow from
+  `BootFacts`' `lowNodup`/`lowNz` at `ids = bootGo.ps …`; `idRaftOk` (id not `2^64-1`/`2^64-2`) does not (their
+  low bits are nonzero), and its URL-length conjunct needs a lemma over the k-cluster's URL builder. Not a
+  blocker alone, but a lemma family of its own, or a pure premise.
+
+**Packet: the conversion per top-level statement, if the owner accepts carrying B1/B2** (nothing applied):
+
+| statement (Spec file) | boot data before | after (proposal) |
+|---|---|---|
+| `etcd_robust_single_process` (`etcd/all`) | per cluster: `∀ id(s) ps ctxs boot`, `BootFacts …`, `Hprem…` ∋ `bootPremise` (11 clusters) | ids/`ps`/`ctxs` = `bootGo.*` of each cluster's URLs and token; `boot`, `BootFacts`, `Hlow` kept; `+Hmem` per cluster; `bootPremise` out of each `premises`; `+Hfips` |
+| `etcd_robust` (`etcd/dist`) | `ps ctxs boot`, `BootFacts d ps ctxs boot` | the same substitution, one cluster |
+| `putget_safe` (`etcd/dist/putget`) | `id ctxs boot`, `etcdstart.BootFacts id ctxs boot` | `id`, `ctxs` substituted; `boot`, `BootFacts` kept; `+Hmem`, `+Hfips` |
+| `etcd_leaseexpiryN_robust_single_process` | `ids ps ctxs boot`, `Hlen`, `BootFacts` | the substitution at the k-cluster (B3) |
+| `k8s_robust_single_process` (`k8s/all`) | two k-clusters' `ids ps ctxs boot`, `BootFacts` | the substitution at both (B3) |
+
+Trust delta per statement: −1 trusted contract (`bootstrapContract` inside `bootPremise`, a whole-function
+triple), +16 leaf specs as premises (B1; or as many as remain unproved/unlinked when it is done), +1 pure premise
+per cluster (`Hmem`, B2), +`Hfips` (approved). Axiom counts (`etc/tcb-report.py`) do not move either way:
+`bootPremise` is a premise, not an axiom.
+
+**Recommendation:** keep `bootPremise` until B1 is closed (#692; #15's L5; J8a-4; the pb registration; netutil;
+`bootClusterRows`; `isMemberBootstrapped`; the three `specMem`s; zap's `Named`/`NewRaftLoggerZap` as axioms
+like zap's other leaves, owner's call) and B2 is decided (J2, or definitions of `ccDecodeV1`/`ccMemberOf`/
+`MarshalsConfChange` on the boot log's bytes). `Hfips` goes in with the conversion, not before (alone it is an
+unused premise). The bridge is ready: with B1/B2 gone, each example's proof applies
+`bootPremise_of_spec (fun [_] => wp_bootstrap …) N ps bootLog ctxs dir token name Uok id hfips hidr hfacts`.

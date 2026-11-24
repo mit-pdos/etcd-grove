@@ -25,6 +25,26 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: bootCfgOk -- `bootstrap`'s contracts covered `UnsafeNoFsync = true`, false of Go
+
+- **Spec.** `bootCfgOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), the configuration
+  condition of the trusted `bootstrapContract` (inside the examples' `bootPremise`) and
+  `bootstrapRestartContract` (`InvRestart.lean`), and a premise of `NewServer.spec`, `NewServerR.spec`,
+  `bootstrap.spec`, `bootstrapBackend.spec`, `bootstrapRaft.spec`, `bootstrapRaftFromCluster.spec`. No
+  SpecPlan counterpart changes (the SpecPlan's `bootstrap.lean` names `bootCfgOk` only).
+- **Defect.** The trusted contract promised `bootOk` (an open WAL whose `Sync`s fsync, `wal.bootOk`) at every
+  configuration, including `UnsafeNoFsync = true`, where `bootstrapNewWAL` calls `SetUnsafeNoFsync` (the entry
+  "bootstrapStorage -- without `cfg.UnsafeNoFsync = false`" below; `notes/STATUS.md`, stage 4's section). No
+  theorem was known wrong: every example sets it `false`.
+- **Proposed change.** A sixth conjunct `cfg.UnsafeNoFsync' = false` of `bootCfgOk` (narrows both trusted
+  contracts to where they are true); `etcdstart.bootCfgOk_of` takes `hnf : cfg.UnsafeNoFsync' = false`, and its
+  five call sites (`newServerMode` twice, `StartMemberAuth`, `auth/startServer`, `auth3/startMember`) pass `rfl`
+  (the configuration literal's zero value). `etcdstart.bootstrapContract_of_spec` reads `bootstrap.spec`'s
+  premise `cfg.UnsafeNoFsync' = false` off the contract's precondition, so `bootPremise_of_spec` loses its
+  hypothesis `hnf`. No top-level statement's text changes; its premise `bootPremise` asks less.
+- **Decision.** Accepted (coordinator-E on #34, 7144914007, 2026-11-25); applied on
+  `bootstrap-final/2026-11-25` (claim #34's final stage).
+
 ## 2026-11-25: computeMemberID, URLsMap.String -- Perennial's real `strings.Join` needs the joined string shorter than `2^61` bytes
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/computeMemberID.lean`
