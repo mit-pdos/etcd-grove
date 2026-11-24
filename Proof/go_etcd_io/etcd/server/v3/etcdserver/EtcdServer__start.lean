@@ -304,7 +304,7 @@ theorem EtcdServer.start.wp_proof
   · iPkgInit
   ihave #Hpsemver : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
   · iPkgInit
-  ihave #Hpprom : isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
+  ihave #Hpprom : isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   wp_join at next with [s lg]
   · wp_bind (App (Val #(methods (go.GoType.PointerType EtcdServer.ty) go!"ClusterVersion" #s))
