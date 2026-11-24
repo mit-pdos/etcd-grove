@@ -429,7 +429,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Workaround here.** The axioms above.
 - **Proposed.** Not designed. A semantics of unsafe and reflect is adequate for etcd only if
   every snippet is provably panic-free from it.
-- **Status.** Requirements only.
+- **Status.** Requirements only. (2026-11-24, branch `specreq-reflect-cov/2026-11-24`) The reflect
+  snippets now cover every reflection use pattern of the verified code and the libraries it reaches
+  (22 files, `examples/specreq/reflect/doc.go`'s table; the unsafe-dependent ones in `unsafedep.go`),
+  translated by goose project `specreq-reflect`, for the reflection semantics being designed.
 
 ### Adequacy's thread bound is about every execution, so it caps the step count: landed, in the pin since `c44b74871` (2026-11-19, the closed theorems' step bounds; the distributed form since `1b144292b`, 2026-11-20)
 

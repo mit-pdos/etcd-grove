@@ -249,6 +249,14 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
+# the reflect and unsafe requirement snippets (examples/specreq/{reflect,unsafe}/doc.go): each Req*
+# runs without a panic, each MustPanic* panics with Go's message, and the minimized copies agree with
+# encoding/json and net/rpc (TestMirrors); under a second
+if (cd examples && GOWORK=off gotest -count=1 ./specreq/reflect/ ./specreq/unsafe/ > "$tmp/specreq.log" 2>&1); then
+  echo "specreq-reflect: ok"
+else
+  echo "specreq-reflect: FAILED"; tail -10 "$tmp/specreq.log"; fail=1
+fi
 # the net extension's sticky read errors (D1 v3.5, notes/net-sticky-read.md): the loopback tests
 # of examples/net/semantics/sticky_test.go, the evidence of ReadAvail's `sys` clause, measured on
 # the gates' Linux (the network-namespace test, sticky_netns_test.go, needs root: it skips here)

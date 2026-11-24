@@ -84,7 +84,9 @@ func ReqHTTPUnwrap() {
 	if isKnownInMemoryReader(io.NopCloser(io.LimitReader(strings.NewReader(""), 1))) { // nopCloser
 		panic("http-unwrap: LimitReader is not in memory")
 	}
-	if isHTTP2Transport(http.DefaultTransport) {
-		panic("http-unwrap: DefaultTransport is *http.Transport")
+	// a *http.Transport, as http.DefaultTransport is (not named here: the main tree's net/http
+	// translation skips that variable, Code/net/http.toml, and goose refuses a reference to it)
+	if isHTTP2Transport(&http.Transport{}) {
+		panic("http-unwrap: a *http.Transport is not an HTTP/2 transport")
 	}
 }

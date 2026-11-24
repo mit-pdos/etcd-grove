@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, specreq-reflect, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, kvnet, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -823,6 +823,22 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "goose", "prophkv")],
+    ),
+    Project(
+        name="specreq-reflect",
+        # The reflection requirement snippets (`examples/specreq/reflect`, its doc.go): every way
+        # the verified code uses `reflect`, minimized, for a reflection semantics to be proved
+        # against. Translated so that the semantics' proofs have the snippets' Goose terms; no
+        # spec or proof yet, and nothing imports the translation. `reflect` is Perennial's
+        # names-only translation, so each reflect call is a `FuncResolve`/`MethodResolve` by
+        # name. A package of the examples' Go module (examples/go.mod); its `net/http` is the
+        # main tree's (`Code/net/http.lean`).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "specreq", "reflect"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "net/http="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "specreq", "reflect")],
     ),
     Project(
         name="bboltfs",
