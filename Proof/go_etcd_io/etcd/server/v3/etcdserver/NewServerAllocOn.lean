@@ -67,10 +67,10 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
     -- (auth-lease S4, D-k) raft's no-snapshot mode, the caller's choice (`cluster_alloc_ns`'s)
     (ns : Bool := false) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
-      ∃ (γ : SrvRaft) (issued cnt wn fs : GName) (γk : KVNames),
+      ∃ (γ : SrvRaft) (issued cnt wn fs gen : GName) (γk : KVNames),
         ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
-          γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧
+          γk.ids.issued = issued ∧ γk.ids.cnt = cnt ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧ γk.ids.gen = gen ∧
           γk.cmp = false ∧ γk.lm = lm ∧ γk.ids.pfx = gp ∧ γk.gps = gps⌝ ∗
         -- (auth-lease S4, D-k) in raft's no-snapshot mode exactly when `ns` (`cluster_alloc_ns`'s)
         ⌜clusterNoSnap γ.cl ↔ ns = true⌝ ∗
@@ -79,7 +79,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
         etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
         -- (5b) the client's view of the auth history, at the start
         authHistView γk [srvAuthSt0] ∗
-        idClusterInv issued cnt wn fs srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
+        idClusterInv issued cnt wn fs gen srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
           idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16 (uint.Z id)))) ∗
@@ -90,7 +90,9 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
           -- (2026-10-26, D22 J2) and its snapshot directory, empty (`SrvRaft.snapLoc`)
           ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
-        [∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) := by
+        ([∗list] id ∈ ps, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)) ∗
+        -- (etcd-dist D7) each member's prefix's facts' invariant (one process: here)
+        [∗list] id ∈ ps, idPfxInv gen (idPfxOf (W16 (uint.Z id))) := by
   letI := srvAnyStor (GF := GF)
   have HB := Hbc.boot
   have hcc := Hbc.cc
@@ -138,7 +140,8 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   have hval := Membership.simple_valid _ hcne hnz' hsz
   iintro #Hmarsh
   imod (idCluster_alloc (GF := GF) (idPfxsOf ps) srvFloorFacts xs ⊤ Hpnd Hok)
-    with ⟨%issued, %cnt, %wn, %fs, #Hcl, #H0, Hps⟩
+    with ⟨%issued, %cnt, %wn, %fs, %gen, #Hcl, #H0, Hps, Htoks⟩
+  imod (idPfxInvs_alloc (GF := GF) gen (fun p : w64 => p) ⊤ (idPfxsOf ps)) $$ Htoks with Hpis
   -- (R2c) each member's first key: its list, its registry cell, its facts' parameter
   ihave ⟨Hps, Hrest⟩ := (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).1 $$ Hps
   ihave ⟨Hwns, Hfs⟩ := (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).1 $$ Hrest
@@ -195,7 +198,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   -- the mode-`on` KV invariant at the bootstrap log
   imod (mono_list_own_alloc (GF := GF) [srvAuthSt0]) with ⟨%γh, Hh, -⟩
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain true false false, [[], []], 0, 0,
-    ⟨issued, cnt, 0, gp, wn, 0, fs, 0⟩, γh, false, γ.log, 0, lm, gps⟩
+    ⟨issued, cnt, 0, gp, wn, 0, fs, 0, gen⟩, γh, false, γ.log, 0, lm, gps⟩
   imod ghostVar_alloc (GF := GF) (kvStateOf (kvModelOn γk0 srvAuthSt0 (bootEntries γ.boot)))
     with ⟨%γst, Hstv⟩
   let γk : KVNames := { γk0 with st := γst }
@@ -222,11 +225,11 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   imod (srvRdCtxInv_alloc ⟨γ, [], W64 0⟩ issued ⊤) $$ Hrdf [Hctxs] with #Hrc
   · simp only [hcl]; iexact Hctxs
   imodintro
-  iexists γ, issued, cnt, wn, fs, γk
+  iexists γ, issued, cnt, wn, fs, gen, γk
   iframe Hsrl Hkv Hetcd Hhv Hcl H0 Hpm Hrc
   isplitr
   · ipureintro
-    exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    exact ⟨hvs, hrule, hbt, hreg, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   isplitr
   · ipureintro; rw [hcl]; exact Hns
   isplitl [Hps Hfs Hsd Hboots Hslots]
@@ -258,7 +261,12 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
       ([∗list] id ∈ ps, idWaitTokAt (GF := GF) wn (idPfxOf (W16 (uint.Z id)), 0)) := by
     unfold idPfxsOf; rw [BigSepL.bigSepL_map]
   rw [← hm]
-  iexact Hwns
+  iframe Hwns
+  have hpi : ([∗list] p ∈ idPfxsOf ps, idPfxInv (GF := GF) gen p) =
+      ([∗list] id ∈ ps, idPfxInv (GF := GF) gen (idPfxOf (W16 (uint.Z id)))) := by
+    unfold idPfxsOf; rw [BigSepL.bigSepL_map]
+  rw [← hpi]
+  iexact Hpis
 
 /-- **The mode-`on` KV invariant reads only the cluster's KV names** (`kvInv_congr`'s). -/
 theorem kvInvOn_congr (γs : ServerRaftNames) (γk γk' : KVNames) (st₀ : auth.AuthState)
@@ -289,7 +297,7 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp ∧
           ρ.rd.kv.lm = γk.lm ∧
-          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0⌝ ∗
+          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0 ∧ ρ.ids.gen = γk.ids.gen⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids := by
   iintro #Hkv Hp Hwt
@@ -305,14 +313,14 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
   imodintro
   iexists ⟨0, ⟨cursor, γa, γc, γn, γl, γp, ⟨γ, [], W64 0⟩,
     ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
-      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog, γk.cret, γk.lm, γk.gps⟩⟩⟩
+      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd, γk.ids.gen⟩, γk.hist, γk.cmp, γk.rlog, γk.cret, γk.lm, γk.gps⟩⟩⟩
   isplitr
   · ipureintro
-    exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   isplitr
   · dsimp only
     rw [kvInvM_true, kvInvOn_congr _ ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
-      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd⟩, γk.hist, γk.cmp, γk.rlog, γk.cret, γk.lm, γk.gps⟩ γk srvAuthSt0
+      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd, γk.ids.gen⟩, γk.hist, γk.cmp, γk.rlog, γk.cret, γk.lm, γk.gps⟩ γk srvAuthSt0
       ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
         ⟨fun _ => hpo, fun _ h => ⟨hpfx h, (hpo h).2⟩⟩⟩]
     iexact Hkv
