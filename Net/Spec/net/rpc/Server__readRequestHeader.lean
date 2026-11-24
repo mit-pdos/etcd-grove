@@ -10,8 +10,8 @@ a server whose registrations serve `a` (`srvServes`). It reads a request header;
   (`ansPend`), and its deposit `S m r.body Φ` for its method `m` of a service registered with spec
   `S`, which accepts error answers (`errOk S`); with `keepReading` `true` and `req` holding the
   header, either `nil` and the registered service `svc` and method `mtype` (`methodTypeIs`, its
-  receiver `svc`'s), or an error (with a message not empty: the method is not registered) and the
-  deposit spent on the continuation's error answers (`errCont`).
+  receiver `svc`'s), or an error (with one of the server's own messages, `errSrv`: the method is
+  not registered) and the deposit spent on the continuation's error answers (`errCont`).
 
 Proved in `Net/Proof/net/rpc/Server__readRequestHeader.lean`.
 -/
@@ -54,7 +54,7 @@ abbrev Server.readRequestHeader.spec : Prop :=
         ((⌜err = interface.nil⌝ ∗ ∃ (S : MethodSpec GF) (m : GoString) (rcvr : GoInterface),
             S m r.body Φ ∗ errOk S ∗ structFieldRef net.rpc.service go!"rcvr" svc ↦□ rcvr ∗
             methodTypeIs C rcvr (S m) mt) ∨
-          (⌜err ≠ interface.nil⌝ ∗ errNE err ∗ errCont Φ))) }}
+          (⌜err ≠ interface.nil⌝ ∗ errSrv err ∗ errCont Φ))) }}
 
 end spec
 

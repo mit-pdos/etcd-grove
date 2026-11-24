@@ -39,7 +39,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `dirswap_crash_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean`). -/
 theorem dirswap_crash_robust : dirswap_crash_robust.spec := by
-  intro lctx sem package_sem _ _ Hinit_wp σ g dir j Hinit Hdir Hsafe bound
+  intro lctx sem package_sem _ Hinit_wp σ g dir j Hinit Hdir Hsafe bound
   exact
     Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b _ Hsteps =>
       (dirswap_crash_safety
@@ -76,7 +76,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `crash_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean`). -/
 theorem crash_robust : crash_robust.spec := by
-  intro lctx sem package_sem _ _ Hinit_wp σ g dir Hinit Hdir Hnd Hseg bound
+  intro lctx sem package_sem _ Hinit_wp σ g dir Hinit Hdir Hnd Hseg bound
   exact
     Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b _ Hsteps =>
       (crash_safety
@@ -113,7 +113,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `seglog_crash_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean`). -/
 theorem seglog_crash_robust : seglog_crash_robust.spec := by
-  intro lctx sem package_sem _ _ _ Hinit_wp σ g dir Hinit Hdir bound
+  intro lctx sem package_sem _ Hinit_wp σ g dir Hinit Hdir bound
   exact
     Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b _ Hsteps =>
       (seglog_crash_safety

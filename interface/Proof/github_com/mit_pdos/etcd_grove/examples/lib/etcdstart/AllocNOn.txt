@@ -16,27 +16,28 @@ theorem etcdstart.memberPresOn_of [v3rpc_sem :
 
 theorem etcdstart.memberBootsOn_ofM [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ps : List w64) (ctxs
-    : List (List w8)) (issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName →
-    IProp GF) (γm : mvcc.api.MvccName) (idx : w64 → srvApi.KVSNames) (cok rev reg xs : w64 → GName)
-    (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs) (Hc0 : γk.c0 = W64
-    0) (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog : γk.log0 = [[], []]) (Hvs : γ.vs =
-    ps) (Hkc : γk.cmp = false) (lm : lease.Mode) (hrun : lease.runCfg lm lm) (hne : lm =
-    lease.Mode.revocable → lease.leasesNoExpiry) (Hklm : γk.lm = lm) (hpo : kvPfxOk γk) (L : List
-    w64) (hpfx : ∀ (id : w64), id ∈ L → lm = lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈
-    γk.gps) (HΦ : ∀ (id : w64), id ∈ L → Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (idx
-    id).slog) (Hx : ∀ (id : w64), id ∈ L → xs (idPfxOf (W16 (uint.Z id))) = (idx id).slog) : ⊢
-    srvRaftLogInv { raft := γ, pre := [], ai0 := W64 0 } -∗ idClusterInv issued cnt wn fs
-    srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗ srvPropMint { raft := γ, pre := [], ai0 := W64 0 }
-    γk.ids -∗ srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0 } issued -∗ kvInvOn { raft := γ, pre
-    := [], ai0 := W64 0 } γk srvAuthSt0 -∗ ([∗list] id ∈ L, iprop((idPfxOf (W16 (uint.Z id)), 0)
-    ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16 (uint.Z
-    id)))) ∗ (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant
-    γ.cl id) ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅)) -∗ ([∗list] id ∈ L,
+    : List (List w8)) (issued cnt wn fs gen : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 →
+    GName → IProp GF) (γm : mvcc.api.MvccName) (idx : w64 → srvApi.KVSNames) (cok rev reg xs : w64 →
+    GName) (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs) (Hgen :
+    γk.ids.gen = gen) (Hc0 : γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog
+    : γk.log0 = [[], []]) (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (lm : lease.Mode) (hrun :
+    lease.runCfg lm lm) (hne : lm = lease.Mode.revocable → lease.leasesNoExpiry) (Hklm : γk.lm = lm)
+    (hpo : kvPfxOk γk) (L : List w64) (hpfx : ∀ (id : w64), id ∈ L → lm = lease.Mode.revocable →
+    idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (HΦ : ∀ (id : w64), id ∈ L → Φs (idPfxOf (W16 (uint.Z id)))
+    = srvFloorFacts (idx id).slog) (Hx : ∀ (id : w64), id ∈ L → xs (idPfxOf (W16 (uint.Z id))) =
+    (idx id).slog) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0 := W64 0 } -∗ idClusterInv issued
+    cnt wn fs gen srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗ srvPropMint { raft := γ, pre := [], ai0
+    := W64 0 } γk.ids -∗ srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0 } issued -∗ kvInvOn { raft
+    := γ, pre := [], ai0 := W64 0 } γk srvAuthSt0 -∗ ([∗list] id ∈ L, iprop((idPfxOf (W16 (uint.Z
+    id)), 0) ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs (idPfxOf (W16
+    (uint.Z id)))) ∗ (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
+    nodeVacant γ.cl id) ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅)) -∗ ([∗list] id ∈ L,
     idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)) -∗ ([∗list] id ∈ L,
     iprop(srvApi.newServerStoreFreshA (idx id) ∗ ghostMapAuth (cok id) 1 ∅ ∗ ghostMapAuth (rev id) 1
-    ∅ ∗ ghostMapAuth (reg id) 1 ∅)) ==∗ ∃ gs, ⌜List.map (fun x => x.id) gs = L ∧ ∀ (g :
-    etcdstart.MemberG GF), g ∈ gs → etcdstart.memberGOkOn γ γk g⌝ ∗ [∗list] g ∈ gs,
-    etcdstart.memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm
+    ∅ ∗ ghostMapAuth (reg id) 1 ∅)) -∗ ([∗list] id ∈ L, idPfxInv gen (idPfxOf (W16 (uint.Z id))))
+    ==∗ ∃ gs, ⌜List.map (fun x => x.id) gs = L ∧ ∀ (g : etcdstart.MemberG GF), g ∈ gs →
+    etcdstart.memberGOkOn γ γk g⌝ ∗ [∗list] g ∈ gs, etcdstart.memberBootOn g.γ ctxs g.ρ g.E Φs g.id
+    false lm
 
 theorem etcdstart.memberBootsOn_lm [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (ctxs : List (List w8)) (Φs : w64 →

@@ -37,7 +37,7 @@ public import SpecPlan.Spec.PkgInit.os
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.util.diff
 public import Perennial.Proof.io.Base
 public import Perennial.Proof.math.Base
-public import SpecPlan.Spec.PkgInit.math.rand
+public import Perennial.Proof.math.rand.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.apis.«meta».v1beta1
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.util.naming

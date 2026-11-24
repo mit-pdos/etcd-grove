@@ -9,6 +9,7 @@ public import Dsverify.Proof.raxos.Proxy.NetSpecs
 public import Dsverify.Proof.raxos.Proposer.Strings
 public import Perennial.Proof.errors.NewVar
 public import GooseLang.Ext.Net.Decide
+public import Net.Proof.net.Errors
 
 @[expose] public section
 
@@ -116,7 +117,7 @@ theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] (k : NetErr) (op : Go
       ⌜∀ ii, err = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
         models_lab.errAny err := by
   unfold net.resErr net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, -⟩, -⟩
+  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
   subst Herr
   isplitr
   · ipureintro; intro ii hii; cases hii; exact opError_ptr_notFormatter
@@ -128,17 +129,10 @@ theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] (k : NetErr) (op : Go
   · ipureintro; exact opError_ptr_isError'
   imodintro
   iintro %Φ HΦ
-  wp_method_call
-  wp_call
-  unfold net.OpError.Error.impl
-  wp_auto
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyString
-  iintro %str
-  (try wp_auto)
-  wp_if_destruct
-  · iapply HΦ
-  · iapply HΦ
+  iapply net.wp_OpError_Error $$ Hpe
+  inext
+  iintro %msg -
+  iapply HΦ
 
 omit π qv in
 /-- An `errors.New` variable's value is not a `fmt.Formatter`, and is `errAny`

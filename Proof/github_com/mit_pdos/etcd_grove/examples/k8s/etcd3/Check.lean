@@ -150,7 +150,8 @@ theorem Check.wp_proof
       have hbound : uint.nat g0.st.rv + lops.length < 2 ^ 63 := by
         have h1 : (lops.length : Int) < 2 ^ 60 := by rw [Hlen]; exact Hmul
         omega
-      wp_apply wp_realCheck s0 g0 lsl lops dur Hlin Hhist (Hb.1 rfl) hrun0 hbound $$ [Hl] as %r' %Hr'
+      wp_apply wp_realCheck s0 g0 lsl lops dur Hlin Hhist (Hb.1 rfl) hrun0 hbound (by omega) $$ [Hl]
+        as %r' %Hr'
       · iframe Hl Hcc Hs0 Hio
       iapply HΦ
       ipureintro; exact Hr'

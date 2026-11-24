@@ -16,8 +16,8 @@ invariant's half (`osCrash_take_runs_keep`), so `DataGood`; if the crash dropped
 the new history names it, and the key `none` will do.
 
 **What is assumed**, as for `segdir`'s result (`Results.lean`): the package initializer
-(`Hinit_wp`), the hand-written `os.file` field facts and `os`'s Goose-generated package facts
-(`[os.Assumptions]`) (instance hypotheses).
+(`Hinit_wp`), the hand-written `os.file` field facts and the program's Goose-generated package
+facts (`package_sem`, which gives `os.Assumptions`) (instance hypotheses).
 -/
 module
 
@@ -218,7 +218,7 @@ create, the write, the sync, the rename of the directory or the parent's sync). 
 the package's initializer runs (`Hinit_wp`). (`dirswap_crash_safety_bounded` with the ghost state
 `fsGF`.) -/
 theorem dirswap_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.Assumptions] [os.file.FieldAssumptions]
+    [os.file.FieldAssumptions]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
         (App (Val initialize') (Val #()))

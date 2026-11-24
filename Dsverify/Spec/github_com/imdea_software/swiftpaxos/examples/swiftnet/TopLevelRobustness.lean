@@ -27,15 +27,18 @@ acknowledged its configuration (every predicted replica registered with the mast
 node connects (`swift.NewClient`) only after its start. So clients connect only once every node is
 configured; a deployment whose clients connect earlier is not covered.
 
+gods' treemap, which `state` keeps its store in, is not a premise: its specs are proved of gods'
+own code (`github_com.emirpasic.gods.maps.treemap.hyps_true`, notes/gods-verified.md).
+
 **Premises** (visible; each at the kit's bundle `netDistGF`, for every machine's heap `heapAt G L`
 and the start's net protocol names `π`):
-* `l`, the libraries' representation choice (`SwiftNetPkgState`/`SwiftLibs`, `Base.lean`): gods'
-  treemap predicate, gob's encoder/decoder predicates and gob's wire format (`GobFmt`, the field
-  `gobFmt`), each argued true of the real library in its docstring;
+* `l`, the libraries' representation choice (`SwiftNetPkgState`/`SwiftLibs`, `Base.lean`): gob's
+  encoder/decoder predicates and gob's wire format (`GobFmt`, the field `gobFmt`), each argued true
+  of the real library in its docstring;
 * the package initializers without a proof here (`InitHyp`, `etc/dsv/README.md`): math/rand's,
   net/rpc's, net/http's, encoding/gob's, os/signal's, google/uuid's (encoding/json's is the main
   tree's proved `wp_initialize'`);
-* the library specs (`SwiftHyps`, `Hyps.lean`: treemap, gob, bufio's lab lemmas, uuid's `ID`;
+* the library specs (`SwiftHyps`, `Hyps.lean`: gob, bufio's lab lemmas, uuid's `ID`;
   `math.rand.Hyps`, dsv-rabia's `math/rand` specs), the environment (`os.signal.NoSignals usr1Sigs`,
   dsv-rabia's class at SIGUSR1: no SIGUSR1 is sent; `SwiftOsRandom`: the OS's randomness does not
   fail, uuid's `New`);

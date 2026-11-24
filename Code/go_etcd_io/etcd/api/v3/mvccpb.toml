@@ -7,13 +7,19 @@
 # k8s 7f-5a-P: `Event.IsCreate` (the etcd3 watcher's `parseEvent`, called through the client's alias
 # `clientv3.Event`) with the getters it reads and the constant `PUT`.
 translate = ["!*", "KeyValue", "Event", "Event_PUT", "Event_DELETE", "PUT", "Event.IsCreate",
-  "Event.GetType", "Event.GetKv", "KeyValue.GetCreateRevision", "KeyValue.GetModRevision"]
+  "Event.GetType", "Event.GetKv", "KeyValue.GetCreateRevision", "KeyValue.GetModRevision",
+  # (etcd-small-3, 2026-11-23) `Event_EventType.String`'s trusted model reads the enum's name table
+  "Event_EventType_name"]
 imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl"]
 
 # translate the definitions of all type declarations goose supports
 # (etcd-grove#32, 2026-11-22) the `init` function (the file descriptor's registration) trusted:
 # a model that does nothing (TrustedCode/go_etcd_io/etcd/api/v3/mvccpb.lean; until then names-only, the axiom `initFuncsOk`)
-trusted = ["init.0"]
+# (etcd-small-3, 2026-11-23) `Event_EventType.String` trusted: its model looks the value up in
+# `Event_EventType_name` (translated), else `strconv.Itoa`, as protobuf-go's `EnumStringOf` (the
+# model's docstring says why that is Go's); until then names-only, the trust-boundary axiom
+# `mvccpb.Event_EventType.StringPtr.wp_proof` (over the pointer receiver)
+trusted = ["init.0", "Event_EventType.String"]
 translate_types = true
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---
@@ -22,7 +28,7 @@ translate_types = true
 # translated code, so no verified code reads them; each reason says why not running the
 # initializer is unobservable.
 [[skip]]
-names = ["Event_EventType_name", "Event_EventType_value", "file_kv_proto_enumTypes",
+names = ["Event_EventType_value", "file_kv_proto_enumTypes",
   "file_kv_proto_msgTypes", "file_kv_proto_goTypes", "file_kv_proto_depIdxs"]
 reason = """
 Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,

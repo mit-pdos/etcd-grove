@@ -2,7 +2,10 @@
 # the `state` field of every protobuf message), whose fields are of internal/pragma
 # types and a pointer to the (axiomatized) MessageInfo.
 translate = ["!*", "MessageState"]
-imports = ["!*", "google.golang.org/protobuf/internal/pragma"]
+# (etcd-small-3, 2026-11-23) and `strconv`, which `EnumStringOf` (`api_export.go`) calls: the
+# generated enums' trusted `String` models (etcdserverpb's `AlarmType`, mvccpb's `Event_EventType`)
+# call `strconv.Itoa` in its place, so the enum packages' import closures initialize it, as Go's do
+imports = ["!*", "google.golang.org/protobuf/internal/pragma", "strconv"]
 
 # Every package variable with an initializer (and the `var _ I = ...` assertions, `_`) has a
 # trusted no-op initializer (TrustedCode/google_golang_org/protobuf/internal/impl.lean): their
