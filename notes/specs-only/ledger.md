@@ -6398,3 +6398,18 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   slice with a loop and `+=`, then formats it under `[%s]`. The output is byte-identical (Go tests in the
   fork). Then prove the three sites over the specs above.
 - **Decision.** Applied (coordinator-E, #9 7135546785; the fork commit was described on #9 7136404436).
+
+## 2026-11-24: `modelReadMIMEHeader`'s and `readRequestLimit`'s error posts give the buffered reader back, phase 7 S5 batch 9 (prove-ps2-s5srv-b9)
+
+- **Spec.** `Net/Spec/net/http/modelReadMIMEHeader.lean` and `Net/Spec/net/http/readRequestLimit.lean`: the error
+  disjunct also returns `∃ rr, bufio.ownReader b ri S E rr`, the reader at what it read (before: the reader was
+  lost on an error).
+- **Defect.** None in Go. `conn.serve` answers a read error with Go's `400` written to the connection, and
+  `sendTok` (the right to write) lives in the reader's stream state (`crHead`); without the reader back the
+  proof of `conn.serve` cannot write the answer, nor put the reader back in its pool.
+- **Evidence.** `models/net/http/server.go` `conn.serve` (the error switch after `c.readRequest`,
+  `putBufioReader`), `conn.readRequest` (returns `err` from `readRequestLimit` as it is).
+- **Proposed change.** As above; the posts only get stronger. Both are re-proved; `ReadResponse` (the other
+  caller of `modelReadMIMEHeader`) drops the reader in its error case as before. dsverify-net told on #24
+  (7138521711).
+- **Decision.** Applied (zeldovich proving session 2, s5).

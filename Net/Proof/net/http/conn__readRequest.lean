@@ -41,6 +41,11 @@ variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
 variable [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [bufio.Assumptions]
 
+/-- A points-to at a value equal to another (by `rfl` where `iframe`'s unification does not see
+it: a nested record update, a zero value). -/
+private theorem ptsto_eq {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (x y : V) (h : x = y) :
+    (l ↦ x : IProp GF) ⊢ l ↦ y := h ▸ .rfl
+
 theorem conn.readRequest.wp_proof
     (wp_hijacked : conn.hijacked.spec (GF := GF) (hG := hG))
     (wp_Now : time.Now.spec (GF := GF) (hG := hG))
@@ -61,7 +66,7 @@ theorem conn.readRequest.wp_proof
     (wp_NewWriterSize : EtcdGrove.bufio.NewWriterSize.specRep (GF := GF) (hG := hG)) :
     conn.readRequest.spec (GF := GF) (hG := hG) := by
   intro c s cr br γ γh t cn a la ra P Q Z path rmt lm v ctx cd hc hp hlen hlm
-  wp_start as ⟨#Henv, #Hrenv, #Hctxi, #Hsc, #Hsd, #Hctx, #Hcctx, #Hsrv, #Hr, #Hbufr, #Hrwc, #Hrmt,
+  wp_start as ⟨#Henv, #Hrenv, #Hctxi, #Hsc, #Hsd, #Hpools, #Hctx, #Hcctx, #Hsrv, #Hr, #Hbufr, #Hrwc, #Hrmt,
     #Htls, #Hmu, Hγh, Hlm, #Hcr, #Hhl, #Hzl, #Hcok, #Hcrwc, #Hca, Hmain, Hfr⟩
   wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -215,7 +220,104 @@ theorem conn.readRequest.wp_proof
   try wp_auto
   wp_apply wp_WithCancel iprop(True) ctx cd $$ [$Hctxi $Hctx $Hcctx] as %ctx' %γc %cancel ⟨#Hcancel, -, -, -⟩
   try wp_auto
-  sorry
+  -- the body is `noBody`
+  have hBody : rv.Body' = interface.mkOk net.http.noBody.ty #nb := by rw [← hrv]; rfl
+  simp only [hBody, interface.mkOk, decide_true, ↓reduceIte]
+  try wp_auto
+  -- the end's read deadline cleared (or the end closed, its reading dead)
+  wp_apply wp_SetRD t cn true a la ra _
+      (fun _ => iprop(∃ b' : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b' ∗
+        (⌜b' = false⌝ ∨ readDead (Gg := hG.goose_globalGS) cn true))) $$ [$Hca Hrdl]
+    as %err0 ⟨%res0, ⟨%b2, Hrdl, Hdis⟩, -⟩
+  · imod deadline_dead_au (Gg := hG.goose_globalGS) cn true (W64 1) _ false $$ Hrdl
+      with ⟨%st, Hend, Hcl⟩
+    imodintro
+    iexists st
+    iframe Hend
+    iintro %res %st' %Hd Hend
+    imod Hcl $$ %res %st' %Hd Hend with ⟨-, Hrdl, Hdead⟩
+    imodintro
+    iexists _
+    iframe Hrdl
+    unfold DeadlineOutcome at Hd
+    split at Hd
+    · rename_i hcl
+      iright; iapply Hdead; ipureintro; rw [Hd.2]; exact hcl
+    · ileft; ipureintro; rw [Hd.2]
+      rfl
+  try wp_auto
+  rw [go.make1_underlying, go.is_underlying (t := net.http.Header.ty)]
+  wp_apply (wp_map_make1 (K := GoString) (V := GoSlice)) as %hh Hhh
+  try wp_auto
+  rw [GMap.delete_empty] at *
+  wp_apply wp_wantsKA req (DFrac.own 1) (DFrac.own 1) _ (∅ : GMap GoString GoSlice) $$ [Hrq Hm]
+    as ⟨Hrq, Hm⟩
+  · iframe Hrq
+    simp only [hHdr]
+    iframe Hm
+    ipureintro; exact GMap.lookup_empty _
+  try wp_auto
+  wp_apply wp_wantsClose req (DFrac.own 1) (DFrac.own 1) _ (∅ : GMap GoString GoSlice) $$ [Hrq Hm]
+    as ⟨Hrq, Hm⟩
+  · iframe Hrq
+    simp only [hHdr]
+    iframe Hm
+    ipureintro; exact GMap.lookup_empty _
+  try wp_auto
+  iStructNamedPrefix «$r0» "w_"
+  -- the response's close notification: its zero mutex, over the two fields it guards
+  imod sync.init_Mutex (iprop(∃ t : Bool,
+      structFieldRef net.http.response go!"closeNotifyTriggered" «$r0_ptr» ↦ t ∗
+      structFieldRef net.http.response go!"closeNotifyCh" «$r0_ptr» ↦ (chan.nil : GoChan)))
+    ⊤ _ $$ w_lazyCloseNotifyMu [w_closeNotifyTriggered w_closeNotifyCh] with #Hnmu
+  · inext; iexists false; iframe w_closeNotifyTriggered; unfold chan.nil; iexact w_closeNotifyCh
+  ipersist w_conn
+  ipersist w_req
+  ipersist w_reqBody
+  ipersist w_cancelCtx
+  wp_apply wp_newBufioWriterSize wp_WReset wp_NewWriterSize ⟨_, _⟩ 2048 (Or.inl rfl) ?hty
+      $$ [$Hsync $Hbufio $Hpools] as %bw Hbw
+  case hty =>
+    intro h
+    injection h with h
+    simp only [net.http.chunkWriter.ty, bufio.Writer.ty] at h
+    injection h with h
+    exact absurd h (by decide)
+  try wp_auto
+  iapply HΦ
+  iframe Hγh Hraw
+  iright
+  isplitr
+  · ipureintro; rfl
+  iframe Hlm
+  iexists req, u, m, cl, nb, (GoInterface.ok ctx')
+  ihave Hrq := ptsto_eq req _ (rrReqVal path u m cl nb (GoInterface.ok ctx') rmt) ?eq $$ Hrq
+  case eq => subst hrv; rfl
+  iframe Hrq
+  rw [← hURL, ← hHdr]
+  iframe Hu Hm Hph Hsend Hrecv Hrm Hbuf
+  isplitl [w_handlerDone w_ecReader w_wroteHeader w_w Hbw w_handlerHeader Hhh]
+  · iunfold respNew
+    iunfold respNotify
+    iframe w_conn w_req w_reqBody w_ecReader w_wroteHeader Hnmu
+    isplitr
+    · iexists cancel, γc
+      iframe w_cancelCtx
+      iunfold context.cancelSpec
+      iexact Hcancel
+    isplitl [w_handlerDone]
+    · rw [sync.atomic.ownBool_unseal]; unfold sync.atomic.ownBoolDef
+      have hz : (_root_.Perennial.zero_val sync.atomic.Bool') =
+          ({ «_#0'» := _root_.Perennial.zero_val _, v' := sync.atomic.b32w false } :
+            sync.atomic.Bool') := rfl
+      rw [← hz]
+      iexact w_handlerDone
+    isplitl [w_w Hbw]
+    · iexists bw; iframe w_w Hbw
+    iexists hh; iframe w_handlerHeader Hhh
+  isplitl [Hcf Hhb Hir Hab]
+  · iexists ab'; iframe Hcf Hhb Hir Hab
+  iexists b2; iframe Hrdl Hdis
 
 end proof
 

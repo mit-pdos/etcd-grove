@@ -5,8 +5,8 @@ the default `Server` `s`, `srvDflt`; its last method not `POST`), whose dialer w
 request is shorter than the head's read limit `srvL`): the connection not hijacked (`connMuInv`'s
 ghost half at `false`), its reader `cr` in the main phase (`crMain` at no byte read) and its
 buffered reader `br` fresh over it (`bufio.freshReader`). It sets the read limit, reads the head
-through `br` (`readRequestLimit`, the reader in the head phase `crHead` at a fresh once-cell `γe`)
-and returns:
+through `br` (`readRequestLimit`, the reader in the head phase `crHead` at a fresh once-cell `γe`),
+taking the response's buffered writer from net/http's writer pools (`wPools`), and returns:
 
 * an error (`reqErr (crHeadErr γe) err`: the stream's, `io.EOF`'s `*errorString` or a read's
   `*OpError`, a `textproto.ProtocolError`, `io.ErrUnexpectedEOF`, or a `badStringError`; never
@@ -48,7 +48,7 @@ abbrev conn.readRequest.spec : Prop :=
     (la ra : GoInterface) (P Q : Proto GF) (Z : Nat → IProp GF) (path : List w8) (rmt lm : GoString)
     (v : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   c ≠ null → reqPath path → path.length ≤ 2 ^ 20 → lm ≠ go!"POST" →
-  {{ httpEnv ∗ readEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.context ∗ srvConst s ∗ srvDflt s ∗
+  {{ httpEnv ∗ readEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.context ∗ srvConst s ∗ srvDflt s ∗ wPools ∗
       context.isContext ctx cd ∗ context.isCancelCtxCtx ctx cd ∗
       structFieldRef net.http.conn go!"server" c ↦□ s ∗
       structFieldRef net.http.conn go!"r" c ↦□ cr ∗
