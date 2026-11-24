@@ -603,7 +603,7 @@ theorem wp_removeTmp (wp_Remove : os.Remove.specFileSnc (GF := GF) (hG := hG))
     (rmFileOut j b i h (DFrac.own (1 : Qp).half.half)) hb hcur (Qp.half_add_half 1)
     $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
   inext
-  iintro %err ⟨Hp, Hperm, %o, -, Ho1, Ho2⟩
+  iintro %err ⟨-, Hp, Hperm, %o, -, Ho1, Ho2⟩
   iapply HΦ
   iframe Hp Hperm
   iapply rmFile_tmpClaim j b i h o hcur $$ [$Ho1 $Ho2 $Ht]

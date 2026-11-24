@@ -1,10 +1,14 @@
 /-
-Proof of `byteorder.BEPutUint64` over its translated body (`internal/byteorder`, go1.27.3): a load of
-`b[7]` and 8 stores at constant indices below `len(b)`. Lean-first (prove-authcrypto, 2026-11-21).
+Proof of `byteorder.BEPutUint64`'s spec here (the slice keeps its length) from Perennial's
+(`internal.byteorder.BEPutUint64.spec`: its first 8 bytes become `v`'s, big-endian), which the
+linking passes (`internal.byteorder.wp_BEPutUint64`). Until 2026-11-24 proved over the body of
+this repository's own translation of `internal/byteorder`, now Perennial's (since its pin
+b3f2fc485, for `crypto/sha1`). Lean-first (prove-authcrypto, 2026-11-21).
 -/
 module
 
 public import Spec.internal.byteorder.BEPutUint64
+public import Perennial.Spec.internal.byteorder.BEPutUint64
 
 @[expose] public section
 
@@ -24,27 +28,21 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.internal.byteorder.Assumptions]
 
-theorem byteorder.BEPutUint64.wp_proof : byteorder.BEPutUint64.spec (GF := GF) (hG := hG) := by
+theorem byteorder.BEPutUint64.wp_proof
+    (wp_BEPutUint64 : _root_.Perennial.internal.byteorder.BEPutUint64.spec (GF := GF) (hG := hG)) :
+    byteorder.BEPutUint64.spec (GF := GF) (hG := hG) := by
   intro b bs v hlen
-  wp_start as Hb
-  ihave %Hl := ownSlice_len _ _ _ $$ Hb
-  have hbl : (8 : Int) ≤ sint.Z b.len := by have := Hl.1; word
-  try wp_auto
-  rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
-  obtain ⟨x, hx⟩ : ∃ x, bs[(sint.Z (W64 7)).toNat]? = some x :=
-    ⟨_, List.getElem?_eq_getElem (by have : (sint.Z (W64 7)).toNat = 7 := by word
-                                     omega)⟩
-  wp_apply wp_load_slice_index b _ bs _ x (by word) $$ [Hb] as Hb
-  · iframe; ipureintro; exact hx
-  try wp_auto
-  repeat (
-    rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
-    wp_apply wp_store_slice_index b _ _ _ $$ [Hb] as Hb
-    · iframe; ipureintro; constructor <;> (try simp only [List.length_set]) <;> word
-    try wp_auto)
+  wp_start_folded as Hb
+  rw [← List.take_append_drop 8 bs]
+  wp_apply (wp_BEPutUint64 b (bs.take 8) (bs.drop 8) v
+      (by simp only [List.length_append, List.length_take, List.length_drop]; omega))
+    $$ [Hb] as Hb
+  · iexact Hb
   iapply HΦ
-  iexists _; iframe; ipureintro; simp only [List.length_set]
-
+  iexists _; iframe; ipureintro
+  simp only [List.length_append, List.length_reverse, u64Le_length, List.length_take,
+    List.length_drop]
+  omega
 
 end proof
 

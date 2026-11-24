@@ -3,7 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.fmt
-public import GeneratedProof.hash
+public import Perennial.GeneratedProof.hash
 public import GeneratedProof.k8s_io.utils.dump
 public import Perennial.Golang.Theory
 public import Code.k8s_io.kubernetes.pkg.util.hash

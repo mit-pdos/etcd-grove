@@ -3,7 +3,7 @@ module
 
 public import GeneratedProof.hash.fnv
 public import SpecPlan.Spec.PkgInit.Base
-public import SpecPlan.Spec.PkgInit.hash
+public import Perennial.Proof.hash.Base
 
 @[expose] public section
 noncomputable section

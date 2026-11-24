@@ -190,15 +190,17 @@ theorem wp_syncDirAnc
         osCallPerm (callKey R (joinPath [] rcs)) qc ∗ osLogLb n }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir))
         (Val #(os.ancPath ((rcs ++ cs).take k))))
-    {{ (err : GoInterface), RET #err; osSpine j0 cs dq jp ∗
+    {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osSpine j0 cs dq jp ∗
         osCallPerm (callKey R (joinPath [] rcs)) qc ∗
         (⌜rcs.length ≤ k⌝ -∗ ⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }} := by
   iintro %Φ ⟨#Hfupk, #Hinv, #Hsi, #Hab, Hs, Hperm, #Hlb⟩ HΦ
   by_cases hlt : k < rcs.length
   · rw [List.take_append_of_le_length (by omega)]
-    wp_apply hAbove _ R ⟨rcs, j0, k, hm, hlt, rfl⟩ $$ [] as %err -
+    wp_apply hAbove _ R ⟨rcs, j0, k, hm, hlt, rfl⟩ $$ [] as %err #Hfe
     · (repeat' isplitl []) <;> iassumption
     iapply HΦ
+    isplitr
+    · iexact Hfe
     iframe
     iintro %hle
     exfalso; omega
@@ -209,12 +211,14 @@ theorem wp_syncDirAnc
     ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 (cs.take m) dq jm hR hm
       (fun c hc => hcs c (List.mem_of_mem_take hc))).2 $$ Ha
     rw [← callKey_joinPath hR hm (cs.take m)] at *
-    wp_apply hSync _ R jm dq qc n $$ [Hp Hperm] as %err ⟨Hp, Hperm, Hr⟩
+    wp_apply hSync _ R jm dq qc n $$ [Hp Hperm] as %err ⟨#Hfe, Hp, Hperm, Hr⟩
     · iframe; iframe #
     rw [callKey_joinPath hR hm (cs.take m)]
     ihave Ha := (os.osPathS_joinPath R (joinPath [] rcs) j0 (cs.take m) dq jm hR hm
       (fun c hc => hcs c (List.mem_of_mem_take hc))).1 $$ Hp
     iapply HΦ
+    isplitr
+    · iexact Hfe
     isplitl [Ha Hb]
     · iapply (osSpine_split cs m j0 dq jp).2
       iexists jm

@@ -114,6 +114,8 @@ theorem master.wp_call_btl (wp_Call : net.rpc.Client.Call.spec (GF := netDistGF)
     iframe Hcs
     isplitr
     · ipureintro; exact ⟨by decide, HSS, by simp [rp, interface.mkOk]⟩
+    isplitr
+    · ipureintro; simp [net.rpc.maxFrameN] <;> omega
     isplitl [Hpa]
     · simp only [net.rpc.RpcCodec.spec]
       iapply enc_sw C
@@ -121,6 +123,10 @@ theorem master.wp_call_btl (wp_Call : net.rpc.Client.Call.spec (GF := netDistGF)
       isplitl [Hpa]
       · iexact Hpa
       iintro -
+      isplitr
+      · ipureintro
+        simp [netrpcw.encBtlArgs, netrpcw.tBeTheLeaderArgs, netrpcw.tagged, netrpcw.encStr, netrpcw.strct, u64Le_length,
+          net.rpc.maxFrameN] <;> omega
       isplitl
       · unfold withErr
         isplit
@@ -204,6 +210,8 @@ theorem master.wp_call_ping (wp_Call : net.rpc.Client.Call.spec (GF := netDistGF
     iframe Hcs
     isplitr
     · ipureintro; exact ⟨by decide, HSS, by simp [rp, interface.mkOk]⟩
+    isplitr
+    · ipureintro; simp [net.rpc.maxFrameN] <;> omega
     isplitl [Hpa]
     · simp only [net.rpc.RpcCodec.spec]
       iapply enc_sw C
@@ -211,6 +219,10 @@ theorem master.wp_call_ping (wp_Call : net.rpc.Client.Call.spec (GF := netDistGF
       isplitl [Hpa]
       · iexact Hpa
       iintro -
+      isplitr
+      · ipureintro
+        simp [netrpcw.encPingArgs, netrpcw.tPingArgs, netrpcw.fU8, netrpcw.fld, netrpcw.encU8, netrpcw.tagged, netrpcw.encStr, netrpcw.strct, u64Le_length,
+          net.rpc.maxFrameN] <;> omega
       isplitl
       · unfold withErr
         isplit
