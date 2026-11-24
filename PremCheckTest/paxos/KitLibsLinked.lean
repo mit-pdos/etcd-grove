@@ -14,10 +14,13 @@ namespace Perennial
 
 namespace github_com.xiang90.paxos.examples.paxosnet
 
+attribute [local instance] Net.netExts Net.netExtsSemantics Net.netExtsInterp Net.netExts_hasNet
+
 /-- The non-vacuity instance: the class is empty. -/
 theorem kitLibs_nonvacuity : kitLibs.premise := by
   unfold kitLibs.premise
-  intros
+  intros _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ G L
+  letI := heapAt G L
   exact ⟨⟩
 
 end github_com.xiang90.paxos.examples.paxosnet

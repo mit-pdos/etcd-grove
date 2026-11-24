@@ -43,6 +43,7 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 theorem kitLibs_nonvacuity : kitLibs.premise := by
   unfold kitLibs.premise
   intros _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ G L
+  letI := heapAt G L
   exact ⟨zerolog_init_ax _, proto_init_ax _, proto_ax _, gogoproto_init_ax _, redis_init_ax _,
     signal_init_ax _, rand_init_ax _, zerolog_ax _, rand_ax _, no_signals_ax _⟩
 

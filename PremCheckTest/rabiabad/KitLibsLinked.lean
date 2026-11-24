@@ -36,10 +36,13 @@ axiom rand_init_ax : math.rand.InitHyp GF
 axiom zerolog_ax [github_com.rs.zerolog.Assumptions] : github_com.rs.zerolog.Hyps GF
 axiom rand_ax : math.rand.Hyps GF
 axiom no_signals_ax : os.signal.NoSignals os.signal.quietSigs GF
-axiom concl_ax : ∀ [GoLocalContext] (σ : Nat → state) (g : GlobalState) (threads : Nat),
-    DistDeploy rabiaKitAddrs (system σ) g → Robustness.Robust [] (system σ) g threads (2 ^ 63)
+end
+axiom concl_ax : conclusionAll
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [GoGlobalContext]
+variable (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics]
 axiom getEnvInt_ax : ∀ (s : GoString),
-    {{ True }} (App (Val (@! rabia.internal.config.getEnvInt)) (Val #s)) {{ (x : w64), RET #x; True }}
+    {{ (⌜True⌝ : IProp GF) }} (App (Val (@! rabia.internal.config.getEnvInt)) (Val #s)) {{ (x : w64), RET #x; True }}
 end
 
 attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
@@ -48,6 +51,7 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 theorem kitLibs_nonvacuity : kitLibs.premise := by
   unfold kitLibs.premise
   intros _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ G L
+  letI := heapAt G L
   exact ⟨zerolog_init_ax _, proto_init_ax _, proto_ax _, gogoproto_init_ax _, redis_init_ax _,
     signal_init_ax _, rand_init_ax _, zerolog_ax _, rand_ax _, no_signals_ax _, concl_ax, getEnvInt_ax _⟩
 

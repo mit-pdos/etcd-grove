@@ -191,7 +191,7 @@ def sysGlobalAddr? (e : Expr) : M Bool := do
   let .const c _ := e.getAppFn | return false
   unless lastStr c == "globalAddr" do return false
   let some x := e.getAppArgs.back? | return false
-  let .const x _ := x.consumeMData | return false
+  let .const x _ := x.consumeMData.getAppFn | return false
   return (← denied x).isSome
 
 /-- The function or method a Goose expression calls: the constants naming it (`F` of
@@ -303,14 +303,17 @@ partial def checkSubject (e : Expr) (pol : Pol) (top : Bool) : M Unit := do
   match ← subjectOf e with
   | some cs =>
     let mut lib := 0
+    let mut bad := 0
     for c in cs do
       if let some p ← codePkg? c then
         if let some dd := conf.deny.find? (·.isPrefixOf p) then
           err s!"the triple's subject `{c}` is a function of the system or driver package `{dd}`"
+          bad := bad + 1
         else if let some mm := conf.model.find? (·.isPrefixOf p) then
           err s!"the triple's subject `{c}` is a function of the model package `{mm}` (its specs are proved, not assumed)"
+          bad := bad + 1
         else lib := lib + 1
-    if lib == 0 && top then
+    if lib == 0 && bad == 0 && top then
       err s!"the triple's subject is not a library function or method: {← ppS e}"
   | none =>
     if top then err s!"the triple's subject is not a call of a library function or method: {← ppS e}"
@@ -675,6 +678,9 @@ unsafe def main (args : List String) : IO UInt32 := do
   let conf ← match confFile with | some f => parseConf f | none => pure {}
   let env ← importModules (mods.map fun m => { module := m, importAll := true }) {} (loadExts := true)
   if let some f := stFile then return ← runSelftest env conf f
+  if args.contains "--print-modules" then
+    for m in env.header.moduleNames do IO.println m
+    return 0
   if let some f := fileOnly then
     -- the text check alone (selftests of the file rules)
     let errs ← checkFile env f

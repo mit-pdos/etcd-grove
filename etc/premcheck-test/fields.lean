@@ -69,7 +69,7 @@ class badConclusion (GF : BundledGFunctors) : Prop where
 /-- The conclusion restated. expect: Net.Statement -/
 class badConclusionRestated (GF : BundledGFunctors) : Prop where
   concl : ∀ [lctx : GoLocalContext] [go.Semantics] (g : GlobalState) (σ : Nat → state),
-    DistDeploy [] (fun _ => []) g → True
+    DistDeploy [] [] g → True
 
 /-- `Robust` itself. expect: Robustness -/
 class badRobust (GF : BundledGFunctors) [GoLocalContext] [go.Semantics] : Prop where
@@ -78,7 +78,7 @@ class badRobust (GF : BundledGFunctors) [GoLocalContext] [go.Semantics] : Prop w
 /-- A triple about the system's own function. expect: system or driver package `rabia` -/
 class badSystemTriple (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   getEnvInt : ∀ (s : GoString),
-    {{ True }} (App (Val (@! rabia.internal.config.getEnvInt)) (Val #s)) {{ (x : w64), RET #x; True }}
+    {{ (⌜True⌝ : IProp GF) }} (App (Val (@! rabia.internal.config.getEnvInt)) (Val #s)) {{ (x : w64), RET #x; True }}
 
 /-- A library triple whose precondition names the system's package state. expect: rabia -/
 class badSystemInPre (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics]
@@ -91,21 +91,21 @@ class badSystemInPre (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semanti
 /-- A system global's points-to given out by a library function (positive). expect: MsgType_value -/
 class badSystemGlobalInPost (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   new : ∀ (w : GoInterface),
-    {{ True }}
+    {{ (⌜True⌝ : IProp GF) }}
       (App (Val (@! github_com.rs.zerolog.New)) (Val #w))
     {{ (lg : github_com.rs.zerolog.Logger), RET #lg;
-       globalAddr rabia.internal.message.MsgType_value ↦ (null : Loc) }}
+       (globalAddr rabia.internal.message.MsgType_value ↦ (null : Loc) : IProp GF) }}
 
 /-- The driver's function. expect: system or driver package -/
 class badDriver (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
-  check : {{ True }}
+  check : {{ (⌜True⌝ : IProp GF) }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.Check)) (Val #()))
     {{ RET #(); True }}
 
 /-- The net model's function (its specs are proved, never assumed). expect: model package `net` -/
 class badNetModel (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   dial : ∀ (a b : GoString),
-    {{ True }} (App (App (Val (@! net.Dial)) (Val #a)) (Val #b)) {{ (v : val), RET v; True }}
+    {{ (⌜True⌝ : IProp GF) }} (App (App (Val (@! net.Dial)) (Val #a)) (Val #b)) {{ (v : val), RET v; True }}
 
 /-- A pure fact. expect: not a library spec -/
 class badFalse (GF : BundledGFunctors) : Prop where
@@ -121,10 +121,10 @@ class badGhost (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] : Prop where
 
 /-- A triple about any function value. expect: subject -/
 class badAnyFunc (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
-  f : ∀ (f : val), {{ True }} (App (Val f) (Val #())) {{ RET #(); True }}
+  f : ∀ (f : val), {{ (⌜True⌝ : IProp GF) }} (App (Val f) (Val #())) {{ RET #(); True }}
 
-/-- The agent's opaque predicate (premcheck cannot see through it). expect: cannot see through -/
 opaque hidden : Prop
+/-- The agent's opaque predicate (premcheck cannot see through it). expect: not a library spec -/
 class badOpaque (GF : BundledGFunctors) : Prop where
   h : hidden
 
@@ -140,7 +140,7 @@ class badSystemData (GF : BundledGFunctors) : Type where
 abbrev sneaky.spec (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics]
     [IsPkgInit (IProp GF) pkg_id.rabia.internal.config] : Prop :=
   ∀ (w : GoInterface),
-  {{ True }} (App (Val (@! github_com.rs.zerolog.New)) (Val #w))
+  {{ (⌜True⌝ : IProp GF) }} (App (Val (@! github_com.rs.zerolog.New)) (Val #w))
   {{ (lg : github_com.rs.zerolog.Logger), RET #lg; isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.config }}
 class badSneaky (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics]
     [IsPkgInit (IProp GF) pkg_id.rabia.internal.config] : Prop where
@@ -160,7 +160,7 @@ axiom axBadFalse : False
 
 /-- About the system's function. expect: rabia -/
 axiom axBadSystem (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : ∀ (s : GoString),
-    {{ True }} (App (Val (@! rabia.internal.config.getEnvInt)) (Val #s)) {{ (x : w64), RET #x; True }}
+    {{ (⌜True⌝ : IProp GF) }} (App (Val (@! rabia.internal.config.getEnvInt)) (Val #s)) {{ (x : w64), RET #x; True }}
 
 end
 end Perennial.premcheckTest

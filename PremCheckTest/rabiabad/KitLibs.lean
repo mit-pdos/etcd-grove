@@ -35,6 +35,16 @@ open Iris Iris.BI Net
 
 namespace rabia.examples.rabianet
 
+section
+attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
+/-- The statement's conclusion, restated (an agent's definition: premcheck unfolds it). -/
+def conclusion [GoGlobalContext] [GoLocalContext] : Prop :=
+  ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
+    DistDeploy rabiaKitAddrs (system σ) g → Robustness.Robust [] (system σ) g threads (2 ^ 63)
+/-- The conclusion at every context. -/
+def conclusionAll : Prop := ∀ [GoGlobalContext] [GoLocalContext], conclusion
+end
+
 /-- rabia's landed premises (the file header). -/
 class KitLibs [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [GoGlobalContext]
     (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics]
@@ -50,11 +60,10 @@ class KitLibs [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [Go
   rand : math.rand.Hyps GF
   no_signals : os.signal.NoSignals os.signal.quietSigs GF
   /-- The conclusion, restated (refused). -/
-  concl : ∀ [GoLocalContext] (σ : Nat → state) (g : GlobalState) (threads : Nat),
-    DistDeploy rabiaKitAddrs (system σ) g → Robustness.Robust [] (system σ) g threads (2 ^ 63)
+  concl : conclusionAll
   /-- rabia's own function (refused). -/
   getEnvInt : ∀ (s : GoString),
-    {{ True }} (App (Val (@! rabia.internal.config.getEnvInt)) (Val #s)) {{ (x : w64), RET #x; True }}
+    {{ (⌜True⌝ : IProp GF) }} (App (Val (@! rabia.internal.config.getEnvInt)) (Val #s)) {{ (x : w64), RET #x; True }}
 
 end rabia.examples.rabianet
 end Perennial
