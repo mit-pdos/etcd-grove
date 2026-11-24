@@ -314,7 +314,7 @@ theorem leaseDescOk_of_init :
   iintro #Hp
   ihave Hi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hp
-  icases Hi with ⟨-, -, -, -, -, -, -, -, ⟨%ssl, %sds, #Hs, #Hsds, %Hc⟩⟩
+  icases Hi with ⟨-, -, -, -, -, -, -, -, -, ⟨%ssl, %sds, #Hs, #Hsds, %Hc⟩⟩
   unfold leaseDescOk
   iexists ssl, sds
   iframe #

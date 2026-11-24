@@ -4,7 +4,8 @@ Lean-first (no Rocq counterpart).
 # `toPorcupineModel`'s model spec (k8s 7g step 5, decision 1)
 
 The `ModelSpec` the spec of `toPorcupineModel` claims: `realM L init` (`RealModel`), a state value a frozen
-`*correctness.Model` (`modelAt`) of a state whose items fit, and an operation's values boxed `Request`/`Response`
+`*correctness.Model` (`modelAt`) of a state whose items fit, at most `2^61 + k` of them at index `k` (porcupine
+steps below index `2^60`, so `Step`'s model has fewer than `2^62`, `slices.Sorted`'s bound), and an operation's values boxed `Request`/`Response`
 whose decoded view (`decR L`) has its own `reqRep`/`respRep` and `Model.Step`'s pure premises at every state
 (`stepIn`).
 
@@ -131,9 +132,9 @@ def stepIn (x : Input) (r : RResp) : Prop :=
   opPre x r ∧ crFits x ∧ (x.Kind' ≠ W64 4 → keyOkL (storeKeyL x.Key') = true) ∧
     (x.Kind' = W64 4 → (listConsL x).isSome ∧ (k8s.prepareKeyM [] x.ListKey' x.Recursive').isSome)
 
-theorem stepIn_stepPre (x : Input) (r : RResp) (m : RM) (h : stepIn x r) (hm : itemsFitL m) :
-    stepPre x m r :=
-  ⟨hm, rexecL_notOther x m h.1.2.1 h.2.2.1 h.2.2.2, h.1⟩
+theorem stepIn_stepPre (x : Input) (r : RResp) (m : RM) (h : stepIn x r) (hm : itemsFitL m)
+    (hs : GMap.size m.items < 2 ^ 62) : stepPre x m r :=
+  ⟨hs, hm, rexecL_notOther x m h.1.2.1 h.2.2.1 h.2.2.2, h.1⟩
 
 /-- **A list `Gen` may return has options `listOptions` takes** (gap 2: `ListOptOk`). -/
 theorem genIn_listConsL (x : Input) (hx : GenIn x) (h4 : x.Kind' = W64 4) : (listConsL x).isSome := by
@@ -183,6 +184,69 @@ theorem itemsFitL_step (x : Input) (m : RM) (out : RResp) (hm : itemsFitL m) (hx
     · exact hm
   · exact hm
 
+/-- **A step adds at most one item.** -/
+theorem rexecL_size (x : Input) (m : RM) :
+    GMap.size (rexecL x m).2.1.items ≤ GMap.size m.items + 1 := by
+  have hi : ∀ k (o : Obj), GMap.size (<[k := o]> m.items) ≤ GMap.size m.items + 1 := by
+    intro k o; have := GMap.map_size_insert m.items k o; split at this <;> omega
+  have hd : ∀ k, GMap.size (GMap.delete k m.items) ≤ GMap.size m.items + 1 := by
+    intro k; have := GMap.map_size_delete m.items k; split at this <;> omega
+  have h0 : GMap.size m.items ≤ GMap.size m.items + 1 := Nat.le_succ _
+  have hw : ∀ key st u, GMap.size (updWriteL m key st u).2.1.items ≤ GMap.size m.items + 1 := by
+    intro key st u; unfold updWriteL; exact hi _ _
+  unfold rexecL
+  split
+  · exact h0
+  split
+  · unfold rcreateL failR
+    dsimp only
+    split
+    · exact h0
+    split
+    · exact h0
+    · exact hi _ _
+  split
+  · unfold rdeleteL failR
+    dsimp only
+    split
+    · exact h0
+    split
+    · exact h0
+    split
+    · exact h0
+    split
+    · exact h0
+    · exact hd _
+  split
+  · unfold rupdateL failR
+    dsimp only
+    split
+    · exact h0
+    split
+    · exact h0
+    split
+    · exact h0
+    split
+    · exact h0
+    split
+    · split
+      · exact h0
+      · exact hw _ _ _
+    · exact hw _ _ _
+  · exact h0
+
+/-- **A model step adds at most one item.** -/
+theorem rstepL_size (x : Input) (m : RM) (out : RResp) :
+    GMap.size (rstepL x m out).2.1.items ≤ GMap.size m.items + 1 := by
+  unfold rstepL
+  split
+  · exact Nat.le_succ _
+  split
+  · split
+    · exact rexecL_size x m
+    · exact Nat.le_succ _
+  · exact Nat.le_succ _
+
 theorem replayStepL_foldl_none (l : List (Input × RResp)) : l.foldl replayStepL none = none := by
   induction l with
   | nil => rfl
@@ -210,14 +274,43 @@ theorem replayFold_fit (l : List (Input × RResp)) (hl : ∀ op ∈ l, crFits op
         show (if _ then _ else _) = _; rw [if_neg hs]
       rw [e, replayStepL_foldl_none] at h; cases h
 
+/-- **The replay adds at most one item per operation.** -/
+theorem replayFold_size (l : List (Input × RResp)) :
+    ∀ (a acc : RM × GMap w64 RM × List RChange),
+      l.foldl replayStepL (some a) = some acc → GMap.size acc.1.items ≤ GMap.size a.1.items + l.length := by
+  induction l with
+  | nil => intro a acc h; cases h; simp
+  | cons op l ih =>
+    intro a acc h
+    rw [List.foldl_cons] at h
+    obtain ⟨st, ss, cs⟩ := a
+    by_cases hs : (rstepL op.1 st op.2).1 = true
+    · have e : replayStepL (some (st, ss, cs)) op = some ((rstepL op.1 st op.2).2.1,
+          <[(rstepL op.1 st op.2).2.1.rv := (rstepL op.1 st op.2).2.1]> ss,
+          cs ++ (rstepL op.1 st op.2).2.2.toList) := by
+        show (if _ then _ else _) = _; rw [if_pos hs]
+      rw [e] at h
+      have h1 := ih _ acc h
+      have h2 := rstepL_size op.1 st op.2
+      simp only [List.length_cons] at h1 ⊢
+      omega
+    · have e : replayStepL (some (st, ss, cs)) op = none := by
+        show (if _ then _ else _) = _; rw [if_neg hs]
+      rw [e, replayStepL_foldl_none] at h; cases h
+
 /-- **`NewReplay`'s premises** (`ReplayPre`, gap 3) on operations each with `Model.Step`'s pure premises
-(`stepIn`), from a state whose items fit. -/
+(`stepIn`), from a state whose items fit, with room for one item per operation under `2^62`. -/
 theorem replayPre_of (init : RM) (ops : List (Input × RResp)) (hinit : itemsFitL init)
+    (hsz : GMap.size init.items + ops.length < 2 ^ 62)
     (hops : ∀ op ∈ ops, stepIn op.1 op.2) : ReplayPre init ops := by
   intro i acc op hacc hop
   have hfit := replayFold_fit (ops.take i) (fun o ho => (hops o (List.mem_of_mem_take ho)).2.1) _ acc
     hinit hacc
-  exact stepIn_stepPre op.1 op.2 acc.1 (hops op (List.mem_of_getElem? hop)) hfit
+  have hs := replayFold_size (ops.take i) _ acc hacc
+  have hi : i < ops.length := (List.getElem?_eq_some_iff.1 hop).1
+  have ht : (ops.take i).length = i := by simp; omega
+  exact stepIn_stepPre op.1 op.2 acc.1 (hops op (List.mem_of_getElem? hop)) hfit (by
+    simp only at hs; omega)
 
 /-- **`failureFree`'s test of one operation**: a watch that ran did not fail its `Watch` call, a unary output is
 not `EOther`. -/
@@ -336,7 +429,7 @@ abbrev boxM (mp : Loc) : GoInterface :=
 def realMS (L : List (github_com.anishathalye.porcupine.OpV × (Input × RResp))) (init : RM) :
     github_com.anishathalye.porcupine.ModelSpec GF RM where
   M := realM L init
-  rep _ v m := iprop(∃ mp, ⌜v = boxM mp ∧ itemsFitL m⌝ ∗ modelAt mp m)
+  rep k v m := iprop(∃ mp, ⌜v = boxM mp ∧ itemsFitL m ∧ GMap.size m.items ≤ 2 ^ 61 + k⌝ ∗ modelAt mp m)
   ioOk i o := iprop(∃ rq ro x r, ⌜i = boxReq rq ∧ o = boxResp ro ∧ decR L (i, o) = some (x, r) ∧
     stepIn x r⌝ ∗ reqRep rq x ∗ respRep ro r)
   ioOk_pers _ _ := by infer_instance

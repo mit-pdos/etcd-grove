@@ -2,12 +2,15 @@
 Package initialization of `encoding.json`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports (it has no initialized
-variable).
+Its fact is `True`. Its initializer allocates the codec registry's variables (`codecMu`, `codec`:
+zero) and initializes its imports (`sync`, `io`); a program that registers a codec takes the
+registry's mutex and the codec's nil cell from its boot (`Registry.lean`: `codecInv`, `codecUnset`).
 -/
 module
 
 public import Proof.encoding.json.Base
+public import Perennial.Proof.io.Link
+public import Perennial.Proof.sync.Link
 public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -46,6 +49,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply wp_GlobalAlloc (V := _) codec _ as Hcodec
+  wp_apply wp_GlobalAlloc (V := _) codecMu _ as HcodecMu
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish
 

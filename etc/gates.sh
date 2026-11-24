@@ -249,6 +249,14 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
+# the net extension's sticky read errors (D1 v3.5, notes/net-sticky-read.md): the loopback tests
+# of examples/net/semantics/sticky_test.go, the evidence of ReadAvail's `sys` clause, measured on
+# the gates' Linux (the network-namespace test, sticky_netns_test.go, needs root: it skips here)
+if (cd examples && GOWORK=off gotest -count=1 -run '^TestSticky' ./net/semantics/ > "$tmp/sticky.log" 2>&1); then
+  echo "net-sticky: ok"
+else
+  echo "net-sticky: FAILED"; tail -10 "$tmp/sticky.log"; fail=1
+fi
 # protobuf stages S1/S2 (#37): the wire codecs' vectors modules EntryWireVectors.lean,
 # MessageWireVectors.lean, RecordWireVectors.lean and apply/IrrWireVectors.lean (whose #guards the build checks against the Lean
 # codecs) are what examples/pbschema/wirevectors{,_s2}_test.go generate from protobuf-go
@@ -263,7 +271,8 @@ fi
 # descriptors; --check), every protobuf.toml in the tree (but old/) is one of them, the codec helpers
 # against protowire, unicode/utf8 and encoding/json, the generated codecs against protobuf-go and
 # encoding/json, pbgen's and jsongen's random differential tests and refusals
-# (models/internal/{pbgenrand,jsongenrand}), and pbgen's codec of etcd's messages (examples/models)
+# (models/internal/{pbgenrand,jsongenrand}), and pbgen's and jsongen's codecs of etcd's types
+# (examples/models/{pbetcd,jsonetcd})
 nm=0
 : > "$tmp/nm.log"
 pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
@@ -278,11 +287,25 @@ done
 # jsongen: every toml with a [json] table (but in old/) is checked (the dump by reflection included);
 # jsongen's random-type differential test and refusals run in models' go test (internal/jsongenrand)
 jsoninputs="models/internal/jsondifftest/json.toml:models/internal/jsondifftest/codec:codec
-models/internal/jsonvsr/json.toml:models/internal/jsonvsr/codec:codec"
+models/internal/jsonvsr/json.toml:models/internal/jsonvsr/codec:codec
+examples/models/jsonetcd/json.toml:examples/models/jsonetcd:jsonetcd
+models/internal/jsonpkgtest/json.toml:models/internal/jsonpkgtest:jsonpkgtest"
 for x in $jsoninputs; do
   IFS=: read -r t o p <<< "$x"
   python3 models/json/jsongen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
 done
+# (#24 J3) jsongen's same-package methods (JSONModel*, which the encoding/json model's dispatch calls
+# by a value's method set) are reserved: no Go code but the generated json_model_gen*.go files and
+# the model's dispatch (models/encoding/json) names them; the generated methods against the real
+# encoding/json (the netmodel build's test of internal/jsonpkgtest), and in the forks' packages of
+# etc/goose.py's jsonmodel_roots (examples/models/jsonetcd/jsonmodel_forks.py, which also checks the
+# names in the forks at the pins)
+if git grep -nE '\bJSONModel[A-Za-z]*' -- '*.go' ':!old/' ':!**/json_model_gen.go' ':!**/json_model_gen_test.go' \
+     ':!models/encoding/json/' >> "$tmp/nm.log" 2>&1; then
+  echo "models: Go code other than the generated methods names JSONModel* (above)" >> "$tmp/nm.log"; nm=1
+fi
+(cd models && GOWORK=off gotest -tags netmodel -run '^TestJSON' ./internal/jsonpkgtest/) >> "$tmp/nm.log" 2>&1 || nm=1
+python3 examples/models/jsonetcd/jsonmodel_forks.py >> "$tmp/nm.log" 2>&1 || nm=1
 for t in $(git grep -l '^\[json\]' -- '*.toml' ':!old/'); do  # old/: reference copies, not built
   grep -q "^$t:" <<< "$jsoninputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
 done
@@ -335,6 +358,13 @@ fi
 # the notes' merge drivers (etc/merge-status.py; .gitattributes): replays this week's real merges of
 # notes/STATUS.md and notes/status-history.md, and synthetic cases (reads git only; ~15s)
 python3 etc/merge-status.py --selftest || fail=1
+# the GitHub coordination tool reads the convention as notes/coordination.md says (etc/gh-inbox.py;
+# recorded JSON, no network; under a second)
+if python3 -m unittest discover -s etc/gh-inbox-test > "$tmp/ghinbox.log" 2>&1; then
+  echo "gh-inbox: ok"
+else
+  echo "gh-inbox: FAILED"; tail -20 "$tmp/ghinbox.log"; fail=1
+fi
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
 # the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs

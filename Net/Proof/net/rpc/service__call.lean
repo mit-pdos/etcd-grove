@@ -2,7 +2,7 @@
 The proof of `service.call` (`Net/Spec/net/rpc/service__call.lean`): `wg.Done()` deferred (the
 join's `ownDone`, `sync.tokJoin.WaitGroup.wp_Done`, which gives the slot's thread token back), the
 counter incremented under the method's mutex, the method's call (`callReady`'s `WP`), the error's
-message (`errMsg`'s `Error()`) or `""`, the response (`sendResponse`, whose `ansRes` is `callRet`'s
+message (`errMsg`'s `Error()`, or `errAny`'s: any message, the answer given for each) or `""`, the response (`sendResponse`, whose `ansRes` is `callRet`'s
 outcome), `req` freed.
 -/
 module
@@ -67,7 +67,7 @@ theorem service.call.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
   subst Hr'
   wp_auto
   iunfold callRet at Hret
-  icases Hret with (⟨%He, Henc⟩ | ⟨%msg, #Hmsg, Hm⟩)
+  icases Hret with (⟨%He, Henc⟩ | ⟨%msg, #Hmsg, Hm⟩ | ⟨#Hany, Hm⟩)
   · subst He
     wp_auto
     wp_apply wp_sendResponse s γs C W a sc t cn la ra sending req rqv replyv [] k Φc
@@ -89,6 +89,27 @@ theorem service.call.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
     wp_bind (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #()))
     iapply HW
     inext
+    wp_auto
+    wp_apply wp_sendResponse s γs C W a sc t cn la ra sending req rqv replyv msg k Φc
+        $$ [$Hsrv $Henv $Hset $Hsc $Hmu $Hreq $Hpend Hm] as Hreq
+    · isplitr
+      · ipureintro; exact Hseq
+      iunfold ansRes
+      iexact Hm
+    wp_apply wp_freeRequest s γs req rqv $$ [$Hsrv $Hreq]
+    wp_apply sync.tokJoin.WaitGroup.wp_Done srvWgN iprop(False) wg iprop(True) $$ [$Hsync $Hdone]
+      as Htok
+    iapply HΦ; iexact Htok
+  · ihave #Hany' := Hany
+    iunfold models_lab.errAny at Hany'
+    icases Hany' with ⟨%ei, %Hei, %Hty, #HW⟩
+    subst Hei
+    wp_auto
+    wp_bind (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #()))
+    iapply HW
+    inext
+    iintro %msg
+    ihave Hm := Hm $$ %msg
     wp_auto
     wp_apply wp_sendResponse s γs C W a sc t cn la ra sending req rqv replyv msg k Φc
         $$ [$Hsrv $Henv $Hset $Hsc $Hmu $Hreq $Hpend Hm] as Hreq

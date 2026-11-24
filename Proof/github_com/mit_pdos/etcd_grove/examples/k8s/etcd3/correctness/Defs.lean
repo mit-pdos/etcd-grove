@@ -106,9 +106,10 @@ theorem deepRO_obj (p : Loc) (o : Obj) :
   ipureintro; rfl
 
 /-- The items map's values: read-only `*Obj`s, key by key (`mapRep`, `reflect.DeepEqual`'s view of
-the map, at the objects' deep values). -/
+the map, at the objects' deep values); and at most `2^62` of them (`slices.Sorted(maps.Keys(..))`'s
+premise, `Spec.maps.Keys`). -/
 def itemsRO (M : GMap GoString GoInterface) (items : GMap GoString Obj) : IProp GF :=
-  mapRep DFrac.discard M (GMap.fmap DeepV.obj items)
+  iprop(⌜GMap.size items ≤ 2 ^ 62⌝ ∗ mapRep DFrac.discard M (GMap.fmap DeepV.obj items))
 
 instance itemsRO_persistent (M : GMap GoString GoInterface) (items : GMap GoString Obj) :
     Persistent (itemsRO (GF := GF) M items) := by

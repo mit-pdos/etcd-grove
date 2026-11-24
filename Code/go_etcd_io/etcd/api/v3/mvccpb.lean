@@ -50,6 +50,9 @@ opaque DELETE [GooseExts] [GoGlobalContext] : val
 
 opaque file_kv_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
+noncomputable def Event_EventType_name [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_name"
+
 noncomputable def File_kv_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.File_kv_proto"
 
@@ -190,10 +193,6 @@ goose config): no Lean name, allocation or initialization step, so no translated
 them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
 panic, and has no effect beyond the variable), for the reason given.
 
-- `Event_EventType_name` (`var Event_EventType_name = map[int32]string{ 0: "PUT", 1: "DELETE", }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
-function values (built, not called) and other package variables' values or addresses, with no call.
-Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
-has no effect beyond its variable.
 - `Event_EventType_value` (`var Event_EventType_value = map[string]int32{ "PUT": 0, "DELETE": 1, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.
 Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
@@ -216,7 +215,6 @@ Each terminates, cannot panic (its sizes, indices and keys are constants the com
 has no effect beyond its variable.
 -/
 noncomputable def skipped' : List go.SkippedVar := [
-  ⟨"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Event_EventType_name = map[int32]string{ 0: \"PUT\", 1: \"DELETE\", }"⟩,
   ⟨"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Event_EventType_value = map[string]int32{ \"PUT\": 0, \"DELETE\": 1, }"⟩,
   ⟨"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_enumTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_kv_proto_enumTypes = make([]protoimpl.EnumInfo, 1)"⟩,
   ⟨"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_kv_proto_msgTypes = make([]protoimpl.MessageInfo, 2)"⟩,
@@ -233,10 +231,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.mvccpb)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(W32 0))
+  (Let "$v1" (Val #(go!"PUT"))
+  (Let "$k2" (Val #(W32 1))
+  (Let "$v3" (Val #(go!"DELETE"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr Event_EventType_name))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Event_EventType_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))))
 
 abbrev Event_EventType [GooseExts] : Type := w32
 
@@ -247,10 +256,15 @@ class Event_EventType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq Event_EventType.ty Event_EventType.underlying
   method_set : go.MethodSetIs Event_EventType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Event_EventType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event_EventType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Event_EventType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  String_unfold : MethodUnfold Event_EventType.ty go!"String" Event_EventType.String.impl
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType Event_EventType.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Event_EventType.ty go!"String"))) (App (Val (GoInstruction (GoLoad Event_EventType.ty))) (Var "$r"))))
 
 attribute [instance] Event_EventType.TypeAssumptions.underlying
   Event_EventType.TypeAssumptions.method_set
   Event_EventType.TypeAssumptions.ptr_method_set
+  Event_EventType.TypeAssumptions.String_unfold
+  Event_EventType.TypeAssumptions.ptr_String_unfold
 
 structure KeyValue [GooseExts] where
   mk ::

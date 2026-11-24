@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.etcd.server.v3.etcdserver
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.encoding.base64
 public import GeneratedProof.encoding.json

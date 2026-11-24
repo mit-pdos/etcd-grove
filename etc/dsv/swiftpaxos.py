@@ -44,6 +44,10 @@ GOOSE = dict(
            os.path.join("github_com", "google", "uuid"), os.path.join("github_com", "orcaman"),
            os.path.join("encoding", "gob"), os.path.join("os", "signal")],
     std_models=["net/rpc", "net/http", "encoding/json"],
+    # gods v1.18.1 from its model, models/gods (gods' code but the red-black tree iterator's
+    # Next/Prev, rewritten without goto: models/README.md), so that the iterator is translated
+    # and gods' treemap specs are proved (notes/gods-verified.md)
+    module_models={"github.com/emirpasic/gods": "models/gods"},
 )
 
 # etc/gen-init.py: gods' packages and the fork's packages whose initializers keep nothing for the

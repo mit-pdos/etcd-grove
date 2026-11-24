@@ -17,6 +17,12 @@ reading of his prose (marked): `envPubInv_alloc` (§1.3's start, step 1-2: the t
 invariant's half and the member's) and `kvRegsPub_of_addr` (step 4: the clients' `kvRegsPub` from the
 address set at `etcdSvc`, by `grpcSvcAt_of_addr` and the redefinition of `isGrpcRpcMd`); `viewRd` (the read
 names a view gives, his `viewRd ν`) is named in his `etcdSvc`.
+
+One field is `etcdstart.Serve`'s S2 spec (`Serve_s2`, his §3 "`etcdstart`", prose only; this skeleton's
+statement of it, marked): a started member (`memberUp`, member id `mid`) served at an address set to
+`etcdSvc γE mid`, with the member's half of the publication token and the invariant, publishes its view
+(`envAt γE ν`, at its read names) after putting `□ Pub ν` into the invariant, which the caller proves for
+every view at its read names.
 -/
 module
 
@@ -24,6 +30,7 @@ public import Proof.google_golang_org.grpc.InvGrpc
 public import Proof.google_golang_org.protobuf.proto.Store
 public import Proof.go_etcd_io.etcd.client.v3.KVService
 public import GooseLang.Ext.Net.Proto
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 
 @[expose] public section
 
@@ -35,7 +42,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_putget_dist
 
-open Iris Iris.BI Net
+open Iris Iris.BI Net go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 /-! ## The pure types (his §1.2, verbatim) -/
 
@@ -111,6 +118,35 @@ structure S2Draft (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInt
     ∀ [sem : go.Semantics] [client_sem : go_etcd_io.etcd.client.v3.Assumptions] (a : GoString) (γE : GName) (ν : EnvView) (mid : w64),
     kvRegsPub a γE mid ∗ envAt γE ν ⊢
       client.kvRegsAt (⟨a, etcdEnvOf ν, viewRd ν, viewCid ν, mid⟩ : client.SrvAt GF)
+  /-- **PLACEHOLDER: `etcdstart.Serve` in S2's form** (his §3, "`etcdstart`": "It takes `grpcAddrAt a
+  (etcdSvc γE …)`, the member's half of `envPubTok γE`, and `envPubInv γE Pub`. It publishes (`env_publish`,
+  putting `□ Pub ν` into the invariant) and returns `envAt γE ν`"; this skeleton's statement of it). At the
+  member's own heap (over the global `G`): a started member (`memberUp`, its member id `mid`, the table's)
+  with today's `Serve.spec`'s premises (the logger, the method sets, the quota, the bounds; `grpcRepliesFit`,
+  `srvLevels` and the receipts' bound, which today's caller's ghost step `kv_served` takes) and its share of
+  the start (`grpcAddrAt a (etcdSvc γE mid)`, `envPubHalf γE`, `envPubInv γE Pub`), with the caller's proof
+  of `□ Pub ν` for every view at its read names (`viewRd ν = ρ.rd`): an error, or the view published
+  (`envAt γE ν`) at those read names. Today's ghost step (the address's registrations) goes: the table is
+  fixed at the start, and `grpcServes` is `etcdstart`'s own obligation. -/
+  Serve_s2 : ∀ (hG : HeapGS .hasLC GF), hG.goose_globalGS = G →
+    letI : HeapGS .hasLC GF := hG
+    ∀ [sem : go.Semantics] [github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions]
+      [go_etcd_io.etcd.cache.v3.Assumptions]
+      (s : Loc) (a : GoString) (ρ : ReqNames)
+      (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (mid : w64) (γE : GName)
+      (Pub : EnvView → IProp GF),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+        zapLoggerOk lg ∗
+        ⌜v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧
+          threadBound GF ≤ 2 ^ 28 ∧ srvLevels (GF := GF) ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
+        etcdstart.memberUp s ρ E₀ lg γn mid ∗
+        grpcAddrAt a (etcdSvc γE mid) ∗ envPubHalf γE ∗ envPubInv γE Pub ∗
+        (∀ ν : EnvView, ⌜viewRd ν = ρ.rd⌝ ={⊤}=∗ □ Pub ν) }}
+      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve)) (Val #s))
+        (Val #a))
+    {{ (err : GoInterface), RET #err;
+        ⌜err ≠ GoInterface.nil⌝ ∨
+        (⌜err = GoInterface.nil⌝ ∗ ∃ ν : EnvView, envAt γE ν ∗ ⌜viewRd ν = ρ.rd⌝) }}
 
 attribute [instance] S2Draft.depSlotsCtx_persistent S2Draft.grpcAddrAt_persistent
   S2Draft.envAt_persistent S2Draft.envPubInv_persistent S2Draft.kvRegsPub_persistent

@@ -1,11 +1,13 @@
 /-
 Trusted code for `go.etcd.io/etcd/api/v3/mvccpb` (protoc-gen-go output), in namespace `go_etcd_io.etcd.api.v3.mvccpb` like the generated package
 (`Code/go_etcd_io/etcd/api/v3/mvccpb.toml`): its `init` function, the protobuf runtime's registration of the
-package's file descriptor, which the model skip (etcd-grove#32).
+package's file descriptor, which the model skips (etcd-grove#32); and `Event_EventType.String`, a lookup
+in `Event_EventType_name` (etcd-grove#39).
 -/
 module
 
 public import Perennial.Golang.Defn
+public import Perennial.Code.strconv
 
 @[expose] public section
 
@@ -34,6 +36,103 @@ names-only or skipped, `Code/go_etcd_io/etcd/api/v3/mvccpb.toml`; only `file_kv_
 `initFuncsOk` said it returns (etcd-grove#32). -/
 def init.«0».impl : val :=
   λ: <>, #()
+
+
+/-- `Event_EventType`'s type (the translation's `Event_EventType.ty`: this module is imported by the translation, not the
+other way round). -/
+@[reducible] def model.Event_EventType : go.GoType :=
+  go.GoType.Named go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType" []
+
+/-- `Event_EventType_name`'s name (the translation's `Event_EventType_name`). -/
+@[reducible] def model.Event_EventType_name : GoString := go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_name"
+
+/-- `(Event_EventType).String` (etcd-grove#39, 2026-11-23; until then names-only, the trust-boundary axiom `mvccpb.Event_EventType.StringPtr.wp_proof`, over the pointer receiver). The
+generated method (`kv.pb.go`, protoc-gen-go v1.36.12, etcd `edc800c6f262`) is
+
+```go
+func (x Event_EventType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+func (Event_EventType) Descriptor() protoreflect.EnumDescriptor {
+	return file_kv_proto_enumTypes[0].Descriptor()
+}
+```
+
+and `EnumStringOf` (protobuf-go, `internal/impl/api_export.go`) is
+
+```go
+func (Export) EnumStringOf(ed protoreflect.EnumDescriptor, n protoreflect.EnumNumber) string {
+	ev := ed.Values().ByNumber(n)
+	if ev != nil {
+		return string(ev.Name())
+	}
+	return strconv.Itoa(int(n))
+}
+```
+
+The model is the GooseLang goose produces for
+
+```go
+func (x Event_EventType) String() string {
+	if s, ok := Event_EventType_name[int32(x)]; ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
+}
+```
+
+(the term of raftpb's `MessageType.String.impl`, `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`, which
+the pinned goose produced from the same body, with the type and the table renamed). It is Go's
+because the descriptor's values and the table are the same: protoc-gen-go generates both
+`Event_EventType_name` (`kv.pb.go`: the map literal `{0: "PUT", 1: "DELETE"}`) and the raw descriptor `file_kv_proto_enumTypes[0]` is built
+from, from the one enum of `kv.proto`, one entry per value, its name and number; the enum declares
+no aliases (no `allow_alias`), so `ByNumber(n)` finds the value of number `n` exactly when the table
+has key `n`, and its `Name()` is the table's entry. `EnumNumber` and `int32` are both `int32`, so
+`int(n)` is `int(x)`. Go test: `examples/premisefix/enumstring/enumstring_test.go` (the real method
+against the model, on every key of the table, on unknown, negative and extreme values, by value and
+through a pointer). What the model reads besides is the table, which nothing but the initializer
+writes (the package's fact holds it read-only); the descriptor's build and lookups do not fail and have
+no effect a translated reader sees (the descriptor is built in `init`, before any call). The model's
+`strconv.Itoa` is Perennial's `strconv`'s (its spec `Spec/strconv/Itoa.lean`), which protobuf's
+`internal/impl` imports (`Code/google_golang_org/protobuf/internal/impl.toml`), so the package's
+initializer has initialized it. -/
+noncomputable def Event_EventType.String.impl : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc model.Event_EventType))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert model.Event_EventType go.int))) (App (Val (GoInstruction (GoLoad model.Event_EventType))) (Var "x")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.Itoa []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.int32 go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int32 go.string)))) (App (Val (GoInstruction (GlobalVarAddr model.Event_EventType_name))) (Val #())))) (App (Val (GoInstruction (GoLoad model.Event_EventType))) (Var "x")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 end code
 end
