@@ -17,30 +17,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### Unary `+` (`GoUnOp GoPos`) has no semantics: `cmp.Compare` is stuck at `x > y` (2026-11-24, sortslice, claim #18)
-
-- **Limitation.** goose translates Go's unary `+x` as `GoUnOp GoPos t` (`goose/glang/lean.go`), but no
-  semantics rule steps it at any type: `Golang/Defn/Predeclared.lean` has `neg_untyped_int`, `neg_int`,
-  `neg_int64`, ... and no `pos_*` (still so at Perennial `lean` `4074d4ac7`). A program that evaluates `+x`
-  is stuck in the model. `cmp.Compare` (Go's `cmp/cmp.go`) returns `+1` for `x > y`, translated
-  `Convert untypedInt int (GoUnOp GoPos untypedInt #1)`.
-- **Needed by.** `mvcc.hashStorage.Store`, which (fork `a336e97f9`, `goose-lean-slicessort`) sorts with
-  `slices.SortFunc(s.hashes, func(a, b KeyValueHash) int { return cmp.Compare(a.Revision, b.Revision) })`
-  instead of `sort.Slice`. Its proof is complete over `cmp.Compare.spec` (at `int64`, `Spec/cmp/Compare.lean`,
-  proved here but for the `x > y` branch, a `sorry`). (It replaces the 2026-11-23 entry "`sort.Slice` is
-  names-only": Upamanyu chose rewriting the call in the fork over a model of `reflectlite.Swapper`, #18;
-  `slices.SortFunc` is translated and proved in Perennial, `slices.wp_SortFunc`. mvccrand's `genLease`
-  keeps `sort.Slice` and its `Spec/sort/Slice.lean` hypothesis: `slices.Sort` needs `len ≤ 2^62`, which its
-  spec does not bound.)
-- **Workaround.** None landed: the branch `prove-ps2-sortslice/2026-11-23` waits (`Store` stays an axiom on `lean`).
-  The fork keeps the idiomatic `cmp.Compare` (coordinator's decision, #18), not explicit `if`s.
-- **Proposed change.** Complete the `neg_*` scheme in `Predeclared.lean` with an identity `pos_*` beside each
-  (`pos_untyped_int (v : Int) : ⟦GoUnOp GoPos go.untypedInt, #v⟧ ⤳ #v`, `pos_int`, ...: Go's `+x` is `0 + x`,
-  which for integers and floats is `x`), with a semantics test (`func testUnaryPlus() bool`) and Go evidence;
-  trusted, so `fix-semantics` with Upamanyu's sign-off (#18 issuecomment-7119669938). Then also `cmp.Compare`'s
-  spec belongs in Perennial (`Spec/cmp/Compare.lean`, as `cmp.Less`'s), and the local one goes.
-- **Status.** Proposed on #18, awaiting sign-off.
-
 ### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
 
 - **Limitation.** Perennial proves `sort.Sort` (and `slices.Sort`/`SortFunc`) only for a `Less` that agrees with
@@ -2156,6 +2132,30 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### Unary `+` (`GoUnOp GoPos`) has no semantics: `cmp.Compare` is stuck at `x > y` (2026-11-24, sortslice, claim #18)
+
+- **Limitation.** goose translates Go's unary `+x` as `GoUnOp GoPos t` (`goose/glang/lean.go`), but no
+  semantics rule steps it at any type: `Golang/Defn/Predeclared.lean` has `neg_untyped_int`, `neg_int`,
+  `neg_int64`, ... and no `pos_*` (still so at Perennial `lean` `4074d4ac7`). A program that evaluates `+x`
+  is stuck in the model. `cmp.Compare` (Go's `cmp/cmp.go`) returns `+1` for `x > y`, translated
+  `Convert untypedInt int (GoUnOp GoPos untypedInt #1)`.
+- **Needed by.** `mvcc.hashStorage.Store`, which (fork `a336e97f9`, `goose-lean-slicessort`) sorts with
+  `slices.SortFunc(s.hashes, func(a, b KeyValueHash) int { return cmp.Compare(a.Revision, b.Revision) })`
+  instead of `sort.Slice`. Its proof is complete over `cmp.Compare.spec` (at `int64`, `Spec/cmp/Compare.lean`,
+  proved here). (It replaces the 2026-11-23 entry "`sort.Slice` is
+  names-only": Upamanyu chose rewriting the call in the fork over a model of `reflectlite.Swapper`, #18;
+  `slices.SortFunc` is translated and proved in Perennial, `slices.wp_SortFunc`. mvccrand's `genLease`
+  keeps `sort.Slice` and its `Spec/sort/Slice.lean` hypothesis: `slices.Sort` needs `len ≤ 2^62`, which its
+  spec does not bound.)
+- **Workaround.** None: `Store` waited for the rule (the fork keeps the idiomatic `cmp.Compare`).
+- **Proposed change.** Complete the `neg_*` scheme in `Predeclared.lean` with an identity `pos_*` beside each
+  (`pos_untyped_int (v : Int) : ⟦GoUnOp GoPos go.untypedInt, #v⟧ ⤳ #v`, `pos_int`, ...: Go's `+x` is `0 + x`,
+  which for integers and floats is `x`), with a semantics test (`func testUnaryPlus() bool`) and Go evidence;
+  trusted, so `fix-semantics` with Upamanyu's sign-off (#18 issuecomment-7119669938). Then also `cmp.Compare`'s
+  spec belongs in Perennial (`Spec/cmp/Compare.lean`, as `cmp.Less`'s), and the local one goes.
+- **Status.** Landed: Perennial `b3f2fc485` (branch `unary-plus`, fix-semantics Case 50; approved by
+  Upamanyu, #18). `cmp.Compare`'s spec stays here (coordinator-E: keep it with the fork's use).
 
 ### `reflect.Value` held in a variable: its typed points-to is `sorry` (2026-10-22, k8s etcd3; landed: Perennial `3eae9cd1f`, PR #672, in the pin `078ceec6f`; workaround dropped 2026-11-23, branch `reflect-r0`)
 

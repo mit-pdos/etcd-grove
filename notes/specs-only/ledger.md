@@ -5562,5 +5562,4 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above (the approved exception: a persistent ownership premise every caller
   discharges). `Hashes`/`HashByRev`, when verified, will need the reader slots `NewHashStorage` drops
   (`SpecPlan`'s `hashStorageFresh`).
-- **Decision.** Applied (branch `prove-ps2-sortslice/2026-11-23`), waiting with `Store` on the `GoPos` rule
-  (`notes/perennial-changes.md`).
+- **Decision.** Applied (branch `prove-ps2-sortslice/2026-11-23`).
