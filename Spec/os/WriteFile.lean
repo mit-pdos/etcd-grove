@@ -37,7 +37,8 @@ abbrev os.WriteFile.specEmptyS : Prop :=
   {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own 1) h ∗ sl ↦*{dqs} ([] : List w8) }}
     (App (App (App (Val (@! os.WriteFile)) (Val #(child d b))) (Val #sl)) (Val #perm))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ sl ↦*{dqs} ([] : List w8) ∗
+  {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+      sl ↦*{dqs} ([] : List w8) ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ crOut j b h (DFrac.own 1) o ∗ crTr False o }}
 
 end spec
