@@ -985,18 +985,11 @@ noncomputable def serverStream.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.EOF))) (Val #()))))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"server-stream"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (GlobalVarAddr reached))) (Val #()))) (Var "$a0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "got")) (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "got")) (Val #(go!""))))) (Val #false)))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"server-stream: io.EOF before every message was received")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #()))))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (GlobalVarAddr reached))) (Val #()))) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1026,7 +1019,7 @@ noncomputable def serverStream.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- clientStream is the section client-stream.
 
-    go: grpcdriver.go:309:6 -/
+    go: grpcdriver.go:305:6 -/
 noncomputable def clientStream.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -1122,7 +1115,7 @@ noncomputable def clientStream.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- bidi is the section bidi-stream.
 
-    go: grpcdriver.go:337:6 -/
+    go: grpcdriver.go:333:6 -/
 noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -1146,8 +1139,6 @@ noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "sent" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty) go!"CloseSend"))) (App (Val (GoInstruction (GoLoad (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty)))) (Var "st"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
-  (Let "closed" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!""))
   (Let "got" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1188,18 +1179,11 @@ noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.EOF))) (Val #()))))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"bidi-stream"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (GlobalVarAddr reached))) (Val #()))) (Var "$a0")))))))
-  (If (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "closed")) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "sent")) (App (Val (GoInstruction (GoLoad go.string))) (Var "v")))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "got")) (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "got")) (Val #(go!""))))) (Val #false))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"bidi-stream: io.EOF before every message was received")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #()))))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (GlobalVarAddr reached))) (Val #()))) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1211,7 +1195,7 @@ noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "got") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "closed") (Var "$r0")))))))))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty) go!"CloseSend"))) (App (Val (GoInstruction (GoLoad (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty)))) (Var "st"))) (Val #()))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1261,7 +1245,7 @@ noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- work runs random operations on the ClientConn's client.
 
-    go: grpcdriver.go:378:6 -/
+    go: grpcdriver.go:370:6 -/
 noncomputable def work.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -1321,7 +1305,7 @@ noncomputable def work.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Client connects to the server and runs random operations from random goroutines on one
     ClientConn, then closes it.
 
-    go: grpcdriver.go:402:6 -/
+    go: grpcdriver.go:394:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)

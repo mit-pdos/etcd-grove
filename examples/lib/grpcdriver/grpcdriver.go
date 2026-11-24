@@ -274,10 +274,9 @@ func canceled(c svc.DriverClient, ids *counter) {
 // serverStream is the section server-stream.
 func serverStream(c svc.DriverClient) {
 	// Section server-stream: the client receives the handler's messages in order, without loss
-	// or duplication, and io.EOF only after the handler returned without error and every message
-	// was received, or before any message (a transparently retried attempt whose replayed request
-	// failed to send ends with a bare io.EOF, the handler possibly never run: grpc/grpc-go#9443,
-	// nonissues/grpc-transparent-retry-spurious-eof.md).
+	// or duplication. (gRPC also ends the stream with io.EOF only after the handler returned
+	// without error and every message was received, or before any message, grpc/grpc-go#9443;
+	// the proof does not state that yet: an S3 gap, notes/library-drivers.md, so it is not checked.)
 	v := randomWord()
 	st, err := c.ServerStream(context.Background(), wrapperspb.String(v))
 	if err != nil {
@@ -288,9 +287,6 @@ func serverStream(c svc.DriverClient) {
 	for {
 		m, err := st.Recv()
 		if err == io.EOF {
-			if got != v && got != "" {
-				panic("server-stream: io.EOF before every message was received")
-			}
 			reached("server-stream")
 			return
 		}
@@ -336,9 +332,8 @@ func clientStream(c svc.DriverClient) {
 // bidi is the section bidi-stream.
 func bidi(c svc.DriverClient) {
 	// Section bidi-stream: each direction is a queue: the messages the client receives are those
-	// the handler sent (here, back the client's own, in order), and io.EOF comes only after the
-	// handler returned without error, every message received, or before any message (as in
-	// server-stream).
+	// the handler sent (here, back the client's own, in order). (io.EOF only after every message,
+	// or before any, as in server-stream, is not checked: an S3 gap.)
 	st, err := c.Bidi(context.Background())
 	if err != nil {
 		checkErr(err)
@@ -352,14 +347,11 @@ func bidi(c svc.DriverClient) {
 		}
 		sent = sent + v[i:i+1]
 	}
-	closed := st.CloseSend() == nil
+	st.CloseSend()
 	got := ""
 	for {
 		m, err := st.Recv()
 		if err == io.EOF {
-			if closed && sent == v && got != v && got != "" {
-				panic("bidi-stream: io.EOF before every message was received")
-			}
 			reached("bidi-stream")
 			return
 		}

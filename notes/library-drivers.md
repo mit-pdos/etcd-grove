@@ -92,9 +92,9 @@ random goroutines on one `ClientConn`, then closes it and calls once more.
 | status-roundtrip | a call whose handler failed returns an error (and, checked by the Go test only: with the handler's code) |
 | metadata | the values the caller's context carries at a key reach the handler, in order |
 | ctx-canceled | a call with a context already cancelled fails with `codes.Canceled` |
-| server-stream | the handler's messages arrive in order, without loss or duplication; `io.EOF` after all of them, or before any (grpc-go#9443) |
+| server-stream | the handler's messages arrive in order, without loss or duplication |
 | client-stream | once every `Send` succeeded, the reply is to all of them, in order |
-| bidi-stream | each direction is a queue; `io.EOF` after every message, or before any |
+| bidi-stream | each direction is a queue: what the client receives is what it sent, in order |
 | concurrent-calls | calls and streams made concurrently on one `ClientConn` each meet their section |
 | close | after `Close`, a call fails with `codes.Canceled` |
 
@@ -103,6 +103,13 @@ random goroutines on one `ClientConn`, then closes it and calls once more.
 (grpc/grpc-go#9443, `nonissues/grpc-transparent-retry-spurious-eof.md`); the first driver asserted every
 message before `io.EOF` and was false of grpc. Its server-stream and bidi sections accept `io.EOF` before any
 message.
+
+**Gap for S3 (2026-11-24): a stream's clean end.** gRPC ends a stream with `io.EOF` only after the handler returned
+`nil` having sent every message (or before any message, grpc-go#9443), but the client end's spec (`cliStreamIs`'s
+`io.EOF` arm, `downClosed γ L`) says nothing of the handler's return value or of what it meant to send, so
+"`io.EOF` ⇒ every message received" is not provable; the driver does not check it (server-stream, bidi). The
+statement that would (a per-entry `fin` relayed at the clean end, the plan's T10, designed in
+`notes/axiom-review/grpc-driver-interim.md`'s branch notes) belongs with S3's stream entries.
 
 **Gap for S3 (2026-11-24): status-roundtrip's code.** The proof states the code relay only as the Go test
 checks it: the unary run contract's error continuation (`Ψe : GoString → IProp`, `grpcRunOkMd`) carries the
