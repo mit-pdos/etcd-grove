@@ -405,11 +405,11 @@ theorem mh_cut_eol {eol rest l : List w8} (heol : eol = [] ∨ eol = [W8 13]) (h
     have := h.subset hx
     simp at this
 
-/-- `fmt.Fits` of a literal and `%q` of a string `s` of at most `maxAddr` bytes (the model's error
-messages). -/
-theorem mh_fits_q (lit s : GoString) (hl : W8 37 ∉ lit) (hs : (s.length : Int) ≤ maxAddr) :
+/-- `fmt.Fits` of a literal and `%q` of a string `s` (the model's error messages; since Perennial
+`52d62e83c` `%q` of a string needs no length bound). -/
+theorem mh_fits_q (lit s : GoString) (hl : W8 37 ∉ lit) :
     fmt.Fits [.lit lit, .dir none fmt.verb_q] [.str s] :=
-  .lit _ _ _ hl (.dir _ _ _ _ _ (Or.inr (Or.inr (Or.inr ⟨rfl, hs⟩))) .nil)
+  .lit _ _ _ hl (.dir _ _ _ _ _ (Or.inr (Or.inr (Or.inr rfl))) .nil)
 
 end pure
 
@@ -864,16 +864,6 @@ local macro "mh_after" fin:tacticSeq : tactic => `(tactic| (
           wp_apply (wp_bytes_to_string _ _ DFrac.discard) $$ [Hc] as -
           · iexact Hc
           try wp_auto
-          ihave %HkvM2 := bytes.ownSlice_bytes_len_le $$ Hkv2
-          have hq : ((hb[n].fst ++ subslice (sint.nat i) (sint.nat kv2.len) line2).length : Int) ≤
-              maxAddr := by
-            have hsub : (subslice (sint.nat i) (sint.nat kv2.len) line2).length ≤
-                line2.length - sint.nat i := by
-              unfold subslice; simp only [List.length_drop, List.length_take]; omega
-            have h1 := Hkl2.1
-            have h2 : sint.nat kv2.len ≤ 2 ^ 47 := by unfold maxAddr at HkvM2; word
-            simp only [List.length_append]
-            unfold maxAddr; omega
           wp_apply wp_slice_literal
           isplitr
           · ipureintro; rfl
@@ -881,7 +871,7 @@ local macro "mh_after" fin:tacticSeq : tactic => `(tactic| (
           try wp_auto
           wp_apply (fmt.Sprintf_pure_of wp_Sprintf _
               [.lit go!"malformed MIME header line: ", .dir none fmt.verb_q] _ _ _ _
-              (by fmt_encode) (mh_fits_q _ _ (by decide) hq) (.str _ _ _ .nil)) $$ [Hsl] as %msg -
+              (by fmt_encode) (mh_fits_q _ _ (by decide)) (.str _ _ _ .nil)) $$ [Hsl] as %msg -
           · iexact Hsl
           try wp_auto
           wp_for_post
@@ -1277,12 +1267,6 @@ local macro "mh_loop" : tactic => `(tactic| (
         try rw [decide_eq_true (show sint.Z (W64 (-1)) < sint.Z (W64 0) by decide)]
         cleanup_bool_decide
         try wp_auto
-        ihave %HkvL := ownSlice_len $$ Hkv
-        ihave %HkvM := bytes.ownSlice_bytes_len_le $$ Hkv
-        have hq : (line.length : Int) ≤ maxAddr := by
-          have h1 := HkvL.1
-          have h2 : sint.nat kv.len ≤ 2 ^ 47 := by unfold maxAddr at HkvM; word
-          unfold maxAddr; omega
         wp_apply (wp_bytes_to_string _ _ DFrac.discard) $$ [Hkv] as -
         · iexact Hkv
         try wp_auto
@@ -1294,7 +1278,7 @@ local macro "mh_loop" : tactic => `(tactic| (
         -- `%q` of `string(kv)` (the model's, byte-identical to textproto's `%q` of `kv`)
         wp_apply (fmt.Sprintf_pure_of wp_Sprintf _
             [.lit go!"malformed MIME header: missing colon: ", .dir none fmt.verb_q] _ _ _ _
-            (by fmt_encode) (mh_fits_q _ _ (by decide) hq) (.str _ _ _ .nil)) $$ [Hsl] as %msg -
+            (by fmt_encode) (mh_fits_q _ _ (by decide)) (.str _ _ _ .nil)) $$ [Hsl] as %msg -
         · iexact Hsl
         try wp_auto
         wp_for_post
