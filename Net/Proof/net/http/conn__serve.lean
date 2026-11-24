@@ -46,6 +46,8 @@ variable [package_sem : context.Assumptions] [bufio.Assumptions]
 variable [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
 
 set_option maxHeartbeats 2000000 in
+set_option maxRecDepth 20000 in
+set_option linter.unusedSimpArgs false in
 theorem conn.serve.wp_proof
     (wp_readRequest : conn.readRequest.spec (GF := GF) (hG := hG))
     (wp_hijacked : conn.hijacked.spec (GF := GF) (hG := hG))
