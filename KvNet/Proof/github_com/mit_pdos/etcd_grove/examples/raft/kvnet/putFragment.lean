@@ -36,8 +36,11 @@ theorem putFragment.wp_proof
   ihave %Hcl := ownSlice_len _ _ _ $$ Hc
   ihave %Hmax := bytes.ownSlice_bytes_len_le _ _ _ $$ Hc
   try wp_auto
+  have hcl0 : 0 ≤ sint.Z chunk.len := Hcl.2
+  have hcl1 : sint.Z chunk.len ≤ 2 ^ 47 := Hmax
+  have h45 : sint.Z (W64 45 + chunk.len) = 45 + sint.Z chunk.len := by word
   have hcap : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 45 + chunk.len) := by
-    unfold maxAddr at Hmax; constructor <;> word
+    rw [h45, show sint.Z (W64 0) = 0 from rfl]; omega
   wp_apply wp_slice_make3 (V := w8) (W64 0) (W64 45 + chunk.len) hcap as %buf ⟨Hbuf, Hcap, -⟩
   rw [show List.replicate 0 (zero_val w8) = [] from rfl]
   try wp_auto
@@ -51,7 +54,8 @@ theorem putFragment.wp_proof
   try wp_auto
   iapply HΦ
   iframe Hbcap Hc
-  simp only [fragBytes, kindFragmentB, List.nil_append] at *
+  rw [show fragBytes src dst boot seq index total cs =
+    [] ++ headerBytes (W8 1) src dst boot seq ++ u32Le index ++ u32Le total ++ cs from rfl]
   iexact Hb
 
 end proof

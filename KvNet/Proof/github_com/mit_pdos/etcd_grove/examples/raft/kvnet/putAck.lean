@@ -38,7 +38,7 @@ theorem putAck.wp_proof
   try wp_auto
   iapply HΦ
   iframe Hscap
-  simp only [List.nil_append] at *
+  rw [show ackBytes src dst boot seq = [] ++ headerBytes (W8 2) src dst boot seq from rfl]
   iexact Hs
 
 end proof
