@@ -4,8 +4,7 @@
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.specreq.reflect.MustPanicIsNilZeroValue
-public import Perennial.Spec.reflect.ValueOf
-public import Perennial.Spec.reflect.Value__IsNil
+public import Perennial.Proof.reflect.Link
 
 @[expose] public section
 
@@ -26,16 +25,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.specreq.reflect.Assumptions]
 
-theorem MustPanicIsNilZeroValue.wp_proof
-    (hV : _root_.Perennial.reflect.ValueOf.spec (GF := GF) (hG := hG))
-    (hN : _root_.Perennial.reflect.Value.IsNil.spec (GF := GF) (hG := hG)) :
+theorem MustPanicIsNilZeroValue.wp_proof :
     MustPanicIsNilZeroValue.spec (GF := GF) (hG := hG) := by
   have hz : (zero_val _root_.Perennial.reflect.Value).flag' = W64 0 := rfl
   wp_start
   wp_auto
-  wp_apply hV.2.2
+  wp_apply _root_.Perennial.reflect.wp_ValueOf.2.2
   wp_pures
-  wp_apply (hN.2.2 _)
+  wp_apply (_root_.Perennial.reflect.Value.wp_IsNil.2.2 _)
   · rw [hz, show (W64 0 &&& W64 31 : w64) = W64 0 by decide]; simp
   iintro %l Hl
   wp_pures

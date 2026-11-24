@@ -5,7 +5,7 @@
 module
 
 public import Spec.reflect.Value__Kind
-public import Perennial.Spec.reflect.Value__Kind
+public import Perennial.Proof.reflect.Link
 
 @[expose] public section
 
@@ -25,8 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [reflect.Assumptions]
 
-theorem reflect.Value.Kind.wp_proof
-    (hK : _root_.Perennial.reflect.Value.Kind.spec (GF := GF) (hG := hG)) :
+theorem reflect.Value.Kind.wp_proof :
     reflect.Value.Kind.spec (GF := GF) (hG := hG) := by
   intro vp dq v T p
   wp_start as ⟨Hvp, %Hel⟩
@@ -34,7 +33,7 @@ theorem reflect.Value.Kind.wp_proof
   obtain ⟨k, hk, rfl⟩ := Hel
   rw [go.is_underlying] at hk
   cases hk
-  wp_apply hK
+  wp_apply _root_.Perennial.reflect.Value.wp_Kind
   rw [show (W64 ↑(23 : Nat) ||| W64 128 ||| W64 256) &&& W64 31 = W64 23 by decide]
   iapply HΦ
   iexact Hvp

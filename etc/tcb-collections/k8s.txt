@@ -62,17 +62,11 @@ axiom peer.Peer.String.wp_proof
 axiom proto.Clone.wp_proof
 axiom rand.Float64.wp_proof
 axiom reflect.New.wp_proof
-axiom reflect.Type.Elem.wp_proof
 axiom reflect.TypeOf.wp_proof
 axiom reflect.Value.Addr.wp_proof
 axiom reflect.Value.Cap.wp_proof
-axiom reflect.Value.Interface.wp_proof
-axiom reflect.Value.IsNil.wp_proof
-axiom reflect.Value.Kind.wp_proof
 axiom reflect.Value.Len.wp_proof
 axiom reflect.Value.Set.wp_proof
-axiom reflect.Value.Type.wp_proof
-axiom reflect.ValueOf.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof

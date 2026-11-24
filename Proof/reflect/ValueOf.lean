@@ -5,9 +5,7 @@
 module
 
 public import Spec.reflect.ValueOf
-public import Perennial.Spec.reflect.ValueOf
-public import Perennial.Spec.reflect.Value__IsNil
-public import Perennial.Spec.reflect.Value__Elem
+public import Perennial.Proof.reflect.Link
 
 @[expose] public section
 
@@ -27,14 +25,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [reflect.Assumptions]
 
-theorem reflect.ValueOf.wp_proof
-    (hV : _root_.Perennial.reflect.ValueOf.spec (GF := GF) (hG := hG))
-    (hN : _root_.Perennial.reflect.Value.IsNil.spec (GF := GF) (hG := hG))
-    (hE : _root_.Perennial.reflect.Value.Elem.spec (GF := GF) (hG := hG)) :
+theorem reflect.ValueOf.wp_proof :
     reflect.ValueOf.spec (GF := GF) (hG := hG) := by
   intro T p
   iintro %Φ #Hinit HΦ
-  wp_apply (hV.1 (t := go.PointerType T) 22 #p rfl (by simp [_root_.Perennial.reflect.rtype.ty]) (by omega)) $$ [$Hinit]
+  wp_apply (_root_.Perennial.reflect.wp_ValueOf.1 (t := go.PointerType T) 22 #p rfl (by simp [_root_.Perennial.reflect.rtype.ty]) (by omega)) $$ [$Hinit]
   iapply HΦ
   isplit
   · imodintro
@@ -42,7 +37,7 @@ theorem reflect.ValueOf.wp_proof
     imodintro
     iintro _ HΦ'
     wp_pures
-    wp_apply (hN.1 _ (t := go.PointerType T) (e := T) p (by simp only; rfl) (by simp only; rfl) rfl)
+    wp_apply (_root_.Perennial.reflect.Value.wp_IsNil.1 _ (t := go.PointerType T) (e := T) p (by simp only; rfl) (by simp only; rfl) rfl)
     iapply HΦ'
     itrivial
   · imodintro
@@ -51,7 +46,7 @@ theorem reflect.ValueOf.wp_proof
     iintro %Hpre HΦ'
     obtain ⟨hp, k, hk⟩ := Hpre
     wp_pures
-    wp_apply (hE _ T k p hk rfl rfl (by simp only; rfl) (by simp only; rfl))
+    wp_apply (_root_.Perennial.reflect.Value.wp_Elem _ T k p hk rfl rfl (by simp only; rfl) (by simp only; rfl))
     rw [if_neg hp]
     iapply HΦ'
     ipureintro

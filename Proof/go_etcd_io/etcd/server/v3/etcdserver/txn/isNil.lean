@@ -4,9 +4,8 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart); unit P4 (2
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.isNil
-public import Perennial.Spec.reflect.ValueOf
-public import Perennial.Spec.reflect.Value__IsNil
 public import Perennial.Proof.reflect.Values
+public import Perennial.Proof.reflect.Link
 
 @[expose] public section
 
@@ -26,15 +25,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-theorem txn.isNil.wp_proof
-    (hV : _root_.Perennial.reflect.ValueOf.spec (GF := GF) (hG := hG))
-    (hN : _root_.Perennial.reflect.Value.IsNil.spec (GF := GF) (hG := hG)) :
+theorem txn.isNil.wp_proof :
     txn.isNil.spec (GF := GF) (hG := hG) := by
   intro T p
   wp_start
   wp_auto
-  wp_apply (hV.1 (t := go.PointerType T) 22 #p rfl (by simp [_root_.Perennial.reflect.rtype.ty]) (by omega))
-  wp_apply (hN.1 _ (t := go.PointerType T) (e := T) p (by simp only; rfl) (by simp only; rfl) rfl)
+  wp_apply (_root_.Perennial.reflect.wp_ValueOf.1 (t := go.PointerType T) 22 #p rfl (by simp [_root_.Perennial.reflect.rtype.ty]) (by omega))
+  wp_apply (_root_.Perennial.reflect.Value.wp_IsNil.1 _ (t := go.PointerType T) (e := T) p (by simp only; rfl) (by simp only; rfl) rfl)
   iapply HΦ
   itrivial
 

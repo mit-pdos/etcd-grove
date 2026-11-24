@@ -5,7 +5,7 @@
 module
 
 public import Spec.reflect.Value__IsNil
-public import Perennial.Spec.reflect.Value__IsNil
+public import Perennial.Proof.reflect.Link
 
 @[expose] public section
 
@@ -25,8 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [reflect.Assumptions]
 
-theorem reflect.Value.IsNil.wp_proof
-    (hN : _root_.Perennial.reflect.Value.IsNil.spec (GF := GF) (hG := hG)) :
+theorem reflect.Value.IsNil.wp_proof :
     reflect.Value.IsNil.spec (GF := GF) (hG := hG) := by
   intro vp dq dq' v T p s
   wp_start as ⟨Hvp, %Hel, Hp⟩
@@ -34,7 +33,7 @@ theorem reflect.Value.IsNil.wp_proof
   obtain ⟨k, hk, rfl⟩ := Hel
   rw [go.is_underlying] at hk
   cases hk
-  wp_apply (hN.2.1 _ (t := go.SliceType T) (e := T) p dq' s (by simp only; rfl) rfl) $$ [$Hp]
+  wp_apply (_root_.Perennial.reflect.Value.wp_IsNil.2.1 _ (t := go.SliceType T) (e := T) p dq' s (by simp only; rfl) rfl) $$ [$Hp]
   iintro Hp
   iapply HΦ
   iframe
