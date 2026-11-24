@@ -80,15 +80,25 @@ theorem membership.computeMemberID.wp_proofOne
     (hSum : _root_.Perennial.crypto.sha1.Sum.spec (GF := GF) (hG := hG))
     (hU64 : binary.bigEndian.Uint64.spec (GF := GF) (hG := hG)) :
     membership.computeMemberID.specOne (GF := GF) (hG := hG) := by
-  intro sl u token hfips
+  intro sl u token hfips hplain hlen
   wp_start as #Hsl
   wp_auto
   wp_apply (hSS peerURLs_ptr (DFrac.own 1) sl [u]) $$ [peerURLs] as %out %ss ⟨peerURLs, Hout, %Hss⟩
   · iframe; iframe #
   wp_apply (hSort out ss) $$ [Hout] as %ss' ⟨Hout, %Hperm, %Hsorted⟩
   · iframe; ipureintro; simp [Hss.1]
-  wp_apply (hJoin out ss' (DFrac.own 1) []) $$ [Hout] as Hout
+  have hss : ss = [go!"http://" ++ u.Host'] := by
+    obtain ⟨hl, hget⟩ := Hss
+    have h0 := hget 0 u rfl hplain
+    match ss, hl, h0 with
+    | [x], _, h0 => simp at h0; simp [h0]
+  rw [hss] at Hperm
+  have hss' : ss' = [go!"http://" ++ u.Host'] := List.perm_singleton.1 Hperm.symm
+  subst hss'
+  wp_apply (hJoin out _ (DFrac.own 1) []) $$ [Hout] as Hout
   · iframe
+    ipureintro
+    simpa [List.intercalate] using hlen
   wp_apply wp_string_to_bytes ([].intercalate ss') as %b1 ⟨Hb1, Hb1cap⟩
   wp_apply wp_string_to_bytes token as %b2 ⟨Hb2, -⟩
   wp_apply (wp_slice_append b1 _ b2 _ (DFrac.own 1)) $$ [Hb1 Hb1cap Hb2] as %b3 ⟨Hb3, -, -⟩
@@ -107,15 +117,7 @@ theorem membership.computeMemberID.wp_proofOne
   · rw [List.append_nil]; iframe
   iapply HΦ
   ipureintro
-  intro hp
-  obtain ⟨hl, hget⟩ := Hss
-  have h0 := hget 0 u rfl hp
-  have hss : ss = [go!"http://" ++ u.Host'] := by
-    match ss, hl, h0 with
-    | [x], _, h0 => simp at h0; simp [h0]
-  rw [hss] at Hperm
-  have hss' : ss' = [go!"http://" ++ u.Host'] := List.perm_singleton.1 Hperm.symm
-  subst hss'
+  intro _
   rw [beToU64_eq_fold]
   unfold membership.memberIdOf
   rw [← hH]

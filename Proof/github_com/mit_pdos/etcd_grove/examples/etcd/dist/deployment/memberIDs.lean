@@ -37,7 +37,7 @@ theorem urlHttp_plain (a : GoString) (h : Net.addrOk a = true) :
 theorem memberIDs.wp_proof [go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
     (hNew : EtcdGrove.membership.NewMember.specOne (GF := GF) (hG := hG)) :
     etcd_dist.memberIDs.spec (GF := GF) (hG := hG) := by
-  intro v d hfips
+  intro v d hfips hpeers
   wp_start as #Hd
   wp_auto
   iunfold deploymentRepr at Hd
@@ -76,7 +76,10 @@ theorem memberIDs.wp_proof [go_etcd_io.etcd.server.v3.etcdserver.api.membership.
     imod ownSlice_persist _ _ _ $$ Husl with #Husl
     wp_auto
     rw [htok]
-    wp_apply (hNew mm.name _ mm.peer d.token hfips) $$ [] as %mp %mvv ⟨Hmp, %Hid⟩
+    have hpm := hpeers mm (List.mem_of_getElem? hmm)
+    have hlen : (go!"http://" ++ mm.peer).length < 2 ^ 61 := by
+      have := hpm.2; simp only [typed.maxLen] at this; simp; omega
+    wp_apply (hNew mm.name _ mm.peer d.token hfips (urlHttp_plain _ hpm.1) hlen) $$ [] as %mp %mvv ⟨Hmp, %Hid⟩
     · iframe #
     wp_apply wp_slice_literal (V := w64) [mvv.ID']
     isplitr

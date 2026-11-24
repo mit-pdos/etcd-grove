@@ -32,10 +32,10 @@ theorem membership.NewMember.wp_proofOne
     (hCompute : membership.computeMemberID.specOne (GF := GF) (hG := hG))
     (hNew : membership.newMember.specOne (GF := GF) (hG := hG)) :
     membership.NewMember.specOne (GF := GF) (hG := hG) := by
-  intro name sl p token hfips
+  intro name sl p token hfips hplain hlen
   wp_start as #Hsl
   wp_auto
-  wp_apply (hCompute sl (membership.urlHttp p) token hfips) $$ [] as %id %hid
+  wp_apply (hCompute sl (membership.urlHttp p) token hfips hplain hlen) $$ [] as %id %hid
   · iframe #
   wp_apply (hNew name sl [membership.urlHttp p] id false) $$ [] as %m %mv ⟨Hm, %hmv⟩
   · iframe #

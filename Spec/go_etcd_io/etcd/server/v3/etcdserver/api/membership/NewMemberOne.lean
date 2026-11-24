@@ -40,10 +40,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assu
 `url.URL{Scheme: "http", Host: p}`, returns a pointer to a fresh member (owned), whose `ID` is
 `memberIdOf ("http://" ++ p) token` (etcd's `computeMemberID`) when `p` is a plain host
 (`http.urlRootPlain`: non-empty, of bytes `url.URL.String` writes unescaped). The `fips140` GODEBUG
-setting unset or `off` (`GodebugFips140Off`): in mode `only`, `crypto/sha1.Sum` panics. -/
+setting unset or `off` (`GodebugFips140Off`): in mode `only`, `crypto/sha1.Sum` panics. The URL plain and
+shorter than `2^61` bytes (`strings.Join`'s bound in `computeMemberID`). -/
 abbrev membership.NewMember.specOne : Prop :=
   ∀ (name : GoString) (sl : GoSlice) (p token : GoString),
-  crypto.fips140.GodebugFips140Off →
+  crypto.fips140.GodebugFips140Off → http.urlRootPlain (membership.urlHttp p) →
+  (go!"http://" ++ p).length < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ sl ↦*□ [membership.urlHttp p] }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMember)) (Val #name)) (Val #sl)) (Val #token)) (Val #null))
   {{ (m : Loc) (mv : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member), RET #m; m ↦ mv ∗

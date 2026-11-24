@@ -485,7 +485,8 @@ theorem WellFormed.wp_proof
           · have hjl := idx_end _ _ _ Hlw.1 Hlw.2 Hif Hn1
             subst hjl
             rw [← hnl', List.take_length] at Hok
-            wp_apply (hIds v d hfips) $$ [] as %bid %hbid
+            wp_apply (hIds v d hfips (fun m hm =>
+                Hok.2.2 m.peer (List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hm, by simp⟩)))) $$ [] as %bid %hbid
             · iunfold deploymentRepr
               iframe #
               ipureintro; exact ⟨htok, hcfg⟩

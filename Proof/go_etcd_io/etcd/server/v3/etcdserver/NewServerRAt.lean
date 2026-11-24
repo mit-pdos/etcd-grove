@@ -190,6 +190,8 @@ abbrev NewServer.specRAt : Prop :=
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   netDirOk dir →
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24) the URLs within etcd's URL bounds (`NewServer.spec`'s)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m false →
   -- what the restart contract covers: no forced new cluster, the WAL in the data directory's
@@ -263,11 +265,11 @@ abbrev NewServer.specRAt : Prop :=
 theorem NewServer.specR_of_RAt (h : NewServer.specRAt (GF := GF) (hG := hG)) :
     NewServer.specR (GF := GF) (hG := hG) := by
   intro cfg U γ id ρ ρo E₀ N Φs γn dir m S σ i A D mb M HρRaft HrN Hrule Hnsm Hc0 Hch0 Hlog0 Hkcmp Hcbl
-    Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hlbc Hbco Hfnc
+    Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc Hdirs Hlbc Hbco Hfnc
     Hdwd Hbwb
   letI : MemStorReg GF := ⟨γ.reg⟩
   have h' := h cfg U γ id ρ ρo E₀ N Φs γn dir m S σ i A D mb M HρRaft HrN Hrule Hnsm Hc0 Hch0 Hlog0
-    Hkcmp Hcbl Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hlbc
+    Hkcmp Hcbl Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc Hdirs Hlbc
     Hbco Hfnc Hdwd Hbwb
   iintro %Φ Hpre HΦ
   iNamed Hpre

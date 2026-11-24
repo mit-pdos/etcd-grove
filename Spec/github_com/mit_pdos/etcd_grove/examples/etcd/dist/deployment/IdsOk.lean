@@ -32,6 +32,7 @@ variable [package_sem : deployment.Assumptions]
 abbrev IdsOk.spec : Prop :=
   ∀ (v : deployment.Deployment) (d : Deployment),
   crypto.fips140.GodebugFips140Off →
+  (∀ m ∈ d.members, Net.addrOk m.peer = true ∧ m.peer.length ≤ typed.maxLen) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment ∗ deploymentRepr v d }}
     (App (Val (@! deployment.IdsOk)) (Val #v))
   {{ (b : Bool), RET #b;
