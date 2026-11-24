@@ -8,6 +8,10 @@ Perennial's bag idiom (`Chan/Idioms/Bag.lean`) has the blocking send's atomic up
 (`notes/perennial-changes.md`: a candidate for the idiom). A send that completes (a buffered slot,
 or a waiting receiver) hands `P v` to the invariant; one that cannot completes nothing, and the
 caller keeps `P v` in the `default` branch (`nonblockingSendAu`'s `∧`).
+
+(2026-11-24) Moved here from `examples/raft/kvreconf/BagSend.lean` when kvreconf's proof retired:
+its users are lessor's `revokeExpiredLeases` and kvnet's `Replica.request`. It goes once the same
+lemma is in Perennial (a branch off Perennial's `lean` adds it to the bag idiom) and the pin has it.
 -/
 module
 

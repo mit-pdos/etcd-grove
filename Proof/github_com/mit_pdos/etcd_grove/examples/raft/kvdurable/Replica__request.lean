@@ -14,7 +14,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Replica__request
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.DefsLaws
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.BagSend
+public import Proof.go_etcd_io.etcd.server.v3.lease.BagSend
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Stats__add
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.encodeState
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetVotersOutgoing

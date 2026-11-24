@@ -26,6 +26,13 @@ that moved, so a reference `notes/STATUS.md, "..."` to one of them resolves ther
 record is `notes/decisions.md`; the Rocq development's notes are on branch `main`
 (`git show main:notes/STATUS.md`).
 
+## The raft examples kv, kvreconf, kvdurable and kvdurablenoax retired (2026-11-24, branch `raft-retire/2026-11-24`, not landed: waits for Upamanyu's OK)
+
+- **`BagSend` moved**: `bag_nb_send_au` (a bag channel's non-blocking send) is now
+  `Proof/go_etcd_io/etcd/server/v3/lease/BagSend.lean` (was `examples/raft/kvreconf/BagSend.lean`),
+  for its users lessor's `revokeExpiredLeases` and kvnet's `Replica.request`. **It goes once the
+  Perennial branch adding the lemma to the bag idiom is pinned**: then both import Perennial's.
+
 ## Snapshot guard removal (2026-11-20)
 
 The server follows the elected sender and snapshot source through Raft's
