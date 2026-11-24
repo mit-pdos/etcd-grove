@@ -182,6 +182,70 @@ theorem send_stale_eq (hty : q.ty = .appResp) (hsrc : q.src = nodeId n) (hrej : 
     decide_false, hi, hsd, hqd, hqt, hG, h1, h2]
   rfl
 
+omit hc hsrv hne in
+/-- `SendOk` of a `send` that adds no fact. -/
+theorem SendOk.plain {S : State} {n : Fin 3} {q : Msg} (hsh : Shape S) (hb : BindingOk S)
+    (hty : q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .heartbeat ∨
+      q.ty = .heartbeatResp ∨ q.ty = .propose)
+    (hsrc : q.src = nodeId n ∧ uint.Z q.term ≤ S.currentTerm[n.val]!) (hdst : ∃ j : Fin 3, q.dst = nodeId j)
+    (hreq : (q.ty = .app ∨ q.ty = .heartbeat) → (toAppendFact (msgOf q q.dst) >>= S.sendable) = .ok true)
+    (hvote : q.ty = .vote → ∃ f, voteFact (msgOf q q.dst) = .ok f ∧ f ∈ S.msgs)
+    (hgrant : ¬ (q.ty = .voteResp ∧ q.reject = false))
+    (hack : ¬ (q.ty = .appResp ∧ q.reject = false ∧ q.index ≠ W64 0)) :
+    SendOk S n q S.msgs S.confirmed where
+  sub := fun _ h => h
+  new := fun _ h h' => absurd h h'
+  clen := hsh.2.2.2.2.2.2.2.2.2.2.1
+  cother := fun _ _ => rfl
+  conf := hb.2.2.2.2.2.2.1 n
+  acks := hb.2.2.2.2.2.2.2.1 n
+  ty := hty
+  src := hsrc
+  dst := hdst
+  req := hreq
+  vote := hvote
+  grant := fun h => absurd h hgrant
+  ack := fun h => absurd h hack
+
+omit hc hsrv hne in
+/-- A leader's commit index as C3 has it, for `Sendable`'s `RecordedIn` of a request's commit `c` at
+most it (B 109-112). -/
+theorem commit_recorded {S : State} {n : Fin 3} {lg : List EntryM} {c : Nat} (hb : BindingOk S)
+    (hlg : S.log[n.val]! = logOf lg) (hc : (c : Int) ≤ S.commitIndex[n.val]!) :
+    c = 0 ∨ (c ≤ lg.length ∧ c ≤ S.chain.length ∧
+      (∃ x ∈ S.termLen, x.1 ≤ S.currentTerm[n.val]! ∧ (c : Int) ≤ x.2) ∧
+      S.chain.take c = (logOf lg).take c) := by
+  obtain ⟨h1, h2⟩ := hb.2.2.2.2.1 n
+  rcases hb.2.2.2.2.2.1 n with h0 | ⟨x, hx, hx1, hx2⟩
+  · left; omega
+  · right
+    have hlen := congrArg List.length h2
+    rw [hlg] at h2 hlen
+    simp only [List.length_take, logOf_length] at hlen
+    refine ⟨by omega, by omega, ⟨x, hx, hx1, by omega⟩, ?_⟩
+    have e : c = min c (S.commitIndex[n.val]!).toNat := by omega
+    rw [e, ← List.take_take, ← List.take_take, h2]
+
+
+omit hc hsrv hne in
+/-- **A leader's request is `Sendable`** under C1-C3: from its term, its log at `ledLog` (C2), the
+previous entry an entry of its log, the entries its slice after it, the commit at most its own. -/
+theorem leader_sendable {S : State} {n : Fin 3} {v : NodeView} (hb : BindingOk S) (hd : DurableIs S n v)
+    (hL : LeaderPart S n v) (hrole : v.ps.role = .leader) (dst : Str) {p pt c : w64} {es : List EntryM}
+    (hpt : plogTermAt base0 v.ps.log p = some pt) (hes : (v.ps.log.drop (uint.nat p)).take es.length = es)
+    (hcm : uint.Z c ≤ uint.Z v.ps.commit) :
+    S.sendable ⟨nameOf (nodeId n), dst, uint.Z v.ps.term, uint.Z p, uint.Z pt, logOf es, uint.Z c⟩ = .ok true := by
+  obtain ⟨l1, l2, -, -⟩ := hL hrole
+  obtain ⟨hp, hptt⟩ := termAt_of_plog hpt
+  have hpZ : ((uint.nat p : Nat) : Int) = uint.Z p := by word
+  have hcZ : ((uint.nat c : Nat) : Int) = uint.Z c := by word
+  have hrec := commit_recorded (c := uint.nat c) hb hd.2.2.1 (by rw [hd.2.2.2.1, hcZ]; exact hcm)
+  rw [hd.1] at hrec
+  have := sendable_leader (S := S) (dst := dst) (pt := uint.Z pt) l1 l2 (by rw [hpZ]; exact hptt)
+    (by omega) hes hrec
+  rw [hpZ, hcZ] at this
+  exact this
+
 end send
 
 end AntSim
