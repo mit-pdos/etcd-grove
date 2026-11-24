@@ -2173,7 +2173,7 @@ def dsv_kits():
     d = os.path.join(ROOT, "etc", "dsv")
     out = []
     for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
-        if not f.endswith(".py") or f.startswith("_"):
+        if not f.endswith(".py") or f.startswith("_") or f == "kitgen.py":  # (the generator)
             continue
         spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
         m = importlib.util.module_from_spec(spec)
