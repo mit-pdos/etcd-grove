@@ -108,12 +108,6 @@ attribute [irreducible] Result.ty
 @[reducible] noncomputable def compactRetention [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-@[reducible] noncomputable def durableTries [GooseExts] [GoGlobalContext] : val :=
-  #(30 : Int)
-
-@[reducible] noncomputable def durablePause [GooseExts] [GoGlobalContext] : val :=
-  #(W64 1000000000)
-
 @[reducible] noncomputable def kvCheckTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 120000000000)
 
@@ -609,7 +603,6 @@ noncomputable def RunAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
   (Let "$a1" (Val #(W64 5000000000))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -796,17 +789,6 @@ noncomputable def RunAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve remotePrincipals []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "ready")) (Val #()))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "nodes"))
-  (App (App (Val (GoInstruction (FuncResolve AwaitAccept []))) (Val #())) (Var "$a0"))))
-  (Let "$r0" (Let "$a0" (Val #(go!"auth: a principal's machine never answered"))
-  (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Result.ty))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (Let "$a0" (Val #(go!"auth: u's client failed to connect"))
   (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
@@ -2295,7 +2277,7 @@ noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
     nothing, so trying it again is safe, where a workload's first write (auth's set-up) cannot be
     retried after an unknown outcome. It reports whether one returned.
 
-    go: client.go:89:6 -/
+    go: client.go:90:6 -/
 noncomputable def AwaitCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -2400,7 +2382,7 @@ noncomputable def AwaitCluster.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main runs w with no observer of its set-up (MainReady).
 
-    go: client.go:108:6 -/
+    go: client.go:109:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "eps"
@@ -2428,8 +2410,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- hasSetUp says whether a workload of kind k has a set-up: steps before its checks whose unknown
     outcome cannot be redone (auth's users and AuthEnable, authLease's leases, leaseCatchup's first
-    lease) or that must precede the writes (the watch and the cache opened before any write), or that
-    wait for its client machines (kv, watch, cache, auth).
+    lease) or that must precede the writes (the watch and the cache opened before any write).
 
     go: client.go:116:6 -/
 noncomputable def hasSetUp.impl [GooseExts] [GoGlobalContext] : val :=
@@ -2437,7 +2418,7 @@ noncomputable def hasSetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "k" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k"))
-  (Let "$r0" (If (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 1))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 2))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 5))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 6))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 8)))))
+  (Let "$r0" (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 1)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 2))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 5))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 6))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Var "k")) (Val #(W64 8)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2449,12 +2430,16 @@ noncomputable def hasSetUp.impl [GooseExts] [GoGlobalContext] : val :=
     that pick a member use eps[i mod len(eps)]), with its client machines nodes (deployment.NodeCount(w) of
     them: nodes.go). A failed check is a panic inside the workload.
 
-    ready is called once the workload's set-up is done (at once, after the cluster's first read, for
-    a workload with none), or not at all if the workload ends before: the test may hold its faults
-    until then (examples/etcd/dist (its test)). It is an observer only: nothing the workload does
-    depends on it.
+    ready is called once the workload's set-up is done (at once for a workload with none), or not at
+    all if the workload ends before: the test may hold its faults until then (examples/etcd/dist (its
+    test)). It is an observer only: nothing the workload does depends on it.
 
-    go: client.go:129:6 -/
+    No step is retried for liveness: the first failure of a step the workload needs ends it (a
+    Result that is not Checked). Waiting until the members serve clients and the client machines
+    listen is the harness's (examples/etcd/dist's Cluster.Run, before it starts the orchestrators),
+    not the program's.
+
+    go: client.go:133:6 -/
 noncomputable def MainReady.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "eps"
@@ -2466,7 +2451,6 @@ noncomputable def MainReady.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "nodes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "nodes"))
   (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Workload.ty))) (Var "w"))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2588,17 +2572,6 @@ noncomputable def MainReady.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "ready")) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
-  (App (App (Val (GoInstruction (FuncResolve AwaitCluster []))) (Val #())) (Var "$a0"))))
-  (Let "$r0" (Let "$a0" (Val #(go!"the cluster never answered a read"))
-  (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Result.ty))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "nodes"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Workload.ty))) (Var "w"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.NodeCount []))) (Val #())) (Var "$a0")))))))
@@ -2628,7 +2601,7 @@ noncomputable def MainReady.impl [GooseExts] [GoGlobalContext] : val :=
     if d is well formed (deployment.WellFormed) and has a workload j, MainReady of that workload, the
     members' client endpoints and the workload's client machines; otherwise it returns at once.
 
-    go: client.go:172:6 -/
+    go: client.go:173:6 -/
 noncomputable def MainDeployment.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "j"
@@ -2678,7 +2651,7 @@ noncomputable def MainDeployment.impl [GooseExts] [GoGlobalContext] : val :=
     clientProg d j): MainDeployment with no set-up signal (the binary's signal, a line on its output,
     is the harness's), its result discarded (a failed check panics).
 
-    go: client.go:185:6 -/
+    go: client.go:186:6 -/
 noncomputable def Orchestrator.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "j"
@@ -2701,7 +2674,7 @@ noncomputable def Orchestrator.impl [GooseExts] [GoGlobalContext] : val :=
     has an n-th client machine, NodeMain, client machine c of workload j at its address
     d.Nodes[j][c]; otherwise it returns at once.
 
-    go: client.go:193:6 -/
+    go: client.go:194:6 -/
 noncomputable def NodeDeployment.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "n"
@@ -3385,7 +3358,7 @@ noncomputable def RunPutGet.impl [GooseExts] [GoGlobalContext] : val :=
 /-- durableKey and durableValue are the i-th Put's key and value (restartN's key and value, under
     durablePrefix): the keys distinct, in the order of i.
 
-    go: durable.go:22:6 -/
+    go: durable.go:14:6 -/
 noncomputable def durableKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -3401,7 +3374,7 @@ noncomputable def durableKey.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: durable.go:23:6 -/
+/-- go: durable.go:15:6 -/
 noncomputable def durableValue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -3420,14 +3393,14 @@ noncomputable def durableValue.impl [GooseExts] [GoGlobalContext] : val :=
 /-- RunDurable is the durable workload (restartN's check, rewritten over gRPC: restartN's Puts and
     Range go through a member's own API, in the process that runs it, and its check is exact; Lean:
     Workload.durable, review F12): n <= deployment.MaxDurable Puts of distinct keys under durablePrefix, one
-    after the other, while members crash and restart (the test's, not the program's); then a
-    linearizable Range of the prefix, tried until one returns. Panics unless every acknowledged
+    after the other, while members crash and restart (the test's, not the program's); then one
+    linearizable Range of the prefix (its error ends the workload: no retry). Panics unless every acknowledged
     Put's key is in it with its value at version 1, and every key in it is one whose Put was
     attempted (a Put that failed may have been applied: an unknown outcome), with that Put's value
     at version 1 (each key is put once; the client sends a Put at most once, so it is applied at
     most once). No revision check: other workloads write.
 
-    go: durable.go:34:6 -/
+    go: durable.go:26:6 -/
 noncomputable def RunDurable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "n"
@@ -3453,19 +3426,6 @@ noncomputable def RunDurable.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "acked" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.bool)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (Val #(go!"durable: no Range returned"))
-  (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Result.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "t" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "t")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val durableTries)))))) (Lam BAnon
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
   (Let "$a1" (Val #(W64 5000000000))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -3486,7 +3446,6 @@ noncomputable def RunDurable.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3574,11 +3533,13 @@ noncomputable def RunDurable.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.bool)))) (Pair (Var "seen") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"durable: the Range failed"))
+  (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doContinue) (Val #()))))
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (Let "$a0" (Val durablePause)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0")))))
+  (App (Val (GoInstruction (GoStore Result.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -3586,16 +3547,11 @@ noncomputable def RunDurable.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
-  (Lam BAnon
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "t") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "t")) (Val #(W64 1)))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "t") (Var "$r0"))))))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3676,10 +3632,11 @@ noncomputable def RunDurable.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad Result.ty))) (Var "$res0"))))))
 
 /-- RunKV runs the kv workload (see above) with the client machines nodes (client c's at nodes[c],
-    its clientv3 client of every endpoint, preferring eps[c mod k]); its set-up is the wait for
-    them (ready after it).
+    its clientv3 client of every endpoint, preferring eps[c mod k]); no set-up (ready at once). A
+    client machine that is not listening yet is a call without an answer (no wait: the harness starts
+    the orchestrator once its client machines listen).
 
-    go: kv.go:27:6 -/
+    go: kv.go:28:6 -/
 noncomputable def RunKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nodes"
   (Lam "ops"
@@ -3689,7 +3646,6 @@ noncomputable def RunKV.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "ready" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "ready"))
   (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
   (Let "nodes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "nodes"))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "nodes"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
@@ -3724,18 +3680,7 @@ noncomputable def RunKV.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "r") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "ready")) (Val #()))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "nodes"))
-  (App (App (Val (GoInstruction (FuncResolve AwaitAccept []))) (Val #())) (Var "$a0"))))
-  (Let "$r0" (Let "$a0" (Val #(go!"kv: a client machine never answered"))
-  (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Result.ty))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "ready")) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad Result.ty))) (Var "$res0")))))))
 
 /-- leaseGrant grants a lease of TTL ttl through cli, in a context with the request timeout
@@ -5244,8 +5189,8 @@ noncomputable def remotePrincipals.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "ps") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))
 
-/-- ConnectRetry makes a client of eps, trying every 100ms until it succeeds (a client machine has
-    nothing else to do).
+/-- ConnectRetry makes a client of eps, trying every 100ms until it succeeds (k8s/dist's; etcd_safe's
+    client machines connect once, NodeMain).
 
     go: nodes.go:202:6 -/
 noncomputable def ConnectRetry.impl [GooseExts] [GoGlobalContext] : val :=
@@ -5288,10 +5233,11 @@ noncomputable def ConnectRetry.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- NodeMain is client machine c of workload w (deployment.NodeCount(w) > c), listening at addr, the members'
     client endpoints eps: it serves the
-    orchestrator's calls (see above). It never returns (for a workload without client machines, it
-    returns at once).
+    orchestrator's calls (see above). It never returns, except at once for a workload without client
+    machines, or when its client of the members fails to be made (no retry: the orchestrator's calls
+    to it then go unanswered).
 
-    go: nodes.go:216:6 -/
+    go: nodes.go:217:6 -/
 noncomputable def NodeMain.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "c"
@@ -5313,19 +5259,28 @@ noncomputable def NodeMain.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve Rotate [go.string]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Node []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
   (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (Var "$sw") (Val #(W64 2)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (Var "$sw") (Val #(W64 1)))))
-  (Let "$r0" (Lam "c"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "c" (App (Val (GoInstruction (GoAlloc go.int))) (Var "c"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go.any))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
+  (Let "__p" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "c"))
   (App (App (App (Val (GoInstruction (FuncResolve Rotate [go.string]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (App (Val (GoInstruction (FuncResolve ConnectRetry []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve newClient []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")))))
   (Let "newClient" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5339,7 +5294,16 @@ noncomputable def NodeMain.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve writerAttempt []))) (Val #())) (Var "$a0")))
   (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Pair (Var "newClient") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Pair (Var "newClient") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli") (Var "$r0"))))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind.ty))) (Pair (Var "$sw") (Val #(W64 5))))
   (Let "$r0" (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
@@ -5377,7 +5341,7 @@ noncomputable def NodeMain.impl [GooseExts] [GoGlobalContext] : val :=
 /-- reportAll runs remote.Report at every client machine nodes[c] with input ins[c], all at once
     (CallAll), and returns their outputs and whether each answered.
 
-    go: nodes.go:234:6 -/
+    go: nodes.go:239:6 -/
 noncomputable def reportAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nodes"
   (Lam "ins"
@@ -5472,7 +5436,6 @@ noncomputable def RunWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "watcher" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5575,17 +5538,6 @@ noncomputable def RunWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "wctx") (Var "$r0"))))))))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "nodes"))
-  (App (App (Val (GoInstruction (FuncResolve AwaitAccept []))) (Val #())) (Var "$a0"))))
-  (Let "$r0" (Let "$a0" (Val #(go!"watch: a writer's machine never answered"))
-  (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Result.ty))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (Let "$a0" (Val #(go!"watch: the watcher failed to connect"))
   (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
@@ -5615,7 +5567,7 @@ noncomputable def RunWatch.impl [GooseExts] [GoGlobalContext] : val :=
     must answer each key's last watched value at or below it. The deployment's only workload writing
     keys.
 
-    go: watch.go:64:6 -/
+    go: watch.go:61:6 -/
 noncomputable def RunCache.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "nodes"
@@ -5645,7 +5597,6 @@ noncomputable def RunCache.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "ccli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5884,17 +5835,6 @@ noncomputable def RunCache.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.cache.v3.Cache.ty)))) (Pair (Var "c") (Var "$r0")))))))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "nodes"))
-  (App (App (Val (GoInstruction (FuncResolve AwaitAccept []))) (Val #())) (Var "$a0"))))
-  (Let "$r0" (Let "$a0" (Val #(go!"cache: a writer's machine never answered"))
-  (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Result.ty))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (Let "$a0" (Val #(go!"cache: the cache's client failed to connect"))
   (App (App (Val (GoInstruction (FuncResolve ended []))) (Val #())) (Var "$a0")))
@@ -5917,7 +5857,7 @@ noncomputable def RunCache.impl [GooseExts] [GoGlobalContext] : val :=
     at revision upTo or above (at once if upTo is 0), returning the events read and true; false if
     the channel closed, or a response was a cancel or a compaction's, before.
 
-    go: watch.go:113:6 -/
+    go: watch.go:107:6 -/
 noncomputable def cacheCollect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "upTo"
@@ -6020,7 +5960,7 @@ noncomputable def cacheCollect.impl [GooseExts] [GoGlobalContext] : val :=
     the responses before it to evs: the notification's revision, the events, and whether it came
     before the channel closed or a response was a cancel or a compaction's.
 
-    go: watch.go:138:6 -/
+    go: watch.go:132:6 -/
 noncomputable def awaitProgress.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "evs"
@@ -6112,7 +6052,7 @@ noncomputable def awaitProgress.impl [GooseExts] [GoGlobalContext] : val :=
     the last watched event's revision (1 if none): with a put under the prefix at every revision from
     2 on, a notification above it would claim the watch complete past an event it did not send.
 
-    go: watch.go:157:6 -/
+    go: watch.go:151:6 -/
 noncomputable def checkProgress.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "p"
@@ -6143,7 +6083,7 @@ noncomputable def checkProgress.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- lastVal (cache's, copied) is the value of the last of the events evs of key at or below r.
 
-    go: watch.go:168:6 -/
+    go: watch.go:162:6 -/
 noncomputable def lastVal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "key"
@@ -6200,7 +6140,7 @@ noncomputable def lastVal.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- hasKey (cache's, copied) reports whether one of kvs has the key key.
 
-    go: watch.go:179:6 -/
+    go: watch.go:173:6 -/
 noncomputable def hasKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "key"
@@ -6240,7 +6180,7 @@ noncomputable def hasKey.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkGet (cache's, copied) panics unless kvs, a Get of the prefix at revision r, are exactly the
     last values of the watch's events evs at or below r.
 
-    go: watch.go:190:6 -/
+    go: watch.go:184:6 -/
 noncomputable def checkGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "r"

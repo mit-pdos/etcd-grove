@@ -91,7 +91,7 @@ theorem serverBootBad [srv_sem : server.Assumptions]
     (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (k : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
-    Net.DistBootWpSLT etcdThreads 0 (2 ^ 48) (serverProg d k) σ (iprop(True) : IProp etcdDistGF) := by
+    Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d k) σ (iprop(True) : IProp etcdDistGF) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -134,7 +134,7 @@ theorem clientBootBad [cl_sem : client.Assumptions]
     (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
-    Net.DistBootWpSLT etcdThreads 0 (2 ^ 48) (clientProg d j) σ (iprop(True) : IProp etcdDistGF) := by
+    Net.DistBootWpSLT etcdThreads 0 etcdSteps (clientProg d j) σ (iprop(True) : IProp etcdDistGF) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -176,7 +176,7 @@ theorem nodeBootBad [cl_sem : client.Assumptions]
     (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
-    Net.DistBootWpSLT etcdThreads 0 (2 ^ 48) (nodeProg d n) σ (iprop(True) : IProp etcdDistGF) := by
+    Net.DistBootWpSLT etcdThreads 0 etcdSteps (nodeProg d n) σ (iprop(True) : IProp etcdDistGF) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL

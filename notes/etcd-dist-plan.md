@@ -1384,3 +1384,49 @@ written against `lean` `1bdd4e02f1`; this table checks each item at `5f464b7bf9`
 | (i) the driver's liveness retries | **open** | Go `client/client.go:79-105` (`AwaitCluster`, 60 × 500 ms), `client/await.go:9-34` (`AwaitAccept`, 300 × 100 ms), `client/nodes.go:200-210` (`ConnectRetry`), `client/durable.go:13-18, 50` (`durableTries`) |
 | (j) redundant `NetStart` and `.init` premises | **addressed** | no `NetStart`; `ServerStart`/`ClientStart` are the file system's only (D:228-235); P:109-111 takes the net's start from `Robust`'s `extsInitLocal`/`extsInitGlobal` |
 | (k) the header's history | **partly**: S:9-10 ("2026-11-22, the naming on #24"), S:48 ("approved 2026-11-23"), S:55 ("2026-11-24"), S:113-114; D:107-108, D:250-251 | |
+
+### 15.1 What was done (2026-11-24, same branch)
+
+- **(f)** The step bound is named: `etcdSteps := 2 ^ 48` (`TopLevelDefs.lean`, beside `etcdThreads`), its
+  docstring and the Spec header naming its three reasons (`idutil`'s 48-bit suffix, the mvcc store's change
+  count, the auth store's fuel). The statements say `(bound := etcdSteps)`; the skeleton, `EtcdBootNC`,
+  `EtcdBootNCBad` and `BootBad`'s three boot proofs say `etcdSteps` too.
+- **(k)** The Spec header and `TopLevelDefs.lean` carry no history (dates, review numbers, "was opaque", the
+  prometheus note, the comparison with the single-process theorem); `TopLevelDefs`' stale header ("one
+  decidable premise", "the boot programs are placeholders") rewritten.
+- **(i)** The programs retry nothing for liveness: `client.MainReady` no longer calls `AwaitCluster`; kv,
+  watch, cache and auth no longer call `AwaitAccept`; a client machine (`NodeMain`, `kvremote.Node`) makes its
+  client once and returns if that fails (`ConnectRetry`, `kvremote.connect` gone from them); `durable` does one
+  final Range (`durableTries` gone). kv has no set-up any more (`hasSetUp`). `AwaitAccept`, `AwaitCluster` and
+  `ConnectRetry` stay exported for `examples/k8s/dist`, which has its own review item. The wait moved to the
+  harness: `robust.Run.RunClientsAwait` (`RunClients` with a hook between the client machines' start and the
+  orchestrators'), and `examples/etcd/dist`'s `Cluster.await` (from each orchestrator machine, every member's
+  client address, served only once the member is ready, and the workload's client machines' addresses accept a
+  connection). `TestDist -short` in the local mode, one round per kind (kv, leaseExpiry, compact, durable,
+  leaseRead, watch, cache, auth): every workload `checked`. Translation regenerated (`client`, `kvremote`).
+- **(b)** `TestWellFormed` also rejects a repeated or invalid member name, an empty token, a snapshot count of 0,
+  a periodic compactor below its minimum and an unknown mode, kv beside a workload writing keys, and auth without
+  the token provider (and accepts auth with it).
+
+### 15.2 What is left, and on what it waits
+
+- **(a)**, and the shared bundle's context and dial parts (`Hctx`/`Hcec`, `[DialWithBalancerBody]`): no
+  per-function axioms exist yet on any branch. What plugs in: `[DialWithBalancerBody]` (an instance binder of
+  both statements and of `EtcdBootNC`/`EtcdBootNCBad`) is replaced by a per-function axiom
+  `Proof/go_etcd_io/etcd/client/v3/Client__dialWithBalancer.lean` (or the translated body), and the binder
+  dropped from the statements; `Hctx` (the hypothesis of `etcdBootNCBad_holds`, `etcd_safe_nocrash_of_bootWF`,
+  `BootBad.lean`) is discharged by the proved facts on `context`'s initializer (premises-to-axioms item F:
+  PROVE, never an axiom, `isPkgInit context` being unsealed), `serverBootBad`/`clientBootBad`/`nodeBootBad`
+  then taking no hypothesis; `bootstrapContract`, `bootMarshal`, `rnLoggerZapOk`, `rnTimeoutDetectorOk` are
+  not in this statement (they enter `EtcdBootNC`'s discharge through the member's boot, from the same
+  per-function axioms putget uses).
+- **(c)** `BootFacts`: waits on `bootstrap`'s spec (#34); (b) leaves only `perm : ps.Perm d.ids` depending on
+  the deployment.
+- **(d)** `EtcdEnv`: each field folded into its consuming axiom is a restatement of a trust-boundary axiom (a
+  trusted change, not done here); `leasePeersOk` is opaque, and what it says needs the peer handler's model
+  (phase 7 S5).
+- **(e)** `HEnv`/`HEnvTok`: a Go check alone cannot produce the token (see the table). The trust-shrinking
+  route: restate `os.Getenv`'s axiom over the process's fixed environment (one value per key per run, a
+  persistent agreement), so that a check at the program's start gives every later read's value; with it the
+  axioms `verifyEnvOff` and `envVerifyOffTok` go, and so do `HEnv` and `HEnvTok`. A trusted change for the
+  owner (an axiom restated), not done here.

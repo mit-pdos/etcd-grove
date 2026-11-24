@@ -197,8 +197,8 @@ func remotePrincipals(nodes []string) int {
 	return n
 }
 
-// ConnectRetry makes a client of eps, trying every 100ms until it succeeds (a client machine has
-// nothing else to do).
+// ConnectRetry makes a client of eps, trying every 100ms until it succeeds (k8s/dist's; etcd_safe's
+// client machines connect once, NodeMain).
 func ConnectRetry(eps []string) *clientv3.Client {
 	for {
 		cli, err := newClient(eps)
@@ -211,8 +211,9 @@ func ConnectRetry(eps []string) *clientv3.Client {
 
 // NodeMain is client machine c of workload w (deployment.NodeCount(w) > c), listening at addr, the members'
 // client endpoints eps: it serves the
-// orchestrator's calls (see above). It never returns (for a workload without client machines, it
-// returns at once).
+// orchestrator's calls (see above). It never returns, except at once for a workload without client
+// machines, or when its client of the members fails to be made (no retry: the orchestrator's calls
+// to it then go unanswered).
 func NodeMain(w deployment.Workload, c int, addr string, eps []string) {
 	if c < 0 || c >= deployment.NodeCount(w) || len(eps) == 0 {
 		return
@@ -221,7 +222,11 @@ func NodeMain(w deployment.Workload, c int, addr string, eps []string) {
 	case deployment.KV:
 		kvremote.Node(c, addr, Rotate(eps, c))
 	case deployment.Watch, deployment.Cache:
-		newClient := func(c int) any { return ConnectRetry(Rotate(eps, c)) }
+		cli, err := newClient(Rotate(eps, c))
+		if err != nil {
+			return
+		}
+		newClient := func(int) any { return cli }
 		remote.ServeClient(c, addr, newClient, writerOp, writerCodec(), writerAttempt(w.Ops))
 	case deployment.Auth:
 		newClient := func(int) any { return eps }

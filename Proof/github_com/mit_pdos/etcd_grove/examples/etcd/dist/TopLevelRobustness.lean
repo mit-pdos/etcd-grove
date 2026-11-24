@@ -7,7 +7,7 @@ Not closed: `etcd_safe_nocrash_of_boot` proves `etcd_robust_nocrash.spec` from t
 each machine's boot program safe from its share) and `EtcdBootNCBad` (a malformed one: every program
 checks the deployment and returns), by the all-stable bridge over `etcdNetExts` with `Robust`'s thread
 bound (`Net.robust_of_distBootILT`): each boot program is safe at the thread bound `etcdThreads` (which
-gives the served member's `srvLevels`) and every receipt bound up to `2 ^ 48` (`notes/etcd-dist-plan.md`
+gives the served member's `srvLevels`) and every receipt bound up to `etcdSteps` (`notes/etcd-dist-plan.md`
 §14). No axiom and no `sorry`.
 
 What discharges `EtcdBootNC`, in later steps: the start from S2's names (`S2Holds etcdDistGF`, the members'
@@ -73,11 +73,11 @@ def EtcdBootNC : Prop :=
     (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
     (_Hp : BootPremises d σs σc σn) (_HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF))
     (_Hfips : crypto.fips140.GodebugFips140Off),
-    ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ 2 ^ 48 →
+    ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ etcdSteps →
       ⊢ ([∗list] a ∈ d.addrs, Net.addrUnset a) ={⊤}=∗
         ∃ Ps : Nat → IProp etcdDistGF,
           ⌜∀ (i : Nat) (m : Expr × state), (machines d σs σc σn)[i]? = some m →
-            Net.DistBootWpSLT etcdThreads 0 (2 ^ 48) m.1 m.2 (Ps i)⌝ ∗
+            Net.DistBootWpSLT etcdThreads 0 etcdSteps m.1 m.2 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ machines d σs σc σn, Ps i
 
 /-- **The machines' boot WPs, for a malformed deployment**: every program checks the deployment first
@@ -92,9 +92,9 @@ def EtcdBootNCBad : Prop :=
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state)
     (_Hfips : crypto.fips140.GodebugFips140Off),
-    ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ 2 ^ 48 →
+    ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ etcdSteps →
       ∀ (i : Nat) (m : Expr × state), (machines d σs σc σn)[i]? = some m →
-        Net.DistBootWpSLT etcdThreads 0 (2 ^ 48) m.1 m.2 (iprop(True) : IProp etcdDistGF)
+        Net.DistBootWpSLT etcdThreads 0 etcdSteps m.1 m.2 (iprop(True) : IProp etcdDistGF)
 
 /-- **`etcd_safe_nocrash` from the machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` (`Net.robust_of_distBootILT`, at no receipt floor): on a well-formed deployment at its addresses (valid and
@@ -111,11 +111,11 @@ theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
     ⟨hg.2.2.1, fun m hm => (hl m (by simpa using hm)).2.2.1⟩
   by_cases Hd : d.WellFormed
   · exact Net.robust_of_distBootILT (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
-      etcdThreads (2 ^ 48) 0 (Nat.zero_le _) HI
+      etcdThreads etcdSteps 0 (Nat.zero_le _) HI
       (fun _ hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ HEnvTok Hfips hb)
       ⟨Hd.addrs.1, Hd.addrs.2, Hnet.1, Hnet.2⟩ hfresh hg hl
   · refine Net.robust_of_distBootILT (GF := etcdDistGF) [] (machines d σs σc σn) g
-      etcdThreads (2 ^ 48) 0 (Nat.zero_le _) HI
+      etcdThreads etcdSteps 0 (Nat.zero_le _) HI
       (fun _ hb => ?_) ⟨List.nodup_nil, by simp, Hnet.1, Hnet.2⟩ hfresh hg hl
     iintro -
     imodintro
