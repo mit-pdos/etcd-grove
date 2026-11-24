@@ -285,3 +285,57 @@ copy was removed.
 2. Then repoint etcd-grove's pin to reflect-s05 (rerun gen-init etc.; AsNoMatch's new premise) and rebuild.
 3. Get an independent adversarial review of the new trusted text (the S0.5 rows, stubs, reflectlite overlay
    and errors config) and of the axiom-tok change. Then send the ONE packet to Upamanyu; nothing merges before.
+
+## Pickup, round 2 (2026-11-24 evening): review fixes F1/F2, stub specs, the errors.As blocker
+
+**Review findings (independent adversarial review of S0.5 + axiom-tok, coordinator-run):**
+- **F2 (gate, fixed here, etcd-grove 1ef6e8915a):** `lawBoundTP` accepted any `IntoValTyped` domain that
+  merely *mentioned* the `TypedPointsto` binder. It now requires (`lawDomOk`):
+  - the law's `TypedPointsto` argument IS the binder;
+  - its `V` is the binder's `V`;
+  - the domain has no loose bound variables;
+  - its `GoSemanticsFunctions` argument is built only from the axiom's ambient binders (its
+    instance-implicit and implicit Lean binders, tracked by `walkProp` in `WS.ambient`), with exactly
+    one GSF source there, a `go.Semantics`.
+
+  New negative selftest examples `st_unknown_typedpt_{const,tp2,gsf,gsf2}`. Selftest: 0 failures;
+  `axiom-tok --check`: ok (304 walked, 0 unknown).
+- **F1 (goose, fixed on Perennial reflect-s05 65768b53a):** a type declared in a func literal of a
+  package-level `var` initializer was translated as the package-level type of the same name.
+  `globalVarDecl` now refuses it. Negative tests: `localtype_varinit` and `localtype_varinit_fresh`.
+  - No translated code hits it: an AST scan of goose/, Go's std, etcd-grove, its project clones and the
+    VM module cache found such declarations only in tests, testdata, e2e and vendor files.
+  - **Pre-existing on Perennial lean's goose too**: the fix should also go to lean (trusted change).
+- F3 (anonymous structs with unexported fields of different packages are equal in Lean): coordinator's.
+
+**reflectcore stubs (Perennial 2eeebdbfc):** specs and proofs of `TypeUnderlying`, `TypeIdentByName`,
+`Store` (non-interface T with a T; interface T with an x in its type set) and `AssertOk` (interface T),
+plus the helpers `store_` and `assertOk_`.
+
+**etcd-grove `reflect-s05/2026-11-24`** (off reflect-s0/2026-11-24): pins Perennial reflect-s05 2eeebdbfc;
+regenerated (gen-init: errors now imports internal/reflectlite and internal/abi; kitgen); kvwitness's
+hand table gains both packages; `asNoMatchLeaf`/`asNoMatchWrap`/`asNoMatch_notAssignable` carry the
+strengthened AsDecided (vacuous for its only user, k8s' interface `APIStatus`). Expected to fail
+`tcb` (errors.As.wp_proof is a sorry at this pin, reached by k8s' `wp_As_plain`).
+
+**errors.As: blocked on a statement decision (not decided here).** The model makes the current spec
+unprovable without more premises:
+- **Interface target T:** `AssignableTo` → `implements(T, ii.ty)` → `AssertOk(T, Load(Alloc(tok ii.ty)))`.
+  `Alloc`/`Load` (and `ValueOf(err)`'s `Box`, for an indirect dynamic type) need a Lean representation
+  `IntoValTyped V ii.ty` of every error the walk visits, which the spec does not give.
+- **Every `TypeOf(err)`/`ValueOf(err)`:** `ii.ty` must not be an interface type, must have a defined
+  `kindOf` and must not have the model rtype's layout (one field of type `any`: stuck), and for
+  `ValueOf` its `directIfaceN` must be defined. Also `T`'s `kindOf` must be defined.
+
+Options:
+- (A) add these to `AsDecided` (per-error facts), plus a per-error Lean representation for interface
+  targets, in `isErrorTree`'s node and `asNoMatch`. A spec change; etcd-grove's only user (k8s, `APIStatus`,
+  leaves are pointer types) can discharge it.
+- (B) a trusted model change: `implements` asks a new TypeQuery row (type-set membership of two tokens)
+  instead of allocating a zero value. That removes the representation premise for the walk; the matched
+  error still needs one if its dynamic type is indirect.
+
+Either way the statement changes beyond the recorded AsDecided strengthening, so it needs the
+coordinator's call. Then the proof is: ports of reflect's ValueOf/unpackEface/isDirectIface/
+Value.{Type,Kind,IsNil,Elem}; new isDefined, directlyAssignable, implements, AssignableTo, Implements,
+assignTo, Set and valueInterface/packEface; and `as`'s walk on the old asWalk template.
