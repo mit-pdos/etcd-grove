@@ -34,7 +34,7 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     txn.Commit.specG (GF := GF) (hG := hG) := by
   intro tp api0 conn0 addr ci om cd b Spec Q
-  wp_start as ⟨Htx, #Hom, #Hkv0, #Hobj0, #Hrpc, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, Htx, #Hom, #Hkv0, #Hobj0, #Hrpc, Hrun, %Hsz⟩
   iunfold txnObjAt at Htx
   icases Htx with ⟨%Htpn, %api, %cosl, %csl, %ssl, %fsl, %cps, %sps, %fps, %iw, #Hkvf, #Hkv, #Hctxf,
     #Hctx, #Hce, #Hmu, Hcif, Hcthen, Hcelse, Hiw, Hcmps, Hcsl, Hccap, #Hcpa, Hsus, Hssl, Hscap,
@@ -114,7 +114,7 @@ theorem txn.Commit.wp_members (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     txn.Commit.specM (GF := GF) (hG := hG) := by
   intro tp ms ci cd b c F Q
-  iintro %Φ ⟨#Pc, Hobj, #Hregs, %Hp, #Hk, Hu, %Hsz⟩ HΦ
+  iintro %Φ ⟨Hlt, #Pc, Hobj, #Hregs, %Hp, #Hk, Hu, %Hsz⟩ HΦ
   icases txnObjAt_kv tp (ms.map SrvAt.addr) ci cd b $$ Hobj with ⟨%api, %conn, #Hkv, #Hkc, Hobj⟩
   icases txnObjAt_outMD tp (ms.map SrvAt.addr) ci cd b $$ Hobj with ⟨Hobj, %om, #Hom⟩
   -- the plain spec at every metadata (`GrpcSpec.md`)
@@ -139,7 +139,7 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     txn.Commit.spec (GF := GF) (hG := hG) := by
   intro tp addr api γ dup ci cd b Q
-  iintro %Φ ⟨#Pc, Hobj, #Hkt, #Hkv, %Hp, Hu, %Hsz⟩ HΦ
+  iintro %Φ ⟨Hlt, #Pc, Hobj, #Hkt, #Hkv, %Hp, Hu, %Hsz⟩ HΦ
   ihave Hu := txnAu_upd dup γ (txnWireOf b.model) Q $$ Hu
   ihave ⟨%Hz, Hu⟩ := writeUpd_txn_nz (!dup) γ (txnWireOf b.model) Q $$ Hu
   iunfold isKv at Hkv

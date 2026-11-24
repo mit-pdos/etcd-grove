@@ -33,7 +33,7 @@ theorem kv.Get.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci om cd key sl gs R Sr Qr Ψr
-  wp_start as ⟨#Hkv, #Hom, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hkv, #Hom, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrpc, #Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
@@ -154,7 +154,7 @@ theorem kv.Get.wp_members
     (wp_Get : kv.Get.specG (GF := GF) (hG := hG)) :
     kv.Get.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key sl gs R c F Q
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hk, #Hrun, %Hsz⟩ HΦ
+  iintro %Φ ⟨Hlt, #Pc, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hk, #Hrun, %Hsz⟩ HΦ
   ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
@@ -198,7 +198,7 @@ theorem kv.Get.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key sl gs R Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩

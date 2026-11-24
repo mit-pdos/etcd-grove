@@ -38,7 +38,7 @@ theorem kv.Do.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci om cd opv o Sp Qp Sr Qr Sd Qd Ψr
-  wp_start as ⟨#Hkv, #Hom, #Hctx, #Hce, #Hat, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hkv, #Hom, #Hctx, #Hce, #Hat, Hrun, %Hsz⟩
   iunfold kvObjAtC at Hkv
   icases Hkv with ⟨%rkv, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
@@ -272,7 +272,7 @@ theorem kv.Do.wp_members
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd opv o c F Q
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun, %Hsz⟩ HΦ
+  iintro %Φ ⟨Hlt, #Pc, #Hkv, #Hctx, #Hce, Hat, Hrun, %Hsz⟩ HΦ
   ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
@@ -358,7 +358,7 @@ theorem kv.Do.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd opv o Q
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun, %Hsz⟩ HΦ
+  iintro %Φ ⟨Hlt, #Pc, #Hkv, #Hctx, #Hce, Hat, Hrun, %Hsz⟩ HΦ
   ihave ⟨%Hk, Hrun⟩ := doRunOk_kind γ dup o Q $$ Hrun
   have hdz : o.t ≠ W64 1 → o.t ≠ W64 2 → (deleteWireOf o).base.rangeEnd ≠ [W8 0] :=
     fun h1 h2 => by

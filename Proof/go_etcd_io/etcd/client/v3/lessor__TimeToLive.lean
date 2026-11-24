@@ -38,7 +38,7 @@ theorem lessor.TimeToLive.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     lessor.TimeToLive.spec (GF := GF) (hG := hG) := by
   intro l conn addr Spec Q ctx om cd id osl gs
-  wp_start as ⟨#Hrem, #Hrpc, #Hom, #Hpre, #Hopts, #Hctx, #Hce⟩
+  wp_start as ⟨Hlt, #Hrem, #Hrpc, #Hom, #Hpre, #Hopts, #Hctx, #Hce⟩
   iunfold lessorRemoteAtC at Hrem
   icases Hrem with ⟨%rlc, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco

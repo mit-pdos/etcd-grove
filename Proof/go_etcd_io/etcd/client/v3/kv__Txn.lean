@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem kv.Txn.wp_proof : kv.Txn.spec (GF := GF) (hG := hG) := by
   intro api addr ci cd
-  wp_start as ⟨#Hkv, #Hctx, #Hce⟩
+  wp_start as ⟨Hlt, #Hkv, #Hctx, #Hce⟩
   ihave #Hkv' := Hkv
   iunfold kvObjAt at Hkv'
   icases Hkv' with ⟨%rkv, %conn, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩

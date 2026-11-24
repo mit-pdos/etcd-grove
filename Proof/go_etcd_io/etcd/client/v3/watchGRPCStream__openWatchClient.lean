@@ -38,7 +38,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
     (wp_backoff : watchGRPCStream.backoffIfUnavailable.spec (GF := GF) (hG := hG)) :
     watchGRPCStream.openWatchClient.spec (GF := GF) (hG := hG) := by
   intro V wgs ci cd om callSl vs
-  wp_start as ⟨#Fctx, #Hctx, #Hom, #Fremote, #Fcall, #Hvs, #Hcall, #Hfacts⟩
+  wp_start as ⟨Hlt, #Fctx, #Hctx, #Hom, #Fremote, #Fcall, #Hvs, #Hcall, #Hfacts⟩
   ihave #Hfacts' : watchSrvFacts V $$ [Hfacts]
   · iexact Hfacts
   iunfold watchSrvFacts at Hfacts'

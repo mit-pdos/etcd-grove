@@ -35,7 +35,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
     (wp_Context : grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG)) :
     leaseClient.LeaseKeepAlive.spec (GF := GF) (hG := hG) := by
   intro wc conn addr ctx cd opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hstr0, #Hdesc, #Hctx, #Hopts, #Hok⟩
+  wp_start as ⟨Hlt, #Hstub, #Hconn, #Hstr0, #Hdesc, #Hctx, #Hopts, #Hok⟩
   iunfold isEtcdConn at Hconn
   icases Hconn with ⟨%ic, #Hgc, -⟩
   iunfold leaseKAStreamOk at Hstr0

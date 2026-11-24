@@ -29,7 +29,7 @@ theorem authClient.RoleGrantPermission.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.RoleGrantPermission.spec (GF := GF) (hG := hG) := by
   intro api conn addr ci om cd name key rangeEnd permType Spec Q
-  wp_start as ⟨#Hapi, #Hctx, #Hce, %Hkl, #Hrpc, #Hom, #Hpre, %Hsz⟩
+  wp_start as ⟨Hlt, #Hapi, #Hctx, #Hce, %Hkl, #Hrpc, #Hom, #Hpre, %Hsz⟩
   iunfold authObjAtC at Hapi
   icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto

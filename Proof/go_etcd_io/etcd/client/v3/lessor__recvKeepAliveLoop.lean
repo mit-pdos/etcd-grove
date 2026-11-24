@@ -48,7 +48,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     lessor.recvKeepAliveLoop.spec (GF := GF) (hG := hG) := by
   intro l addr dc0 γd0
-  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
+  wp_start as ⟨Hlt, #Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
