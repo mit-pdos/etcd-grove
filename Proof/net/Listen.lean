@@ -35,19 +35,29 @@ theorem net.Listen.wp_proof
   iintro %Φ ⟨%Hnw, Hfree⟩ HΦ
   subst Hnw
   iunfold netAddrFree at Hfree
-  icases Hfree with ⟨Hclaim, %hX, Htok, %Hok⟩
+  icases Hfree with ⟨Hclaim, %hX, Hu⟩
   haveI : HasExt netExt := hX
+  iunfold addrUnset at Hu
+  icases Hu with ⟨Hpend, #Hvalid, Htok⟩
+  ihave %Hok := addrTok_ok (GF := GF) addr $$ Hvalid
+  -- the listening token goes to an invariant, which the step opens and `netAddrLeft` keeps
+  imod inv_alloc (lisTokN addr) ⊤ (netLisTok (NG (Gg := hG.goose_globalGS)) addr) $$ [Htok]
+    with #Hinv
+  · inext; iexact Htok
   have hA := _root_.Perennial.net.Listen.spec_addrOk (GF := GF) (hG := hG) wp_Listen
-  iapply (hA go!"tcp" _root_.Perennial.net.tcpNet_tcp addr) $$ [Htok]
+  iapply (hA go!"tcp" _root_.Perennial.net.tcpNet_tcp addr) $$ []
   · isplitr
     · ipureintro; exact Hok
-    · iapply fupd_mask_intro (by simp)
-      iintro Hcl
-      iframe Htok
-      iintro -
-      imod Hcl
+    · iinv Hinv with >Ht Hclose
+      iapply fupd_mask_intro Std.LawfulSet.empty_subset
+      iintro Hmask
+      iframe Ht
+      iintro Ht
+      imod Hmask
+      imod Hclose $$ [Ht] with -
+      · inext; iexact Ht
       imodintro
-      ipureintro; trivial
+      itrivial
   iintro !> %li %err Hpost
   iapply HΦ
   icases Hpost with (⟨%Herr, %l, Hli, Hlis, Hat⟩ | ⟨%x, -, Hres⟩)
@@ -57,9 +67,17 @@ theorem net.Listen.wp_proof
     iframe Hclaim
     iunfold _root_.Perennial.net.isListener at Hli
     icases Hli with ⟨%t, %x, %Hli, -⟩
-    iexists hX, t, l
-    iframe Hlis Hat
-    ipureintro; exact Hli
+    isplitr [Hpend]
+    · iunfold netListenerOpen
+      iexists hX, t, l
+      iframe Hlis Hat
+      ipureintro; exact Hli
+    · iunfold netAddrLeft
+      iexists hX
+      iframe Hpend Hvalid
+      unfold lisTokInv
+      ileft
+      iexact Hinv
   · iright
     iunfold _root_.Perennial.net.resErr at Hres
     icases Hres with ⟨%e, Hop, -⟩

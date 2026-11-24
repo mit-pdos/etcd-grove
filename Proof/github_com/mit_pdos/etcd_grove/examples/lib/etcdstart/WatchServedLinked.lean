@@ -46,18 +46,18 @@ theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
         kvServeStocks s E γr ∗ grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ etcdKVAt addr E ρ γr cid mid ∗
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid ∗
         watchRegAt addr s E γr R := by
   iintro ⟨#Pv3, #Psrv, #Ppb, #Hreq, #Hrd, #Hsf, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -⟩
   obtain ⟨HCA, -, Hregs, Hsreg, hRs, hRE, hRw, -, Hnd⟩ := HC
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
   rw [HCA]
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, #Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe; iframe #
     iintro !>
     imodintro
@@ -77,7 +77,7 @@ theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
   ihave #Hwl := client.srvWLaws_of_ok (srvWOf R.E γr false) R.wsl v3rpc.wsN $$ HWok
   imodintro
   isplitl [Hserv]
-  · iexists γ; iexact Hserv
+  · iexists _; iexact Hserv
   isplitr
   · iunfold etcdKVAt
     iframe #

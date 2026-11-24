@@ -20,12 +20,12 @@ namespace Fs
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The shared coherence with a logging call ended. -/
-theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) (k : Nat) {xk : CallV}
+theorem treeCohS_metaEnd {st : OsState} {Γdf : GMap w64 (Ino × DirPhS)}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st Γdf Γc Γg) (k : Nat) {xk : CallV}
     (hk : Γc !! k = some xk) :
-    TreeCohS (st.metaEnd k) s0 Γdf (GMap.delete k Γc) Γg := by
+    TreeCohS (st.metaEnd k) Γdf (GMap.delete k Γc) Γg := by
   refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl,
-      (h.2.mono (fun _ _ hx => lookup_delete_some hx) (fun _ _ hx => hx)).congr rfl rfl⟩), hc.valid, hc.s0le, hc.fds,
+      (h.2.mono (fun _ _ hx => lookup_delete_some hx) (fun _ _ hx => hx)).congr rfl rfl⟩), hc.valid, hc.fds,
     fun fd x df hx hdf => (hc.ph fd x df hx hdf).congr rfl rfl, fun t0 x hx => ?_, fun t0 x hx => ?_,
     fun t0 x hx => ?_, fun t0 x hx => ?_, fun t0 s hs => ?_⟩
   · show (GMap.delete k st.proc.calls) !! t0 = _
@@ -48,13 +48,13 @@ theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirP
     · rw [GMap.lookup_delete_ne _ h0] at hs; rw [GMap.lookup_delete_ne _ h0]; exact hc.cover t0 s hs
 
 /-- The shared coherence with a guard call ended. -/
-theorem treeCohS_guardEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) (t : Nat) {xt : CallV}
+theorem treeCohS_guardEnd {st : OsState} {Γdf : GMap w64 (Ino × DirPhS)}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st Γdf Γc Γg) (t : Nat) {xt : CallV}
     (ht : Γg !! t = some xt) :
-    TreeCohS (st.metaEnd t) s0 Γdf Γc (GMap.delete t Γg) := by
+    TreeCohS (st.metaEnd t) Γdf Γc (GMap.delete t Γg) := by
   have htc := hc.gdisj t xt ht
   refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl,
-      (h.2.mono (fun _ _ hx => hx) (fun _ _ hx => lookup_delete_some hx)).congr rfl rfl⟩), hc.valid, hc.s0le, hc.fds,
+      (h.2.mono (fun _ _ hx => hx) (fun _ _ hx => lookup_delete_some hx)).congr rfl rfl⟩), hc.valid, hc.fds,
     fun fd x df hx hdf => (hc.ph fd x df hx hdf).congr rfl rfl, fun t0 x hx => ?_, hc.callsLe,
     fun t0 x hx => ?_, fun t0 x hx => ?_, fun t0 s hs => ?_⟩
   · show (GMap.delete t st.proc.calls) !! t0 = _
@@ -137,14 +137,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-/-- A shared call excludes the legacy mode. -/
-theorem legacy_callS_excl (st : OsState) (k s0 : Nat) (pc : GoString) (q : Qp) :
-    ⊢ osCallS (L := L) k s0 pc q -∗ treeLegacy (gooseOsGS (L := L)) st -∗ False := by
-  unfold treeLegacy legacyHolds osCallS
-  iintro Hk ⟨%V0, %Γdf, %Γc, %hns, -, -, -, -, -, -, -, Hacs, -⟩
-  icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hl
-  simp at hl
-
 /-- **A step that only ends the call `k`**, from what it finds of the state (`P`, given by the
 caller's resources `F` through the claims' authority) and what it returns (`W`). -/
 theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat) (pc : GoString)
@@ -163,12 +155,9 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   iintro #Hinv #Hsi HF Hk HΦ
   iapply wp_fs_stepM op _ Φ hv hE hO hl hM $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
-  unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
-  icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_callS_excl st k s0 pc q $$ Hk Hm
-  unfold treeShared
-  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
+  icases (treeCtx_eq _ _).1 $$ Ht with ⟨Ht, Hcm⟩
+  unfold treeCtxT
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -212,15 +201,15 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   iexists Γb, Γm, Γf, Γt
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-  · try unfold treeCtx
+  isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+  · iapply (treeCtx_eq _ _).2
     isplitr [Hcm]
     rotate_left
     · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st.metaEnd k) (commitGrows_of_eq rfl) $$ Hcm
-    iright
+    try unfold treeCtxT
     simp only [OsState.metaEnd]
-    try unfold treeShared
-    iexists V0, s1, Γdf, GMap.delete k Γc, Γg
+    iexists Γdf, GMap.delete k Γc, Γg
+    try unfold callResS
     iframe
     ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k hk⟩
   iapply wp_value'

@@ -226,6 +226,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadVa
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Perennial.Proof.bytes.Link
 public import Proof.reflect.DeepEqualK8s
 public import Proof.maps.Keys
 public import Proof.maps.Clone
@@ -262,11 +263,11 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 
 theorem bytes.Buffer.wp_Bytes :
     EtcdGrove.bytes.Buffer.Bytes.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bytes.Buffer.Bytes.wp_proof
+  EtcdGrove.bytes.Buffer.Bytes.wp_proof _root_.Perennial.bytes.Buffer.wp_Bytes
 
 theorem bytes.Buffer.wp_Write :
     EtcdGrove.bytes.Buffer.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bytes.Buffer.Write.wp_proof
+  EtcdGrove.bytes.Buffer.Write.wp_proof _root_.Perennial.bytes.Buffer.wp_Write
 
 theorem conversion.wp_EnforcePtr :
     EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=

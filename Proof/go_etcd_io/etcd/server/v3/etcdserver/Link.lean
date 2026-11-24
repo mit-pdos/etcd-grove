@@ -725,6 +725,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked
 public import Proof.encoding.json.Results
 public import Net.Proof.models_lab.jsoncodec.Linked
+public import Proof.bytes.BufferLinked
 public import Proof.context.Link
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
@@ -3472,7 +3473,7 @@ theorem io.wp_MultiReader :
 
 theorem rafthttp.wp_createSnapBody :
     rafthttp.createSnapBody.spec (GF := GF) (hG := hG) :=
-  rafthttp.createSnapBody.wp_proof snap.Message.wp_fields rafthttp.messageEncoder.wp_encode _root_.Perennial.EtcdGrove.bytes.Buffer.Write.wp_proof io.wp_MultiReader
+  rafthttp.createSnapBody.wp_proof snap.Message.wp_fields rafthttp.messageEncoder.wp_encode _root_.Perennial.EtcdGrove.bytes.Buffer.Write.wp_linked io.wp_MultiReader
 
 theorem snap.Message.wp_CloseWithError :
     snap.Message.CloseWithError.spec (GF := GF) (hG := hG) :=
