@@ -329,6 +329,22 @@ def TailWin (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : Se
 def TailZeros (lay : WalLay) : Prop :=
   ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0
 
+/-- **From `off`, at chain value `c`, the reader accepts a run of entry records, then nothing** (the
+torn-`Save` fix, P6): the frames of `chainRecs C c (pendDs Mr es)` are at `off`, and the reader accepts
+nothing after them. A crash inside a `Save` leaves such a run after the history's records (its state
+record lost); `ReadAll` drops it (`readAllFoldP_append`) and, in write mode, zeroes from `off`.
+`es = []`: the reader accepts nothing at `off` (`pendStop_nil`). -/
+def PendStop (C : WalCodec) (Mr : WalMarshal) (img : List w8) (off : Nat) (c : w32) : Prop :=
+  ∃ es : List EntryM, RecsFit C (chainRecs C c (pendDs Mr es)) ∧
+    recFrames C (chainRecs C c (pendDs Mr es)) <+: img.drop off ∧
+    ∀ r len c', decStep C true img (off + (recFrames C (chainRecs C c (pendDs Mr es))).length)
+      (crcAfter C c (pendDs Mr es)) ≠ .accept r len c'
+
+theorem pendStop_nil {C : WalCodec} {Mr : WalMarshal} {img : List w8} {off : Nat} {c : w32}
+    (h : ∀ r len c', decStep C true img off c ≠ .accept r len c') : PendStop C Mr img off c :=
+  ⟨[], fun _ h => by simp [pendDs, chainRecs] at h, by simp [pendDs, chainRecs, recFrames_nil],
+    by simpa [pendDs, chainRecs, recFrames_nil, crcAfter] using h⟩
+
 /-- **The length word at the write position is zero** (`old`'s 8 bytes from `wr`; zero past `old`;
 `TailCrashPend.lean`, `wal-tc16`). -/
 def LenZ (lay : WalLay) : Prop := ∀ j, j < 8 → lay.old.getD (lay.wr + j) 0 = 0
@@ -505,11 +521,12 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   lastSynced : segStart lay.cuts lay.cuts.length ≤ d.m
   /-- Every record fits a frame. -/
   fit : RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))
-  /-- Nothing appended this generation: the reader of the last file stops after its frames (at the
-  chain's CRC after all the WAL's records). -/
-  tailStop : lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length → ∀ r len c',
-    decStep C true lay.old lay.z0
-      (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) ≠ .accept r len c'
+  /-- Nothing appended this generation: the reader of the last file, after its frames (at the
+  chain's CRC after all the WAL's records), accepts at most a run of entry records (a torn `Save`'s,
+  `PendStop`), then nothing. -/
+  tailStop : lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length →
+    PendStop C Mr lay.old lay.z0
+      (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
   /-- There is a segment (`Create` makes the first; a purge keeps the last). -/
   nonempty : lay.segs ≠ []
   /-- Every cut past the history's start (`walCutPos` allows 0): a cut follows a `Save` that wrote a
@@ -908,15 +925,14 @@ def CrashTo (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (m' : T
   ∃ (q : Nat) (I : List (WalOpG WalEnt)),
     m'.entry lay.jr lay.nm = some (.dir lay.j) ∧ q < lay.segs.length ∧
     walInos (entsOf m' lay.j) = (lay.segs.drop q).map (·.ino) ∧
-    walImg d.H d.m I ∧ segStart lay.cuts lay.cuts.length ≤ I.length ∧
+    walImgS d.H d.m I ∧ segStart lay.cuts lay.cuts.length ≤ I.length ∧
     segStart lay.cuts (lay.first + q) ≤ min d.pur I.length ∧
     (∀ k (g : SegG), (lay.segs.drop q)[k]? = some g → lay.first + q + k < lay.cuts.length →
       imgOf (fo g.ino) = segStream C Mr { d with H := I } lay.cuts (lay.first + q + k)) ∧
     (∀ g, lay.segs.getLast? = some g →
       let S := segStream C Mr { d with H := I } lay.cuts lay.cuts.length
-      S <+: imgOf (fo g.ino) ∧ ∀ r len c', decStep C true (imgOf (fo g.ino)) S.length
-        (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM { d with H := I }) lay.cuts)))
-          ≠ .accept r len c')
+      S <+: imgOf (fo g.ino) ∧ PendStop C Mr (imgOf (fo g.ino)) S.length
+        (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM { d with H := I }) lay.cuts))))
 
 /-- **The crash condition** (plan §2.2): for every crashed tree the WAL's claims allow
 (`RegionCrashed` of the claims `cl` with the commit bound `n`) and every image of each segment its

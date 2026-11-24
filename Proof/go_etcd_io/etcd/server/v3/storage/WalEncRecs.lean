@@ -214,6 +214,46 @@ theorem histCutRest_entry (M : WalMarshal) (H : WalHist) (n : Nat) :
         have : n = 0 := by omega
         subst this; simp at hp
 
+/-- **The entry records of `es`** (`(entryType, M.encEntry e)` each): a torn `Save`'s records before
+its state record (P6). -/
+def pendDs (M : WalMarshal) (es : List EntryM) : List (w64 × List w8) :=
+  es.map (fun e => (entryType, M.encEntry e))
+
+/-- **The records left past the whole operations are a torn `Save`'s entry records.** -/
+theorem histCutRest_pend (M : WalMarshal) (H : WalHist) (n : Nat) :
+    ∃ es, histCutRest M H n = pendDs M es := by
+  induction H generalizing n with
+  | nil => exact ⟨[], by simp [histCutRest, pendDs]⟩
+  | cons o H ih =>
+    simp only [histCutRest]
+    split
+    · exact ih _
+    · rename_i hk
+      cases o with
+      | save h es =>
+        simp only [opDs, List.length_append, List.length_map] at hk ⊢
+        have hn : n ≤ es.length := by
+          by_cases he : es = [] ∧ hsEmptyP h
+          · rw [if_pos he] at hk; simp at hk; omega
+          · rw [if_neg he] at hk; simp at hk; omega
+        rw [List.take_append_of_le_length (by simpa using hn), ← List.map_take]
+        exact ⟨es.take n, rfl⟩
+      | snap m al =>
+        simp only [opDs, List.length_cons, List.length_nil] at hk
+        have : n = 0 := by omega
+        subst this; exact ⟨[], by simp [pendDs]⟩
+
+/-- A cut history is a prefix of the history. -/
+theorem histCut_take (M : WalMarshal) (H : WalHist) (n : Nat) :
+    histCut M H n = H.take (histCut M H n).length := by
+  induction H generalizing n with
+  | nil => simp [histCut]
+  | cons o H ih =>
+    simp only [histCut]
+    split
+    · simp only [List.length_cons, List.take_succ_cons]; rw [← ih]
+    · simp
+
 /-- **(c) A cut history is an image** (`walImgS`) when it keeps the first `m` operations' records. -/
 theorem walImgS_histCut (M : WalMarshal) (H : WalHist) (m n : Nat) (hm : m ≤ H.length)
     (hn : ((H.take m).flatMap (opDs M)).length ≤ n) : walImgS H m (histCut M H n) := by

@@ -6,7 +6,7 @@
 every crash, `hj`) and whose segments are durable, with
 nothing appended, meets its crash condition: a crash keeps the names (`RegionCrashed` of claims with
 empty histories), every segment there is its bytes as they are (`durable_img`), so the reader reads
-the WAL's records and stops (`tailStop`). W1 is not used.
+the WAL's records, then at most a torn `Save`'s entry records, and stops (`tailStop`, `PendStop`). W1 is not used.
 -/
 module
 
@@ -96,7 +96,7 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
     rw [hxs, List.length_map] at hlo hhi
     exact durable_img hc hlo hhi
   refine ⟨0, d.H, hjr, List.length_pos_iff.2 habs.nonempty, ?_,
-    ⟨d.H.length, hHm, Nat.le_refl _, Or.inl (List.take_length).symm⟩,
+    ⟨d.H.length, hHm, Nat.le_refl _, (List.take_length).symm⟩,
     Nat.le_trans habs.lastSynced hHm, ?_, ?_, ?_⟩
   · rw [hents, List.drop_zero]; exact habs.names.1
   · refine Nat.le_min.2 ⟨?_, Nat.le_trans (segStart_le_length hsorted _)
@@ -118,8 +118,7 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
       have e : segStream C Mr d lay.cuts lay.cuts.length = lay.old.take lay.z0 := by
         rw [← htake, hdur.2.2, List.take_length]
       rw [e]; exact List.take_prefix _ _
-    · intro r len c'
-      have := habs.tailStop hdur.2.2 r len c'
+    · have := habs.tailStop hdur.2.2
       rw [hdur.2.2] at this
       exact this
 

@@ -300,6 +300,18 @@ reads back as none (its entry records, no record after them, are dropped by `Rea
 def walImgS {E : Type} (H : List (WalOpG E)) (n : Nat) (I : List (WalOpG E)) : Prop :=
   ∃ j, n ≤ j ∧ j ≤ H.length ∧ I = H.take j
 
+theorem walImgS_histN {H I : List (WalOpG WalEnt)} {n : Nat} (h : walImgS H n I) :
+    walImgS (histN H) n (histN I) := by
+  obtain ⟨j, h1, h2, rfl⟩ := h
+  exact ⟨j, h1, by simpa using h2, (histN_take H j).symm⟩
+
+theorem walImgS_refl {E : Type} {H : List (WalOpG E)} {n : Nat} (h : n ≤ H.length) :
+    walImgS H n H := ⟨H.length, h, Nat.le_refl _, List.take_length.symm⟩
+
+theorem walImgS_length_ge {E : Type} {H I : List (WalOpG E)} {n : Nat} (h : walImgS H n I) :
+    n ≤ I.length := by
+  obtain ⟨j, h1, h2, rfl⟩ := h; simp; omega
+
 theorem walImgS_walImg {E : Type} {H I : List (WalOpG E)} {n : Nat} (h : walImgS H n I) :
     walImg H n I := by
   obtain ⟨j, h1, h2, h3⟩ := h

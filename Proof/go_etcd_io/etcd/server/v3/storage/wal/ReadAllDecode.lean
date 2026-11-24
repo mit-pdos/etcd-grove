@@ -102,31 +102,71 @@ theorem noCollision_running {C : WalCodec} {c0 : w32} {rs : List WalRec} {last :
     rw [← ht]
     simp
 
+/-- **The reader on a last file holding the frames of `chainRecs C c D ++ X`, then nothing it
+accepts**: all of `D`, then `X` (`LastDec`). -/
+theorem lastDec_running {C : WalCodec} (hC : C.Ok) {c : w32} {D : List (w64 × List w8)}
+    {X : List WalRec} {last : List w8} (hfit : RecsFit C (chainRecs C c D ++ X))
+    (hch : ChainOk C c (chainRecs C c D ++ X)) (hpre : recFrames C (chainRecs C c D ++ X) <+: last)
+    (hend : ∀ r len c', decStep C true last (recFrames C (chainRecs C c D ++ X)).length
+      (chainEnd C c (chainRecs C c D ++ X)) ≠ .accept r len c') :
+    LastDec C c D D.length X last := by
+  have hlen : (chainRecs C c D).take D.length = chainRecs C c D := by
+    rw [List.take_of_length_le (by simp [length_chainRecs])]
+  refine ⟨?_, D.length, Nat.le_refl _, ?_⟩
+  · rw [hlen]
+    exact List.IsPrefix.trans (by rw [recFrames_append]; exact List.prefix_append _ _) hpre
+  · obtain ⟨rest, hrest⟩ := hpre
+    have h := walDecodeFrom_frames hC (last := true) (bs := last) (chainRecs C c D ++ X) (off := 0)
+      (c := c) (rest := rest) hfit hch (by rw [List.drop_zero, hrest])
+    rw [h, hlen]
+    simp only [Nat.zero_add]
+    rw [walDecodeFrom_unfold]
+    cases hd : decStep C true last (recFrames C (chainRecs C c D ++ X)).length
+        (chainEnd C c (chainRecs C c D ++ X)) with
+    | stop s => simp
+    | accept r len c' => exact absurd hd (hend r len c')
+
 /-- **The reader on the running WAL's files from segment `p` on** (see the file header): the WAL's
 segments `A ++ [Sl]`, the files from `p ≤ |A|` on the frames of each segment of `A`, then `last`,
-the last segment's frames followed by bytes the reader accepts nothing on. -/
+the last segment's frames followed by the frames of records `X` (chained on: a torn `Save`'s entry
+records, `PendStop`; `X = []` when nothing is pending), then bytes the reader accepts nothing on. -/
 theorem walDecodeFiles_running {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : List w8)
     (A : List WalHist) (Sl : WalHist) (p : Nat) (hp : p ≤ A.length) (last : List w8)
-    (hfit : RecsFit C (recsOfSegs C M md (A ++ [Sl])))
-    (hpre : recFrames C (lastRecs C M md A Sl) <+: last)
-    (hend : ∀ r len c', decStep C true last (recFrames C (lastRecs C M md A Sl)).length
-      (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl]))) ≠ .accept r len c') :
+    (X : List WalRec)
+    (hfit : RecsFit C (recsOfSegs C M md (A ++ [Sl]))) (hfitX : RecsFit C X)
+    (hchX : ChainOk C (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl]))) X)
+    (hpre : recFrames C (lastRecs C M md A Sl ++ X) <+: last)
+    (hend : ∀ r len c', decStep C true last (recFrames C (lastRecs C M md A Sl ++ X)).length
+      (chainEnd C (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl]))) X) ≠ .accept r len c') :
     (walDecodeFiles C (((chainSegs C 0#32 (segsDs M md true [] A)).drop p).map (recFrames C) ++ [last])
         0#32).recs =
-      (recsOfSegs C M md (A ++ [Sl])).drop (recsOfSegs C M md (A.take p)).length := by
-  have hnc : NoCollisionFrom C (crcAfter C 0#32 (segsDs M md true [] A).flatten)
-      (lastRecs C M md A Sl) last := by
-    apply noCollision_running hpre
-    rw [chainEnd_lastRecs]; exact hend
-  have hfull : ∀ (P' : WalHist) (first' : Bool),
-      (chainRecs C (crcAfter C 0#32 (segsDs M md true [] A).flatten)
-        (segHdrDs M md first' P' ++ Sl.flatMap (opDs M))).take
-        ((segHdrDs M md first' P').length + ((Sl.take Sl.length).flatMap (opDs M)).length) =
+      (recsOfSegs C M md (A ++ [Sl])).drop (recsOfSegs C M md (A.take p)).length ++ X := by
+  have hfitL : RecsFit C (lastRecs C M md A Sl) := fun r hr => hfit r (by
+    rw [recsOfSegs_snocR]; exact List.mem_append_right _ hr)
+  have hchL : ChainOk C (crcAfter C 0#32 (segsDs M md true [] A).flatten) (lastRecs C M md A Sl) := by
+    unfold lastRecs
+    exact chainOk_chainRecs hC _ _ (by
+      have := segsDs_crcOk M md true [] (A ++ [Sl])
+      intro q hq; apply this
+      rw [segsDs_snoc, List.flatten_append]; simp only [List.flatten_cons, List.flatten_nil,
+        List.append_nil]
+      exact List.mem_append_right _ hq)
+  have hLD : ∀ first' P', lastRecs C M md A Sl =
       chainRecs C (crcAfter C 0#32 (segsDs M md true [] A).flatten)
-        (segHdrDs M md first' P' ++ Sl.flatMap (opDs M)) := by
-    intro P' first'
-    rw [List.take_length, List.take_of_length_le]
-    simp [length_chainRecs]
+        (segHdrDs M md first' P' ++ Sl.flatMap (opDs M)) →
+      LastDec C (crcAfter C 0#32 (segsDs M md true [] A).flatten)
+        (segHdrDs M md first' P' ++ Sl.flatMap (opDs M))
+        ((segHdrDs M md first' P').length + ((Sl.take Sl.length).flatMap (opDs M)).length) X last := by
+    intro first' P' hL
+    rw [List.take_length]
+    have := lastDec_running hC (D := segHdrDs M md first' P' ++ Sl.flatMap (opDs M)) (X := X)
+      (last := last) (by rw [← hL]; intro r hr; rcases List.mem_append.1 hr with h | h
+                         · exact hfitL r h
+                         · exact hfitX r h)
+      (by rw [← hL, chainOk_append, chainEnd_lastRecs]; exact ⟨hchL, hchX⟩)
+      (by rw [← hL]; exact hpre)
+      (by rw [← hL, chainEnd_append, chainEnd_lastRecs]; exact hend)
+    simpa using this
   have hseg0 : ∀ (rs : List WalRec), segFile C rs 0 = recFrames C rs := by
     intro rs; simp [segFile]
   have hzip : ∀ (L : List (List WalRec)),
@@ -139,13 +179,9 @@ theorem walDecodeFiles_running {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md :
   · -- From the first file.
     subst hp0
     have hfit' : RecsFit C (chainRecs C 0#32 (segsDs M md true [] (A ++ [Sl])).flatten) := hfit
-    obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md Sl Sl.length last A
+    obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md Sl Sl.length X last A
       (List.replicate A.length 0) true [] 0#32 (by simp) (by simp) hfit'
-      (by
-        refine ⟨?_, ?_⟩
-        · simp only [List.nil_append]
-          rw [hfull]; exact hpre
-        · simp only [List.nil_append]; exact hnc)
+      (by simp only [List.nil_append]; exact hLD _ _ rfl)
     have hint : intactFiles C M md true [] 0#32 A (List.replicate A.length 0) =
         (chainSegs C 0#32 (segsDs M md true [] A)).map (recFrames C) := by
       unfold intactFiles
@@ -161,6 +197,7 @@ theorem walDecodeFiles_running {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md :
       · omega
       · subst h; simp at hp; omega
     have hA : A = A.take p ++ A.drop p := (List.take_append_drop p A).symm
+    have hAne : A ≠ [] := fun h => hpre' (by rw [h]; simp)
     have hc0 : (chainSegs C 0#32 (segsDs M md true [] A)).drop p =
         chainSegs C (crcAfter C 0#32 (segsDs M md true [] (A.take p)).flatten)
           (segsDs M md false (A.take p).flatten (A.drop p)) := by
@@ -176,17 +213,11 @@ theorem walDecodeFiles_running {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md :
     have hfit' : RecsFit C (recsOfSegs C M md (A.take p ++ A.drop p ++ Sl :: [])) := by
       rw [hss]; exact hfit
     obtain ⟨n, hn, hdec⟩ := walDecodeFiles_suffix hC M md (A.take p) (A.drop p) Sl []
-      (List.replicate (A.drop p).length 0) last Sl.length hpre' (by simp) (by simp) hfit'
+      (List.replicate (A.drop p).length 0) X last Sl.length hpre' (by simp) (by simp) hfit'
       (by
         simp only [← hA]
-        refine ⟨?_, ?_⟩
-        · have hAne : A ≠ [] := fun h => hpre' (by rw [h]; simp)
-          have e : (if A = [] then true else false) = false := if_neg hAne
-          rw [hfull]
-          unfold lastRecs at hpre; rw [e] at hpre; exact hpre
-        · have hAne : A ≠ [] := fun h => hpre' (by rw [h]; simp)
-          have e : (if A = [] then true else false) = false := if_neg hAne
-          unfold lastRecs at hnc; rw [e] at hnc; exact hnc)
+        have e : (if A = [] then true else false) = false := if_neg hAne
+        exact hLD _ _ (by unfold lastRecs; rw [e]))
     have hint : intactFiles C M md false (A.take p).flatten
         (crcAfter C 0#32 (segsDs M md true [] (A.take p)).flatten) (A.drop p)
         (List.replicate (A.drop p).length 0) =

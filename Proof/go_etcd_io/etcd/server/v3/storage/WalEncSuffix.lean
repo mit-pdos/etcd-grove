@@ -105,21 +105,21 @@ of `Spre` purged, those of `Smid` intact, then an image `last` of `S`'s file as 
 entry records of a torn operation (`histCutRest`). -/
 theorem walDecodeFiles_suffix {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : List w8)
     (Spre Smid : List WalHist) (S : WalHist) (Spost : List WalHist) (zs : List Nat)
-    (last : List w8) (m' : Nat) (hpre : Spre ≠ []) (hzl : zs.length = Smid.length)
+    (X : List WalRec) (last : List w8) (m' : Nat) (hpre : Spre ≠ []) (hzl : zs.length = Smid.length)
     (hz : ∀ z ∈ zs, z = 0 ∨ 8 ≤ z)
     (hfit : RecsFit C (recsOfSegs C M md (Spre ++ Smid ++ S :: Spost)))
     (hlast :
       let c' := crcAfter C 0#32 (segsDs M md true [] (Spre ++ Smid)).flatten
       let P' := (Spre ++ Smid).flatten
       let D := segHdrDs M md false P' ++ S.flatMap (opDs M)
-      recFrames C ((chainRecs C c' D).take ((segHdrDs M md false P').length +
-          ((S.take m').flatMap (opDs M)).length)) <+: last ∧
-      NoCollisionFrom C c' (chainRecs C c' D) last) :
+      LastDec C c' D ((segHdrDs M md false P').length + ((S.take m').flatMap (opDs M)).length)
+        X last) :
     ∃ n, ((S.take m').flatMap (opDs M)).length ≤ n ∧
       (walDecodeFiles C (intactFiles C M md false Spre.flatten
           (crcAfter C 0#32 (segsDs M md true [] Spre).flatten) Smid zs ++ [last]) 0#32).recs =
         chainRecs C (crcAfter C 0#32 (segsDs M md true [] Spre).flatten)
-          ((segsDs M md false Spre.flatten (Smid ++ [histCut M S n])).flatten ++ histCutRest M S n) := by
+          ((segsDs M md false Spre.flatten (Smid ++ [histCut M S n])).flatten ++ histCutRest M S n) ++
+          X := by
   obtain ⟨c0, hc0⟩ : ∃ c0, c0 = crcAfter C 0#32 (segsDs M md true [] Spre).flatten := ⟨_, rfl⟩
   rw [← hc0]
   simp only at hlast
@@ -134,7 +134,7 @@ theorem walDecodeFiles_suffix {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : 
     apply List.mem_append_right
     rw [segsDs_append, List.flatten_append, chainRecs_append]
     exact List.mem_append_left _ hr
-  obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md S m' last Smid zs false Spre.flatten c0 hzl hz
+  obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md S m' X last Smid zs false Spre.flatten c0 hzl hz
     hfitc (by simpa using hlast)
   refine ⟨n, hn, ?_⟩
   rw [← hdec]
