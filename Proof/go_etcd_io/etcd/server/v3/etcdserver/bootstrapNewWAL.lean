@@ -70,24 +70,23 @@ theorem bootstrapNewWAL.wp_proof
     (t := go_etcd_io.etcd.api.v3.etcdserverpb.Metadata.ty) _) as %ml Hml
   try wp_auto
   -- `MustMarshalMessage(&Metadata{NodeID: new(nodeID), ClusterID: new(cid)})`
-  trace_state
   wp_apply (hMeta _ _ bc.nodeID' cid (DFrac.own 1) (DFrac.own 1)) as %md ⟨Hmd, -, -, -, -⟩
-  · isplitl [Hml]
-    · iexact Hml
-    isplitr
-    · ipureintro; rfl
-    iframe
+  · first
+    | (ipureintro; rfl)
+    | (isplitr; (· ipureintro; rfl); iframe)
+    | (iframe; ipureintro; rfl)
+    | trace_state
   try wp_auto
   imod ownSlice_persist md _ _ $$ Hmd with #Hmd
   -- `wal.Create(cfg.Logger, cfg.WALDir(), metadata)`
   have Hwne : cfg.DedicatedWALDir' ≠ [] := by
     rw [Hwd]; unfold srvWalDirOf; simp
   wp_apply (hWALDir cfg_ptr DFrac.discard cfg.DedicatedWALDir' Hwne) as -
-  · iframe DedicatedWALDirF; iframe #
+  · iframe DedicatedWALDirF; try iframe #
   rw [Hwd]
   wp_apply (hCreate cfg.Logger' (srvWalDirOf cfg.DataDir') md bc.nodeID' cid) $$ [Hwa]
     as %w %err ⟨%Herr, Hopen⟩
-  · iframe Hwa; iframe #
+  · iframe Hwa; try iframe #
   subst Herr
   try wp_auto
   rw [Hnf]

@@ -291,32 +291,33 @@ theorem bootstrapRaftFromCluster.wp_proof
   try wp_auto
   -- the log line
   wp_apply (hIDStrP _ (DFrac.own 1) mv.ID') $$ [MID] as %s1 ⟨MID, -⟩
-  · iframe MID; iframe #
+  · iframe MID
   wp_apply hStr as %f1 -
-  · iframe #
+  try (· iframe #)
   try wp_auto
   wp_apply (hClID cl (bootGo.cid U cfg.InitialClusterToken')) as -
-  · iframe #
+  try (· iframe #)
   wp_apply (hIDStr (bootGo.cid U cfg.InitialClusterToken')) as %s2 -
-  · iframe #
+  try (· iframe #)
   wp_apply hStr as %f2 -
-  · iframe #
+  try (· iframe #)
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
   iintro %fsl -
   try wp_auto
   wp_apply hInfo
-  · iframe #
+  try (· iframe #)
   try wp_auto
   -- `s := bwal.MemoryStorage()`
   wp_apply (hMS true w dqw bw Hsnap Hst Hents) $$ [Hw]
     as %ms %γs ⟨Hw, %Hsz, #Hlock, #Hd0, Hend, Hnone, Hmeta, Hfresh⟩
-  · iframe Hw; iframe #
+  try (· iframe Hw; iframe #)
+  try (· iframe Hw)
   try wp_auto
   -- `raftConfig(cfg, uint64(member.ID), s)`
   wp_apply (hCfg cfg mv.ID' ms) as %cfgl ⟨%lok, Hcv, #Hlok⟩
-  · iframe #
+  try (· iframe #)
   try wp_auto
   -- the storage registered
   imod (memStorReg_register (∅ : GMap Loc MemStorNamesRec) ms γs rfl) $$ Hauth with ⟨Hauth, #Hreg⟩
