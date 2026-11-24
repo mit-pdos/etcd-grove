@@ -578,9 +578,7 @@ theorem RunConcurrent.wp_proof
       | none =>
       imod memStorReg_register M ms γs HM $$ Hreg with ⟨Hreg, #Hrg⟩
       try wp_auto
-      have Hif' : sint.Z k ≤ sint.Z (cfg.Nodes' + cfg.ExtraNodes') := by
-        first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
-      have Hk3 : sint.Z k ≤ nv := tc_rep_le nv H5' k cfg.Nodes' cfg.ExtraNodes' HN3 HX0 Hif'
+      have Hk3 : sint.Z k ≤ nv := tc_rep_le nv H5' k cfg.Nodes' cfg.ExtraNodes' HN3 HX0 Hif
       obtain ⟨Hdrop, Hk1, Hs1, Hs4, HkW, Hkk⟩ := tc_rep_step nv H5' k Hk.1 Hk3
       rw [Hdrop]
       icases Htodo with ⟨Hvk, Htodo⟩
@@ -690,9 +688,7 @@ theorem RunConcurrent.wp_proof
         · left; rw [GMap.lookup_insert_ne _ _ (Ne.symm hlm)] at hl; exact Hk.2.2.2 l hl
       · exfalso; apply Hif; rw [HN3, (tc_sZ nv H5').1]; exact Hk3
     · -- the replicas made: the world the goroutines share
-      have Hif' : ¬ sint.Z k ≤ sint.Z (cfg.Nodes' + cfg.ExtraNodes') := by
-        first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
-      have Hk4 : sint.nat k - 1 = nv := tc_reps_end nv H5' k _ _ HN3 HX0 Hk.2.1 Hif'
+      have Hk4 : sint.nat k - 1 = nv := tc_reps_end nv H5' k _ _ HN3 HX0 Hk.2.1 Hif
       have Hdl : ds.length = nv := by rw [Hk.2.2.1, Hk4]
       imod ownSlice_persist rsl _ _ $$ Hrsl with #Hrsl
       imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Freps with #Freps
