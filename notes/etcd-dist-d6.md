@@ -443,3 +443,24 @@ up to `σ.last`, which may hold such a stale entry at an index `≤ |a0|`, so `r
 in the form `rnReplayJob_of_history` takes, over the `Ready` whose hard-state term the leader's), with
 its interface regenerated (`etc/api/raft.txt`). Then steps 1 and 3 discharge `rnReplayJob` by
 `rnReplayJob_of_history`. Needs a decision: who proves it (raft-proof work), and its exact form.
+
+**2026-11-24, step 3 (the configuration point `a' = min |A₀| σ.commit`): does not work; blocked on raft's
+`RestartNode`.** Round 4's item 4 assumed that giving raft an earlier configuration point only makes the
+conf entries in `(a', |A₀|]` re-applied to raft. Go does not re-apply them: `applyConfChange` calls
+`s.r.ApplyConfChange(cc)` only when `shouldApplyV3` (`server.go:2078`), false at or below the
+consistent index, so in the replay window raft's view stays at `a'`. The next conf entry `k > |A₀|`
+then needs `node.ApplyConfChange.spec`'s `skippedIn γ l a' k` (`InvNodeRule.lean:594`): every conf
+entry in `(a', k)` decided `.skip`. The ones in `(a', |A₀|]` were decided `.apply` (the server's rule
+applies every v1 conf entry, `srvRule`; conf entries are not confined to the boot log, `ccBootOk`
+only makes them no-op adds), so the premise is false. The view has to be at `|A₀|`, as etcd's
+`bootstrap` makes it (the backend's conf state at `i`), so raft's `RestartNode.spec` must take
+`a ≤ |l|` for a committed log `l` (the backend's, `confAt γ a m` already names it) in place of
+`a ≤ σ.commit`. Inside the raft proof that premise is `RInv`'s `a ≤ commit` and its
+`cfgFold … ((fp ++ log).take a) = some (stOf m)` (`RestartNode.lean:795-810`): the configuration is a fold of the node's
+own log up to `a`, which a node whose log ends below `a` (`σ.last < |A₀|` after a power loss) does not
+hold. Changing it means changing raft's dynamic-configuration invariant (the configuration point
+ahead of the node's own log), not a local edit: a raft-proof design task of its own.
+
+**State of the five steps:** step 1 needs the leader-completeness law (above); step 3 needs raft's
+restart with a configuration point past its stored log (this entry); steps 2, 4 and 5 depend on them.
+Nothing else landed this round; the last green build is `fec7d8cf82`.
