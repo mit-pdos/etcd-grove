@@ -1,11 +1,10 @@
 # Raft's importable modules: what proofs outside raft's tree may import (`etc/api-check.py
-# etc/api/raft.txt --check`). Every other module of raft's tree is internal. What each importable
-# module exposes, as a client sees it, is `etc/gen-interface.py`'s output under `interface/`.
+# etc/api/raft.txt --check`). Every other module of raft's tree is internal.
 #
 # Started 2026-10-26 from what clients imported then (and the raft modules those publicly
 # import), grouped by what it is. The last group is debt: proof internals that clients reach
 # today, to be taken out of the list (a law in an API module instead, or the client's import
-# dropped). Adding a module here is an API change: review its interface.
+# dropped). Adding a module here is an API change.
 
 inside Proof/go_etcd_io/raft/
 inside Spec/go_etcd_io/raft/
