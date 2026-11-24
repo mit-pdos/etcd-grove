@@ -147,10 +147,13 @@ theorem tracker.ReplicationSet.String.wp_proof
           "Hrs" ∷ rs' ↦* strs ∗
           "Hrscap" ∷ ownSliceCap GoString rs' (DFrac.own 1) ∗
           "Hsl" ∷ sl ↦* zs ∗
-          "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (zs.length : Int)⌝) $$ [i id replSet Hrs Hrscap Hsl]
+          "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (zs.length : Int)⌝ ∗
+          "%Hsb" ∷ ⌜∀ s ∈ strs, s.length ≤ 65⌝) $$ [i id replSet Hrs Hrscap Hsl]
       · iexists W64 0, _, _, _
         iframe i id replSet Hrs Hrscap Hsl
-        ipureintro; constructor <;> word
+        isplitr
+        · ipureintro; constructor <;> word
+        ipureintro; simp
       wp_for IH
       wp_if_destruct
       · ihave %Hnl := ownSlice_len $$ Hsl
@@ -159,8 +162,16 @@ theorem tracker.ReplicationSet.String.wp_proof
         rw [ite_eq_left (show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len by word)]
         wp_apply wp_load_slice_index sl (sint.Z k) zs (DFrac.own 1) e Hk.1 $$ [Hsl] as Hsl
         · iframe; ipureintro; exact He_lookup
-        wp_apply wp_strconv_FormatUint $$ [] as %str -
+        wp_apply wp_strconv_FormatUint $$ [] as %str %Hstr
         · ipureintro; decide
+        have Hstrlen : str.length ≤ 65 := by
+          subst Hstr
+          unfold fmtUint
+          split
+          · rename_i h
+            simp only [List.length_map]
+            exact baseDigits_length_le _ h 64 _ (BitVec.isLt _)
+          · simp
         wp_apply wp_slice_literal
         try (isplitr; (ipureintro; rfl))
         iintro %sl2' ⟨Hsl2, -⟩
@@ -170,15 +181,22 @@ theorem tracker.ReplicationSet.String.wp_proof
         iframe
         iexists _, _, _, _
         iframe
-        ipureintro; constructor <;> word
-      wp_apply wp_strings_Join $$ [$Hrs] as %joined Hrs
+        isplitr
+        · ipureintro; constructor <;> word
+        ipureintro
+        intro s hs
+        simp only [List.mem_append, List.mem_singleton] at hs
+        rcases hs with hs | rfl
+        · exact Hsb s hs
+        · exact Hstrlen
+      wp_apply wp_strings_Join _ _ go!"," 65 Hsb
+        (by unfold maxAddr _root_.Perennial.strings.joinMax; simp) $$ [$Hrs] as %joined Hrs
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
       iintro %sla ⟨Hargs, -⟩
       wp_auto
-      wp_apply wp_fmt_Sprintf $$ [$Hargs] as %res -
-      · ipureintro
-        exact _root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil
+      wp_apply wp_fmt_Sprintf go!"{%s}" [.lit go!"{", .dir none _root_.Perennial.fmt.verb_s,
+        .lit go!"}"] _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ .nil) (by fmt_noquote) $$ [$Hargs] as %res -
       iapply HΦ
       itrivial
 

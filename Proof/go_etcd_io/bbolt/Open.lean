@@ -1123,12 +1123,12 @@ private theorem openFileDb_shared
     (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (perm : w32)
     (D : Data) (hb : NameOk b) :
     openFileDb.spec (GF := GF) (hG := hG) (¬ FsNoErr ∨ ¬ PathFits (child d b)) (· ≤ 0xFFFFFFFFFFFF)
-      iprop(osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+      iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
         osNames j (.only [b]) (DFrac.own 1) h ∗ nameHolds h b D)
       (fun oc : Option (Nat × Nat × Ino) =>
         iprop(osPathS (GF := GF) R d dq j ∗ osCallPerm (callKey R d) qc ∗ crOut j b h (DFrac.own 1) oc))
       (fun oc i => crIno b h oc i) (child d b) perm D := by
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hnh⟩ HΦ
+  iintro %Φ ⟨#Hos, #Hospkg, #Hsi, Hp, Hperm, Hn, Hnh⟩ HΦ
   obtain ⟨hfl, hcr, htr⟩ := boltOpenFlag_create
   icases nameHolds_notDir h b D $$ Hnh with ⟨Hnh, %hnd⟩
   icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
@@ -1137,7 +1137,7 @@ private theorem openFileDb_shared
     (crOut j b h (DFrac.own (1 : Qp).half)) $$ Hr
   wp_apply hCS d b (W64 0x42) perm R j dq h (1 : Qp).half (1 : Qp).half qc
     (crOut j b h (DFrac.own (1 : Qp).half)) hfl hcr htr hb hnd (Qp.half_add_half 1)
-    $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+    $$ [$Hospkg $Hos $Hsi $Hp $Hperm $Hn $Hau]
     as %f %err ⟨Hp, Hperm, %oc, Ho1, Ho2, Hm, Hr⟩
   ihave Ho := os.crOut_join j b h oc $$ [$Ho1 $Ho2]
   iapply HΦ
@@ -1269,6 +1269,8 @@ theorem Open.wp_proof [sync.Assumptions]
   · iframe; iframe #
     isplitr
     · ipureintro; exact HN
+    isplitr
+    · iPkgInit
     isplitl [Hv1]
     · iapply optsAt_intro' opts (dfHalf dqo) o v hv.1 $$ Hv1
     ipureintro; exact Hok

@@ -27,6 +27,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swift
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.CodecSrvProof
 public import Net.Spec.net.rpc.Client__Call
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.replica.defs.NewBeTheLeaderReply
+public import Proof.fmt.SprintfPure
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -377,8 +379,10 @@ theorem master.Master.run.wp_proof
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
     wp_auto
-    wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_string _ _ (ArgsWf.cons_int _ _ _
-      (IntArgValue.int _) ArgsWf.nil)) $$ [$Hasl] as %str ⟨-, %Hstr⟩
+    wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
+        [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+        _ _ _ _ (by fmt_encode) (by fmt_fits) (.str _ _ _ (.int _ _ _ _
+        (.int _) .nil)) $$ [$Hasl] as %str ⟨-, %Hstr⟩
     rw [master.sprintf_str_d _ _ _ Hstr]
     rw [if_pos (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z nodesS0.len by have := Hj.2.2.1; word)]
     ihave #Hra := BigSepL.bigSepL_lookup (Φ := fun _ a => rpcHttp W a) hra $$ Haddrs

@@ -53,26 +53,6 @@ past its close: `locks_spurious_eagain.go`, 2026-11-19). Stuck on an fd that is 
 noncomputable def Flock.impl : val :=
   λ: "fd" "how", model.errno (ExternalOp Fs.fsExt.name "Flock" ("fd", "how"))
 
-/-- `(Errno).Error() string` (`syscall_unix.go`): some string. Go's body
-
-```go
-	if 0 <= int(e) && int(e) < len(errors) {
-		s := errors[e]
-		if s != "" {
-			return s
-		}
-	}
-	return "errno " + strconv.Itoa(int(e))
-```
-
-reads the read-only table `errors` (`zerrors_linux_amd64.go`, whose initializer goose does not
-translate) inside its bounds, and calls `strconv.Itoa`: it returns a string, never panics, and
-touches no memory a caller owns. The model returns an arbitrary string (Perennial's
-`fmt.arbitraryString`, which can return every string), so every result of Go's is one of the
-model's. -/
-noncomputable def Errno.Error.impl : val :=
-  λ: "e" <>, _root_.Perennial.fmt.arbitraryString #()
-
 /-! ## fileutil's calls (2026-11-13, the WAL over `fsExt`; drafts pending the user's review) -/
 
 /-- `Fallocate(fd int, mode uint32, off int64, len int64) error` (`zsyscall_linux_amd64.go`: one

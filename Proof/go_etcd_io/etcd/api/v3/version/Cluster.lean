@@ -13,6 +13,8 @@ public import Spec.github_com.Masterminds.semver.v3.Version__Minor
 public import Proof.fmt.OutLemmas
 public import Perennial.Spec.strings.Split
 public import Proof.unicode.utf8.Valid
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -28,56 +30,16 @@ open Iris Iris.BI Iris.ProofMode
 section pure
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
-theorem version.uniq_uint64 [go.IntoValInj w64] (n : w64) :
-    ∀ z', _root_.Perennial.fmt.IntArgValue (interface.mk go.uint64 #n) z' → z' = uint.Z n := by
-  intro z' h
-  obtain ⟨n', hv, rfl⟩ := _root_.Perennial.fmt.IntArgValue.of_uint64 h
-  rw [go.intoVal_inj hv]
-
 theorem version.decimalNat_ascii (n : Nat) : asciiStr (_root_.Perennial.fmt.decimalNat n) := by
   intro c hc
   have := _root_.Perennial.fmt.decimalNat_digits n c hc
   have h2 : (uint.Z c : Int) = (c.toNat : Int) := by simp [uint.Z]
   omega
 
-/-- `Sprintf("%d.%d", a, b)` of two `uint64`s is ASCII. -/
-theorem version.sprintf_dd_ascii [go.IntoValInj w64] [go.string ↓u go.string] (a b : w64)
-    (out : GoString)
-    (h : _root_.Perennial.fmt.SprintfOut go!"%d.%d"
-      [interface.mkOk go.uint64 #a, interface.mkOk go.uint64 #b] out) : asciiStr out := by
-  have hfmt : go!"%d.%d" = W8 37 :: W8 100 :: W8 46 :: W8 37 :: [W8 100] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := _root_.Perennial.fmt.SprintfOut.int_inv (w := 0)
-    (rest := W8 46 :: W8 37 :: [W8 100]) (by decide)
-    (_root_.Perennial.fmt.IntArgValue.uint64 a) (version.uniq_uint64 a) h
-  obtain ⟨o2, rfl, h2⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := _root_.Perennial.fmt.SprintfOut.int_inv (w := 0) (rest := [])
-    (by decide) (_root_.Perennial.fmt.IntArgValue.uint64 b) (version.uniq_uint64 b) h2
-  rw [_root_.Perennial.fmt.SprintfOut.done_inv h3]
-  rw [_root_.Perennial.fmt.decimalPad_of_nonneg _ (by word),
-    _root_.Perennial.fmt.decimalPad_of_nonneg _ (by word),
-    _root_.Perennial.fmt.decimal_of_nonneg (by word), _root_.Perennial.fmt.decimal_of_nonneg (by word),
-    _root_.Perennial.fmt.padZeros_of_le (Nat.zero_le _),
-    _root_.Perennial.fmt.padZeros_of_le (Nat.zero_le _)]
-  intro c hc
-  simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with hc | rfl | hc
-  · exact version.decimalNat_ascii _ c hc
-  · decide
-  · exact version.decimalNat_ascii _ c hc
-
-/-- `Sprintf("%s.%s", x, y)` of two strings is `x ++ "." ++ y`. -/
-theorem version.sprintf_ss [go.IntoValInj GoString] (x y : GoString) (out : GoString)
-    (h : _root_.Perennial.fmt.SprintfOut go!"%s.%s"
-      [interface.mkOk go.string #x, interface.mkOk go.string #y] out) :
-    out = x ++ go!"." ++ y := by
-  have hfmt : go!"%s.%s" = W8 37 :: W8 115 :: W8 46 :: W8 37 :: [W8 115] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := _root_.Perennial.fmt.SprintfOut.str_inv h
-  obtain ⟨o2, rfl, h2⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := _root_.Perennial.fmt.SprintfOut.str_inv h2
-  rw [_root_.Perennial.fmt.SprintfOut.done_inv h3]
-  simp
+/-- `%d` of a `uint64` is ASCII. -/
+theorem version.decimalPad0_ascii (a : w64) : asciiStr (_root_.Perennial.fmt.decimalPad 0 (uint.Z a)) := by
+  rw [_root_.Perennial.fmt.decimalPad_zero, _root_.Perennial.fmt.decimal_of_nonneg (by word)]
+  exact version.decimalNat_ascii _
 
 /-- A field without a dot, then a dot: `strings.Split` ends the current field there. -/
 theorem version.splitAux_dot (a rest f : GoString) (ha : (W8 46 : w8) ∉ a) :
@@ -155,7 +117,6 @@ theorem version.Cluster.wp_proof
   ihave #Hstr : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
   · iPkgInit
   wp_auto
-  have hSp := fmt.Sprintf.argsWf wp_Sprintf
   wp_apply wp_NewVersion v as %pv %err Hr
   icases Hr with (⟨%Hok, %x, #Hx, #His⟩ | %Hbad)
   · obtain ⟨-, -, Herr⟩ := Hok
@@ -167,13 +128,17 @@ theorem version.Cluster.wp_proof
     try (isplitr; (ipureintro; rfl))
     iintro %sla ⟨Hargs, -⟩
     wp_auto
-    wp_apply (hSp _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _)
-      (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil)))
+    wp_apply (fmt.wp_Sprintf_pure wp_Sprintf go!"%d.%d" [.dir none _root_.Perennial.fmt.verb_d, .lit go!".", .dir none _root_.Perennial.fmt.verb_d] _ _ _ _
+      (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.uint64 _) (.int _ _ _ _ (.uint64 _) .nil)))
       $$ [$Hargs] as %str ⟨-, %Hout⟩
     iapply HΦ
     ipureintro
     intro _
-    exact version.sprintf_dd_ascii _ _ _ Hout
+    rw [Hout]
+    simp (config := { decide := true }) only [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, Option.getD_none, List.append_nil, ↓reduceIte]
+    exact version.ascii_append (version.decimalPad0_ascii _)
+      (version.ascii_append (by intro c hc; simp only [List.mem_singleton] at hc; subst hc; decide)
+        (version.decimalPad0_ascii _))
   · obtain ⟨-, Herr⟩ := Hbad
     cases err with
     | nil => exact absurd rfl Herr
@@ -217,18 +182,20 @@ theorem version.Cluster.wp_proof
     try (isplitr; (ipureintro; rfl))
     iintro %sla ⟨Hargs, -⟩
     wp_auto
-    wp_apply (hSp _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-      (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)))
+    wp_apply (fmt.wp_Sprintf_pure wp_Sprintf go!"%s.%s" [.dir none _root_.Perennial.fmt.verb_s, .lit go!".", .dir none _root_.Perennial.fmt.verb_s] _ _ _ _
+      (by fmt_encode) (by fmt_fits) (.str _ _ _ (.str _ _ _ .nil)))
       $$ [$Hargs] as %str ⟨-, %Hout⟩
     iapply HΦ
     ipureintro
     intro hv
-    rw [version.sprintf_ss _ _ _ Hout]
+    rw [Hout]
+    simp (config := { decide := true }) only [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, List.append_nil, ↓reduceIte]
     obtain ⟨a', b', r', hs, ha, hb, -⟩ := version.split_semverStr hv
     rw [hs] at hsp
     simp only [List.cons.injEq] at hsp
     obtain ⟨rfl, rfl, -⟩ := hsp
-    exact version.ascii_append (version.ascii_append ha (by intro c hc; simp only [List.mem_singleton] at hc; subst hc; decide)) hb
+    exact version.ascii_append ha
+      (version.ascii_append (by intro c hc; simp only [List.mem_singleton] at hc; subst hc; decide) hb)
 
 end proof
 

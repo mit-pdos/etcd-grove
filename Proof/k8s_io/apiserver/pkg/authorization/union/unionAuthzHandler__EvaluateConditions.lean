@@ -21,7 +21,9 @@ public import Spec.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler__e
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__PossibleDecisions
 public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__Has
 public import Spec.k8s_io.apimachinery.pkg.util.sets.ListW
-public import Spec.fmt.ErrorfSlice
+public import Spec.fmt.ErrorfLeaf
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.SliceRange
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB1
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.FmtArgs
 public import Perennial.Spec.fmt.Sprintf
 public import Perennial.Spec.strings.Join
@@ -43,6 +45,10 @@ namespace EtcdGrove
 namespace union
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode k8s_io.apiserver.pkg.authorization.authorizer k8s_io.apiserver.pkg.authorization.union EtcdGrove.authorizer
+
+/-! The loop spelling out the possible decisions is proved by `wp_slice_for_range_ro`, at the
+`slice.forRange` it is about, not unfolded by `wp_auto`. -/
+attribute [-instance] pure_wp_slice_for_range
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -66,14 +72,16 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
     (wp_ConditionsAwareDecision_PossibleDecisions : EtcdGrove.authorizer.ConditionsAwareDecision.PossibleDecisions.spec (GF := GF) (hG := hG))
     (wp_Set__Has : EtcdGrove.sets.Set.Has.spec (GF := GF) (hG := hG))
     (wp_List : EtcdGrove.sets.List'.specW (GF := GF) (hG := hG))
-    (wp_ErrorfSlice : EtcdGrove.fmt.ErrorfSlice.spec (GF := GF) (hG := hG))
+    (wp_ErrorfLeaf : EtcdGrove.fmt.ErrorfLeaf.spec (GF := GF) (hG := hG))
     (wp_Sprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_Join : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG))
     (wp_NewAggregate : EtcdGrove.utilerrors.NewAggregate.spec (GF := GF) (hG := hG))
     (wp_Decision_String : EtcdGrove.authorizer.Decision.String.spec (GF := GF) (hG := hG)) :
     unionAuthzHandler.EvaluateConditions.spec (GF := GF) (hG := hG) := by
   intro h ctx d m data
-  wp_start as ⟨#Hu, #Hd, %Hwf⟩
+  wp_start as ⟨#Hu, #Hd, %Hwf', #Hdn⟩
+  have Hwf := Hwf'.1
+  have Hfit := Hwf'.2
   wp_auto
   wp_apply (wp_ptr_IsUnion_of wp_ConditionsAwareDecision_IsUnion) $$ [$unevaluatedDecision] as unevaluatedDecision
   icases isDecision_tag d m $$ Hd with %Htag
@@ -81,7 +89,7 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
   cases m with
   | union ks =>
     simp only [Dec.isUnion]
-    icases isDecision_union d ks $$ Hd with ⟨%nds, #Hnds, #HL⟩
+    icases isDecision_union_names authzNameMax d ks $$ Hd Hdn with ⟨%nds, #Hnds, #HL, %Hnm, #HN⟩
     wp_auto
     wp_apply (wp_ptr_UnionedDecisions_of wp_ConditionsAwareDecision_UnionedDecisions)
       $$ [$unevaluatedDecision] as %f ⟨#Hf, unevaluatedDecision⟩
@@ -103,7 +111,8 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
         authzHandler_ptr ↦ h ∗ data_ptr ↦ data ∗ ctx_ptr ↦ ctx ∗
         (∀ (dec : w64) (r : GoString) (e : GoInterface),
           ⌜(Dec.union ks).pd.has dec = true ∨ dec = (Dec.union ks).pd.failure⌝ -∗ Φ (PairV (PairV #dec #r) #e)) ∗
-        ⌜∀ j k, j < i → ks[j]? = some k → k.cuad = false⌝))
+        ⌜∀ j k, j < i → ks[j]? = some k → k.cuad = false⌝ ∗
+        ⌜rls.length ≤ i ∧ ∀ x ∈ rls, x.length ≤ (authzNameMax + 2 + maxAddr.toNat)⌝))
       %(iprop(∃ r, Done (returnVal r) ∗ K (returnVal r)))
     iunfold iterRunOk at Hf
     ihave %Hlen := isDecisionL_length $$ HL
@@ -117,7 +126,15 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
       simp only
       icases HI with ⟨HTok, %sd, %nm, %rl, %el, %rls, %els, unevaluatedSubDecision, currentAuthorizerName,
         reasonlist, Hrl, Hrlc, errlist, Hel, Helc, «$res0», «$res1», «$res2», authzHandler, data, ctx, HΦ,
-        %Hcuad⟩
+        %Hcuad, %Hrls⟩
+      have Hkn : k.length ≤ authzNameMax := by
+        rw [List.getElem?_map] at Hi
+        cases hnd : nds[i]? with
+        | none => rw [hnd] at Hi; simp at Hi
+        | some nd =>
+          rw [hnd] at Hi
+          simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at Hi
+          rw [← Hi.1]; exact Hnm nd (List.mem_of_getElem? hnd)
       have Hv : (nds.map (·.d'))[i]? = some v := by
         rw [List.getElem?_map] at Hi ⊢
         cases hnd : nds[i]? with
@@ -227,10 +244,13 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
         wp_apply (wp_ptr_evaluateConditions_of wp_unionAuthzHandler_evaluateConditions) $$ [$authzHandler]
           as %dw %rr %ee authzHandler
         · iframe #
-          unfold isWFDecision
+          unfold isWFDecisionFit
           iexists _
           iframe #
-          ipureintro; exact Hmkwf
+          isplitr
+          · ipureintro; exact ⟨Hmkwf, Dec.foldFits_child _ ks i _ Hmk Hfit⟩
+          iapply decNamesL_lookup _ _ ks i v _ Hv Hmk
+          iexact HN
         (try wp_auto)
         -- the guard: an impossible decision becomes the child's failure decision
         wp_bind (If _ _ _)
@@ -245,33 +265,52 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
           rw [HSm dw]
           cases Hhas : (Dec.pd _).has dw
           · wp_auto
-            wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of wp_ConditionsAwareDecision_FailureDecision)
-              $$ [$unevaluatedSubDecision] as unevaluatedSubDecision
-            · iexact Hv
-            (try wp_auto)
+            -- the possible decisions spelled out, as `%v` prints a `[]Decision` (without its brackets)
             wp_apply (ConditionsAwareDecision.wp_ptr_PossibleDecisions_of wp_ConditionsAwareDecision_PossibleDecisions)
               $$ [$unevaluatedSubDecision] as %s2 ⟨⟨%S2, HS2, %HSm2⟩, unevaluatedSubDecision⟩
             · iexact Hv
             (try wp_auto)
             wp_apply (wp_List s2 (DFrac.own 1) S2 (EtcdGrove.authorizer.setIs_size_le_b1 HSm2)) $$ [$HS2] as %sl %dws ⟨HS2, Hsl, -⟩
-            imod ownSlice_persist $$ Hsl with #Hsl
+            (try wp_auto)
+            wp_apply (wp_slice_for_range_ro (V := w64) _ sl dws (DFrac.own 1) _
+              (fun _ => iprop(∃ (ps : GoString), possible_ptr ↦ ps ∗ (∃ x : w64, p_ptr ↦ x) ∗
+                ∃ j : w64, i_ptr ↦ j))) $$ [$Hsl] [possible p i]
+            · iexists _; iframe
+            · imodintro
+              iintro %j %x %hx ⟨%ps, possible, ⟨%x0, p⟩, %j0, i⟩ Hsl
+              wp_auto
+              wp_if_destruct
+              · wp_apply (EtcdGrove.authorizer.Decision.wp_ptr_String_of wp_Decision_String p_ptr (DFrac.own 1) _) $$ [$p] as %str Hp
+                try wp_auto
+                isplitr
+                · ipureintro; rfl
+                iframe
+              · wp_apply (EtcdGrove.authorizer.Decision.wp_ptr_String_of wp_Decision_String p_ptr (DFrac.own 1) _) $$ [$p] as %str Hp
+                try wp_auto
+                isplitr
+                · ipureintro; rfl
+                iframe
+            iintro ⟨%ps, possible, ⟨%x0, p⟩, %j0, i⟩ Hsl
+            (try wp_auto)
+            wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of wp_ConditionsAwareDecision_FailureDecision)
+              $$ [$unevaluatedSubDecision] as unevaluatedSubDecision
+            · iexact Hv
             (try wp_auto)
             wp_apply wp_slice_literal
             isplitr
             · ipureintro; rfl
             iintro %sp ⟨Hs, -⟩
             (try wp_auto)
-            wp_apply wp_ErrorfSlice $$ [$Hs] as %ferr ⟨Hs, -⟩
-            · fmt_args_intro_sl
+            wp_apply wp_ErrorfLeaf $$ [$Hs] as %ferr ⟨Hs, -⟩
+            · fmt_args_intro
               isplitl
-              · iapply fmt.argOkAtSl_of_base
+              · iapply fmt.argOkAt_of_base
                 iapply (authorizer.Decision.argOkAtBase wp_Decision_String dw ⟨by decide, rfl, by decide⟩)
                 iPkgInit
               isplitl
-              · iapply (authorizer.Decision.sliceArgOkAt wp_Decision_String sl dws ⟨by decide, Or.inl rfl, rfl⟩)
-                isplitr
-                · iPkgInit
-                · iexact Hsl
+              · iapply fmt.argOkAt_of_base; simp only [fmt.argOkAtBase]; ileft; ipureintro
+                exact (show _root_.Perennial.fmt.ArgsWf [interface.mkOk go.string #ps] from
+                  .cons_string _ _ .nil) _ (List.mem_singleton_self _)
               · itrivial
             (try wp_auto)
             iframe
@@ -339,22 +378,24 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
         subst Hbv
         wp_auto
         -- the reason, appended to `reasonlist` unless empty
-        wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hrl0
+        wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len_maxAddr as %Hrl0
         wp_bind (If _ _ _)
         iapply (wp_wand (Φ := fun bv => iprop(⌜bv = executeVal⌝ ∗ ∃ (rl' : GoSlice) (rls' : List GoString),
             reasonlist_ptr ↦ rl' ∗ rl' ↦* rls' ∗ ownSliceCap GoString rl' (DFrac.own 1) ∗
-            currentAuthorizerName_ptr ↦ k))) $$ [reasonlist Hrl Hrlc reason currentAuthorizerName]
+            currentAuthorizerName_ptr ↦ k ∗
+            ⌜rls'.length ≤ rls.length + 1 ∧ ∀ x ∈ rls', x.length ≤ (authzNameMax + 2 + maxAddr.toNat)⌝))) $$ [reasonlist Hrl Hrlc reason currentAuthorizerName]
         · wp_if_destruct
           · iframe
+            ipureintro; exact ⟨by omega, Hrls.2⟩
           · (try wp_auto)
             wp_apply (wp_slice_literal (l := [interface.mkOk go.string #k, interface.mkOk go.string #r0]))
             isplitr
             · ipureintro; rfl
             iintro %sp ⟨Hs, -⟩
             (try wp_auto)
-            wp_apply (EtcdGrove.fmt.Sprintf.argsWf wp_Sprintf _ _ [interface.mkOk go.string #k, interface.mkOk go.string #r0] (DFrac.own 1)
-              (_root_.Perennial.fmt.ArgsWf.cons_string _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-                _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hs] as %str ⟨Hs, -⟩
+            wp_apply (EtcdGrove.fmt.wp_Sprintf_pure wp_Sprintf go!"%s: %s" [.dir none _root_.Perennial.fmt.verb_s, .lit go!": ", .dir none _root_.Perennial.fmt.verb_s]
+              _ [interface.mkOk go.string #k, interface.mkOk go.string #r0] _ (DFrac.own 1)
+              (by fmt_encode) (by fmt_fits) (.str _ _ _ (.str _ _ _ .nil))) $$ [$Hs] as %str ⟨Hs, %Hstr⟩
             (try wp_auto)
             wp_apply wp_slice_literal
             isplitr
@@ -364,8 +405,18 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
             wp_apply wp_slice_append $$ [$Hrl $Hrlc $Hs'] as %rl' ⟨Hrl, Hrlc, -⟩
             (try wp_auto)
             iframe
-            ipureintro; rfl
-        iintro %bv ⟨%Hbv, %rl', %rls', reasonlist, Hrl, Hrlc, currentAuthorizerName⟩
+            ipureintro
+            refine ⟨rfl, by simp, ?_⟩
+            intro x hx
+            rcases List.mem_append.mp hx with hx | hx
+            · exact Hrls.2 x hx
+            · simp only [List.mem_singleton] at hx
+              subst hx; rw [Hstr]
+              have := authorizer.length_le_maxAddr_toNat r0 Hrl0
+              simp only [_root_.Perennial.fmt.render, EtcdGrove.fmt.dirOutFn_str_s, List.length_append,
+                List.append_nil, List.length_cons, List.length_nil]
+              omega
+        iintro %bv ⟨%Hbv, %rl', %rls', reasonlist, Hrl, Hrlc, currentAuthorizerName, %Hrls'⟩
         subst Hbv
         (try wp_auto)
         -- on to the next child
@@ -380,6 +431,7 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
         iexists v, k, rl', el', rls', els'
         iframe
         ipureintro
+        refine ⟨?_, by omega, Hrls'.2⟩
         refine cuad_step ks i _ Hcuad Hmk ?_
         first
           | rfl
@@ -401,20 +453,33 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
       isplitr
       · iapply ownSliceCap_nil
       ipureintro
-      intro j k hj; omega
+      refine ⟨fun j k hj => by omega, by simp, by simp⟩
     · -- after the loop
       iintro !> HI
       isplitr
       · ipureintro; simp
       icases HI with (⟨HTok, %sd, %nm, %rl, %el, %rls, %els, unevaluatedSubDecision, currentAuthorizerName,
         reasonlist, Hrl, Hrlc, errlist, Hel, Helc, «$res0», «$res1», «$res2», authzHandler, data, ctx, HΦ,
-        %Hcuad⟩ | HD)
+        %Hcuad, %Hrls⟩ | HD)
       · ileft
         iframe HTok
         rw [hK]
         simp only []
         wp_auto
-        wp_apply wp_Join $$ [$Hrl] as Hrl
+        have Hn : rls.length * ((authzNameMax + 2 + maxAddr.toNat) + (go!"\n").length) < _root_.Perennial.strings.joinMax := by
+          have h1 := Dec.length_le_sizeL ks
+          try simp only [List.length_map] at Hrls
+          unfold Dec.foldFits Dec.foldBound at Hfit
+          simp only [Dec.size, Dec.depth] at Hfit
+          have h2 : rls.length ≤ Dec.sizeL ks + 1 := by omega
+          have h3 : (authzNameMax + 2 + maxAddr.toNat) + (go!"\n").length ≤
+              (Dec.depthL ks + 1 + 1) * (authzNameMax + 2) + maxAddr.toNat + 6 := by
+            have := Nat.le_mul_of_pos_left (authzNameMax + 2) (show 0 < Dec.depthL ks + 1 + 1 by omega)
+            simp only [List.length_cons, List.length_nil]
+            omega
+          exact Nat.lt_of_le_of_lt (Nat.mul_le_mul h2 h3) Hfit
+        wp_apply (_root_.Perennial.strings.Join_bounded_of wp_Join rl rls (DFrac.own 1) _ _ Hrls.2 Hn)
+          $$ [$Hrl] as Hrl
         (try wp_auto)
         wp_apply wp_NewAggregate $$ [$Hel] as %agg Hel
         (try wp_auto)

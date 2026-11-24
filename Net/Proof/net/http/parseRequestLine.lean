@@ -4,7 +4,7 @@ The proof of `parseRequestLine` (`Net/Spec/net/http/parseRequestLine.lean`): two
 module
 
 public import Net.Spec.net.http.parseRequestLine
-public import Spec.strings.Cut
+public import Perennial.Spec.strings.Cut
 
 @[expose] public section
 
@@ -24,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-theorem parseRequestLine.wp_proof (wp_cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG)) :
+theorem parseRequestLine.wp_proof (wp_cut : strings.Cut.spec (GF := GF) (hG := hG)) :
     parseRequestLine.spec (GF := GF) (hG := hG) := by
   intro line
   wp_start
