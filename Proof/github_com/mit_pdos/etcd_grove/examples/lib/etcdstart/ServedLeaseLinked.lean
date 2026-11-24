@@ -50,7 +50,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗
         kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗ srvGoRes s ∗
+      |={⊤}=> ∃ (γ : GName) (Svc : GrpcSvc GF), grpcServeTok gs lis addr Svc ∗ srvGoRes s ∗
         (∃ (pw : Loc) (ims is : GoFunc) (sregs : List (GoString × GoFunc × GoInterface)),
           ⌜v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E⌝ ∗
           grpcStreamServerAt addr [ims, is] sregs γ ∗ v3rpc.isWatchServer pw R ∗
@@ -60,7 +60,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hlis, #Hlu⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hlis, Hleft, #Hlu⟩
   obtain ⟨HCA, -, Hregs, Hwreg, hRs, hRE, -, -, Hnd⟩ := HC
   -- the run pools, built from `memberUp`'s stocks
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
@@ -136,7 +136,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           simp only [client.etcdLeaseReadMethods, List.mem_cons, List.mem_nil_iff,
             _root_.or_false] at hm
           rcases hm with rfl | rfl <;> simp [v3rpc.leaseRegs])
-        Hrf Hnd hρ HL) $$ [Hgsn Hlis] with ⟨%γ, Hserv, Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
+        Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp, Hle⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -147,7 +147,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
     imodintro
-    iexists γ
+    iexists γ, _
     iframe Hserv Hgo
     isplitl [Hss]
     · iexists pw, ims, is, sregs
@@ -192,7 +192,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           simp only [client.etcdLeaseGrantMethods, List.mem_cons, List.mem_nil_iff,
             _root_.or_false] at hm
           rcases hm with rfl | rfl | rfl <;> simp [v3rpc.leaseRegs])
-        Hrf Hnd hρ HL) $$ [Hgsn Hlis] with ⟨%γ, Hserv, Hss, -, -, -, -, -, Hle⟩
+        Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, -, -, -, -, -, Hle⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -205,7 +205,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
     ihave #H2a := isGrpcRpc_leaseLeases_any addr (mvcc.api.mvccLeases E.γ) $$ H2'
     imodintro
-    iexists γ
+    iexists γ, _
     iframe Hserv Hgo
     isplitl [Hss]
     · iexists pw, ims, is, sregs
@@ -251,7 +251,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           simp only [client.etcdLeaseGrantLiveMethods, List.mem_cons, List.mem_nil_iff,
             _root_.or_false] at hm
           rcases hm with rfl | rfl | rfl <;> simp [v3rpc.leaseRegs])
-        Hrf Hnd hρ HL) $$ [Hgsn Hlis] with ⟨%γ, Hserv, Hss, -, -, -, -, -, Hle⟩
+        Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, Hss, -, -, -, -, -, Hle⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -266,7 +266,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     ihave #H1a := isGrpcRpc_leaseTTL_live_any addr (mvcc.api.mvccLeases E.γ) s 0 $$ [$Hlb0 $H1']
     ihave #H2a := isGrpcRpc_leaseLeases_live_any addr (mvcc.api.mvccLeases E.γ) 0 $$ [$Hlb0 $H2']
     imodintro
-    iexists γ
+    iexists γ, _
     iframe Hserv Hgo
     isplitl [Hss]
     · iexists pw, ims, is, sregs
@@ -299,10 +299,10 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro H
   imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL) $$ H
-    with ⟨%γ, Ht, -, -, Hr, Hl⟩
+    with ⟨%γ, %Svc, Ht, -, -, Hr, Hl⟩
   imodintro
   iframe Hr Hl
-  iexists γ
+  iexists Svc
   iexact Ht
 
 /-- **`kv_lease_served`, with the `GoAttach` resources given back** (leaseN, 2026-11-16,
@@ -322,10 +322,10 @@ theorem kv_lease_served_go (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro H
   imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL) $$ H
-    with ⟨%γ, Ht, Hgo, -, Hr, Hl⟩
+    with ⟨%γ, %Svc, Ht, Hgo, -, Hr, Hl⟩
   imodintro
   iframe Hgo Hr Hl
-  iexists γ
+  iexists Svc
   iexact Ht
 
 /-- **`kv_lease_served`, with the member's `Watch` stream and its refusal freedom** (lease-mono3's
@@ -366,7 +366,7 @@ theorem kv_lease_served_watch (s : Loc)
   ihave ⟨Hup, %Hnr⟩ := grpcUp_noRefusal s E ρ γr gs lis addr cid mid R Hoff $$ [Hup]
   · iframe Hup; iframe #
   imod (kv_lease_served_core s E ρ γr gs lis addr cid mid R Hrb HT Hrf hP hρ m hm HL)
-    $$ [Hlr Hst Hup] with ⟨%γ, Hserv, Hgo, ⟨%pw, %ims, %is, %sregs, %HW, Hss, #Hws, #Hims, #His,
+    $$ [Hlr Hst Hup] with ⟨%γ, %Svc, Hserv, Hgo, ⟨%pw, %ims, %is, %sregs, %HW, Hss, #Hws, #Hims, #His,
       #Hb, #Hrp⟩, Hr, Hl⟩
   · iframe; iframe #
   obtain ⟨Hwreg, hRs, hRE⟩ := HW
@@ -380,7 +380,7 @@ theorem kv_lease_served_watch (s : Loc)
   iframe Hgo Hr Hl
   iframe #
   isplitl [Hserv]
-  · iexists γ; iexact Hserv
+  · iexists Svc; iexact Hserv
   isplitl []
   · ipureintro; exact ⟨hRs, hRE⟩
   ipureintro; exact Hnr

@@ -93,6 +93,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLeaseLem
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.client.v3.KVServiceOn
 public import Proof.go_etcd_io.etcd.client.v3.KeyOps
+public import Proof.go_etcd_io.etcd.client.v3.GrpcTys
 
 @[expose] public section
 
@@ -2496,7 +2497,7 @@ theorem etcd_kv_served_with (addr : GoString) (p q s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
     (regs : List (GoString × GoFunc × GoInterface)) (γ : GName) (ms : List (GrpcMethod GF))
     (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs)
-    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (hρ : ρ.rd = γr)
+    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (hmt : ∀ m ∈ ms, etcdTys (GF := GF) m.name = some (m.Req, m.Rep)) (hρ : ρ.rd = γr)
     (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -2525,7 +2526,7 @@ theorem etcd_kv_served_with (addr : GoString) (p q s : Loc)
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none) cid mid n rfl]
   imod (etcd_kv_servedM_with addr p q s E ρ γr cid mid n il im iu regs γ ms
-    hregs hms (fun _ => hρ) HL) $$ [] with ⟨#H1, #H2, #H3, #H4, #H5, Hle⟩
+    hregs hms hmt (fun _ => hρ) HL) $$ [] with ⟨#H1, #H2, #H3, #H4, #H5, Hle⟩
   · rw [hon, isServerReqM_false, isServerReadM_false]
     iframe; iframe #
     ipureintro; rw [hM]; simp
@@ -2583,7 +2584,7 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, #Hl, #Hb, #Hrp⟩
   imod (etcd_kv_served_with addr p q s E ρ γr cid mid n il im iu regs γ [] hregs
-    (by intro m hm; simp at hm) hρ HL) $$ [] with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
+    (by intro m hm; simp at hm) (by intro m hm; simp at hm) hρ HL) $$ [] with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
   · iframe #
     iintro !>
     iapply BigSepL.bigSepL_nil.2
@@ -3487,7 +3488,8 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
     (il im iu ims is : GoFunc) (svcs : List GoString)
     (regs sregs : List (GoString × GoFunc × GoInterface)) (ms : List (GrpcMethod GF))
     (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs)
-    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (Hrf : grpcRepliesFit)
+    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (hmt : ∀ m ∈ ms, etcdTys (GF := GF) m.name = some (m.Req, m.Rep))
+    (Hrf : grpcRepliesFit)
     (hnd : ((regs ++ sregs).map Prod.fst).Nodup) (hρ : ρ.rd = γr) (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -3509,14 +3511,14 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) ∗
         [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
-  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, #Hb, #Hrp, #Hxs⟩
+  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hleft, #Hb, #Hrp, #Hxs⟩
   imod (grpc.start' gs lis addr [il, im, iu] [ims, is] svcs regs sregs etcdTys etcdTys_reg Hrf hnd) $$ [Hgs Hlis Hleft]
     with ⟨%γ, #Hat', #Hst, Htok⟩
   · iframe
   ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
   ihave #Him' := Him $$ %v3rpc.learnerReqOk
   imod (etcd_kv_served_with addr p q s E ρ γr cid mid n il im iu regs γ ms
-    (by rw [etcdKVRegs_eq]; exact hregs) hms hρ HL) $$ [] with H
+    (by rw [etcdKVRegs_eq]; exact hregs) hms hmt hρ HL) $$ [] with H
   · iframe #
   imodintro
   iexists γ
@@ -3555,9 +3557,9 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
-  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, #Hb, #Hrp⟩
+  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hleft, #Hb, #Hrp⟩
   imod (etcd_kv_started_with addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs []
-    hregs (by intro m hm; simp at hm) Hrf hnd hρ HL) $$ [Hgs Hlis]
+    hregs (by intro m hm; simp at hm) (by intro m hm; simp at hm) Hrf hnd hρ HL) $$ [Hgs Hlis Hleft]
     with ⟨%γ, Htok, Hst, #H1, #H2, #H3, #H4, #H5, -⟩
   · iframe; iframe #
     iintro !>
@@ -4144,6 +4146,10 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
       apply hregs
       simp only [etcdLeaseMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hm
       rcases hm with rfl | rfl <;> simp [etcdLeaseRegs])
+    (by
+      intro m hm
+      simp only [etcdLeaseMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hm
+      rcases hm with rfl | rfl <;> simp [etcdTys, etcdTyList])
     hρ HLv) $$ [] with ⟨#H1, #H2, #H3, #H4, #H7, Hle⟩
   · iframe #
   simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]

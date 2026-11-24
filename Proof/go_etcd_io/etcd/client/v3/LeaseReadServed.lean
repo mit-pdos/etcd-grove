@@ -27,6 +27,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvLeaseRead
 public import Proof.go_etcd_io.etcd.client.v3.LeaseSpecs
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler
+public import Proof.go_etcd_io.etcd.client.v3.GrpcTys
 
 @[expose] public section
 

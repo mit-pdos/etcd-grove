@@ -225,14 +225,14 @@ theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
       %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgr,
-      Hlis, #Hlu⟩
+      Hlis, Hleft, #Hlu⟩
     obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     imod (etcdstart.kvServeStocks_pools s E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
     rw [HCA]
     imod (ak_served_kv addr gs q p pa s lis E { ρ with wait := γw } cid mid C.n
         il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
-      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, #Hsat⟩
+      $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, #Hsat⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -266,7 +266,7 @@ theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     imodintro
     iframe HKV HSA HAu HWF Htag Hgr HLS
     isplitl [Hserv]
-    · iexists γ; iexact Hserv
+    · iexists _; iexact Hserv
     ipureintro; exact ⟨hRE, hRs⟩
   iapply HΦ
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HSA, #HAu, #HWF, #Htag, Hgr, #HLS⟩⟩)

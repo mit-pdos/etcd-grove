@@ -29,6 +29,7 @@ public import Proof.go_etcd_io.etcd.client.v3.ClientUser
 public import Proof.go_etcd_io.etcd.client.v3.LeaseGrantServed
 public import Proof.go_etcd_io.etcd.client.v3.AuthnSpec
 public import Proof.go_etcd_io.etcd.client.v3.ServeLaws
+public import Proof.go_etcd_io.etcd.client.v3.GrpcTys
 
 @[expose] public section
 
@@ -445,6 +446,12 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
         List.mem_cons, List.mem_nil_iff, _root_.or_false] at hm
       rcases hm with rfl | rfl | rfl | rfl | rfl | rfl <;>
         simp [v3rpc.authRegs, authnMethod])
+    (by
+      intro m hm
+      simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append,
+        List.mem_cons, List.mem_nil_iff, _root_.or_false] at hm
+      rcases hm with rfl | rfl | rfl | rfl | rfl | rfl <;>
+        simp [etcdTys, etcdTyList, authnMethod])
     (fun h => by rw [hon] at h; cases h) HL) $$ [] with ⟨#H1, #H2, #H3, #H4, -, Hms⟩
   · rw [hon]
     iframe #

@@ -1,68 +1,53 @@
 /-
-**grpc's runs on real forks** (per-type stage B, B1a, 2026-11-11; Scope r5 §2.1-2.2,
-`/shared/tmp/stageB/scope-r5.md`; Lean-first, no Rocq counterpart). The vocabulary of the trusted
-`Serve` model (`TrustedCode/google_golang_org/grpc.lean`, `Server.Serve.impl`) and of its leaves'
-axioms (`Spec/google_golang_org/grpc/model/`), which replace `grpc.serve`/`grpc.serveStream`'s
-caller-chosen run resource and count (`axiom/grpc-serve-pool`, `1ad2cc63a0`). B1b moved the shared
-vocabulary (`GrpcSrvCfg`, the trusted predicates and their laws, the run contracts, `isGrpcRpcAt`,
-`isGrpcStreamAt`) to `InvGrpc.lean`/`InvGrpcStream.lean`, where the client side and `grpc.serve`
-use it; this file keeps what only the model, its leaves and the start use (`grpcReplyTo`,
-`grpcAccepted`, `grpcSrvStreamChain`, `grpcServeTok`, `grpc.start'`) and the adapters.
+**grpc's server: the right to serve and the start** (per-type stage B, B1a, 2026-11-11; Scope r5
+§2.1-2.2; restated at phase 7 S2's interface, 2026-11-24; Lean-first, no Rocq counterpart).
 
-**Go's configuration as a trusted fact.** `grpc.start` (restated in B1b) emits, from the server
+**Go's configuration as a trusted fact.** `grpc.start` (`InvGrpcServer.lean`) emits, from the server
 being built (`grpcSrvNew gs ics sics svcs regs sregs`), a persistent `grpcSrvCfg γ c`: the chains and
 registrations Go's server holds (`GrpcSrvCfg`), fixed from `Serve` on (grpc's `RegisterService`
 after `Serve` is fatal), beside `grpcAddrIs addr γ` (the server listening at `addr` is `γ`) and the
-exclusive `grpcSrvLink gs lis γ` (the right to accept `γ`'s calls on `lis`). A proof cannot choose
-`c`: it is made only by `grpc.start`, from `grpcSrvNew`, and is unique per `γ`
-(`grpcSrvCfg_agree`); `γ` is unique per address (`grpcAddrIs_agree`).
+exclusive `grpcSrvLink gs lis γ`. A proof cannot choose `c`: it is made only by `grpc.start`, from
+`grpcSrvNew`, and is unique per `γ` (`grpcSrvCfg_agree`); `γ` is unique per address
+(`grpcAddrIs_agree`).
 
-**The registration** of a method at a server (`isGrpcRpcAt γ name Spec`): Go's configuration lists
-`(name, mh, srv)` and the handler meets `Spec` under Go's chain, each run given the literal
-`threadTok` and one later credit and returning the token (`grpcRunOkMd`, the run contract). No
-caller-chosen resource, no count, no ghost registry, no saved predicate.
+**The service table** (S2's interface). A unary registration is heap-free: `isGrpcRpcMd addr name
+Spec` (`InvGrpc.lean`) says dialing `addr` reaches an address `a₀` whose table `Svc`, set once with
+its protocols (`grpcAddrAt`, `InvGrpcWire.lean`), has an entry for `name` that `Spec`'s callers meet.
+What makes this sound is `Server.Serve`'s axiom, which takes `grpcServeTok gs lis a Svc`: Go's
+configuration (started, or being built with the node's open listener), `a` serving `Svc`, and
+`grpcServes Svc`: every entry names no stream (C3) and, for each unary method `gs` registers under
+its name, is met by Go's handler as a run (`grpcRunOkMd`, the run contract: a run is given the
+fork's thread token and one later credit, returns the token), at the registered message models.
+`Serve`'s post is `True`; its axiom says the server meets `Svc` on every connection to `a`, as the
+opaque protocols `grpcCliPI Svc`/`grpcSrvPI Svc` state it: no program but grpc's transport writes
+or reads such a connection meaningfully (`notes/axiom-review/s2-interface.md`, C1 and C2).
 
-**The pair** (the soundness argument of the five trusted texts `ClientConn.Invoke`,
-`ClientConn.NewStream`, `acceptRun`, `acceptRunConns`, `respond`, which are one channel per call):
-- **Unary.** `Invoke`'s pre gives up the registration of the method at the address its attempt
-  reaches (`grpcAddrIs a γ ∗ isGrpcRpcAt γ method Spec`) and `▷ Spec md m Φ Ψe` at the attempt's
-  metadata. The server that accepts the attempt is the one listening at `a` (TCP; `bridge.New` maps
-  a bridge's address to its target's `γ`), so it is `γ` (`grpcAddrIs_agree`), and the run's context
-  carries the attempt's metadata. `acceptRun` hands exactly these to the run (the conjuncts of
-  `grpcAccepted` marked "deposited") and a `grpcReplyTo` for `Φ`/`Ψe`. `respond` consumes `Φ m'`
-  (or `Ψe d`) with the reply, and `Invoke`'s success post returns that `Φ m'` (its error post returns
-  `Ψe d` only for a `handlerDescs` description, which only the handler makes).
-- **One deposit, one run.** A deposit reaches at most one run: (a) grpc's transparent retry resends
-  only a stream the server never processed (`stream.go`, `shouldRetry`'s unprocessed case); (b) the
-  program's clients have no retry policy, no hedging and no `healthCheckConfig`: every client is
-  made by the `NewClient` spec under `grpcResolverAt` (a service config without a retry policy) and
-  `dialOptsAt`; without (b) grpc does resend a processed trailers-only attempt
-  (`stream.go:803-858`; test T8b), which is why it is cited; (c) the world premise D7: every client
-  connection to a served address is one the `NewClient` spec made (`grpcConn`), and grpc makes no
-  calls of its own (no client-side health checks, no ORCA out-of-band streams). So each deposit is
-  handed to at most one run, and `grpcReplyTo` (exclusive, no laws) is consumed once. An `Invoke`
-  that returns an error early leaves its deposit with the run (grpc's handler runs asynchronously,
-  test T2): nothing returns a deposit to a client.
-- **Streams.** `NewStream`'s post and the server end share the stream's names `γs`, `Dn` and the
-  persistent `Spec md γs Dn`; the server half is `acceptRun`'s stream arm, and the stream
-  registration (`isGrpcStreamAt`) is deposited as in the unary case.
-- **The message models are the client's registered ones** (model-param, decided by etcd-grove-81,
-  2026-11-12, option C'): `Invoke`'s invoker contract (`grpcInvokerOk`) takes `grpcReqModelOf GF
-  Req.ty = some Req` and `grpcRepModelOf GF Rep.ty = some Rep` from its caller before the deposit,
-  and `NewStream` the stream registries; the pair hands the server only what a client deposited, so
-  the models `acceptRun`/`acceptRunConns` return in `grpcAccepted`, with those registry facts, were
-  fixed by the client's registration and are chosen by no one (the registry is a function of the Go
-  type, and each of its entries is one registration axiom). `respond` works at the model the carrier
-  took from `grpcAccepted`. The gate's pair entries (`etc/model-param-allow.txt`) accept exactly
-  these returned atoms, each only while its depositing axiom's pre requires the same atom.
-- **Go facts, not pair facts:** `(name, mh, srv) ∈ c.regs` (Go's dispatch), `grpcSrvChainAll c.ics`
-  and `grpcSrvStreamChainAll c.sics` (Go's chains, at every resource), `grpcDecOk` (grpc's codec), `grpcRunCtx` (no etcd
-  keys in a run's context).
+**One process.** The single-process start (`grpc.start'`) sets the address's table to Go's
+configuration (`grpcGoSvc ics regs tys`, `InvGrpc.lean`: an entry for each registered unary method
+`tys` gives registered models, whose spec is some spec its handler's run contract meets) from what
+`Listen` left (`netAddrLeft`), allocating the net library's registry and slot map in the same ghost
+step, and proves `grpcServes` of it (`grpcServes_go`); `grpc.serve` (a theorem) then registers each
+method at the spec it is proved at.
 
-What the carrier (`Serve`'s proof) proves from this: `grpcSrvCfg_agree` makes the deposit's
-configuration Go's `c`; the joint `Nodup` of `c.regs ++ c.sregs`' names (`grpc.start`'s premise,
-carried by `grpcSrvNodup`) makes the deposit's handler Go's; the deposit's run contract then applies
-to Go's handler with the carrier's own fork token and credit (`wp_fork_tok_upd`).
+**Streams** stay on the pair until S3: `NewStream`'s post and the server end share the stream's names
+`γs`, `Dn` and the persistent `Spec md γs Dn`; the stream registration (`isGrpcStreamAt γ`, a WP of
+the handler at the server's heap) is of a started server (`grpcServeTok`'s first disjunct), and
+`Serve`'s axiom runs a stream as `ClientConn.NewStream`'s post pairs it (`InvGrpcStream.lean`).
+
+**The pair's argument, as `Serve`'s and `Invoke`'s axioms rest on it.** One deposit, one run: grpc's
+transparent retry resends only a stream the server never processed (`stream.go`, `shouldRetry`'s
+unprocessed case); the program's clients have no retry policy, no hedging and no
+`healthCheckConfig` (every client is made by the `NewClient` spec under `grpcResolverAt` and
+`dialOptsAt`; without it grpc resends a processed trailers-only attempt, `stream.go:803-858`, test
+T8b); and grpc makes no calls of its own (no client-side health checks, no ORCA out-of-band
+streams). The message models are the client's registered ones (model-param, option C'): `Invoke`'s
+invoker contract (`grpcInvokerOk`) takes `grpcReqModelOf GF Req.ty = some Req` and
+`grpcRepModelOf GF Rep.ty = some Rep` before the deposit, and a table's entry is at the registered
+models' wire parts (`grpcServes`). Go facts, not pair facts: `(name, mh, srv) ∈ c.regs` (Go's
+dispatch), `grpcSrvChainAll c.ics`, `grpcSrvStreamChainAll c.sics`, `grpcDecOk`, `grpcRunCtx`. Until
+S2's interface the server half was the trusted model `Serve` (`Server.Serve.impl := model.Serve`)
+and its leaves' axioms (`acceptRun`, `acceptRunConns`, `respond`, `finishStream`, with
+`grpcAccepted`, `grpcReplyTo`, `grpcConnsLink`), now retired.
 -/
 module
 

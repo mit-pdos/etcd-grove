@@ -45,7 +45,8 @@ def etcdTyList : List (GoString × ProtoMsgT GF × ProtoMsgT GF) :=
    (go!"/etcdserverpb.Auth/RoleAdd", pbAuthRoleAddRequestT, pbAuthRoleAddResponseT),
    (go!"/etcdserverpb.Auth/RoleGrantPermission", pbAuthRoleGrantPermissionRequestT,
      pbAuthRoleGrantPermissionResponseT),
-   (go!"/etcdserverpb.Auth/AuthEnable", pbAuthEnableRequestT, pbAuthEnableResponseT)]
+   (go!"/etcdserverpb.Auth/AuthEnable", pbAuthEnableRequestT, pbAuthEnableResponseT),
+   (go!"/etcdserverpb.Auth/Authenticate", pbAuthenticateRequestT, pbAuthenticateResponseT)]
 
 /-- **The message models of etcd's unary method `n`** (`etcdTyList`'s entry). -/
 def etcdTys (n : GoString) : Option (ProtoMsgT GF × ProtoMsgT GF) :=
@@ -58,9 +59,11 @@ theorem etcdTys_reg : ∀ (n : GoString) (Req Rep : ProtoMsgT GF), etcdTys (GF :
   unfold etcdTys at h
   obtain ⟨p, hp, hpe⟩ := Option.map_eq_some_iff.1 h
   have hm := List.mem_of_find?_eq_some hp
-  subst hpe
-  simp only [etcdTyList, List.mem_cons, List.not_mem_nil, or_false] at hm
-  rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  obtain ⟨n', Rq, Rp⟩ := p
+  simp only [Prod.mk.injEq] at hpe
+  obtain ⟨rfl, rfl⟩ := hpe
+  simp only [etcdTyList, List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hm
+  rcases hm with ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
   · exact ⟨pbPutRequestT_reg, pbPutResponseT_reg⟩
   · exact ⟨pbRangeRequestT_reg, pbRangeResponseT_reg⟩
   · exact ⟨pbDeleteRangeRequestT_reg, pbDeleteRangeResponseT_reg⟩
@@ -75,6 +78,7 @@ theorem etcdTys_reg : ∀ (n : GoString) (Req Rep : ProtoMsgT GF), etcdTys (GF :
   · exact ⟨pbAuthRoleAddRequestT_reg, pbAuthRoleAddResponseT_reg⟩
   · exact ⟨pbAuthRoleGrantPermissionRequestT_reg, pbAuthRoleGrantPermissionResponseT_reg⟩
   · exact ⟨pbAuthEnableRequestT_reg, pbAuthEnableResponseT_reg⟩
+  · exact ⟨pbAuthenticateRequestT_reg, pbAuthenticateResponseT_reg⟩
 
 /-- A sanity check that the table's lookup computes: `Put`'s entry. -/
 example : etcdTys (GF := GF) go!"/etcdserverpb.KV/Put" = some (pbPutRequestT, pbPutResponseT) := by

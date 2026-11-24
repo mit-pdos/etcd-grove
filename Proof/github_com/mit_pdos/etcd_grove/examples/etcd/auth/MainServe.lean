@@ -91,7 +91,7 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
         isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) ∗
         grpcServerAt addr [il, im, iu] regs etcdTys γ := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Hpa, #HBF, #Hil, #Him, #Hiu, Hgs,
-    Hlis, #Hb, #Hrp⟩
+    Hlis, Hleft, #Hb, #Hrp⟩
   imod (grpc.start' gs lis addr [il, im, iu] [ims, is] svcs regs sregs etcdTys etcdTys_reg Hrf hnd) $$ [Hgs Hlis Hleft]
     with ⟨%γ, #Hat', #Hss, Htok⟩
   · iframe
