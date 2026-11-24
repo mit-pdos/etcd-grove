@@ -5778,7 +5778,7 @@ and net/http's by their interim axioms, `Net/Proof/net/{rpc,http}/Init.lean`) an
     alloc_types=_ALLOC_ANY,
     before={'reached': ['try wp_auto'],
             'failMsgs': ['try wp_auto',
-                         'wp_apply (wp_slice_literal (l := [go!"no such key", go!"not leader", go!"x"]));'
+                         'wp_apply (wp_slice_literal (l := [go!"driver: no such key", go!"driver: not leader", go!"driver: x"]));'
                          ' isplitr; (· ipureintro; rfl); iintro %sf -',
                          'try wp_auto']})
 # (rpc-driver, 2026-11-24) The part's packages whose `wp_initialize'` is an interim trust-boundary

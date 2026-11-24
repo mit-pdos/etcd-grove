@@ -152,6 +152,9 @@ noncomputable def below [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Server [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/rpcdriver.Server"
 
+noncomputable def isFailMsg [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/net/rpcdriver.isFailMsg"
+
 noncomputable def dial [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/rpcdriver.dial"
 
@@ -1841,9 +1844,46 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Svc.ty)))) (Pair (Var "svc") (Var "$r0"))))))))
   (Val #())))
 
+/-- isFailMsg says whether m is one of the method's messages (failMsgs).
+
+    go: rpcdriver.go:93:6 -/
+noncomputable def isFailMsg.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc go.string))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GlobalVarAddr failMsgs))) (Val #())))
+  (Let "f" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "m")) (App (Val (GoInstruction (GoLoad go.string))) (Var "f")))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "f") (Var "$value")))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 /-- dial connects to the server, over raw TCP or over HTTP at random.
 
-    go: rpcdriver.go:92:6 -/
+    go: rpcdriver.go:103:6 -/
 noncomputable def dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty)))) (Val #())))
@@ -1886,7 +1926,7 @@ noncomputable def dial.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
-/-- go: rpcdriver.go:106:19 -/
+/-- go: rpcdriver.go:117:19 -/
 noncomputable def counter.take.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1919,7 +1959,7 @@ noncomputable def counter.take.impl [GooseExts] [GoGlobalContext] : val :=
 /-- randomArgs is a request with a fresh id, a random payload and, at random, an error to answer
     with.
 
-    go: rpcdriver.go:116:6 -/
+    go: rpcdriver.go:127:6 -/
 noncomputable def randomArgs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ids"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty)))) (Val #())))
@@ -1971,7 +2011,7 @@ noncomputable def randomArgs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- check is what the client relies on from one call's outcome, given its request.
 
-    go: rpcdriver.go:129:6 -/
+    go: rpcdriver.go:140:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1999,12 +2039,16 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.net.rpc.ServerError.ty))) (Var "se")) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty go!"Fail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty)))) (Var "a")))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"server-error"))
-  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (GlobalVarAddr reached))) (Val #()))) (Var "$a0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty go!"Fail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty)))) (Var "a")))) (Val #(go!"")))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.net.rpc.ServerError.ty))) (Var "se")) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty go!"Fail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty)))) (Var "a")))))))))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (GlobalVarAddr reached))) (Val #()))) (Var "$a0"))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"server-error: a ServerError that is not the method's answer")))
+  (Val #()))))))
+  (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.rpc.ServerError.ty))) (Var "se"))
+  (App (App (Val (GoInstruction (FuncResolve isFailMsg []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.net.rpc.ServerError.ty))) (Var "se")) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty go!"Fail"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty)))) (Var "a"))))))) (Val #false))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"server-error: a ServerError with a method's message that is not this request's answer")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))
@@ -2048,7 +2092,7 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- callOn makes calls on the connection c, from random workers, with Call or Go at random.
 
-    go: rpcdriver.go:160:6 -/
+    go: rpcdriver.go:175:6 -/
 noncomputable def callOn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -2159,7 +2203,7 @@ noncomputable def callOn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Client (after the program's Register of the codec) dials the server a random number of times, makes random calls on each connection and
     checks every outcome, then closes the connection.
 
-    go: rpcdriver.go:191:6 -/
+    go: rpcdriver.go:206:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -2276,9 +2320,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val #(go!"no such key"))
-  (Let "$v1" (Val #(go!"not leader"))
-  (Let "$v2" (Val #(go!"x"))
+  (Let "$r0" (Let "$v0" (Val #(go!"driver: no such key"))
+  (Let "$v1" (Val #(go!"driver: not leader"))
+  (Let "$v2" (Val #(go!"driver: x"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2")))])))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr failMsgs))) (Val #())) (Var "$r0")))))))
@@ -2397,6 +2441,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   rpcCall_r0_Echo_unfold : FuncUnfold rpcCall_r0_Echo [] rpcCall_r0_Echo.impl
   below_unfold : FuncUnfold below [] below.impl
   Server_unfold : FuncUnfold Server [] Server.impl
+  isFailMsg_unfold : FuncUnfold isFailMsg [] isFailMsg.impl
   dial_unfold : FuncUnfold dial [] dial.impl
   randomArgs_unfold : FuncUnfold randomArgs [] randomArgs.impl
   check_unfold : FuncUnfold check [] check.impl
@@ -2441,6 +2486,7 @@ attribute [instance] Assumptions.rpcNotModelled_instance
   Assumptions.rpcCall_r0_Echo_unfold
   Assumptions.below_unfold
   Assumptions.Server_unfold
+  Assumptions.isFailMsg_unfold
   Assumptions.dial_unfold
   Assumptions.randomArgs_unfold
   Assumptions.check_unfold

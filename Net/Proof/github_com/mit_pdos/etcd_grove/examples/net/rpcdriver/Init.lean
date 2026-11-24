@@ -73,7 +73,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of failMsgs))
   try wp_auto
-  wp_apply (wp_slice_literal (l := [go!"no such key", go!"not leader", go!"x"])); isplitr; (· ipureintro; rfl); iintro %sf -
+  wp_apply (wp_slice_literal (l := [go!"driver: no such key", go!"driver: not leader", go!"driver: x"])); isplitr; (· ipureintro; rfl); iintro %sf -
   try wp_auto
   iframe Hown
   is_pkg_init_finish

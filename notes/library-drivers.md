@@ -27,10 +27,19 @@ server serves one service both over raw TCP (`rpc.Accept`) and over HTTP (`Handl
 | register | a receiver of an exported type with a suitable method registers; one with none is refused | R11 | every kit's `Register`/`RegisterName` |
 | dial | a dial may fail; nothing is asserted of a failed dial | R8 | every kit's `DialHTTP` |
 | call-success | `nil` from `Call`/`Go` means exactly one run of the method on these arguments, and the reply is that run's | R1 | swiftpaxos and epaxos `master.go`, craq `node.go`, gryff `master.go` |
-| server-error | a `rpc.ServerError` is the method's own error, after it ran on this request | R2 | craq `kit.go` (`string(se) == errNotFound`) |
+| server-error | a `rpc.ServerError` carrying one of the method's messages (the driver's, `"driver: ..."`) is this request's own answer: the method ran on it and failed with that message | R2 | craq `kit.go` (`string(se) == errNotFound`) |
 | other-errors | any other error says nothing of whether the method ran; the reply is not looked at | R3 | swiftpaxos `master.go` (resets the reply after a failed call) |
 | concurrent-calls | concurrent `Call`/`Go` on one client each get their own outcome | R6 | swiftpaxos `client.go` |
 | close | after `Close`, a call fails with an error that is not a `ServerError` | R7 | the kits' `Close` |
+
+**Finding (2026-11-24, the proof): net/rpc's own errors are `ServerError`s too.** The first driver asserted
+that every `ServerError` is the method's answer. net/rpc's server (Go's, and the model's
+`readRequest`/`ServeCodec`) answers `ServerError(err.Error())` when a request's header was read but its
+body's read or decode failed, or its service or method is unknown; and the net extension lets a read cut
+one direction of a connection (client to server) while the other still delivers, so a request whose body
+is cut short gets `ServerError("unexpected EOF")`. Go's documentation promises nothing more. Net's proofs
+say the same (every service spec accepts the server's own answers, `errOk`, `srvErrMsg`). The section now
+asserts only of the method's own messages, marked `"driver: "` so that they are none of net/rpc's.
 
 Left out, and why: reply decoding merging into the caller's value (R4: a property of the codec, which
 the generated codec's own tests check against gob); the sticky break of a connection (R5: a
@@ -54,7 +63,11 @@ proved). The proof will rest on net/rpc's proved specs (`Net/Proof/net/rpc`), an
 proved yet: `HandleHTTP`, `http.Serve` on an rpc address (phase 7 S5), the initializers
 (`notes/phase7-endstate.md`; the shared design of rpc over HTTP, L2). Note for the proof: the
 package fact of net/rpc is `True`, so what the server and client proofs read of net/rpc's
-variables (`errFrame`, the codec registry) must come from the boot, as the kits' `RpcBoot`.
+variables (`errFrame`, the codec registry) must come from the boot, as the kits' `RpcBoot`. The kits keep their own `True` net/rpc and net/http
+facts (`Dsverify/Proof/net/{rpc,http}/Init.lean`, their `InitHyp` premises): sharing `Net/`'s stronger
+facts would change what their premises say; their switch to `Net/`'s initializers is dsverify-lab's.
+The two instances are never imported together (nor, so, their `wp_initialize'`s). The `True` facts of
+net/http's closure (`Net/Proof/<pkg>/Base.lean`) are shared.
 
 ## gRPC and net/http
 

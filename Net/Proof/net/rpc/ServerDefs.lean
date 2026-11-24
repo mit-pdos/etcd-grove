@@ -166,6 +166,17 @@ instance rcvrIs_persistent (C : CodecSpec GF) (rcvr : GoInterface) (S : MethodSp
     (nm : GoString) (np : Bool) (rp : Loc) : Persistent (rcvrIs (GF := GF) C rcvr S nm np rp) := by
   unfold rcvrIs; infer_instance
 
+/-- The `*Receiver` `rp` of a receiver with no method net/rpc can serve (persistent): its type's
+name `nm`, not a nil pointer, and no methods (`register` refuses it: "has no exported methods of
+suitable type"). -/
+def rcvrNone (nm : GoString) (rp : Loc) : IProp GF :=
+  iprop(∃ v : net.rpc.Receiver, rp ↦□ v ∗ ⌜v.Name' = nm ∧ v.NilPtr' = false⌝ ∗
+    v.Methods' ↦$□ (∅ : GMap GoString Loc))
+
+instance rcvrNone_persistent (nm : GoString) (rp : Loc) :
+    Persistent (rcvrNone (GF := GF) nm rp) := by
+  unfold rcvrNone; infer_instance
+
 /-! ## Services and the server -/
 
 /-- The `*methodType` `mt` `register` made for a method of `rcvr` meeting `Sm` (persistent). -/

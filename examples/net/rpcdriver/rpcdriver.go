@@ -85,8 +85,19 @@ func Server() {
 // ---------------------------------------------------------------------------------------------
 // The client.
 
-// failMsgs are the errors a request may ask the method to answer with.
-var failMsgs = []string{"no such key", "not leader", "x"}
+// failMsgs are the errors a request may ask the method to answer with: each marked as the
+// driver's, so that none is one of net/rpc's own error messages.
+var failMsgs = []string{"driver: no such key", "driver: not leader", "driver: x"}
+
+// isFailMsg says whether m is one of the method's messages (failMsgs).
+func isFailMsg(m string) bool {
+	for _, f := range failMsgs {
+		if m == f {
+			return true
+		}
+	}
+	return false
+}
 
 // dial connects to the server, over raw TCP or over HTTP at random.
 func dial() (*rpc.Client, error) {
@@ -142,13 +153,17 @@ func check(a *service.Args, r *service.Reply, err error) {
 		reached("call-success")
 		return
 	}
-	// Section server-error: a rpc.ServerError is the method's own error, after it ran on this
-	// request: its message is the one the method answered with.
+	// Section server-error: a rpc.ServerError carrying one of the method's messages is this
+	// request's own answer: the method ran on it and failed with that message. (net/rpc's own
+	// errors are ServerErrors too, e.g. a request whose body was cut short; their messages are
+	// net/rpc's, never the method's.)
 	if se, ok := err.(rpc.ServerError); ok {
-		if a.Fail == "" || string(se) != a.Fail {
-			panic("server-error: a ServerError that is not the method's answer")
+		if isFailMsg(string(se)) && string(se) != a.Fail {
+			panic("server-error: a ServerError with a method's message that is not this request's answer")
 		}
-		reached("server-error")
+		if string(se) == a.Fail {
+			reached("server-error")
+		}
 		return
 	}
 	// Section other-errors: any other error (the connection's, io.EOF, rpc.ErrShutdown) says
