@@ -3618,7 +3618,7 @@ noncomputable def Node.stepPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
 
 /-- restart stops the current incarnation cleanly (Replica.stop: its loop, clock and snapshot
-    goroutine, then raft's Node.Stop; then its transport's senders) and starts the next one in this
+    goroutine, then raft's Node.Stop; then its transport's senders, Transport.stop) and starts the next one in this
     process from the file (start), as kvdurable's Cluster.restart does with a crash. What the
     stopped incarnation still holds in memory and never wrote is lost, as in a crash; requests
     waiting on it time out.
@@ -8417,7 +8417,7 @@ noncomputable def closeAfter.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- newTCPTransport is the TCP transport (newTransport), as a newPeerTransport.
 
-    go: transport.go:65:6 -/
+    go: transport.go:66:6 -/
 noncomputable def newTCPTransport.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addrs"
@@ -8441,7 +8441,7 @@ noncomputable def newTCPTransport.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newTransport is the transport of node id, whose peers' addresses are addrs (by id; its own
     included, and left out: raft never sends to itself).
 
-    go: transport.go:71:6 -/
+    go: transport.go:72:6 -/
 noncomputable def newTransport.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addrs"
@@ -8454,7 +8454,8 @@ noncomputable def newTransport.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoAlloc Transport.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (Var "stats"))
   (Let "$v2" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint64 (go.GoType.PointerType peer.ty))]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral Transport.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"stats")) (ElementExpression (go.GoType.PointerType Stats.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"peers")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.PointerType peer.ty)) (Var "$v2")))]))))))
+  (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Transport.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"stats")) (ElementExpression (go.GoType.PointerType Stats.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"peers")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.PointerType peer.ty)) (Var "$v2"))), (KeyedElement (some (KeyField go!"stopc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v3")))])))))))
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Transport.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Transport.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8491,7 +8492,7 @@ noncomputable def newTransport.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- start starts the senders, a goroutine per peer, once the node exists.
 
-    go: transport.go:82:21 -/
+    go: transport.go:83:21 -/
 noncomputable def Transport.start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "node"
@@ -8520,36 +8521,25 @@ noncomputable def Transport.start.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Transport.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t"))) (Var "$r0")))))))))
   (Val #()))))
 
-/-- stop ends the senders once nothing sends any more (the incarnation's loop, the only caller of
-    Send, has returned: Replica.stop): each writes what its queue still holds, closes its
-    connection and returns.
+/-- stop ends the senders (the incarnation's node is stopped: Replica.stop): each closes its
+    connection and returns, leaving what its queue still holds unsent (the next incarnation's
+    transport has queues of its own).
 
-    go: transport.go:92:21 -/
+    go: transport.go:93:21 -/
 noncomputable def Transport.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Transport.ty)))) (Var "t"))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.PointerType peer.ty))))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"peers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t"))))
-  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType peer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType peer.ty)))) (Val #())))
-  (App (App (Val (map.forRange go.uint64 (go.GoType.PointerType peer.ty))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef peer.ty go!"queue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peer.ty)))) (Var "p"))))
-  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))) (Val #())) (Var "$a0"))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType peer.ty)))) (Pair (Var "p") (Var "$value"))))))))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))
   (Val #()))))
 
 /-- Send hands each of ms to its peer's sender, without waiting; one to an unknown peer, or one
     whose peer's queue is full, is dropped.
 
-    go: transport.go:100:21 -/
+    go: transport.go:99:21 -/
 noncomputable def Transport.Send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "ms"
@@ -8597,7 +8587,7 @@ noncomputable def Transport.Send.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- enqueue queues m for p, or drops it if p's queue is full.
 
-    go: transport.go:112:21 -/
+    go: transport.go:111:21 -/
 noncomputable def Transport.enqueue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "p"
@@ -8616,7 +8606,7 @@ noncomputable def Transport.enqueue.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dropped tells the node that m was not sent.
 
-    go: transport.go:121:21 -/
+    go: transport.go:120:21 -/
 noncomputable def Transport.dropped.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "m"
@@ -8642,7 +8632,7 @@ noncomputable def Transport.dropped.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dial connects to p as a peer (helloPeer); nil if it cannot now.
 
-    go: transport.go:130:21 -/
+    go: transport.go:129:21 -/
 noncomputable def Transport.dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "p"
@@ -8731,7 +8721,7 @@ noncomputable def Transport.dial.impl [GooseExts] [GoGlobalContext] : val :=
     the peer may still lose it (crash before it steps it), which raft then learns by the peer's
     answers, as with etcd's transport.
 
-    go: transport.go:153:21 -/
+    go: transport.go:152:21 -/
 noncomputable def Transport.runPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "p"
@@ -8739,16 +8729,9 @@ noncomputable def Transport.runPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Transport.ty)))) (Var "t"))
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType peer.ty)))) (Var "p"))
   (Let "c" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Conn.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.net.Conn.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.net.Conn.ty))) (Val UntypedNil))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c"))) (Val #())))
-  (App (Val doExecute)
-  (Val #())))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef peer.ty go!"queue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peer.ty)))) (Var "p"))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
-  (App (App (Val (chan.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Var "$range"))
-  (Lam "$key"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8818,8 +8801,26 @@ noncomputable def Transport.runPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef peer.ty go!"queue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peer.ty)))) (Var "p"))))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (Fst (Var "$recvVal"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "m") (Var "$key"))))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "m") (Var "$r0")))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.net.Conn.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.net.Conn.ty))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c"))) (Val #())))
+  (App (Val doExecute)
+  (Val #()))))))]))))))))
+  (Lam BAnon
+  (Val #())))))))
   (Val #()))))
 
 /-- writeAll writes all of b to c; false on an error (the connection is then unusable).
@@ -10947,15 +10948,17 @@ structure Transport [GooseExts] where
   node' : _root_.Perennial.go_etcd_io.raft.v3.Node
   stats' : Loc
   peers' : GoMap
+  stopc' : GoChan
 
 noncomputable instance Transport.zero_val [GooseExts] : ZeroVal Transport :=
-  ⟨Transport.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Transport.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Transport.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" go.uint64),
 (go.field_decl.FieldDecl go!"node" _root_.Perennial.go_etcd_io.raft.v3.Node.ty),
 (go.field_decl.FieldDecl go!"stats" (go.GoType.PointerType Stats.ty)),
-(go.field_decl.FieldDecl go!"peers" (go.GoType.MapType go.uint64 (go.GoType.PointerType peer.ty)))]
+(go.field_decl.FieldDecl go!"peers" (go.GoType.MapType go.uint64 (go.GoType.PointerType peer.ty))),
+(go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
 @[irreducible] noncomputable def Transport.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Transport.fieldsUnsealed
@@ -10978,6 +10981,8 @@ class Transport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_stats : ∀ (x : Transport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"stats") (PairV #x #y) (Val #(({ x with stats' := y } : Transport)))
   get_peers : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"peers") #x (Val #(x.peers'))
   set_peers : ∀ (x : Transport) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"peers") (PairV #x #y) (Val #(({ x with peers' := y } : Transport)))
+  get_stopc : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"stopc") #x (Val #(x.stopc'))
+  set_stopc : ∀ (x : Transport) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : Transport)))
   method_set : go.MethodSetIs Transport.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transport.ty) [(go!"Send", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.dial", (some (go.signature.Signature [(go.GoType.PointerType peer.ty)] false [_root_.Perennial.net.Conn.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.dropped", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.enqueue", (some (go.signature.Signature [(go.GoType.PointerType peer.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.runPeer", (some (go.signature.Signature [(go.GoType.PointerType peer.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.start", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.raft.v3.Node.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.stop", (some (go.signature.Signature [] false [])))]
   ptr_Send_unfold : MethodUnfold (go.GoType.PointerType Transport.ty) go!"Send" Transport.Send.impl
@@ -10998,6 +11003,8 @@ attribute [instance] Transport.TypeAssumptions.type_repr
   Transport.TypeAssumptions.set_stats
   Transport.TypeAssumptions.get_peers
   Transport.TypeAssumptions.set_peers
+  Transport.TypeAssumptions.get_stopc
+  Transport.TypeAssumptions.set_stopc
   Transport.TypeAssumptions.method_set
   Transport.TypeAssumptions.ptr_method_set
   Transport.TypeAssumptions.ptr_Send_unfold

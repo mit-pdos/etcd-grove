@@ -117,7 +117,7 @@ func (n *Node) stepPeer(m *pb.Message) {
 }
 
 // restart stops the current incarnation cleanly (Replica.stop: its loop, clock and snapshot
-// goroutine, then raft's Node.Stop; then its transport's senders) and starts the next one in this
+// goroutine, then raft's Node.Stop; then its transport's senders, Transport.stop) and starts the next one in this
 // process from the file (start), as kvdurable's Cluster.restart does with a crash. What the
 // stopped incarnation still holds in memory and never wrote is lost, as in a crash; requests
 // waiting on it time out.

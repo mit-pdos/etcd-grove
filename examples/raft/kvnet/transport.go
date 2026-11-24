@@ -42,6 +42,7 @@ type Transport struct {
 	node  raft.Node
 	stats *Stats
 	peers map[uint64]*peer // every other replica the program knows, read-only once started
+	stopc chan struct{}    // closed by stop: the senders return
 }
 
 // peerTransport carries an incarnation's raft messages to its peers: this file's, over TCP
@@ -53,7 +54,7 @@ type peerTransport interface {
 	start(node raft.Node)
 	// Send hands it the node's messages, without waiting.
 	Send(ms []*pb.Message)
-	// stop ends it once nothing sends any more (the incarnation's loop has returned).
+	// stop ends it once the incarnation's node is stopped.
 	stop()
 }
 
@@ -69,7 +70,7 @@ func newTCPTransport(id uint64, addrs map[uint64]string, stats *Stats) peerTrans
 // newTransport is the transport of node id, whose peers' addresses are addrs (by id; its own
 // included, and left out: raft never sends to itself).
 func newTransport(id uint64, addrs map[uint64]string, stats *Stats) *Transport {
-	t := &Transport{id: id, stats: stats, peers: make(map[uint64]*peer)}
+	t := &Transport{id: id, stats: stats, peers: make(map[uint64]*peer), stopc: make(chan struct{})}
 	for pid, addr := range addrs {
 		if pid != id {
 			t.peers[pid] = &peer{id: pid, addr: addr, queue: make(chan *pb.Message, queueLen)}
@@ -86,13 +87,11 @@ func (t *Transport) start(node raft.Node) {
 	}
 }
 
-// stop ends the senders once nothing sends any more (the incarnation's loop, the only caller of
-// Send, has returned: Replica.stop): each writes what its queue still holds, closes its
-// connection and returns.
+// stop ends the senders (the incarnation's node is stopped: Replica.stop): each closes its
+// connection and returns, leaving what its queue still holds unsent (the next incarnation's
+// transport has queues of its own).
 func (t *Transport) stop() {
-	for _, p := range t.peers {
-		close(p.queue)
-	}
+	close(t.stopc)
 }
 
 // Send hands each of ms to its peer's sender, without waiting; one to an unknown peer, or one
@@ -152,7 +151,16 @@ func (t *Transport) dial(p *peer) net.Conn {
 // answers, as with etcd's transport.
 func (t *Transport) runPeer(p *peer) {
 	var c net.Conn
-	for m := range p.queue {
+	for {
+		var m *pb.Message
+		select {
+		case m = <-p.queue:
+		case <-t.stopc:
+			if c != nil {
+				c.Close()
+			}
+			return
+		}
 		if c == nil {
 			c = t.dial(p)
 		}
@@ -174,8 +182,5 @@ func (t *Transport) runPeer(p *peer) {
 			t.stats.add(StSnapshotsSent)
 			t.node.ReportSnapshot(m.GetTo(), raft.SnapshotFinish)
 		}
-	}
-	if c != nil {
-		c.Close()
 	}
 }

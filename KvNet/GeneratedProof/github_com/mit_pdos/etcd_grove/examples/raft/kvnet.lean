@@ -1465,6 +1465,7 @@ noncomputable instance Transport_typed_pointsto :
     "node" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"node" l) v.node' dq ∗
     "stats" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"stats" l) v.stats' dq ∗
     "peers" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"peers" l) v.peers' dq ∗
+    "stopc" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"stopc" l) v.stopc' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1535,6 +1536,22 @@ noncomputable instance Transport_access_store_peers (l : Loc) (v : github_com.mi
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"peers" l) v.peers' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"peers" l) peers' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with peers' := peers' } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Transport_access_load_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"stopc" l) v.stopc' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"stopc" l) v.stopc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Transport_access_store_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport) (stopc' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"stopc" l) v.stopc' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport go!"stopc" l) stopc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopc' := stopc' } : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
