@@ -262,3 +262,63 @@ handling). It covers every `.wal` file on a member's machine, so it is a claim a
 **Recommendation.** Accept for `etcd_safe` as the WAL tester's premise reused (rule: reuse audited premises), and keep
 the planned restatement to the CRC-only target (*no CRC-32C collision on the `Data` of a frame over zeros*,
 `notes/wal-fsext-plan.md`, "W1's target") as the follow-up that removes the two excluded real-crash classes.
+
+## T6: the snapshot directory across a crash (design, 2026-11-24, branch `etcd-safe-d6t6/2026-11-24`)
+
+**What the directory holds at this pin** (fork `8c28a4296`, `server/etcdserver/api/snap/`): only database
+snapshots `<index>.snap.db` and `tmp*` temporaries. There is no `SaveSnap`/`Load`/`LoadNewestAvailable`:
+`snapshotter.go` has `New` and `ReleaseSnapDBs` only; the raft snapshot lives in the WAL's snapshot record
+and the backend. `bootstrapSnapshot` (`bootstrap.go:211-252`) removes `tmp*`, `db.tmp*` and `*.snap` files at
+every start.
+
+**etcd's crash handling, read at the pin: safe.** `SaveDBFrom` (`db.go:39-99`): `CreateTemp(dir,"tmp")`,
+copy, `Fsync(f)`, `os.Link(tmp, <i>.snap.db)` (never replaces: `ErrExist` keeps the old one and syncs the
+directory again), `Remove(tmp)`, `fsyncSnapDir(dir)`, then returns; the receiver processes the `MsgSnap` (and
+the WAL's snapshot record is written) only after. So a `.snap.db` the WAL can name is durable, whole, under
+its name. A crash before the directory sync leaves (a) nothing, (b) the `tmp*` (removed at the next start), or
+(c) the linked name, whole (the file was synced before the link). `ReleaseSnapDBs` (`snapshotter.go:45-78`)
+removes `.snap.db` files below the snapshot index with no directory sync: after a crash a removed file may
+**reappear**, harmless (it is below the applied snapshot; the next `ReleaseSnapDBs` removes it again;
+`DBFilePath` looks up by exact index). Nothing for `issues/`.
+
+**Why the lemma cannot be stated over today's `snapDirInv` alone** (two gaps, both in a trusted vocabulary):
+1. *Durability is not recorded.* `snapDirInv`'s files are `backend.fileAt (snapDBPath sd i) D` (the name's
+   claim naming an inode whose bytes hold `D`), with no claim that the bytes and the name's entry are
+   synced. The new generation can keep a file only if it was durable, so the invariant has to say so:
+   `SaveDBFrom`'s axiom (`Spec/.../snap/Snapshotter__SaveDBFrom.lean`, trusted) puts a file into `M` only
+   after its two syncs, which is what Go does, but its post (the invariant) does not carry it.
+2. *No crash disjunct.* The invariant is `inv snapDirN (snapDirInv …)` over the old generation's file
+   ghost state; after a crash its contents must be taken out and the invariant closed, which needs the
+   WAL's shape (`walInv`: `body ∨ crashed L ∗ walCrashTok`). `snapDirInv` is sealed (`@[no_expose]`) and
+   is the vocabulary of three axioms (`SaveDBFrom`, `ReleaseSnapDBs`, `storage.Release`): changing its
+   body is a trusted change.
+
+**Proposed trusted change (packet to write after the lead's go-ahead):** `snapDirInv`'s body becomes
+`snapDirIs p γd ∗ ((∃ M E, … as today, each file `fileAtDur` …) ∨ (crashed L ∗ snapCrashTok γd))`, with
+`fileAtDur path D` = `fileAt path D` plus "every byte durable and the name's entry durable" (the file
+extension's durable view, as `fileStart`/`osShared`'s logged entries); the axioms' statements unchanged
+(they hold the invariant, and inside one generation the crash disjunct is excluded by `notCrashed`).
+Removed files are not tracked (their reappearance after a crash leaves `M` unchanged).
+
+**The law (statement, `Proof/.../rafthttp/SnapDirCrash.lean`, to write once the shape above is decided):**
+```lean
+abbrev snapDir_crash.law (Q : Fs.OsState → Fs.OsState → Prop) : Prop :=
+  ∀ (L L' : GooseLocalGS GF) (V' : Fs.Hist) (R : Fs.Roots) (D : List Ino) (sd : GoString) (γd : GName)
+    (img : w64 → backend.Data → IProp GF) (Rm Rm' : w64 → IProp GF),
+    L.goose_go_local_context = lctx → L'.goose_go_local_context = lctx →
+    ⊢ (letI : HeapGS .hasLC GF := ⟨G, L⟩; inv snapDirN (snapDirInv sd γd img Rm)) -∗
+      snapCrashTok γd -∗ crashed (hC := L.goose_crashGS) -∗ □ (∀ j, Rm j ={⊤}=∗ Rm' j) -∗
+      Fs.osSharedInv (L := L) R -∗
+      Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) D true V' -∗
+      snapDirNames (L := L') sd V' ={⊤}=∗
+      ∃ D' : List Ino,
+        (letI : HeapGS .hasLC GF := ⟨G, L'⟩; inv snapDirN (snapDirInv sd γd img Rm')) ∗ snapCrashTok γd ∗
+        Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) (D' ++ D) true V'
+```
+`snapDirNames L' sd V'`: the new generation's claims on the directory's `.snap.db` names (carved by the
+member's restart from `osShared L' R V'`, as the WAL's `BootCrash` carves its area's); `Rm → Rm'` is the
+caller's (T7: a removed index `j` is below the backend's consistent index, which the crash image's counter
+`γm` covers: `c ≤ i + 1`). `γd` is kept (persistent ghost names survive a crash), so the restarted member's
+`snapSaved γd j` facts still hold. Size: the law's proof ~300-500 lines over `crashRest_take_runs_keep`
+(bytes), the names' log (entries durable), `osInv_alloc` at `L'`; the trusted change adds ~50 lines and the
+three axioms' docstrings.
