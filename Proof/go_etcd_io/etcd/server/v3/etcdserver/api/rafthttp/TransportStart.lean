@@ -87,7 +87,7 @@ theorem rafthttp.Transport.Start_core
   wp_auto
   wp_apply hNRT H tls dt as %prt %err2 Hprtok
   (try wp_auto)
-  icases Hprtok with (%Hne2 | ⟨%Heq2, #Hprtok⟩)
+  icases Hprtok with (%Hne2 | ⟨%Heq2, #Hprtok, %_⟩)
   · cases err2 with
     | nil => exact absurd rfl Hne2
     | ok ei =>
