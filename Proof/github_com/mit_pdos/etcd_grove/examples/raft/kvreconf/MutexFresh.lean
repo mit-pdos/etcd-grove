@@ -41,13 +41,14 @@ theorem wp_Mutex_Lock_fresh (m : Loc) (R : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ typedPointsto m (zero_val sync.Mutex) (DFrac.own 1) }}
       (App (Val (m @!! go.GoType.PointerType sync.Mutex.ty @!! go!"Lock")) (Val #()))
     {{ RET #(); sync.isMutex m R ∗ sync.ownMutex m }} := by
-  wp_start as Hm
+  wp_start_folded as Hm
   iapply wp_fupd
   wp_apply wp_Mutex_Lock_owned $$ Hm as Hm
   imod init_Mutex_locked R ⊤ m $$ Hm with ⟨#Hmux, Hown⟩
   imodintro
   iapply HΦ
-  iframe
+  iframe Hown
+  iexact Hmux
 
 end proof
 

@@ -105,7 +105,7 @@ theorem wp_Mutex_Lock_owned (m : Loc) :
     {{ typedPointsto (GF := GF) m (zero_val sync.Mutex) (DFrac.own 1) }}
       (App (Val (m @!! go.GoType.PointerType sync.Mutex.ty @!! go!"Lock")) (Val #()))
     {{ RET #(); typedPointsto (GF := GF) m mutexLocked (DFrac.own 1) }} := by
-  wp_start as Hm
+  wp_start_folded as Hm
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hm
   iStructNamed Hm
   ihave %Hnnmu := typedPointsto_not_null _ _ _ $$ mu
@@ -128,13 +128,14 @@ theorem wp_Mutex_Unlock_owned (m : Loc) :
     {{ typedPointsto (GF := GF) m mutexLocked (DFrac.own 1) }}
       (App (Val (m @!! go.GoType.PointerType sync.Mutex.ty @!! go!"Unlock")) (Val #()))
     {{ RET #(); typedPointsto (GF := GF) m (zero_val sync.Mutex) (DFrac.own 1) }} := by
-  wp_start as Hm
+  wp_start_folded as Hm
+  simp only [mutexLocked]
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hm
   iStructNamed Hm
   ihave %Hnnmu := typedPointsto_not_null _ _ _ $$ mu
   iStructNamed mu
-  simp only [mutexLocked]
   wp_apply wp_Mutex_Unlock_state $$ [state] as state
+  · iexact state
   ihave Hmu : typedPointsto (GF := GF) (structFieldRef sync.Mutex go!"mu" m)
       (zero_val sync.Mutex).mu' (DFrac.own 1) $$ [state sema]
   · iapply typedPointsto_combine _ _ _ Hnnmu
