@@ -12,6 +12,7 @@ spec, putgetK's).
 module
 
 public import Perennial.Proof.crypto.sha1.Fips180
+public import Perennial.Std.ByteString
 
 @[expose] public section
 
