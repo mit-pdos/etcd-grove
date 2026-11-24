@@ -20,27 +20,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bootGo
 
-/-- A key is in a map built by inserting the members `L` (each under its id) into `acc` iff it is
-one of their ids or `acc`'s. -/
-theorem foldl_insert_isSome (L : List apply.MemberM) (acc : GMap w64 apply.MemberM) (k : w64) :
-    ((L.foldl (fun mem m => mem.insert m.id m) acc) !! k).isSome ↔
-      (k ∈ L.map (·.id) ∨ (acc !! k).isSome) := by
-  induction L generalizing acc with
-  | nil => simp
-  | cons x L ih =>
-    rw [List.foldl_cons, ih]
-    simp only [List.map_cons, List.mem_cons, GMap.lookup_insert_eq_iff]
-    by_cases h : x.id = k
-    · subst h; simp
-    · have h' : k ≠ x.id := fun e => h e.symm
-      simp [h, h']
-
-/-- The members map's keys are the peers. -/
-theorem memMap_isSome [GooseExts] (U : BootURLs) (tok : GoString) (k : w64) :
-    ((memMap U tok) !! k).isSome ↔ k ∈ ps U tok := by
-  unfold memMap ps
-  rw [foldl_insert_isSome]
-  simp [GMap.lookup_empty]
+-- (`foldl_insert_isSome`, `memMap_isSome`: `BootParts.lean`'s, stage 4's)
 
 /-- The members map is no larger than the initial cluster. -/
 theorem memMap_size_le [GooseExts] (U : BootURLs) (tok : GoString) :

@@ -52,7 +52,7 @@ theorem membership.NewCluster.wp_proof
   iframe
   try iframe #
   isplitr
-  · ipureintro; constructor <;> simp
+  · ipureintro; exact ⟨fun _ => rfl, rfl⟩
   iapply BigSepM.bigSepM_empty.2; itrivial
 
 end proof

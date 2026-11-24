@@ -138,6 +138,7 @@ theorem config.CheckDuplicateURL.wp_proof
       · iframe
       generalize hb : (umm !! s).getD (zero_val Bool : Bool) = b
       wp_if_destruct
+      rotate_left
       · -- a duplicate: `return true`
         (try wp_auto)
         iright

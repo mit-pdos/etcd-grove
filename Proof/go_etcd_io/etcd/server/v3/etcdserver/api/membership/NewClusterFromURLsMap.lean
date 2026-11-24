@@ -66,7 +66,8 @@ theorem membership.NewClusterFromURLsMap.wp_proof
     iframe name urls c token
     isplitr
     · ipureintro
-      refine ⟨le_refl _, by simp, by simp [GMap.map_size_empty]⟩
+      refine ⟨by omega, by simp, by simp [GMap.map_size_empty]⟩
+    rw [show membership.memOfList ((keys.take (Int.toNat 0)).map fm) = (∅ : GMap w64 apply.MemberM) from rfl]
     iexact Hmem
   isplitr
   · imodintro
@@ -113,7 +114,7 @@ theorem membership.NewClusterFromURLsMap.wp_proof
       apply Hnz
       rw [List.mem_map]
       exact ⟨key, hkdom, h⟩
-    simp only [hnz, decide_false, Bool.false_eq_true, ↓reduceIte]
+    try simp only [hnz, decide_false, Bool.false_eq_true, ↓reduceIte]
     (try wp_auto)
     wp_apply (wp_mapInsert (K := w64) (V := Loc) _ mpm ms (fm key).id mm) $$ [Hmap] as Hmap
     · iframe
@@ -148,10 +149,10 @@ theorem membership.NewClusterFromURLsMap.wp_proof
   obtain ⟨Hi0, Hil, Hszi⟩ := Hi
   have htake : keys.take (GMap.size m : Int).toNat = keys := by
     rw [List.take_of_length_le]; omega
-  rw [htake] at Hmem
+  rw [htake]
   have hmemeq : membership.memOfList (keys.map fm) = membership.memOfList (m.domList.map fm) :=
     membership.memOfList_perm _ _ (hperm.map fm) hndk
-  rw [hmemeq] at Hmem
+  rw [hmemeq]
   have hndL : ((m.domList.map fm).map (·.id)).Nodup := by rw [List.map_map]; exact Hnd
   (try wp_auto)
   wp_apply (hGen c 1 ms (membership.memOfList (m.domList.map fm)) (W64 0) Hfips

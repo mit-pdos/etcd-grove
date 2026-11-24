@@ -72,7 +72,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
     iapply HΦ
     ipureintro; left; assumption
   rcases Herr1 with Hne | ⟨-, Hin⟩
-  · exact absurd Hif Hne
+  · exact absurd rfl Hne
   try wp_auto
   wp_apply hAdv p cfg m urls peer $$ [] as %err2 -
   · iframe #
@@ -87,6 +87,7 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
   wp_apply hDup cfg.InitialPeerURLsMap' m urls $$ [] as %dup -
   · iframe #
   wp_if_destruct
+  rotate_left
   · -- a repeated URL: an error naming the initial cluster
     try wp_auto
     wp_apply wp_slice_literal (V := GoInterface)

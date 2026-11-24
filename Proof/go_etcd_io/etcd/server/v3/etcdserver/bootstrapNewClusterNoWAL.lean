@@ -126,7 +126,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   try wp_auto
   -- `NewClusterFromURLsMap(cfg.Logger, token, cfg.InitialPeerURLsMap, WithMaxLearners(..))`
   wp_apply hWML cfg.MaxLearners' $$ [] as %f #Hf
-  · iframe #
+  try (· iframe #)
   wp_apply wp_slice_literal (V := GoFunc)
   isplitr
   · ipureintro; rfl

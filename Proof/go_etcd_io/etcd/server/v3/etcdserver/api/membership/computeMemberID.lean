@@ -91,9 +91,12 @@ theorem membership.computeMemberID.wp_proof
       (crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8 ++ [] := by
     simp only [subslice, List.append_nil]
     rfl
-  ihave Hmid' : (slice.slice (slice.mk hash_ptr (W64 20) (W64 20)) w8 (W64 0) (W64 8) ↦*
+  -- `hash[:8]` of the array, as the program computes it
+  have hsl : slice.mk (arrayIndexRef w8 (sint.Z (W64 0)) hash_ptr) (W64 8 - W64 0) (W64 20 - W64 0) =
+      slice.slice (slice.mk hash_ptr (W64 20) (W64 20)) w8 (W64 0) (W64 8) := rfl
+  ihave Hmid' : (slice.mk (arrayIndexRef w8 (sint.Z (W64 0)) hash_ptr) (W64 8 - W64 0) (W64 20 - W64 0) ↦*
       ((crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8 ++ []) : IProp GF) $$ [Hmid]
-  · rw [← hsub]; iexact Hmid
+  · rw [hsl, ← hsub]; iexact Hmid
   wp_apply (hU64 _ ((crypto.sha1.sha1 (([] : GoString).intercalate xs' ++ token)).take 8) []
     (DFrac.own 1) (by simp [membership.sha1_length])) $$ [Hmid'] as Hmid
   · iframe #; iexact Hmid'
