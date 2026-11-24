@@ -500,7 +500,7 @@ theorem onDisk_fstore {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) 
     (hlen : (S.log[n.val]!).length < uint.Z e.Index' → uint.Z e.Index' = (S.log[n.val]!).length + 1)
     (hcm : S.commitIndex[n.val]! ≤ uint.Z c)
     (hcL : uint.Z c ≤ ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')).length)
-    (hcc : uint.Z c ≤ uint.Z m.commit) (hcl : uint.Z c ≤ uint.Z m.index + m.entries.length)
+    (hcc : S.commitIndex[n.val]! < uint.Z c → uint.Z c ≤ uint.Z m.commit) (hcl : uint.Z c ≤ uint.Z m.index + m.entries.length)
     (hee : entriesEqual ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es'))
       (S.log[n.val]!) = .ok eqb)
     (hlm : ∀ b : Nat, matching ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es'))
@@ -577,13 +577,13 @@ theorem onDisk_fstore {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) 
       od_run2 [hL1 hX, ox_fm hX hs, ox_f hX hs hr, ox_acks_app hX hty hr, ox_conf1_app hX hty hr,
         ox_k hX hs hr, ox_ackAt hX hs hr, ox_ch1 hX (hL1 hX) hcL, ox_newC hX (hL1 hX) hcL, hcm', hadv,
         hge', hv, hro, hty, hany, hsend, hprev, hhf, snapOk_msgOf _ _ _ hs, hcs, anyM_lc hlc, hsub,
-        isPrefix_take, hcb, take_len_c hcL, hcc, hsubE, hsuf, hK1', hK2', he1, hat, hneq hfl, hfl, hee,
+        isPrefix_take, hcb, take_len_c hcL, hcc hlt, hsubE, hsuf, hK1', hK2', he1, hat, hneq hfl, hfl, hee,
         anyM_lm hlm, hcL', firstOf]
       exact ⟨_, rfl, rfl⟩
     · od_run2 [hL1 hX, ox_fm hX hs, ox_f hX hs hr, ox_acks_app hX hty hr, ox_conf1_app hX hty hr,
         ox_k hX hs hr, ox_ackAt hX hs hr, ox_ch1 hX (hL1 hX) hcL, ox_newC hX (hL1 hX) hcL, hcm', hadv,
         hge', hv, hro, hty, hany, hsend, hprev, hhf, snapOk_msgOf _ _ _ hs, hcs, anyM_lc hlc, hsub,
-        isPrefix_take, hcb, take_len_c hcL, hcc, hsubE, hsuf, hK1', hK2', he1, hne1 hfl, hfl, hee,
+        isPrefix_take, hcb, take_len_c hcL, hcc hlt, hsubE, hsuf, hK1', hK2', he1, hne1 hfl, hfl, hee,
         anyM_lm hlm, hcL', firstOf]
       exact ⟨_, rfl, rfl⟩
   · have hcm' : (uint.Z c != S.commitIndex[n.val]!) = false := by rw [heq]; exact bne_self_eq_false _
