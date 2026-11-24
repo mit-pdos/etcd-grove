@@ -29,7 +29,8 @@ theorem RawNode.readyWithoutAccept.wp_proof [package_sem : Assumptions] (wp_raft
                                             (sc = true →
                                               roleGo ps.role = stateW64 s.role ∧
                                                 rs.delivered ++ ce <+: ps.log ∧
-                                                  (rs.delivered ++ ce).length ≤ uint.nat ps.commit)⌝ ∗
+                                                  (rs.delivered ++ ce).length ≤ uint.nat ps.commit ∧
+                                                    ∀ (q : QMsg), q ∈ ms → (absMsgOf q.st).isSome = true)⌝ ∗
                                   ∃ ss, softStateIs rd.SoftState' ss ∗ ⌜roleAfter rs.role ss = stateW64 s.role⌝) ∗
                         "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
                           "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗

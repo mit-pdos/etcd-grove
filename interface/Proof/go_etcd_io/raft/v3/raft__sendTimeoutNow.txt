@@ -9,14 +9,15 @@ theorem raft.sendTimeoutNow.wp_proof [package_sem : Assumptions] (wp_raft_send :
     to ≠ id →
       s.term ≠ W64 0 →
         s.gh.tr = none →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗ HookGateOpt s.gh.tr r none Q -∗
-                ▷ (ownRaftPhysCV c c.voters r id s ∗ Q -∗ Φ (intoVal ())) -∗
-                  WP
-                    ((intoVal
-                        (methods raft.ty.PointerType
-                          go!"sendTimeoutNow"
-                          (intoVal r)))
-                      (intoVal to))
-                    {{ Φ }}
+          s.gh.xs = true →
+            ⊢
+              ∀ Φ,
+                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗ HookGateOpt s.gh.tr r none Q -∗
+                  ▷ (ownRaftPhysCV c c.voters r id s ∗ Q -∗ Φ (intoVal ())) -∗
+                    WP
+                      ((intoVal
+                          (methods raft.ty.PointerType
+                            go!"sendTimeoutNow"
+                            (intoVal r)))
+                        (intoVal to))
+                      {{ Φ }}
