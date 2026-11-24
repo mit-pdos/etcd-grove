@@ -891,6 +891,63 @@ is ambiguous), then `Prefix.snoc hp hgc hstep (violated_nil …)` with `GlobalOk
 `undo[n] = some p` costs `GC` nothing. Shared lemmas go in the new files: an edit to `GC.lean`
 re-opens every importer's check (~75 s each on this machine).
 
+**Session 3 (helper on `quiet`/`apply`/`send`/`ready`).** Proved: `antSim_apply` (`Apply.lean`:
+`ApplyEv`'s `first` is `|delivered| + 1` by `LogIdx`, its end within the commit, which C3 puts
+within `chain` and agreeing with it; `memCommit` is the commit with no queued write). Shared lemmas in
+new files: `Logs.lean` (raft's `plogTermAt`/`plogLast` from `base0` against `TermAt`/`Len` of
+`logOf`; `PrevOk`, `HasFirst` evaluated to their conditions; `sendable_leader`, a leader's request
+`Sendable`, and `sendable_inv`; `entriesEqual` inverted; `setAdd` membership, `granted_mono`),
+`SendRel.lean` (`sendS`, the side conditions `SendOk`, and `send_rel`: the relation after any `send`
+meeting them), `Send.lean` (`Send` evaluated per message type, `send_*_eq`; `SendOk.plain`;
+`leader_sendable` under C1-C3). Changes to the relation and the statements, each with its reason:
+
+- **`CandPart` gains `VoteRequest(n, currentTerm[n]) ∈ msgs`** for a candidate: a `send` of a vote
+  request checks the request's fact is in `msgs` (B 532), which the campaign's `ready` added (B 418)
+  and nothing removes while the candidate is at its term (`GC` keeps a vote request of a term a node
+  is in). Stated in the binding's terms (the binding's log), so `ready` gets it from `OnDisk`'s
+  `elect` directly. `GC.lean`'s `gc_rel` keeps it (`gcRes_vote_keep`).
+- **`BindingOk` (C3) gains: a node's vote at its term is in `votes`** (`S.vote n ≠ [] →
+  {voter n, currentTerm[n], vote n} ∈ votes`): a grant's `send` checks it (B 540); `OnDisk` records
+  every vote it writes (B 410, `V1 = Nil` before), `GC` keeps a vote of a term its voter is in.
+- **`PendOk` (the drain's unreported messages):** a heartbeat has `index = logterm = 0` and no entries
+  (the binding's `Sendable` reads them, B 120-124, and Go's `sendHeartbeat` sets none: **raft side:
+  `TickEnd`'s `HeartbeatOk` must give it**, recorded for the next P-raft helper by the lead); a
+  forwarded proposal is from the node at term `0` (`ProposeEnd`'s forward; C4 needs its sender and a
+  term the sender has); an acknowledgement's drain is a `recv`'s (`byE = "recv"`, so the statement's
+  `told` premise gives `pending[n]`); a vote response (granted or not) is at the node's term (C4 needs
+  the term of a rejection too; `HandleEnd` rejects at `s.term`, grants at `m.term`, which is the
+  node's after the preamble: `ready` must exclude a term-0 vote request, see below).
+- **`NodeOk` takes `net` and gains: the drain's cause was sent to the node** (`v.cause = some m →
+  m ∈ net ∧ m.dst = nodeId n`; the lead's request, instead of a premise of `antSim_send`): an
+  acknowledgement's `send` reads the handled request's `Sendable` (B 568), which C4 keeps for `m`
+  at its receiver. `Reach.input`/`Quiet.input` already require it; `net` only grows.
+  `antSim_init` takes `(V n).cause = none`.
+- **`ReadyOutP`'s self-addressed queue is up to permutation** (`rd.qs.Perm …`; the lead's request:
+  raft's invariants relate `msgsAfterAppend` to the outbox only up to permutation, §2.7).
+
+**To resume `antSim_send`** (`Send.lean`): every per-type step lemma and `send_rel` are proved; what
+is left is the main theorem: `antSim_gc` to `S1`; `PendOk` of `q` (destructure, `cases hty : q.ty`,
+`simp only [hty] at hcase`); per type pick `M C`, the `send_*_eq` lemma and `SendOk` (`SendOk.plain`
+but for a grant, `M = lset.add msgs grant`, and an accepting acknowledgement); then `send_rel` and
+`Prefix.snoc … (violated_nil hb.1 …)`. Vote: `CandPart`'s `VoteRequest` is
+`Fact.mk "vote" (nameOf (nodeId n)) [] q.term q.index q.logterm 0` by `plogLast_idx` and `server_of`.
+App: `leader_sendable` with `AppOk` (rewrite `ps.base = base0`; `plogFrom base0 log (index + 1)` is
+`log.drop (uint.nat index)` by `AppPayloadOk`'s no-wrap bound). Heartbeat: `leader_sendable` at
+`p = pt = 0`, `es = []`. Acknowledgement: `told` gives `pending[n] = [msgOf m id]`; `NetOk` of `m`
+(`NodeOk`'s cause, receiver `n`) gives `Sendable (recvFact m id)`; evaluate the guard with
+`prevOk_eq`/`hasFirst_eq` to a `Bool`; `false` is the stale branch (`PendOk`'s accepting disjunct
+makes it `true`: `termAt_of_plog`, the no-wrap from `q.index`'s bound), `true` is the ack branch,
+whose `SendOk.conf` is log matching at index `last` between the node's log and `ledLog[T]`
+(`GlobalOk`'s certified logs, `RaftLaws`' third law; the term at `last` from `HasFirst`'s last
+position and `sendable_inv`'s slice, or `PrevOk` when there are no entries), and `ackConf`'s
+`imax` with the old confirmation (C3's).
+**For `antSim_quiet` and `antSim_ready`** (not started): a silent `Ready` needs `PendOk` of every
+outbox message from `InputStep`/`AdvanceEnd`, the same derivation `ready` needs (a shared lemma,
+`PendOk` of the outbox at the `Ready`'s state); a quiet leader whose `Match` moved (an acknowledgement
+that commits nothing) needs `LeaderPart`'s acks from C4, which needs the response's term to be the
+leader's: a term-0 message in `net` other than a proposal must be excluded (no `NetOk` fact says so
+yet; raft's candidates and leaders have terms ≥ 1).
+
 ---
 
 ## 4. Where the refinement could be false, and the evidence
