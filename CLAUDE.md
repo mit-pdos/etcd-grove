@@ -33,8 +33,10 @@ without them merges the two files as git always does.
 
 Land a branch on `lean` with `etc/land.sh` from its worktree (notes-only branches too): it takes the
 landing lock, checks `lean` is merged, runs `etc/gates.sh` and fast-forwards `lean`, so no other
-landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). Record your
-session in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
+landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). A session that
+posts on GitHub has a row in `etc/sessions.txt` and posts by `notes/coordination.md` (`to:`/`from:`
+lines, asks and their open/acked/closed state; `etc/gh-inbox.py watch`/`open`); record a worktree's
+stage in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
 
 Delete a branch once its work is merged into `lean` (or wherever it was merged): the
 local branch (`git branch -d <branch>`, which refuses one that is not merged), its remote
@@ -188,7 +190,9 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   definition (`Robust crashing stable g threads bound`: in every execution of Perennial's `DistCrashNstepsBelow`
   (fewer than `threads` live threads on every machine, fewer than `bound` steps) of programs on machines that crash and restart and programs on machines that never crash, with
   any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
-  is checked by a program of the deployment that panics, never stated over traces in Lean), and
+  is checked by a program of the deployment that panics, never stated over traces in Lean; an exit
+  (`os.Exit`, `log.Fatal`: Perennial's `AngelicExit`) counts as a safe run, so checkers panic,
+  `etc/exit-check.py`), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
   kernel and the harness, never by the program): `notes/robustness.md`. Every example's top-level
   result is an instance, in two files named `TopLevelRobustness.lean`:
@@ -469,6 +473,8 @@ read-only conditions holding only such statements. The rule widens (Upamanyu, #2
 - a patch may add prophecy-only declarations: a `ProphId` field or package variable initialized only by `NewProph`, and helper functions whose bodies hold only read-only computation plus `Resolve*`;
 - it may add calls to them at statement level or inside `if`s on read-only conditions;
 - `etc/prophcheck` checks that erasing every added declaration and call gives back the original files, and refuses an added field in a struct the program compares with `==`, uses as a map key, or reflects on.
+- `Resolve(any)` calls are admitted too (Upamanyu, #24), their argument built from read-only values: a struct literal or conversion to `any`, with no allocation, `append` or `make`.
+- The prophecy package is Perennial's `github.com/mit-pdos/perennial/proph` (`NewProph`, `ProphId`, `ResolveBool`, `ResolveU64`, `Resolve(any)`; Lean namespace `github_com.mit_pdos.perennial.proph`) or goose's `github.com/goose-lang/primitive` (the same without `Resolve`); new patches use `proph`.
 
 A read-only expression may fail, which only adds failing behaviors the proof rules out. The exact
 checks: `notes/proph-patch-rule.md` and `etc/prophcheck/main.go`'s doc comment. Never put anything

@@ -159,9 +159,9 @@ def StartOk (s : CFile) : Prop :=
   s = none ∨ ∃ i f, s = some (i, initMeta f, f.contents.map durB, none) ∧ Good (some f)
 
 /-- What the boot program knows of the file once open: as on disk (or empty), `GoodImg`. -/
-theorem open_facts (j : Ino) (V : Hist) (i : Ino) (s : CFile) (hs : StartOk s)
+theorem open_facts (i : Ino) (s : CFile) (hs : StartOk s)
     (hi : s = none ∨ cIno s = some i) :
-    ∃ m bs, (openSt j logB V i s).1 = some (i, m, bs, none) ∧ m.hi = m.size ∧
+    ∃ m bs, openSt i s = some (i, m, bs, none) ∧ m.hi = m.size ∧
       m.size < 2 ^ 62 ∧ (∀ (k : Nat) (x : ByteG), bs[k]? = some x → x = durB x.1) ∧
       GoodImg (bs.map Prod.fst) := by
   rcases hs with rfl | ⟨i0, f, rfl, hg⟩
@@ -270,32 +270,47 @@ theorem osBytes_take_drop (i : Ino) (off n : Nat) (dq : DFrac) (bs : List ByteG)
   rw [List.take_append_drop, List.length_take, show min n bs.length = n by omega] at A
   exact A
 
+/-- The caller's half of the claim on the name of the file `i` at `p`. -/
+def cfName (p : GoString) (R : Roots) (i : Ino) : IProp GF :=
+  iprop(∃ (j : Ino) (b : GoString) (h : NamesH),
+    osNames (GF := GF) j (.only [b]) (DFrac.own (1 : Qp).half) h ∗
+    ⌜h.cur !! b = some (.file i) ∧ FileAt R p j b⌝)
+
 /-- The caller's part of an idle file, unfolded. -/
 theorem cfOwn_idle (p : GoString) (R : Roots) (γ : GName) (i : Ino) (m : OsMeta)
-    (bs : List ByteG) (V : Hist) :
-    cfOwn (GF := GF) p R γ (some (i, m, bs, none)) V ⊣⊢
+    (bs : List ByteG) :
+    cfOwn (GF := GF) p R γ (some (i, m, bs, none)) ⊣⊢
       ghostVar γ (1 : Qp).half (some (i, m, bs, none) : CFile) ∗
       (osMeta (GF := GF) i (DFrac.own (1 : Qp).half) m ∗
         osBytes (GF := GF) i 0 (DFrac.own (1 : Qp).half) bs) ∗
-      osTree (GF := GF) (DFrac.own (1 : Qp).half) R V ∗
-      ⌜CfWf (some (i, m, bs, none)) ∧ PathOk p R (some (i, m, bs, none)) V⌝ := by
-  unfold cfOwn; exact .rfl
+      cfName (GF := GF) p R i ∗ ⌜CfWf (some (i, m, bs, none))⌝ := by
+  unfold cfOwn cfName; dsimp only [thrRes]
+  constructor
+  · iintro ⟨%j, %b, %h, Hv, Hr, Hn, %hw⟩
+    iframe Hv Hr
+    isplitl [Hn]
+    · iexists j, b, h; iframe; ipureintro; exact hw.2
+    ipureintro; exact hw.1
+  · iintro ⟨Hv, Hr, ⟨%j, %b, %h, Hn, %hn⟩, %hw⟩
+    iexists j, b, h
+    iframe Hv Hr Hn
+    ipureintro; exact ⟨hw, hn⟩
 
 variable [os.Assumptions]
 
 theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (p : GoString) (R : Roots) (γ : GName) (i : Ino) (m : OsMeta)
-    (bs : List ByteG) (V : Hist)
+    (bs : List ByteG)
     (hsz : 8 < m.size) (hv : ∀ k < 8, (bs[k]?).map Prod.fst = dataC[k]?) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd p (DFrac.own 1) ∗
         osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
-        cfOwn (GF := GF) p R γ (some (i, m, bs, none)) V }}
+        cfOwn (GF := GF) p R γ (some (i, m, bs, none)) }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.check)) (Val #f))
     {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
-        cfOwn p R γ (some (i, m, bs, none)) V }} := by
+        cfOwn p R γ (some (i, m, bs, none)) }} := by
   wp_start as ⟨#Hos, Hf, Hfd, Hown⟩
-  icases (cfOwn_idle _ _ _ _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, Ht, %Hwf⟩
-  have hlen : bs.length = m.size := Hwf.1.1
+  icases (cfOwn_idle _ _ _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, Ht, %Hwf⟩
+  have hlen : bs.length = m.size := Hwf.1
   wp_auto
   wp_apply (wp_slice_make2 (V := w8) (W64 8)) as %buf ⟨Hbuf, -⟩
   · ipureintro; decide
@@ -324,7 +339,7 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply HΦ
     iframe Hf Hfd
-    iapply (cfOwn_idle _ _ _ _ _ _ _).2
+    iapply (cfOwn_idle _ _ _ _ _ _).2
     iframe; ipureintro; exact Hwf
   · cases err with
     | nil => exact absurd rfl hne
@@ -332,10 +347,13 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply HΦ
     iframe Hf Hfd
-    iapply (cfOwn_idle _ _ _ _ _ _ _).2
+    iapply (cfOwn_idle _ _ _ _ _ _).2
     iframe; ipureintro; exact Hwf
 
 theorem logN_disj : ↑osN ⊆ (⊤ : CoPset) \ ↑logN := mask_ndot_ne' nroot "osfs" "crashlog" (by decide)
+
+theorem logN_disjS : ↑osShN ⊆ (⊤ : CoPset) \ ↑logN :=
+  mask_ndot_ne' nroot "osfsShared" "crashlog" (by decide)
 
 variable [syscall.Assumptions]
 
@@ -344,27 +362,27 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (wp_FdatasyncC : syscall.Fdatasync.specCrash (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (p : GoString) (R : Roots) (γ : GName) (i : Ino) (m : OsMeta)
-    (bs : List ByteG) (V : Hist)
+    (bs : List ByteG)
     (hhi : m.hi = m.size) (hbd : m.size < 2 ^ 62)
     (hflag : m.size ≤ 8 ∨ bs[8]? = some (durB 0)) :
     {{ osInv (GF := GF) ∗ cfInv (GF := GF) logN p R γ Good ∗
         os.ownFile (GF := GF) f fd p (DFrac.own 1) ∗
         osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
-        cfOwn (GF := GF) p R γ (some (i, m, bs, none)) V }}
+        cfOwn (GF := GF) p R γ (some (i, m, bs, none)) }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.commit)) (Val #f))
     {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
-        ∃ s' V', cfOwn p R γ s' V' }} := by
+        ∃ s', cfOwn p R γ s' }} := by
   wp_start as ⟨#Hos, #Hinv, Hf, Hfd, Hown⟩
-  icases (cfOwn_idle _ _ _ _ _ _ _).1 $$ Hown with ⟨Hv, Hr, Ht, %Hwf⟩
-  ihave Hown := (cfOwn_idle _ _ _ _ _ _ _).2 $$ [Hv Hr Ht]
+  icases (cfOwn_idle _ _ _ _ _ _).1 $$ Hown with ⟨Hv, Hr, Ht, %Hwf⟩
+  ihave Hown := (cfOwn_idle _ _ _ _ _ _).2 $$ [Hv Hr Ht]
   · iframe; ipureintro; exact Hwf
-  have hlen : bs.length = m.size := Hwf.1.1
+  have hlen : bs.length = m.size := Hwf.1
   wp_auto
   -- the data at 0
   wp_apply wp_newData as %sl Hsl
   (try wp_auto)
   wp_apply wp_WriteAtC f fd p (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0) (DFrac.own 1)
-      ⟨i, true, true, none, none⟩ logN p R γ Good m bs V rfl (by decide) (Nat.zero_le _) (by decide)
+      ⟨i, true, true, none, none⟩ logN p R γ Good m bs rfl (by decide) (Nat.zero_le _) (by decide)
       (by decide) (by decide) logN_disj
       (crash_W1 m bs hhi hlen (by omega) hflag) $$ [Hos Hinv Hf Hsl Hfd Hown]
     as %n %err ⟨Hf, Hsl, Hfd, %m1, %bs1, %Hres, Hown⟩
@@ -377,7 +395,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply HΦ
     iframe Hf Hfd
-    iexists _, _; iexact Hown
+    iexists _; iexact Hown
   have hdl : dataC.length = 8 := rfl
   simp only [show (W64 0).toNat = 0 from rfl, Nat.zero_add, hdl] at hN1 hsz1 hv1
   (try wp_auto)
@@ -387,7 +405,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   -- the data made durable
   have hlen1 : bs1.length = m1.size := hN1.len
   have hbd1 : m1.size < 2 ^ 62 := by have := hN1.sz2; simp only [wT] at this; omega
-  wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨i, true, true, none, none⟩ logN p R γ Good m1 bs1 V logN_disj
+  wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨i, true, true, none, none⟩ logN p R γ Good m1 bs1 logN_disj
       (crash_synced m1 bs1 hlen1 hsz1 hbd1 hv1) $$ [Hos Hinv Hfd Hown]
     as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
@@ -395,7 +413,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   rotate_left
   · unfold errnoErr; rw [if_neg He]
     (try wp_auto)
-    iapply HΦ; iframe Hf Hfd; iexists _, _; iexact Hown
+    iapply HΦ; iframe Hf Hfd; iexists _; iexact Hown
   subst He
   unfold errnoErr; rw [if_pos rfl]
   (try wp_auto)
@@ -414,7 +432,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     refine ⟨bs1[k].1, by rw [List.getElem?_map, List.getElem?_eq_getElem hk']; rfl, ?_⟩
     have := hv1 k hk; rw [List.getElem?_eq_getElem hk'] at this; exact this.symm
   wp_apply wp_WriteAtC f fd p (DFrac.own 1) _ [W8 1] (DFrac.own 1) (W64 8) (DFrac.own 1)
-      ⟨i, true, true, none, none⟩ logN p R γ Good m1.synced (bs1.map (fun x => durB x.1)) V rfl (by decide)
+      ⟨i, true, true, none, none⟩ logN p R γ Good m1.synced (bs1.map (fun x => durB x.1)) rfl (by decide)
       (show 8 ≤ m1.synced.size from hsz2) (by decide) (by decide) (by decide) logN_disj
       (crash_W2 _ _ hsz2 (show 8 ≤ m1.synced.lo from hsz2) (by rw [List.length_map]; exact hlen1) (show m1.size < _ by omega)
         (show m1.size < _ by omega) hv2) $$ [Hos Hinv Hf Hsl2 Hfd Hown]
@@ -428,7 +446,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply HΦ
     iframe Hf Hfd
-    iexists _, _; iexact Hown
+    iexists _; iexact Hown
   simp only [show (W64 8).toNat = 8 from rfl, List.length_singleton] at hN3 hsz3 hv3
   (try wp_auto)
   wp_apply wp_Fd f fd p (DFrac.own 1) $$ [Hf] as Hf
@@ -446,7 +464,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     cases h : bs1[k]? with
     | none => rw [h] at this; exact this
     | some x => rw [h] at this; exact this
-  wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨i, true, true, none, none⟩ logN p R γ Good m3 bs3 V logN_disj
+  wp_apply wp_FdatasyncC fd (DFrac.own 1) ⟨i, true, true, none, none⟩ logN p R γ Good m3 bs3 logN_disj
       (crash_synced m3 bs3 hlen3 (by omega) hbd3 hv3') $$ [Hos Hinv Hfd Hown]
     as %e ⟨Hfd, Hs⟩
   · iframe; iframe #
@@ -454,7 +472,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   rotate_left
   · unfold errnoErr; rw [if_neg He]
     (try wp_auto)
-    iapply HΦ; iframe Hf Hfd; iexists _, _; iexact Hown
+    iapply HΦ; iframe Hf Hfd; iexists _; iexact Hown
   subst He
   unfold errnoErr; rw [if_pos rfl]
   (try wp_auto)
@@ -462,7 +480,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   wp_apply (wp_slice_make2 (V := w8) (W64 9)) as %buf ⟨Hbuf, -⟩
   · ipureintro; decide
   (try wp_auto)
-  icases (cfOwn_idle _ _ _ _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, Ht, %Hwf4⟩
+  icases (cfOwn_idle _ _ _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, Ht, %Hwf4⟩
   have hlen4 : (bs3.map (fun x => durB x.1)).length = m3.size := by rw [List.length_map]; exact hlen3
   icases (osBytes_take_drop i 0 9 _ (bs3.map (fun x => durB x.1)) (by omega)).1 $$ Hb with ⟨Hb9, Hbr⟩
   have h9 : sint.nat (W64 9) = 9 := rfl
@@ -477,7 +495,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   · iframe; iframe #
   ihave Hb := (osBytes_take_drop i 0 9 _ (bs3.map (fun x => durB x.1)) (by omega)).2 $$ [Hb9 Hbr]
   · iframe
-  ihave Hown := (cfOwn_idle _ _ _ _ _ _ _).2 $$ [Hv Hm Hb Ht]
+  ihave Hown := (cfOwn_idle _ _ _ _ _ _).2 $$ [Hv Hm Hb Ht]
   · iframe; ipureintro; exact Hwf4
   obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | hne⟩ := Hres
   rotate_left
@@ -487,7 +505,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply HΦ
     iframe Hf Hfd
-    iexists _, _; iexact Hown
+    iexists _; iexact Hown
   (try wp_auto)
   have hvs : ∀ k < 9, vs'[k]? = ((bs3[k]?).map Prod.fst) := by
     intro k hk
@@ -512,7 +530,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   (try wp_auto)
   iapply HΦ
   iframe Hf Hfd
-  iexists _, _; iexact Hown
+  iexists _; iexact Hown
 
 theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_WriteAtC : os.File.WriteAt.specCrash (GF := GF) (hG := hG))
@@ -521,20 +539,20 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (p : GoString) (R : Roots) (γ : GName) (i : Ino) (m : OsMeta)
-    (bs : List ByteG) (V : Hist)
+    (bs : List ByteG)
     (hhi : m.hi = m.size) (hbd : m.size < 2 ^ 62)
     (hcl : ∀ (k : Nat) (x : ByteG), bs[k]? = some x → x = durB x.1)
     (hg : GoodImg (bs.map Prod.fst)) :
     {{ osInv (GF := GF) ∗ cfInv (GF := GF) logN p R γ Good ∗
         os.ownFile (GF := GF) f fd p (DFrac.own 1) ∗
         osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
-        cfOwn (GF := GF) p R γ (some (i, m, bs, none)) V }}
+        cfOwn (GF := GF) p R γ (some (i, m, bs, none)) }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.run)) (Val #f))
     {{ RET #(); os.ownFile f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
-        ∃ s' V', cfOwn p R γ s' V' }} := by
+        ∃ s', cfOwn p R γ s' }} := by
   wp_start as ⟨#Hos, #Hinv, Hf, Hfd, Hown⟩
-  icases (cfOwn_idle _ _ _ _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, Ht, %Hwf⟩
-  have hlen : bs.length = m.size := Hwf.1.1
+  icases (cfOwn_idle _ _ _ _ _ _).1 $$ Hown with ⟨Hv, ⟨Hm, Hb⟩, Ht, %Hwf⟩
+  have hlen : bs.length = m.size := Hwf.1
   wp_auto
   wp_apply wp_Stat f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) ⟨i, true, true, none, none⟩ m
       $$ [Hos Hf Hfd Hm] as %fi %err ⟨Hf, Hfd, Hm, Hfi⟩
@@ -548,7 +566,7 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply HΦ
     iframe Hf Hfd
-    iexists _, _; iapply (cfOwn_idle _ _ _ _ _ _ _).2; iframe; ipureintro; exact Hwf
+    iexists _; iapply (cfOwn_idle _ _ _ _ _ _).2; iframe; ipureintro; exact Hwf
   obtain ⟨rfl, rfl⟩ := Hfi
   (try wp_auto)
   wp_apply wp_Size fs (W64 m.size) $$ [Hfs] as -
@@ -581,7 +599,7 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     · iframe
     ihave Hb := (osBytes_take_drop i 0 8 _ bs (by omega)).2 $$ [Hb0 Hb8]
     · iframe
-    ihave Hown := (cfOwn_idle _ _ _ _ _ _ _).2 $$ [Hv Hm Hb Ht]
+    ihave Hown := (cfOwn_idle _ _ _ _ _ _).2 $$ [Hv Hm Hb Ht]
     · iframe; ipureintro; exact Hwf
     obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | hne⟩ := Hres
     rotate_left
@@ -591,7 +609,7 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
       (try wp_auto)
       iapply HΦ
       iframe Hf Hfd
-      iexists _, _; iexact Hown
+      iexists _; iexact Hown
     (try wp_auto)
     have hb8 : 8 < bs.length := by omega
     have hvs0 : vs'[0]? = some bs[8].1 := by
@@ -612,7 +630,7 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
         rw [List.getElem?_eq_getElem hb8]
         have := hcl 8 bs[8] (List.getElem?_eq_getElem hb8)
         rw [this, hz]; rfl
-      wp_apply wp_commit wp_ReadAt wp_WriteAtC wp_Fd wp_FdatasyncC f fd p R γ i m bs V hhi hbd
+      wp_apply wp_commit wp_ReadAt wp_WriteAtC wp_Fd wp_FdatasyncC f fd p R γ i m bs hhi hbd
           (.inr hcl8) $$ [Hos Hinv Hf Hfd Hown] as ⟨Hf, Hfd, Hown⟩
       · iframe; iframe #
       (try wp_auto)
@@ -625,18 +643,18 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
         rw [← ht, List.getElem?_take_of_lt hk, List.getElem?_map]
       rw [decide_eq_false hz]
       (try wp_auto)
-      wp_apply wp_check wp_ReadAt f fd p R γ i m bs V (by omega) hv $$ [Hos Hf Hfd Hown]
+      wp_apply wp_check wp_ReadAt f fd p R γ i m bs (by omega) hv $$ [Hos Hf Hfd Hown]
         as ⟨Hf, Hfd, Hown⟩
       · iframe; iframe #
       (try wp_auto)
       iapply HΦ
       iframe Hf Hfd
-      iexists _, _; iexact Hown
+      iexists _; iexact Hown
   · rw [decide_eq_false h8]
     (try wp_auto)
-    ihave Hown := (cfOwn_idle _ _ _ _ _ _ _).2 $$ [Hv Hm Hb Ht]
+    ihave Hown := (cfOwn_idle _ _ _ _ _ _).2 $$ [Hv Hm Hb Ht]
     · iframe; ipureintro; exact Hwf
-    wp_apply wp_commit wp_ReadAt wp_WriteAtC wp_Fd wp_FdatasyncC f fd p R γ i m bs V hhi hbd
+    wp_apply wp_commit wp_ReadAt wp_WriteAtC wp_Fd wp_FdatasyncC f fd p R γ i m bs hhi hbd
         (.inl (by omega)) $$ [Hos Hinv Hf Hfd Hown] as ⟨Hf, Hfd, Hown⟩
     · iframe; iframe #
     (try wp_auto)
@@ -653,13 +671,12 @@ theorem wp_Boot (wp_OpenFileC : os.OpenFile.specCrash (GF := GF) (hG := hG))
     (wp_FdatasyncC : syscall.Fdatasync.specCrash (GF := GF) (hG := hG))
     (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
-    (dir : GoString) (R : Roots) (j : Ino) (γ : GName) (s : CFile) (V : Hist)
-    (hdj : lookupH R V dir = some (.dir j)) (hs : StartOk s) :
-    {{ osInv (GF := GF) ∗ cfInv (GF := GF) logN (child dir logB) R γ Good ∗
-        cfOwn (GF := GF) (child dir logB) R γ s V }}
+    (dir : GoString) (R : Roots) (q : Qp) (γ : GName) (s : CFile) (hs : StartOk s) :
+    {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) (callKey R dir) q ∗
+        cfInv (GF := GF) logN (child dir logB) R γ Good ∗ cfOwn (GF := GF) (child dir logB) R γ s }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.Boot)) (Val #dir))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hos, #Hinv, Hown⟩
+  wp_start as ⟨#Hos, #Hsi, Hperm, #Hinv, Hown⟩
   wp_auto
   have hs' : s = none ∨ ∃ i m bs, s = some (i, m, bs, none) := by
     rcases hs with h | ⟨i, f, h, -⟩
@@ -667,9 +684,9 @@ theorem wp_Boot (wp_OpenFileC : os.OpenFile.specCrash (GF := GF) (hG := hG))
     · exact .inr ⟨_, _, _, h⟩
   rw [show (W64 2 ||| W64 64) = W64 0x42 from by decide]
   try rw [show dir ++ go!"/log" = child dir logB from rfl]
-  wp_apply wp_OpenFileC dir logB _ logN R V j γ Good s logB_ok hdj hs' logN_disj
-      (fun _ => crash_new) $$ [Hos Hinv Hown]
-    as %f %err (⟨%fd, %i, %Herr, Hf, Hfd, Hown⟩ | ⟨%Herr, -⟩)
+  wp_apply wp_OpenFileC dir logB _ logN R q γ Good s logB_ok hs' logN_disj logN_disjS
+      (fun _ => crash_new) $$ [Hos Hsi Hperm Hinv Hown]
+    as %f %err ⟨-, (⟨%fd, %i, %Herr, Hf, Hfd, Hown⟩ | ⟨%Herr, -⟩)⟩
   · iframe; iframe #
   rotate_left
   · obtain ⟨Herr, rfl⟩ := Herr
@@ -681,9 +698,9 @@ theorem wp_Boot (wp_OpenFileC : os.OpenFile.specCrash (GF := GF) (hG := hG))
     itrivial
   obtain ⟨rfl, -, hi⟩ := Herr
   (try wp_auto)
-  obtain ⟨m, bs, hst, hhi, hbd, hcl, hgi⟩ := open_facts j V i s hs hi
+  obtain ⟨m, bs, hst, hhi, hbd, hcl, hgi⟩ := open_facts i s hs hi
   rw [hst]
-  wp_apply wp_run wp_ReadAt wp_WriteAtC wp_Fd wp_FdatasyncC wp_Stat wp_Size f fd _ R γ i m bs _
+  wp_apply wp_run wp_ReadAt wp_WriteAtC wp_Fd wp_FdatasyncC wp_Stat wp_Size f fd _ R γ i m bs
       hhi hbd hcl hgi $$ [Hos Hinv Hf Hfd Hown] as ⟨Hf, Hfd, -⟩
   · iframe; iframe #
   (try wp_auto)

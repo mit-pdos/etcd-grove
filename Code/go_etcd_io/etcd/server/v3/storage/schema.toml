@@ -40,7 +40,11 @@ translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUp
   # (prove-ps2-members, 2026-11-22) the membership backend's bucket creation (`cluster.SetBackend`'s) and
   # member delete, with `BackendMemberKey` (`types.ID.String`), proved over the backend's specs
   "membershipBackend.MustCreateBackendBuckets", "membershipBackend.MustDeleteMemberFromBackend",
-  "BackendMemberKey"]
+  "BackendMemberKey",
+  # (prove-ps2-v3alarm, 2026-11-24) the alarm backend's bucket creation, its read of every alarm and its
+  # commit, for `AlarmStore.restore`, proved over the backend's specs
+  "alarmBackend.CreateAlarmBucket", "alarmBackend.GetAllAlarms", "alarmBackend.unsafeGetAllAlarms",
+  "alarmBackend.ForceCommit"]
 # (etcd-grove#32, 2026-11-23) the `init` function trusted: a model that does nothing
 # (TrustedCode/go_etcd_io/etcd/server/v3/storage/schema.lean; until then names-only, the axiom `initFuncsOk`)
 trusted = ["init.0"]

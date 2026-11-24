@@ -46,7 +46,7 @@ Client__GetLogger:
 zap_Int64:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 # Session (client/v3/concurrency/session.go), see InvSession.lean.
 concurrency_WithTTL: zap_Int64 Logger__Warn
@@ -127,3 +127,6 @@ NewSTM: Client__Ctx mkSTM runSTM
 NewSTMRepeatable: NewSTM WithAbortContext WithIsolation
 NewSTMSerializable: NewSTM WithAbortContext WithIsolation
 NewSTMReadCommitted: NewSTM WithAbortContext WithIsolation
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

@@ -9,7 +9,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update. (2026-11-10: no baseline yet,
 # the build of record not up to date when the collection was added.)
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Link|Results)\.lean$
-axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
@@ -34,17 +33,12 @@ axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom httpProtoFree
 axiom lease.Lease.expired.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
-axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewGauge.wp_proof
 axiom prometheus.NewGaugeFunc.wp_proof
 axiom prometheus.NewHistogram.wp_proof
-axiom prometheus.collectorName
-axiom prometheus.nameFree
-axiom prometheus.nameUnclaimed
 axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom rand.Float64.wp_proof
@@ -57,7 +51,4 @@ axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom strings.ToLower.wp_proof
 axiom verifyEnvOff
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

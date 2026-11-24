@@ -28,7 +28,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-/-- The tree's interpretation in the shared mode, with the shared mode's invariant, gives the fact
+/-- The tree's interpretation, with the shared invariant, gives the fact
 `QP` the caller's resources `F` give through the claims' authority (`hF`), and the state's
 well-formedness and roots. -/
 theorem treeCtx_readS (R : Roots) (F : IProp GF) (QP : OsState → Prop)
@@ -42,29 +42,26 @@ theorem treeCtx_readS (R : Roots) (F : IProp GF) (QP : OsState → Prop)
   imod inv_acc hE' $$ Hsi with ⟨Hi, Hclose⟩
   icases Hi with >Hi
   icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
-  unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
-  icases Hm with (Hm | Hm)
-  · unfold treeLegacy legacyHolds
-    icases Hm with ⟨%V, %Γdf, %Γc, -, -, -, -, -, -, ⟨Has, -⟩⟩
-    icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hl
-    simp at hl
-  · unfold treeShared
-    icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
-    icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
-    simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
-    obtain ⟨hR, rfl⟩ := hVs
-    icases hF st Γn hR hcoh.2 $$ HAn HF with %hP
-    imod Hclose $$ [Hs HAn Halen HAlog] with -
-    · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
-    imodintro
-    isplitr
-    · ipureintro; exact ⟨hP, hns.1, hR⟩
-    iframe HF Hcm
-    iright
-    iexists V0, s1, Γdf, Γc, Γg
-    iframe
-    ipureintro; exact hns
+  icases (treeCtx_eq _ _).1 $$ Ht with ⟨Ht, Hcm⟩
+  unfold treeCtxT
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
+  obtain ⟨hR, rfl⟩ := hVs
+  icases hF st Γn hR hcoh.2 $$ HAn HF with %hP
+  imod Hclose $$ [Hs HAn Halen HAlog] with -
+  · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
+  imodintro
+  isplitr
+  · ipureintro; exact ⟨hP, hns.1, hR⟩
+  iframe HF
+  iapply (treeCtx_eq _ _).2
+  iframe Hcm
+  unfold treeCtxT
+  iexists Γdf, Γc, Γg
+  try unfold callResS
+  iframe
+  ipureintro; exact hns
 
 /-- **A weakest precondition of a file-system call in the shared mode, strengthened by its steps
 from the states the caller's resources `F` read** (see the file header). -/

@@ -121,12 +121,12 @@ theorem etcdFsExts_localStart [L : GooseLocalGS GF] (w : ExtsLocalState etcdFsEx
   (sep_elim_right (P := iprop(True))).trans sep_elim_left
 
 /-- **The start resources of the file extension** (`fs_start` for `[idIssueExt, fsExt]`): the
-invariant of the mapped cells, every file, and the tree's history. -/
+invariant of the mapped cells, every file, and the tree's shared view (`osShared`), nothing logged. -/
 theorem etcdFs_start [hG : HeapGS .hasLC GF] (σ : state) (h : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
     ⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
       Fs.osInv (L := hG.goose_localGS) ∗
       ([∗map] i ↦ f ∈ (extLocal Fs.fsExt σ.world).fs.files, Fs.osFileStart (L := hG.goose_localGS) i f) ∗
-      Fs.osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal Fs.fsExt σ.world).fs.roots
+      Fs.osShared (L := hG.goose_localGS) (extLocal Fs.fsExt σ.world).fs.roots
         ((extLocal Fs.fsExt σ.world).fs.treeDur, []) := by
   have Hl := etcdFsExts_localStart (GF := GF) (L := hG.goose_localGS) σ.world
   have hdisk : ∀ i f, (extLocal Fs.fsExt σ.world).fs.files !! i = some f →
@@ -139,12 +139,11 @@ theorem etcdFs_start [hG : HeapGS .hasLC GF] (σ : state) (h : Fs.FsInit (extLoc
   ihave Hfs := Fs.start_files (Fs.gooseOsGS (L := hG.goose_localGS)) hdisk $$ [Hb Hm]
   · iframe
   imod Fs.osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
+  imod Fs.osSwitchKit_open (L := hG.goose_localGS) _ _ ⊤ $$ Hd with Hsh
   imodintro
-  iframe Hinv
-  isplitl [Hfs]
-  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
-      (Fs.fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
-  · unfold Fs.osTree; iexact Hd
+  iframe Hinv Hsh
+  iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+    (Fs.fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
 
 end start
 

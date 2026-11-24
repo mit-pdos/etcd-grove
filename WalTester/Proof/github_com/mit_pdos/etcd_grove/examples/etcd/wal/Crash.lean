@@ -6,8 +6,8 @@ Lean-first (no Rocq counterpart).
 `tester_crash`: the tester's crash obligation (`fsSQ_crash_adequacy`'s, at `⊤`), from the old
 generation's invariant (`TInv`) and the persistent parts and crash tokens of its `TBoot` (the WAL's
 `walAreaOk`, the area's `dirDurable`, durable's `durInv`, `walCrashTok`, `durCrashTok`), the crash's
-`crashed` and `crashRest`: the new generation's tree (`osTree`, for the program's `wp_osShare`) and
-`TCrashed` (`BootCrash.lean`), which `tBootCrash` turns into the next `TBoot`.
+`crashed` and `crashRest`: the new generation's tree's shared view (`osShared`) and `TCrashed`
+(`BootCrash.lean`), which `tBootCrash` turns into the next `TBoot`.
 
 It cannot refute the crash, so it opens `TInv` and closes it again with its contents (as the main
 tree's). Inside:
@@ -27,7 +27,7 @@ tree's). Inside:
    candidate (`tCandOk_crash`); before, the WAL is absent or accounted for by the fresh oracle's candidate (`tPreOk_crash`).
    This is how the new generation gets `walSyncedLb`/`walNamed` back: from the crash view, not from
    `walStart`/`walPast`.
-4. `crashRest_treeS`: the new generation's tree, whole.
+4. `crashRest_treeS`: the new generation's `osShared`, from the old generation's `osSharedInv`.
 
 **`BootFo` of the crashed tree** (every WAL directory holds only files) is carried into `TCrashed` for
 `walBootCrash`, from `walInv_crash`'s `NoDirX` of every WAL directory and its pipeline names'
@@ -157,7 +157,7 @@ theorem tester_crash (hPre : AbsDiskGpreS GF) (Q : OsState → OsState → Prop)
       WalFs.walCrashTok (W := W) -∗ DurFs.durCrashTok (GF := GF) γ.γd -∗
       crashed (hC := L.goose_crashGS) -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={⊤}=∗
-      osTree (L := L') (DFrac.own 1) e.R V' ∗ TCrashed (L := L') e V' := by
+      osShared (L := L') e.R V' ∗ TCrashed (L := L') e V' := by
   iintro #Hinv #Hok #Hdd #Hdi Hwt Hdt #Hcrd Hcr
   unfold WalFs.walAreaOk
   icases Hok with ⟨#Hwi, -, #Hsh, -, -⟩

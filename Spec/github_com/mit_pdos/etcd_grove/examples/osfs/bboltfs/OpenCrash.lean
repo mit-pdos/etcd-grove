@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart). `Open(path)`'s crash-aware spec: `Open.spec` (`Open.lean`)
 over the crash invariant of the database file (`csInv dbCrashN path R γc Good dbOk`,
-`DBCrash.lean`). The client holds its part of the file at `d/b` (in the roots `R`, the
-history `V`) as a generation starts with it (`StartSt`: no file, or a file as on disk, all of it
+`DBCrash.lean`). The client gives the tree's shared invariant and a share of the call permission
+of `d`'s key, and holds its part of the file at `d/b` (a name of a root directory of `R`) as a
+generation starts with it (`StartSt`: no file, or a file as on disk, all of it
 clean and durable, `Good`, as `csInv_alloc` and `csInv_crash_keep` give). Its transaction `t`, value `vo` and high water mark `n` are `freshTx`'s, as in
 `Open.spec`, and the client's predicate on transactions `vp` holds of them and implies
 `BootMinibolt`'s check (`bootOk`), which the crash invariant needs of every committed root page.
@@ -42,13 +43,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 
 /-- See the file header. -/
 abbrev Open.specCrash : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 30)] (d b : GoString) (R : Roots) (V : Hist) (j : Ino) (γc : GName)
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (d b : GoString) (R : Roots) (q : Qp) (γc : GName)
     (s : CState) (t : Nat) (vo : Option w64) (n : Nat) (vp : Nat → Option w64 → Prop),
-  NameOk b → lookupH R V d = some (.dir j) → StartSt s →
+  NameOk b → StartSt s →
   freshTx ((startImg s).map durB) = (t, vo, n) → vp t vo →
   (∀ t vo, vp t vo → bootOk t vo) →
-  {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ csInv (GF := GF) dbCrashN (child d b) R γc Good dbOk ∗
-      csOwn (GF := GF) (child d b) R γc s V }}
+  {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗
+      osCallPerm (GF := GF) (callKey R d) q ∗ csInv (GF := GF) dbCrashN (child d b) R γc Good dbOk ∗
+      csOwn (GF := GF) (child d b) R γc s }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Open)) (Val #(child d b)))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err);
       (⌜err = interface.nil⌝ ∗ ∃ γ : DBNames, ⌜γ.vp = vp⌝ ∗

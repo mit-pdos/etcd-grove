@@ -7,6 +7,7 @@ module
 
 public import Proof.os.MkdirAllParts
 public import Spec.os.RemoveAll
+public import Proof.os.ErrorOk
 
 @[expose] public section
 

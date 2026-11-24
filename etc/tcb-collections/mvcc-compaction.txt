@@ -14,6 +14,3 @@ roots ^mvcc\.wp_(Unsafe)?(Set|Read)(Scheduled|Finished)Compact$
 roots ^schedule\.(job\.)?wp_(NewJob|Do|Name)$
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
-axiom zap.Logger.Panic.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

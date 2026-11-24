@@ -9,7 +9,6 @@ the claim names the new file, and the retry opens it (`wp_osOpenFileS`).
 module
 
 public import Proof.os.ErrorOk
-public import Proof.os.OpenFile
 public import Spec.os.OpenFileS
 public import GooseLang.Ext.Fs.NoErrSpecsOpenFile
 

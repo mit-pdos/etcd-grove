@@ -196,6 +196,14 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# the dsverify kits' generated plumbing (etc/dsv/kitgen.py, from each kit file's KITGEN: the
+# commands' mains, the statements, TopLevelDefs, the proofs' skeletons, Mains, the boot tables; and
+# the kits' codecs through their generators): after gen-init, whose PkgTables the boot tables read
+if python3 etc/dsv/kitgen.py --check > "$tmp/kitgen.log" 2>&1; then
+  echo "$(tail -1 "$tmp/kitgen.log")"
+else
+  echo "kitgen: FAILED"; tail -10 "$tmp/kitgen.log"; fail=1
+fi
 # SpecPlan's generated package-init specs (SpecPlan/Spec/PkgInit/, etc/gen-specs-pkginit.py): a
 # stale one can still build, so only this check sees it (putget-dist, 2026-11-23)
 if python3 etc/gen-specs-pkginit.py --check > "$tmp/specpkginit.log" 2>&1; then
@@ -358,6 +366,13 @@ fi
 # the notes' merge drivers (etc/merge-status.py; .gitattributes): replays this week's real merges of
 # notes/STATUS.md and notes/status-history.md, and synthetic cases (reads git only; ~15s)
 python3 etc/merge-status.py --selftest || fail=1
+# the GitHub coordination tool reads the convention as notes/coordination.md says (etc/gh-inbox.py;
+# recorded JSON, no network; under a second)
+if python3 -m unittest discover -s etc/gh-inbox-test > "$tmp/ghinbox.log" 2>&1; then
+  echo "gh-inbox: ok"
+else
+  echo "gh-inbox: FAILED"; tail -20 "$tmp/ghinbox.log"; fail=1
+fi
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
 # the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs
@@ -371,6 +386,10 @@ python3 etc/k8s-correctness-check.py || fail=1
 # feature-gate mutator in the programs' compiled closures has its verdict in
 # etc/featuregate-allow.txt (needs go and the module cache; seconds)
 python3 etc/featuregate-check.py || fail=1
+# no robustness theorem's program reports a violation by exiting: under `Robust` an exit is a safe run
+# (Perennial's AngelicExit), so a check must panic; every exit in the programs' own code (under
+# examples/) has its reason in etc/exit-allow.txt (notes/robustness.md; needs go; seconds once cached)
+python3 etc/exit-check.py || fail=1
 return $fail
 }
 
@@ -464,10 +483,15 @@ fail=0
 # A run whose in-process cluster fails to start ("StartCluster failed": a port taken by another
 # gate run's cluster under the parallel load, 2026-11-12, three times) is retried, up to 3 attempts;
 # any other failure fails at once.
+# The cluster's ports are fixed, so concurrent gate runs on one machine (the land queue's four runners,
+# vm-build requests) took each other's: the test runs under a machine-wide lock outside /tmp (a gate
+# run's /tmp may be private), held for this test only (2026-11-24). GATES_K8S_LOCK overrides the file.
+k8slock=${GATES_K8S_LOCK:-/shared/tmp/gates-k8s-cluster.lock}
+mkdir -p "$(dirname "$k8slock")" 2>/dev/null || true
 cet_try=0; cet_ok=0; cet_miss=
 while [ $cet_try -lt 3 ]; do
   cet_try=$((cet_try + 1))
-  if (cd examples/k8s/etcd3 && GOWORK=off gotest -timeout 30m \
+  if (exec 5>>"$k8slock"; flock 5; cd examples/k8s/etcd3 && GOWORK=off gotest -timeout 30m \
       -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
     cet_ok=1; break
   fi

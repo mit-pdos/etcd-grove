@@ -56,12 +56,9 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
   iintro #Hinv #Hsi Hfd HF HΦ
   iapply wp_fs_stepM "DirReadNext" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
-  unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
-  icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_dirFdS_excl st fd j ph $$ Hfd Hm
-  unfold treeShared
-  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
+  icases (treeCtx_eq _ _).1 $$ Ht with ⟨Ht, Hcm⟩
+  unfold treeCtxT
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -120,7 +117,7 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
         osWorld (L := L) st' Γb Γm Γf Γt h' ∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS (<[fd := (j, ph')]> Γdf) ∗
         gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS fd (DFrac.own 1) (j, ph') ∗
-        ⌜FsTreeWf st' ∧ TreeCohS st' s0 (<[fd := (j, ph')]> Γdf) Γc Γg ∧ CommitGrows st st' ∧
+        ⌜FsTreeWf st' ∧ TreeCohS st' (<[fd := (j, ph')]> Γdf) Γc Γg ∧ CommitGrows st st' ∧
           st'.fs.roots = st.fs.roots ∧ st'.fs.treeDur = st.fs.treeDur ∧
           st'.fs.metaLog = st.fs.metaLog⌝ := by
     intro rd' ph' hok hst
@@ -146,14 +143,14 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-    · try unfold treeCtx
+    isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+    · iapply (treeCtx_eq _ _).2
       isplitr [Hcm]
       rotate_left
       · iapply commitRes_grow (gooseOsGS (L := L)) hcg $$ Hcm
-      iright
-      try unfold treeShared
-      iexists V0, s0, <[fd := (j, phName st.fs.metaLog.length b)]> Γdf, Γc, Γg
+      try unfold treeCtxT
+      iexists <[fd := (j, phName st.fs.metaLog.length b)]> Γdf, Γc, Γg
+      try unfold callResS
       rw [hro, hdu, hlo]
       iframe
       ipureintro; exact ⟨hw', hc'⟩
@@ -170,14 +167,14 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-    · try unfold treeCtx
+    isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+    · iapply (treeCtx_eq _ _).2
       isplitr [Hcm]
       rotate_left
       · iapply commitRes_grow (gooseOsGS (L := L)) hcg $$ Hcm
-      iright
-      try unfold treeShared
-      iexists V0, s0, <[fd := (j, .done)]> Γdf, Γc, Γg
+      try unfold treeCtxT
+      iexists <[fd := (j, .done)]> Γdf, Γc, Γg
+      try unfold callResS
       rw [hro, hdu, hlo]
       iframe
       ipureintro; exact ⟨hw', hc'⟩
@@ -194,14 +191,14 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-    · try unfold treeCtx
+    isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+    · iapply (treeCtx_eq _ _).2
       isplitr [Hcm]
       rotate_left
       · iapply commitRes_grow (gooseOsGS (L := L)) hcg $$ Hcm
-      iright
-      try unfold treeShared
-      iexists V0, s0, <[fd := (j, phErr st.fs.metaLog.length)]> Γdf, Γc, Γg
+      try unfold treeCtxT
+      iexists <[fd := (j, phErr st.fs.metaLog.length)]> Γdf, Γc, Γg
+      try unfold callResS
       rw [hro, hdu, hlo]
       iframe
       ipureintro; exact ⟨hw', hc'⟩
