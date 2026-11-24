@@ -118,7 +118,7 @@ theorem wp_createSeg [os.file.FieldAssumptions]
       (crOut j b h (DFrac.own (1 : Qp).half)) $$ Hr
     iapply wp_open dir b (wal.walOpenFlag false) (W32 384) R j dq h (1 : Qp).half (1 : Qp).half
       qc (crOut j b h (DFrac.own (1 : Qp).half)) hfl hcr htr hb hnd
-      (Qp.half_add_half 1) $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+      (Qp.half_add_half 1) $$ [$Hospkg $Hos $Hsi $Hp $Hperm $Hn $Hau]
     inext
     iintro %f %err ⟨Hp, Hperm, %o, Ho1, Ho2, Hm, Hr⟩
     iapply HΨ

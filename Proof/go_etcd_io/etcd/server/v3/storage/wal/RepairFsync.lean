@@ -183,7 +183,7 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ileft
     isplitr; · ipureintro; rfl
     iframe
@@ -194,7 +194,7 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     iright
     ipureintro; intro h; cases h
 

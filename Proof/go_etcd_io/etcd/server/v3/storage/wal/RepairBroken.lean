@@ -66,7 +66,7 @@ theorem repBroken_tripleNew (wp_OpenN : os.OpenFile.specCreateTruncSncN (GF := G
   iintro %Ψ ⟨#Hospkg, #Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΨ
   iapply wp_OpenN dir bt (wal.walOpenFlag true) (W32 384) R j (.except X) dq hj qQuarter
     ((1 : Qp).half + qQuarter) qc (walBrokenQ (W := W) dir j X hj o bt) hfl hcr htr hb hN hcur
-    qQuarter_three $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+    qQuarter_three $$ [$Hospkg $Hos $Hsi $Hp $Hperm $Hn $Hau]
   inext
   iintro %f %err ⟨Hp, Hperm, %x, HQ, Ho, Htr, Hr⟩
   iapply HΨ
@@ -113,7 +113,7 @@ theorem repBroken_tripleOld (R : Roots) (dir : GoString) (dq dqn : DFrac) (j : I
   unfold fileutil.OpenTriple
   iintro %Ψ ⟨#Hospkg, #Hos, #Hsi, Hp, Hn, Hperm, Htr⟩ HΨ
   iapply os.OpenFile.wp_truncS dir bt (wal.walOpenFlag true) (W32 384) R j i (.except X) dq dqn hj qc
-    hfl htr hb hN hcur $$ [$Hos $Hsi $Hp $Hn $Hperm $Htr]
+    hfl htr hb hN hcur $$ [$Hospkg $Hos $Hsi $Hp $Hn $Hperm $Htr]
   inext
   iintro %f %err ⟨Hp, Hn, Hperm, Htr, Hr⟩
   iapply HΨ

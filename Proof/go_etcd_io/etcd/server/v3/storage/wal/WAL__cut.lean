@@ -780,6 +780,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iapply (osPathS_frac Rd dir qd.half qd.half j).2; iframe
   ihave #Hfupk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil $$ []
   · iPkgInit
+  ihave #Hospkg : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+  · iPkgInit
   have hbn : NameOk bt := by rw [← hbt]; exact walFileName_nameOk _ _
   wp_apply (wp_LockFile (child dir bt) (W64 1) (W32 384) _ Unit _ _
       (walOpen_tripleW Rd dir bt (DFrac.own qd) j g.ino (.except X) (DFrac.own (1 : Qp).half)

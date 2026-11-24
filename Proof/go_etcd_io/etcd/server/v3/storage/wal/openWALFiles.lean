@@ -248,6 +248,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         $$ [Hp Hn Hperm] as %lf %err ⟨Hpost, Herr⟩
       · isplitl []; · iexact Hinv
         isplitl []; · iexact Hfu
+        isplitl []; · iPkgInit
         isplitl []; · iexact Hinv
         isplitl []; · iexact Hsi
         iframe
