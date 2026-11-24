@@ -153,8 +153,8 @@ theorem RawNode.Tick.wp_absProof
         obtain ⟨hl, hv⟩ := Hlift h
         first
           | exact ⟨(tickElEnd_lift hl Hend).1.of_voters hv, (tickElEnd_lift hl Hend).2⟩
-          | exact ⟨(tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2) Hend).1.of_voters hv,
-              (tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2) Hend).2⟩
+          | exact ⟨(tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).1.of_voters hv,
+              (tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).2⟩
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
         (fun h Hs => by
           have hro := tickEnd_rd_out (Hlifted h).1

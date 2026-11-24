@@ -789,7 +789,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- (#33 S4) the facts at `s`: the messages' readings (`readyMsgs_perm`), and in the scope the role
   -- and the committed log handed out
   have Hmsperm := (readyMsgs_perm id s.outbox ms1 ms2 Houtbox (fun q h => (HmsgsAA_ok.2 q h).1)).1
-  have Hscf : sc = true → roleGo ps.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.log ∧
+  have Hscf0 : sc = true → roleGo ps.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.log ∧
       (rs.delivered ++ ce).length ≤ uint.nat ps.commit := by
     intro hsc
     obtain ⟨-, Hpv, -, -, -, Hprev, Hsn, -⟩ := Hscope hsc
@@ -814,6 +814,14 @@ theorem RawNode.readyWithoutAccept.wp_proof
       simp only [List.length_take] at this
       show _ ≤ uint.nat (toPState s).commit
       unfold uint.nat; unfold uint.Z at this; omega
+  -- (#33 S4, 2026-11-24) and every message handed out typed: no transfer request stepped in the
+  -- scope (`RnScope`'s `NGhost.xs`), so `XfOk`'s last clause
+  have Hscf : sc = true → roleGo ps.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.log ∧
+      (rs.delivered ++ ce).length ≤ uint.nat ps.commit ∧
+      ∀ q ∈ ms1 ++ nonself id ms2, (absMsgOf q.st).isSome := fun hsc =>
+    ⟨(Hscf0 hsc).1, (Hscf0 hsc).2.1, (Hscf0 hsc).2.2,
+      fun q hq => absMsgOf_isSome_of_rel Houtbox q (Hsub q hq)
+        (Hxf.typed_xs (Hscope hsc).2.2.2.2.2.2.2.2.2 q (Hsub q hq))⟩
   isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr Hledger Hsc]
   · iexists s
     isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr Hledger]

@@ -820,9 +820,10 @@ abbrev raft.Step.spec : Prop :=
       -- leader and term in `NGhost.xw` (the forward's witness, `ownStepGhost_xw_record`)
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
                    (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
-      -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows
+      -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows, and
+      -- `xs` (2026-11-24, #33 S4: set at a follower or a leader, the request recorded as stepped)
       "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
-                   s'.gh = { s.gh with xw := s'.gh.xw } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
+                   s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)

@@ -377,7 +377,7 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   have e2 := Hcc (fun h => absurd h (by trrcv_ne Hnt)); subst c'
   obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10⟩ :=
     Hfr (by trrcv_ne Hnt) (by trrcv_ne Hnt) (by trrcv_ne Hnt) (fun h => absurd h (by trrcv_ne Hnt))
-  have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw } :=
+  have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } :=
     ⟨⟨a1, a2, a3, a4, a5, a6, a7, rfl, a9, a10⟩, by rw [a8]⟩
   obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx⟩ := HfrX
   simp only at Ha Hsn Hu Hpv Hsd Hsg Hpre Hfl' Hap'

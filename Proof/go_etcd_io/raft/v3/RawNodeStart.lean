@@ -945,13 +945,14 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
   have HscR : sc = true → RnScope rs0 s1 := by
     intro hsc
     obtain ⟨Hpv0, Hcq0, ⟨-, Hmo, -⟩, Hb0⟩ := Hsc hsc
-    refine ⟨?_, ?_, ?_, Hpd, rfl, ?_, Hsn0, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, Hpd, rfl, ?_, Hsn0, ?_, ?_, ?_⟩
     · intro _; exact Hmo
     · show s.prevote = false; rw [Hpvoff, Hpv0]
     · show s.cq = false; rw [Hcq, Hcq0]
     · show s.logst.prev = base0; rw [Hlp, ← Hb0]
     · intro m' hm; change m' ∈ s.outbox at hm; rw [Ho] at hm; cases hm
     · intro hl; exact absurd (Hr.symm.trans hl) (by decide)
+    · show s.gh.xs = false; rw [Hgh]
   have HcinR : sc = true → RnCfgIn γ.raft cv.ID' rs0 := by
     intro hsc
     obtain ⟨-, -, ⟨Hmv, -, Hid⟩, -⟩ := Hsc hsc

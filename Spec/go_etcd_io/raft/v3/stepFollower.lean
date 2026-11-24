@@ -242,6 +242,11 @@ abbrev stepFollower.spec : Prop :=
   -- forwards no transfer request (a type the model does not describe, which `send` takes only
   -- untraced): `raft.Step.spec`'s premise
   (m.Type' = MsgTransferLeader → s.gh.tr = none) →
+  -- (2026-11-24, #33 S4) a transfer request recorded as stepped (`NGhost.xs`, which `raft.Step`'s
+  -- transfer arm sets before the step at a follower or a leader), for the forward to the leader
+  -- (`send`'s transfer clause): a leaderless follower forwards nothing (and the preamble's
+  -- step-down leaves no leader)
+  (m.Type' = MsgTransferLeader → s.lead ≠ W64 0 → s.gh.xs = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a

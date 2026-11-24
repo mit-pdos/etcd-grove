@@ -316,7 +316,10 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → PState 
         (∀ e0 ∈ es.head?, uint.nat e0.Index' = ip + 1) ∧ ip' = ps.log.length ∧
         -- (#33 S4, 2026-11-24) a non-empty hard state differs from the last one handed out
         -- (`rd.HardState` is set only when `!isHardStateEqual(hardSt, prevHardSt)`; ledger)
-        (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs)⌝ }}
+        (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs) ∧
+        -- (#33 S4, 2026-11-24) every message handed out reads as a protocol message: of a type the
+        -- model describes (the harness steps no transfer request, `RnScope`'s `NGhost.xs`; ledger)
+        (∀ q ∈ ms, (absMsgOf q.st).isSome)⌝ }}
 
 /-- **`RawNode.Ready`, strengthened**. -/
 abbrev RawNode.Ready.absSpec : Prop :=

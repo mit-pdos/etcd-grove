@@ -52,6 +52,31 @@ theorem filterMap_absMsgOf_eq {ms : List QMsg} {as_ : List (Option Msg)}
     rw [List.filterMap_cons, List.filterMap_cons, absMsgOf_of_msgAbs h, ih]
     rfl
 
+/-- (#33 S4, 2026-11-24) A queued message of a type the model describes reads as a protocol message
+(a `MsgSnap` carries its snapshot, `msgAbs`). -/
+theorem absMsgOf_isSome_of_rel {o : List Msg} {ms1 ms2 : List QMsg} (Ho : outboxRelP o ms1 ms2)
+    (q : QMsg) (hq : q ∈ ms1 ++ ms2) (ht : mtypeOf q.st.msg.Type' ≠ none) :
+    (absMsgOf q.st).isSome := by
+  obtain ⟨as1, as2, -, F1, F2⟩ := Ho
+  have key : ∀ {ms : List QMsg} {as_ : List (Option Msg)},
+      List.Forall₂ (fun q a => msgAbs q.st a) ms as_ →
+      ∀ q ∈ ms, mtypeOf q.st.msg.Type' ≠ none → (absMsgOf q.st).isSome := by
+    intro ms as_ H
+    induction H with
+    | nil => intro q hq; cases hq
+    | @cons q' a ms as_ h _ ih =>
+      intro q hq ht
+      rcases List.mem_cons.1 hq with rfl | hq
+      · rw [absMsgOf_of_msgAbs h]
+        rcases h with ⟨h1, -⟩ | ⟨_, -, -, rfl⟩ | ⟨_, -, -, rfl⟩
+        · exact absurd h1 ht
+        · rfl
+        · rfl
+      · exact ih q hq ht
+  rcases List.mem_append.1 hq with h | h
+  · exact key F1 q h ht
+  · exact key F2 q h ht
+
 /-- Filtering the readings by destination is filtering the queue by `To`. -/
 theorem filter_filterMap_absMsgOf (p : w64 → Bool) (l : List QMsg) :
     (l.filterMap (fun q => absMsgOf q.st)).filter (fun m => p m.dst) =

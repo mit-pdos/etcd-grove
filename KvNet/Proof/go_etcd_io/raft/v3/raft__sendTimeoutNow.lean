@@ -31,7 +31,7 @@ theorem raft.sendTimeoutNow.wp_proof
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendTimeoutNow.spec (GF := GF) (hG := hG) := by
-  intro c r id s to Q Hto Htz Htr
+  intro c r id s to Q Hto Htz Htr Hxs
   wp_start as ⟨Hphys, Hgate⟩
   wp_auto
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
@@ -47,7 +47,7 @@ theorem raft.sendTimeoutNow.wp_proof
     msg_nulls
   have Hok : SendOk id s ⟨W32 14, to, 0, 0, 0, 0, 0, 0, false, 0⟩ [] [] [] :=
     Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inl rfl, fun _ => Htz, rfl, rfl, rfl, Hto, rfl,
-      fun h => absurd h (by simp [MsgTransferLeader])⟩)))
+      fun h => absurd h (by simp [MsgTransferLeader]), Hxs⟩)))
   -- (Q8 stage 1, slice 5) `send` at the caller's gate: `MsgTimeoutNow` is not traced
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none [] [] [] Q (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))

@@ -77,11 +77,13 @@ dynamic mode, 2026-11-24, no outgoing half: the harness's cluster is `isCluster`
 changes its configuration), pre-vote and check-quorum off (the `Config`'s, copied by `newRaft`, never
 written), no read-index request pending; the log's boundary at `base0` (never compacted), no snapshot
 pending or lent, no `MsgSnap` queued; (#33 S4, msgShape) a leader's read-only queue empty (the
-harness never sends `MsgReadIndex`: its heartbeats carry no context, `hbCtx`). -/
+harness never sends `MsgReadIndex`: its heartbeats carry no context, `hbCtx`); (#33 S4, typed
+messages) no transfer request stepped (`NGhost.xs`: the harness never transfers leadership, so every
+queued message is of a type the model describes, `XfOk`). -/
 def RnScope (rs : RNState) (s : NState) : Prop :=
   (rs.mode.isDyn = true → rs.cfg.cfg.outgoing = ∅) ∧ s.prevote = false ∧ s.cq = false ∧
   s.rd.pend = [] ∧ rs.slent = none ∧ s.logst.prev = base0 ∧ s.logst.snap = none ∧
-  (∀ m ∈ s.outbox, m.ty ≠ .snap) ∧ (s.role = .leader → s.rd.ro.pending = [])
+  (∀ m ∈ s.outbox, m.ty ≠ .snap) ∧ (s.role = .leader → s.rd.ro.pending = []) ∧ s.gh.xs = false
 
 open Classical in
 /-- **The length of the longest common prefix of two logs.** An input that truncates the log from

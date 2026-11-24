@@ -1184,6 +1184,14 @@ structure NGhost [GooseExts] where
   `[]` outside `send` (the `RawNode` predicates record it, `%Hglq`), which the queue-draining closures
   need. A list, not an `Option`, so that `send` pops back to whatever its caller's state held. -/
   lq : List (Loc × MsgSt) := []
+  /-- (2026-11-24, #33 S4) **A transfer request was stepped**: set by `raft.Step`'s
+  `MsgTransferLeader` arm before the step (`ownRaftPhysC_set_xs`, `"%Hxwframe"`), never cleared.
+  Until it is set the node has no transferee and every queued message is of a type the model
+  describes (`XfOk`'s last clause): the only untyped messages raft queues, `MsgTimeoutNow` and a
+  forwarded `MsgTransferLeader`, come from a transfer request's step or from a transferee
+  (`sendTimeoutNow`'s premise, `SendOk`'s transfer clause). The Antithesis harness never steps one
+  (`RnScope`), so a `Ready`'s messages are typed there. -/
+  xs : Bool := false
 
 -- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
 noncomputable instance [GooseExts] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)

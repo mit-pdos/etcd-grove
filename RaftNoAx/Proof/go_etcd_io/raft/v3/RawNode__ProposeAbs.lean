@@ -125,7 +125,8 @@ local macro "prop_tail" : tactic => `(tactic| (
           rw [← toPState_rd_pend s', ← toPState_rd_pend s, proposeEnd_rd (Hlifted h).1]
         exact RnScope.keep Hs rfl rfl Hfr.2.2.2.2.2.2.2.1 Hcq' hrd Hfr.2.2.2.2.1 Hfr.2.2.2.1
           (fun m hm => .inr ((Hx h).2 m hm))
-          (fun h0 => by rw [proposeEnd_rd (Hlifted h).1]; exact h0)) Hfr.2.2.2.2.2.2.1 $$ Hsc
+          (fun h0 => by rw [proposeEnd_rd (Hlifted h).1]; exact h0)
+          (hxs := congrArg NGhost.xs Hfr.2.2.2.2.2.2.2.2.1)) Hfr.2.2.2.2.2.2.1 $$ Hsc
     ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
       (by rw [LocalFrame.ns Hfr]; exact Hgtr.trans HtrG)
     iapply HΦ $$ %err %(toPState s') %(uint.nat s'.logst.inprogress - 1)

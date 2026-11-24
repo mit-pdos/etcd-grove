@@ -71,7 +71,7 @@ term past `0` (`SendOk`'s `Hstz`, or the caller's `Hmterm`). (Case (c), the tran
 hand.) -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_⟩
   · simp only [Hty1, $args,*]; simp [sentShapeTypes, sentTypes, MsgReadIndex, MsgProp, MsgVote,
       MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,
       MsgReadIndexResp, MsgSnap, MsgTransferLeader, MsgTimeoutNow]
@@ -111,7 +111,16 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     | (intro h; cases h)
     | (intro h; simp [mtypeOf] at h; done)
     | (simp [Hty1, htyx]; done)
-    | (simp only [Hty1, $args,*] at htyx ⊢; simp [htyx]; done)))
+    | (simp only [Hty1, $args,*] at htyx ⊢; simp [htyx]; done)
+  -- (2026-11-24, #33 S4) of a described type (every type but the transfer messages, case (c))
+  · intro _
+    first
+    | (rw [Hty1, Hty]; exact Option.some_ne_none _)
+    | (simp only [Hty1, $args,*]; decide)
+    | (simp only [Hty1, $args,*]; simp [mtypeOf]; done)
+    | (simp only; decide)
+    | (simp only; simp [mtypeOf]; done)
+    | (simp only [Hty1]; rw [Hty]; exact Option.some_ne_none _)))
 
 set_option hygiene false in
 /-- Rewrite a getter's result by the case's facts `args`, so that `wp_auto` decides the tests. -/
@@ -420,7 +429,7 @@ theorem raft.send.wp_proof
   unfold SendOk at Hok
   rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Htc, rfl⟩ |
     ⟨ty, Hlty, Hty, Hmterm, Hself, Hstz, rfl⟩ |
-    (⟨HSnap, Hsents, Hsctx, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw⟩) |
+    (⟨HSnap, Hsents, Hsctx, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw, Hxs⟩) |
     ⟨HAR, Hmterm, Hstz, Hself2, rfl⟩ |
     (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
   · -- (a) a vote message: `Term` is kept. A request goes onto `r.msgs`, a response onto
@@ -571,7 +580,8 @@ theorem raft.send.wp_proof
         · assumption
       simp only
       refine ⟨⟨?_, by rw [Hfr1]; exact Hsrc0, fun h => ?_, fun h hz => ?_, ?_, fun h => ?_,
-        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_, fun htr => ?_⟩
+        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_, fun htr => ?_,
+        fun hx => absurd (Hxs.symm.trans hx) Bool.noConfusion⟩
       · rcases Htt with h | h <;> rw [h] <;> simp [sentShapeTypes]
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · rcases Htt with h' | h'

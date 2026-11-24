@@ -96,7 +96,10 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
           ms.filterMap (fun q => absMsgOf q.st) ≡ₚ s.outbox.filter (fun m => decide (m.dst ≠ id)) ∧
           (∀ q ∈ ms, q.st.msg.To' ≠ id) ∧
           (sc = true → roleGo ps.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.log ∧
-            (rs.delivered ++ ce).length ≤ uint.nat ps.commit)⌝ ∗
+            (rs.delivered ++ ce).length ≤ uint.nat ps.commit ∧
+            -- (#33 S4, 2026-11-24) every message reads as a protocol message: of a type the model
+            -- describes (no transfer request stepped in the scope, `NGhost.xs`: `XfOk`'s last clause)
+            ∀ q ∈ ms, (absMsgOf q.st).isSome)⌝ ∗
         ∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
           ⌜roleAfter rs.role ss = stateW64 s.role⌝) ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗

@@ -553,6 +553,9 @@ theorem wp_stepLeader_transfer
     -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) not at a
     -- traced node (`raft.Step.spec`'s premise): `sendTimeoutNow`'s
     (Htr : s.gh.tr = none)
+    -- (2026-11-24, #33 S4) the request recorded as stepped (`NGhost.xs`): the transferee's store and
+    -- `sendTimeoutNow`'s
+    (Hxs : s.gh.xs = true)
     (G : List Msg → IProp GF) {nc : Bool} (Hidx : IdxFreeN nc s.gh.tr G) :
     -- (raft-final, 2026-10-29, U9: until then leader transfer on, `Hxo : s.gh.xf = false`)
     -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) the two sends' gates, at the
@@ -714,7 +717,8 @@ theorem wp_stepLeader_transfer
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
-  wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself $$ Hphys as Hphys
+  wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself
+    (by first | exact Hxs | simpa using Hxs | simp_all) $$ Hphys as Hphys
   -- `if pr.Match == r.raftLog.lastIndex()`
   icases ownRaftPhysC_pr c r id _ m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   iNamed Hpa
@@ -730,7 +734,7 @@ theorem wp_stepLeader_transfer
     ihave Hphys := ownRaftPhysC_eq c r id _ { s with lt := m.From' } (by cases s; simp_all) $$ Hphys
     ispecialize Hgtnow $$ %s.outbox HG
     wp_apply wp_raft_sendTimeoutNow c r id { s with lt := m.From' } m.From' (G s.outbox) Hself
-      (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) Htr $$ [$Hphys $Hgtnow]
+      (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) Htr Hxs $$ [$Hphys $Hgtnow]
       as ⟨Hphys, HG⟩
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
@@ -2057,6 +2061,8 @@ theorem wp_stepLeader_appresp
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
           wp_raft_logC
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+          -- (2026-11-24, #33 S4) a transferee: a transfer request was stepped
+          icases ownRaftPhysC_xs_of_lt c r id _ $$ Hphys with ⟨%Hxsl, Hphys⟩
           wp_apply wp_raft_sendTimeoutNow c r id _ m.From'
               (Gc bc Nc ({ sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } : NState).outbox)
               Hfid (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz)
@@ -2068,7 +2074,7 @@ theorem wp_stepLeader_appresp
                 intro htr
                 have hlt := Hltr htr
                 have : m.From' = s.lt := by rw [Hft]; show s2.lt = s.lt; exact Hs2lt
-                exact Hfrom0 (this.trans hlt)) $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
+                exact Hfrom0 (this.trans hlt)) (Hxsl (fun h => Hfrom0 (Hft.trans h))) $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
           · -- (slice 9) at no event
             iapply hookGateOpt_congr s.gh.tr _ r none none _ ?hg1 rfl
             case hg1 => exact (congrArg NGhost.tr Hs2gh).symm

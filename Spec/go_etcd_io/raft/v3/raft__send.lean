@@ -85,7 +85,8 @@ clause per shape a caller builds:
     `MsgTimeoutNow` and a forwarded `MsgTransferLeader`, both of a transfer (2026-10-29, U7 (ii):
     with no entries and no context). (raft-final, 2026-10-29) A forwarded `MsgTransferLeader`'s
     destination and the node's term recorded in `NGhost.xw` (what `XfOk` keeps of a stamped one;
-    until then, D21 M2r, only with leader transfer on, `NGhost.xf = false`).
+    until then, D21 M2r, only with leader transfer on, `NGhost.xf = false`). (2026-11-24, #33 S4)
+    Either only once a transfer request was stepped (`NGhost.xs`).
 (c') `MsgSnap` (2026-10-02): stamped and queued like (b), but the abstract message is
     `absSnapFrom` of the snapshot `m.Snapshot` points to and of that snapshot's
     `ConfState.Voters`. `send` does not read the pointer, so the caller names the two
@@ -153,7 +154,10 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     -- the node's term, to a destination and at a term recorded with a witness that it leads it
     -- (`NGhost.xw`, `xfW`; `raft.Step`'s transfer arm records its leader before `stepFollower`
     -- forwards). Until then only with leader transfer on (`NGhost.xf = false`, D21 M2r).
-    (m.Type' = MsgTransferLeader → (s.gh.xw !! (m.To', s.term)).isSome)))
+    (m.Type' = MsgTransferLeader → (s.gh.xw !! (m.To', s.term)).isSome) ∧
+    -- (2026-11-24, #33 S4) once a transfer request was stepped (`NGhost.xs`): until then every
+    -- queued message is of a described type (`XfOk`'s last clause)
+    s.gh.xs = true))
   ∨
   (m.Type' = MsgAppResp ∧
    m.Term' = W64 0 ∧

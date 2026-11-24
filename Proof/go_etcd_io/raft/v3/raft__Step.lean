@@ -1285,9 +1285,11 @@ theorem raft.Step.wp_proof
   -- witness, `ownStepGhost_xw_record`), which `NetFrame` does not allow (`"%Hxwframe"`).
   by_cases HtyX : m.Type' = MsgTransferLeader
   · obtain ⟨Hent, Hctx0⟩ := Hrest.2.2 HtyX
-    have Hdh1 : ∀ (X : GSet (w64 × w64)) s', DynHypFor md m { s with gh := { s.gh with xw := X } } s' :=
-      fun X _ _ _ _ _ hmd _ HI =>
-        GMode.Pre.dynHyp (s := { s with gh := { s.gh with xw := X } }) Hpre Hns (fun h => absurd h HtyB) hmd HI
+    have Hdh1 : ∀ (X : GSet (w64 × w64)) (b : Bool) s',
+        DynHypFor md m { s with gh := { s.gh with xw := X, xs := b } } s' :=
+      fun X b _ _ _ _ _ hmd _ HI =>
+        GMode.Pre.dynHyp (s := { s with gh := { s.gh with xw := X, xs := b } }) Hpre Hns
+          (fun h => absurd h HtyB) hmd HI
     ihave #Hsd := isMessage_stepdown (GF := GF) γ id m
     ihave %Hlok0 := ownRaftGhost_lead_ok γ id (toPState s) $$ Hghost
     have Hlok : s.role = .follower → s.lead ≠ id := by
@@ -1318,36 +1320,65 @@ theorem raft.Step.wp_proof
         iframe Hg; ipureintro; exact fun _ => H
     -- the record, at a follower with a leader: in the struct now; (2026-11-10, Q8 stage 1 slice 11)
     -- in the ghost state after the step (the ghost state is the caller's across the handler, at
-    -- `s`), `Step`'s gates moved to the recorded state (`stepGates_xw`)
-    ihave ⟨%X, %HX, %Hxo, Hgrec, Hphys, Hgates⟩ : ∃ X : GSet (w64 × w64), ⌜∀ p, p ∈ s.gh.xw → p ∈ X⌝ ∗
+    -- `s`), `Step`'s gates moved to the recorded state (`stepGates_xw`). (2026-11-24, #33 S4) And,
+    -- at a follower or a leader (the roles whose step may forward the request or make a transferee),
+    -- the request recorded as stepped (`NGhost.xs`, `ownRaftPhysC_set_xs`, `ownStepGhost_set_xs`).
+    ihave ⟨%X, %b, %HX, %Hxo, %Hxsb, Hgrec, Hphys, Hgates⟩ : ∃ (X : GSet (w64 × w64)) (b : Bool),
+        ⌜∀ p, p ∈ s.gh.xw → p ∈ X⌝ ∗
         ⌜s.role = .follower → s.lead ≠ W64 0 → (X !! (s.lead, s.term)).isSome⌝ ∗
-        (ownStepGhost γ md c id s -∗ ownStepGhost γ md c id { s with gh := { s.gh with xw := X } }) ∗
-        ownRaftPhysCV c c.voters r id { s with gh := { s.gh with xw := X } } ∗
-        stepGates c r id { s with gh := { s.gh with xw := X } } m ents sn ctx rs (ghostIn γ md c id s R) nc
+        ⌜s.role = .follower ∨ s.role = .leader → b = true⌝ ∗
+        (ownStepGhost γ md c id s -∗ ownStepGhost γ md c id { s with gh := { s.gh with xw := X, xs := b } }) ∗
+        ownRaftPhysCV c c.voters r id { s with gh := { s.gh with xw := X, xs := b } } ∗
+        stepGates c r id { s with gh := { s.gh with xw := X, xs := b } } m ents sn ctx rs (ghostIn γ md c id s R) nc
         $$ [Hphys Hgates]
     · by_cases Hrec : s.role = .follower ∧ s.lead ≠ W64 0
       · iexists insert (s.lead, s.term) s.gh.xw
+        iexists true
         isplitr
         · ipureintro; intro p hp; exact (GMap.elem_of_insert_set _ _ _).2 (.inr hp)
         isplitr
         · ipureintro; intro _ _; exact (GMap.elem_of_insert_set _ _ _).2 (.inl rfl)
         isplitr
-        · iintro Hg; iapply ownStepGhost_xw_record γ md c id s Hrec.2 (by rw [Hrec.1]; decide) $$ Hg
+        · ipureintro; intro _; rfl
+        isplitr
+        · iintro Hg
+          ihave Hg := ownStepGhost_xw_record γ md c id s Hrec.2 (by rw [Hrec.1]; decide) $$ Hg
+          iapply ownStepGhost_set_xs γ md c id
+            { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw } } true $$ Hg
         isplitl [Hphys]
-        · iapply ownRaftPhysC_xw_record (c := c) (V := c.voters) r id s (s.lead, s.term) $$ Hphys
-        iapply stepGates_xw c r id s m ents sn ctx rs _ _ HtyX Hrec.1 $$ Hgates
-      · iexists s.gh.xw
-        rw [show ({ s with gh := { s.gh with xw := s.gh.xw } } : NState) = s from rfl]
-        iframe Hphys Hgates
-        isplitr
-        · ipureintro; exact fun _ h => h
-        isplitr
-        · ipureintro; exact fun h1 h2 => absurd ⟨h1, h2⟩ Hrec
-        iintro Hg; iexact Hg
+        · ihave Hphys := ownRaftPhysC_xw_record (c := c) (V := c.voters) r id s (s.lead, s.term) $$ Hphys
+          iapply ownRaftPhysC_set_xs (c := c) (V := c.voters) r id
+            { s with gh := { s.gh with xw := insert (s.lead, s.term) s.gh.xw } } $$ Hphys
+        iapply stepGates_xw c r id s m ents sn ctx rs _ _ true HtyX (.inl Hrec.1) $$ Hgates
+      · by_cases Hfl : s.role = .follower ∨ s.role = .leader
+        · iexists s.gh.xw
+          iexists true
+          isplitr
+          · ipureintro; exact fun _ h => h
+          isplitr
+          · ipureintro; exact fun h1 h2 => absurd ⟨h1, h2⟩ Hrec
+          isplitr
+          · ipureintro; intro _; rfl
+          isplitr
+          · iintro Hg; iapply ownStepGhost_set_xs γ md c id s true $$ Hg
+          isplitl [Hphys]
+          · iapply ownRaftPhysC_set_xs (c := c) (V := c.voters) r id s $$ Hphys
+          iapply stepGates_xw c r id s m ents sn ctx rs _ s.gh.xw true HtyX Hfl $$ Hgates
+        · iexists s.gh.xw
+          iexists s.gh.xs
+          rw [show ({ s with gh := { s.gh with xw := s.gh.xw, xs := s.gh.xs } } : NState) = s from rfl]
+          iframe Hphys Hgates
+          isplitr
+          · ipureintro; exact fun _ h => h
+          isplitr
+          · ipureintro; exact fun h1 h2 => absurd ⟨h1, h2⟩ Hrec
+          isplitr
+          · ipureintro; exact fun h => absurd h Hfl
+          iintro Hg; iexact Hg
     iunfold ownStepGhost at Hg
     icases Hg with ⟨Hghost, Hrest⟩
     ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
-    ihave HΦ : ▷ stepPost γ md c r id { s with gh := { s.gh with xw := X } } m Gout Φ $$ [HΦ Hlc]
+    ihave HΦ : ▷ stepPost γ md c r id { s with gh := { s.gh with xw := X, xs := b } } m Gout Φ $$ [HΦ Hlc]
     · inext
       unfold stepPost
       iframe Hlc
@@ -1355,7 +1386,7 @@ theorem raft.Step.wp_proof
       iapply HΦ $$ %err %s' %c' %md'
       iframe Hphys Hghost Herr HG
       ipureintro
-      have hg : s'.gh = ({ s with gh := { s.gh with xw := X } } : NState).gh := (Hfr' Hns).2.2.2.2.2.2.2.1
+      have hg : s'.gh = ({ s with gh := { s.gh with xw := X, xs := b } } : NState).gh := (Hfr' Hns).2.2.2.2.2.2.2.1
       exact ⟨Hwf', Href, fun _ => Hc' Hns, ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
           fun h => absurd h HtyA⟩,
         fun _ _ h _ => absurd HtyX h,
@@ -1366,7 +1397,7 @@ theorem raft.Step.wp_proof
         Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
     ihave Hmi := msgInC_moves (by rw [HtyX]; decide) _ _ _ $$ Hmi
     wp_apply (wp_Step_MsgTransferLeader (B := plogLastIndexZ (toPState s).base (toPState s).log) P PB c r id
-      { s with gh := { s.gh with xw := X } } ml m ents sn ctx rs (ghostIn γ md c id s R) Hxtr HtyX Hent Hctx0 Hxo Htr
+      { s with gh := { s.gh with xw := X, xs := b } } ml m ents sn ctx rs (ghostIn γ md c id s R) Hxtr Hxsb HtyX Hent Hctx0 Hxo Htr
       Hlok Hwf (Hnors (.inr (.inr HtyX))) HLT) $$ [$Hphys $Hmi $HG $Hgates]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
@@ -1378,8 +1409,8 @@ theorem raft.Step.wp_proof
     · unfold ownStepGhost; iframe
     iunfold ownStepGhost at Hg
     icases Hg with ⟨Hghost, Hrest⟩
-    iapply finish_branch γ md c r id { s with gh := { s.gh with xw := X } } s' m _ recv err Gout Φ (Hot := Hot)
-      (Hdh1 X s') Hwf' Hrecv Hstep
+    iapply finish_branch γ md c r id { s with gh := { s.gh with xw := X, xs := b } } s' m _ recv err Gout Φ (Hot := Hot)
+      (Hdh1 X b s') Hwf' Hrecv Hstep
       (fun _ => Hfr) (fun _ => Htm)
       (RespStep.of_type (by rw [HtyX]; w32_ne) (by rw [HtyX]; w32_ne) (by rw [HtyX]; w32_ne)) Hfr.nsst
       (by simp [stepdownMsg, Msg.plain]) (by simp [stepdownMsg, Msg.plain]) $$ Hnc Hsd Hghost Hrest Hphys [] HGq HΦ

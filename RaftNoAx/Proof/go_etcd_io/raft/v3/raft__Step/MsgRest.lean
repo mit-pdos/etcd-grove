@@ -198,7 +198,7 @@ local macro "local_follower" : tactic => `(tactic| (
   wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by ty_cases simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
     msg_pass
   ihave HG := stepOut_or R _ _ $$ HGo
@@ -281,7 +281,7 @@ local macro "local_leader" : tactic => `(tactic| (
   wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 R.G1 R.GE R.Gp1 R.Gp2 R.Gc (by ty_cases simp [Hty]) Hrole (by first | (intro _; exact HLT Hrole) | ty_other)
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+    (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
   · iframe Hphys Hrc00 HG Hlg
     isplitl [Hm]
     · msg_pass
@@ -319,7 +319,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hxo Hrole⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
       (by ty_other)
-    (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
     msg_pass
   ihave HG := stepOut_or R _ _ $$ HGo
@@ -349,7 +349,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnw, Hwf, Hfla⟩⟩)
       (by ty_other)
-    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
     msg_pass
   ihave HG := stepOut_or R _ _ $$ HGo
@@ -481,7 +481,10 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF)
     -- (2026-11-12, trace-check implementation step 3) not at a traced node (`raft.Step.spec`'s premise)
-    (Hxtr : m.Type' = MsgTransferLeader → s.gh.tr = none) :
+    (Hxtr : m.Type' = MsgTransferLeader → s.gh.tr = none)
+    -- (2026-11-24, #33 S4) the request recorded as stepped at a follower or a leader (`NGhost.xs`,
+    -- `raft.Step` sets it before this arm; `stepLeader`'s and `stepFollower`'s premise)
+    (Hxs : s.role = .follower ∨ s.role = .leader → s.gh.xs = true) :
     m.Type' = MsgTransferLeader →
     ents = [] →
     ctx = [] →
@@ -590,7 +593,7 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
         (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0, fun h => absurd rfl h⟩,
           fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
         (by ty_other)
-      (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iframe Hphys Hsrc0
       wp_gets
       msg_pass
@@ -766,7 +769,7 @@ theorem wp_Step_MsgTimeoutNow {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
         (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
         (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnwm, ⟨rfl, rfl⟩, Hfla⟩⟩)
         (by ty_other)
-      (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iframe Hphys Hsrc0
       wp_gets
       msg_pass

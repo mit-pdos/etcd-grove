@@ -85,7 +85,7 @@ theorem stepFollower.wp_proof
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 8) the gated specs, each arm consuming its gates; a `MsgSnap` untraced
-  intro nc c scfg r id s ml m ents sn rs sv cl G G' Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Hpinv Hidx Hxtr
+  intro nc c scfg r id s ml m ents sn rs sv cl G G' Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Hpinv Hidx Hxtr Hxs
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -591,7 +591,7 @@ theorem stepFollower.wp_proof
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } [] sn [] rs [] (G (s.outbox ++ []))
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inr Hty, fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]),
-            rfl, rfl, Hterm0', fun h => Hlid h, rfl, fun _ => Hxo Hlead⟩))))
+            rfl, rfl, Hterm0', fun h => Hlid h, rfl, fun _ => Hxo Hlead, Hxs Hty Hlead⟩))))
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         (Hnors (.inr (.inr Hty)))

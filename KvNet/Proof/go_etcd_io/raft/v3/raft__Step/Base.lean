@@ -243,6 +243,25 @@ macro "xtr_tac" : tactic => `(tactic| first
         Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat])))
 
 set_option hygiene false in
+/-- (2026-11-24, #33 S4) `stepLeader`'s and `stepFollower`'s premise that a transfer request is
+recorded as stepped (`NGhost.xs`): the transfer arm's (`Hxs`, set before the step), or vacuous at a
+branch of another type (`Hty`, as `xtr_tac`). -/
+macro "xs_tac" : tactic => `(tactic| first
+  | exact fun _ => Hxs
+  | exact fun _ _ => Hxs
+  | exact fun _ => Hxs (.inr Hrole)
+  | exact fun _ _ => Hxs (.inl Hrole)
+  | exact fun _ h => absurd rfl h
+  | (intro Hc; exfalso; first
+    | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with ⟨h, -⟩ | ⟨h, -⟩ <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (simp_all [Perennial.EtcdGrove.MsgTransferLeader, Perennial.EtcdGrove.MsgProp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat])))
+
+set_option hygiene false in
 /-- (2026-11-12, implementation step 3) `stepLeader`'s premise that a traced node stepping an append
 response has no transferee: `raft.Step.spec`'s (`Hltr`), or vacuous at a branch of another type. -/
 macro "ltr_tac" : tactic => `(tactic| first

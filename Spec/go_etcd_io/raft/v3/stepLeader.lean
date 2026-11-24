@@ -449,6 +449,9 @@ abbrev stepLeader.spec : Prop :=
   -- response (whose `From == leadTransferee` branch sends one): `raft.Step.spec`'s premises
   (m.Type' = MsgTransferLeader → s.gh.tr = none) →
   (m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) →
+  -- (2026-11-24, #33 S4) a transfer request recorded as stepped (`NGhost.xs`, which `raft.Step`'s
+  -- transfer arm sets before the step), for the transferee's store and `sendTimeoutNow`
+  (m.Type' = MsgTransferLeader → s.gh.xs = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a

@@ -99,10 +99,10 @@ theorem RawNode.Ready.wp_absProof
   ipureintro
   refine ⟨Hmsgs_term, Hpsn, fun hsc => ?_⟩
   obtain ⟨Hq, Hhs, Hdur, Hes, Hip', HL⟩ := Hout hsc
-  obtain ⟨Hrole, Hdpre, Hdlen⟩ := Hscf hsc
+  obtain ⟨Hrole, Hdpre, Hdlen, Htyped⟩ := Hscf hsc
   refine ⟨Hq, ⟨Hrole1.trans Hrole.symm, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
     by show _ ≡ₚ List.filter _ s.outbox; simpa using Hmsperm, Hto,
-    Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew⟩
+    Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew, Htyped⟩
 
 end proof
 

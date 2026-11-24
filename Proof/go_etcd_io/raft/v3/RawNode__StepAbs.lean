@@ -336,7 +336,7 @@ local macro "step_tail" : tactic => `(tactic| (
       icases ownRaftPhysC_cq cf rnv.raft' id s' $$ Hphys with ⟨#Hcq1, Hphys⟩
       icombine Hcq0 Hcq1 gives %Hcqe
       have Hcq' : s'.cq = s.cq := by first | exact Hcqe.symm | exact Hcqe
-      have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw } := by
+      have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } := by
         by_cases hx : m.Type' = MsgTransferLeader
         · exact ⟨(Hxwf hx).1, (Hxwf hx).2.1⟩
         · obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10⟩ :=
@@ -409,7 +409,20 @@ local macro "step_tail" : tactic => `(tactic| (
       ihave Hsc := rnScopeAt_keepIf sc rs
         { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s s'
         (fun h Hs0 => RnScope.keep Hs0 rfl rfl Hpre Hcq' (Hlifted h).2.1 Hpv Hsn
-          (fun x hx => .inr ((Hx h).2 x hx)) (Hlifted h).2.2.2) Hsg $$ Hsc
+          (fun x hx => .inr ((Hx h).2 x hx)) (Hlifted h).2.2.2
+          -- (#33 S4) a message of the harness's types is no transfer request: the ghost state framed
+          (hxs := by
+            obtain ⟨hant, -, -⟩ := Hscp h
+            have hx : m.Type' ≠ MsgTransferLeader := by
+              intro hx
+              obtain ⟨ty0, hty0⟩ := antStep_mtype hant
+              rw [hx] at hty0
+              first
+                | (rw [show mtypeOf MsgTransferLeader = none from rfl] at hty0; cases hty0)
+                | (simp [mtypeOf, MsgTransferLeader] at hty0)
+            obtain ⟨-, -, -, -, -, -, -, a8, -, -⟩ :=
+              Hfr Hs (by not_net) hx (fun h => absurd h (by not_net))
+            rw [a8])) Hsg $$ Hsc
       iclear Hrntr
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgx]; exact Hgtr.trans HtrG)

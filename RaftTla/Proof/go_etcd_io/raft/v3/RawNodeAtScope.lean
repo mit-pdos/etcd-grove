@@ -62,17 +62,23 @@ theorem roEmpty_iff (s : NState) :
 
 /-- **The scope at the end state of an input** that keeps the log's state (`hl`), pre-vote and
 check-quorum (`hpv`, `hcq`), the read-index requests (`hrd`), an empty read-only queue (`hro`), and
-queues no `MsgSnap` (`ho`). -/
+queues no `MsgSnap` (`ho`), and steps no transfer request (`hxs`, by default from the ghost state
+kept: a step other than a transfer request's frames it, `NetFrame`). -/
 theorem RnScope.keep {rs rs' : RNState} {s s' : NState} (H : RnScope rs s)
     (hm : rs'.mode = rs.mode) (hsl : rs'.slent = rs.slent)
     (hpv : s'.prevote = s.prevote) (hcq : s'.cq = s.cq) (hrd : s'.rd.pend = s.rd.pend)
     (hprev : s'.logst.prev = s.logst.prev) (hsn : s'.logst.snap = s.logst.snap)
     (ho : ∀ m ∈ s'.outbox, m ∈ s.outbox ∨ m.ty ≠ .snap)
     (hro : (toPState s).rd.ro.pending = [] → (toPState s').rd.ro.pending = [])
-    (hcf : rs'.cfg = rs.cfg := by rfl) : RnScope rs' s' := by
-  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := H
+    (hcf : rs'.cfg = rs.cfg := by rfl)
+    (hxs : s'.gh.xs = s.gh.xs := by
+      first | rfl | (apply congrArg NGhost.xs; assumption) |
+        (apply congrArg NGhost.xs; apply Eq.symm; assumption)) :
+    RnScope rs' s' := by
+  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩ := H
   refine ⟨by rw [hm, hcf]; exact H1, hpv.trans H2, hcq.trans H3, hrd.trans H4, hsl.trans H5,
-    hprev.trans H6, hsn.trans H7, fun m hm' => ?_, (roEmpty_iff s').2 (hro ((roEmpty_iff s).1 H9))⟩
+    hprev.trans H6, hsn.trans H7, fun m hm' => ?_, (roEmpty_iff s').2 (hro ((roEmpty_iff s).1 H9)),
+    hxs.trans H10⟩
   rcases ho m hm' with h | h
   · exact H8 m h
   · exact h

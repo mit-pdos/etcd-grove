@@ -85,7 +85,7 @@ theorem stepLeader.wp_proof
     stepLeader.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 9) every arm gated: `send`'s and `maybeCommit`'s one specs, no instance
   intro nc c r id s ml m ents sn ctx rs k0 G G' Gp1 Gp2 Gc Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr
-    Hack Hncc HiG HiP HiC Hxtr Hltr
+    Hack Hncc HiG HiP HiC Hxtr Hltr Hxs
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc, HG, #Hgbeat, Hgriresp, #Hgrihb, Hgtnow, Hgxapp, #Hnosnap,
     Hgcq, Hgprep, Hgpack, #Hgpapp, Hgsapp, #Hghresp, Hgcommit, #Hgrlresp, #Hgrlhb, #Hgaapp,
     #Hgatnow⟩ HΦ
@@ -301,7 +301,7 @@ theorem stepLeader.wp_proof
     ispecialize Hgxapp $$ %Hty
     iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) (Hxtr Hty) G HiG
+      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) (Hxtr Hty) (Hxs Hty) G HiG
       $$ [Hphys Hm HG Hgtnow Hgxapp] HΦG
     iframe
     iframe Hinit Hnosnap

@@ -5653,3 +5653,23 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   after a `Ready` the queue is the outbox's self-addressed messages, a self-acknowledgement or a
   self-vote (`SelfOut`, `qs_noPreVote`); `DrainIter.Ok` carries it.
 - **Decision.** Applied (the lead's decision; Advance helper F).
+
+## 2026-11-24: `RawNode.Ready`'s messages may be untyped (#33 S4)
+
+- **Spec.** `RawNode.Ready.form`'s `%Hout` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`) and
+  `RawNode.readyWithoutAccept.spec`'s post: nothing said every message handed out reads as a protocol
+  message (`absMsgOf`), which `Cluster.drain` needs (its interim `readyMsgsOk.law`, `habs`).
+- **Defect.** Not provable from the invariant: `XfOk` allowed untyped queued messages
+  (`MsgTimeoutNow`, a forwarded `MsgTransferLeader`) at any untraced node, and nothing in the phys
+  state told a node that has never stepped a transfer request apart.
+- **Evidence.** The drain proof's `habs` (Cluster__drain.lean), and raft: the only untyped messages
+  `send` queues are `sendTimeoutNow`'s and `stepFollower`'s forward, both under a transfer request's
+  step or a transferee (`leadTransferee`, stored by `stepLeader`'s transfer arm).
+- **Proposed change.** A ghost bit `NGhost.xs` (a transfer request was stepped), set by `raft.Step`'s
+  transfer arm at a follower or a leader before the step (`ownRaftPhysC_set_xs`, `ownStepGhost_set_xs`,
+  `stepGates_xw` generalized), never cleared; `XfOk`'s last clause `xs = false → lt = 0 ∧ every queued
+  message typed`; `SendOk`'s transfer clause carries `xs = true`; `sendTimeoutNow`, `stepLeader` (transfer)
+  and `stepFollower` (transfer at a node with a leader) take it; `raft.Step`'s `%Hxwframe` frames `xs`
+  with `xw`; `RnScope` gains `xs = false`; `readyWithoutAccept` (in the scope) and `Ready`'s `%Hout` (under
+  `S`) give `∀ q ∈ ms, (absMsgOf q.st).isSome`; `readyMsgsOk.law` keeps only the destinations (`hvot`). The flag-free alternative (state-only posts with `lt = 0`) was evaluated and is blocked: the physical queue is not in `NState` (`s.outbox` drops untyped messages), and `lt = 0` holds with a forwarded transfer or a surviving `MsgTimeoutNow` queued.
+- **Decision.** Applied (the lead's approval: `SendOk`'s clause, `Ready`'s `%Hout`; raft helper H2).

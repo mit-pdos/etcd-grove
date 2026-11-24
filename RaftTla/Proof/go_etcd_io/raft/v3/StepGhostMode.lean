@@ -1034,6 +1034,31 @@ theorem ownStepGhost_xw_record (γ : RaftNames) (md : GMode) (c : CfgM) (id : w6
   iframe Hl2 Hx
 
 variable [CrashGS GF] in
+/-- (2026-11-24, #33 S4) **A transfer request recorded as stepped** (`NGhost.xs`): the step's ghost
+state reads nothing of it. What `raft.Step`'s transfer arm does before the step. -/
+theorem ownStepGhost_set_xs (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (b : Bool) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      ownStepGhost γ md c id { s with gh := { s.gh with xs := b } } := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hrest⟩
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hn, Hm, #Hcl, #Hw, #Hx⟩
+  have hp : toPState { s with gh := { s.gh with xs := b } } = toPState s := rfl
+  have hm : ghostRestM (GF := GF) γ md c id { s with gh := { s.gh with xs := b } } =
+      ghostRestM γ md c id s := by cases md <;> rfl
+  iunfold ownStepGhost
+  rw [hp]
+  iframe Hg
+  iunfold ghostRest
+  rw [hm, hp]
+  isplitr
+  · ipureintro; exact Hn
+  have hx : xfW (GF := GF) γ { s with gh := { s.gh with xs := b } } = xfW γ s := rfl
+  rw [hx]
+  iframe Hm Hcl Hw Hx
+
+variable [CrashGS GF] in
 /-- (D22 S-b′4) The mode is `γ`'s (`ownRaftGhost_mode`), read out. -/
 theorem ownStepGhost_mode (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ⌜γ.reDyn.isSome = md.isDyn⌝ ∗ ownStepGhost γ md c id s := by
