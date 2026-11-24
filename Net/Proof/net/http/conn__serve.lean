@@ -19,6 +19,7 @@ public import Net.Spec.context.WithCancelValBg
 public import Net.Proof.net.http.ServerConnLemmas
 public import Net.Proof.net.http.ServeDefs
 public import Net.Proof.net.http.ServeLemmas
+public import Net.Proof.net.ConnIo
 public import Perennial.Spec.fmt.Fprintf
 
 @[expose] public section
@@ -36,7 +37,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
 variable [package_sem : context.Assumptions] [bufio.Assumptions]
-variable [π : NetProtoGS]
+variable [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
 
 theorem conn.serve.wp_proof
     (wp_readRequest : conn.readRequest.spec (GF := GF) (hG := hG))
@@ -50,7 +51,7 @@ theorem conn.serve.wp_proof
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_WithValue : context.WithValue.specPtr (GF := GF) (hG := hG))
     (wp_WithCancelBg : context.WithCancel.specValBg (GF := GF) (hG := hG))
-    (wp_Fprintf : fmt.Fprintf.spec (GF := GF) (hG := hG))
+    (wp_Timeout : net.OpError.Timeout.spec (GF := GF) (hG := hG))
     (wp_RReset : EtcdGrove.bufio.Reader.Reset.spec (GF := GF) (hG := hG))
     (wp_NewReader : EtcdGrove.bufio.NewReader.specFresh (GF := GF) (hG := hG))
     (wp_WReset : EtcdGrove.bufio.Writer.Reset.spec (GF := GF) (hG := hG))
@@ -184,7 +185,68 @@ theorem conn.serve.wp_proof
         $Hrwc $Hrma $Htls $Hcmu $Hγh2 $Hlm $Hcris $Hhl $Hzl $Hcok $rwc $Hca $Hmain $Hfr]
     as %w %err ⟨Hγh2, Hbr, Hbufr, Hres⟩
   try wp_auto
-  sorry
+  icases Hres with (⟨%Herr, Hlm, %γe, %r, Hhead, #Hrerr⟩ |
+    ⟨%Herr, Hlm, %req, %u, %m, %cl, %nb, %ctx', Hreq, Hu, Hm, Hresp, Hph, Hfields, Hremain, Hbb,
+      Hsend, Hrecv, %b, Hrdl, Hdis⟩)
+  · -- an error: Go's 400, or nothing; then the connection closed
+    iunfold crHead at Hhead
+    icases Hhead with ⟨Hph, %Hrl, %ab, Hcconn, Hhb, Hir, Hab, Hrem, Hbb, Hsend, Hrecv, Hrdl, Hmono⟩
+    ihave #Hci := sendTok_connIs $$ Hsend
+    ihave #Hrenv' := Hrenv
+    iunfold readEnv at Hrenv'
+    icases Hrenv' with ⟨-, ⟨%ed, #Hed⟩, -⟩
+    ihave #Hsw := net.conn_streamWriterOk wp_Write t cn true a _ _ ed Q hQ $$ [$Hca $Hed]
+    iunfold EtcdGrove.io.streamWriterOk at Hsw
+    icases Hsw with ⟨-, #Hw⟩
+    try wp_auto
+    rw [method_unfold (t := go.GoType.PointerType net.http.Server.ty) (m := go!"initialReadLimitSize")]
+    try wp_auto
+    rw [method_unfold (t := go.GoType.PointerType net.http.Server.ty) (m := go!"maxHeaderBytes")]
+    try wp_auto
+    ihave #Hsd' := Hsd
+    iunfold srvDflt at Hsd'
+    icases Hsd' with ⟨-, -, #HMHB, -⟩
+    try wp_auto
+    iclear «$res0»
+    wp_if_destruct
+    all_goals try (wp_apply wp_setState c s _ (W64 1) (by decide) $$ [$Hsrv $Hsc $Hst] as Hst)
+    all_goals try wp_auto
+    all_goals wp_apply wp_shuttingDown s $$ [$Hss $Hatomic]
+    all_goals try wp_auto
+    all_goals ihave ⟨%xt, #Hvtl, %Hne⟩ := reqErr_not_tooLarge γe err $$ [$Henv $Hrenv $Hrerr]
+    all_goals ihave %Hsh := reqErr_shape γe err $$ Hrerr
+    all_goals rcases Hsh with ⟨x, hx⟩ | ⟨msg, hx⟩ | ⟨pe, hx⟩ <;> subst hx <;> try wp_auto
+    all_goals simp only [interface.mkOk, opError_ty_ne_errorString, protocolError_ty_ne_errorString,
+      ↓reduceIte]
+    all_goals try wp_auto
+    all_goals try (
+      have hxt : x ≠ xt := fun h => Hne (by rw [h])
+      simp only [decide_eq_false hxt, decide_false, Bool.true_eq_false]
+      try wp_auto)
+    all_goals wp_apply wp_isUnsupportedTEError γe _ $$ [$Hrerr]
+    all_goals try wp_auto
+    all_goals wp_apply wp_isCommonNetReadError wp_Timeout γe _ $$ [$Hrerr $Hrenv] as %bnr -
+    all_goals try wp_auto
+    all_goals cases bnr
+    all_goals try simp only [decide_true, decide_false, Bool.true_eq_false]
+    all_goals wp_auto
+    all_goals try (
+      wp_apply wp_Fprintf_noVerb ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ _ rfl (sendTok (Gg := hG.goose_globalGS) cn true Q [])
+          (fun _ _ => iprop(True)) $$ [$Hsend] as %n0 %e0 -
+      · iintro %sl %Ψ Hs Hsl HΨ
+        simp only [net.connIface]
+        iapply Hw $$ %([] : List w8) %sl %(DFrac.own 1) %_ %Ψ [Hs Hsl]
+        · iframe Hs Hsl
+          simp only [List.nil_append, net.rpc.badReqAns]
+          imodintro
+          iexact HQ400
+        inext
+        iintro %n %err ⟨%k, -, Hsl, -, -⟩
+        iapply HΨ $$ Hsl
+        itrivial
+      try wp_auto)
+    all_goals sorry
+  · sorry
 /-PLAN
   -- 1. `with_defer_recover`; RemoteAddr (+ `TCPAddr.String`: `wp_net_AnyString`), store remoteAddr;
   --    `WithValue(ctx, LocalAddrContextKey, LocalAddr())` (wp_WithValue; ctxBg grows by one).

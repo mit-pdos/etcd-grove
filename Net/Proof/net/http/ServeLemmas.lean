@@ -83,6 +83,14 @@ theorem reqErr_opErr (γe : GName) (pe : Loc) :
   · exact absurd ((interface_mkOk_inj _ _ _ _).1 hx).1 hne
   · exact absurd ((interface_mkOk_inj _ _ _ _).1 hx.1).1 hne
 
+theorem opError_ty_ne_errorString :
+    go.GoType.PointerType net.OpError.ty ≠ go.GoType.PointerType errors.errorString.ty := by
+  unfold net.OpError.ty errors.errorString.ty; intro h; cases h
+
+theorem protocolError_ty_ne_errorString :
+    net.textproto.ProtocolError.ty ≠ go.GoType.PointerType errors.errorString.ty := by
+  unfold net.textproto.ProtocolError.ty errors.errorString.ty; intro h; cases h
+
 /-- Two `*errorString`s whose messages differ are different pointers. -/
 theorem errorString_ne (x y : Loc) (s1 s2 : GoString) (h : s1 ≠ s2) :
     (x.[errors.errorString, go!"s"] ↦□ s1 : IProp GF) ∗ y.[errors.errorString, go!"s"] ↦□ s2 ⊢
@@ -100,14 +108,16 @@ theorem errorString_ne (x y : Loc) (s1 s2 : GoString) (h : s1 ≠ s2) :
 /-- `readRequest`'s error is never `errTooLarge`. -/
 theorem reqErr_not_tooLarge (γe : GName) (err : GoInterface) :
     httpEnv (GF := GF) ∗ readEnv ∗ reqErr (crHeadErr γe) err ⊢
-      ∃ v : GoInterface, globalAddr net.http.errTooLarge ↦□ v ∗ ⌜err ≠ v⌝ := by
+      ∃ xt : Loc, globalAddr net.http.errTooLarge ↦□
+        interface.mkOk (go.GoType.PointerType errors.errorString.ty) #xt ∗
+        ⌜err ≠ interface.mkOk (go.GoType.PointerType errors.errorString.ty) #xt⌝ := by
   iintro ⟨#Henv, #Hrenv, #H⟩
   ihave %Hsh := reqErr_shape γe err $$ H
   iunfold httpEnv at Henv
   icases Henv with ⟨-, -, -, -, ⟨-, -, Htl⟩, -⟩
   iunfold errors.newVar at Htl
   icases Htl with ⟨%xt, #Hg, #Hs, -⟩
-  iexists _
+  iexists xt
   iframe Hg
   rcases Hsh with ⟨x, hx⟩ | ⟨msg, hx⟩ | ⟨pe, hx⟩
   · iunfold reqErr at H
@@ -355,7 +365,7 @@ theorem wp_conn_close [bufio.Assumptions]
 (Perennial's `fmt.Fprintf.spec` lets the writer's spec see only some bytes, not which; its proof
 writes `SprintfOut`'s output, which here is `f`: proved over the same callees.) -/
 theorem wp_Fprintf_noVerb [fmt.Assumptions] (ii : GoInterfaceOk) (f : GoString)
-    (hf : ∀ c ∈ f, c ≠ W8 37) (P : IProp GF) (Q : w64 → GoInterface → IProp GF) :
+    (hf : f.all (fun c => decide (c ≠ W8 37)) = true) (P : IProp GF) (Q : w64 → GoInterface → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ P ∗
         (∀ (sl : GoSlice) (Φ : val → IProp GF), P -∗ sl ↦* f -∗
           ▷ (∀ (n : w64) (err : GoInterface), sl ↦* f -∗ Q n err -∗ Φ (PairV #n #err)) -∗
@@ -369,7 +379,8 @@ theorem wp_Fprintf_noVerb [fmt.Assumptions] (ii : GoInterfaceOk) (f : GoString)
   rw [fmt.modeVerbs_false] at hdo
   wp_apply hdo $$ [$Hsl] as %s %wsl %unk ⟨-, %Hs, -⟩
   · iapply fmt.argsOk_of_argsWf; exact fmt.ArgsWf.nil
-  have hs := SprintfOut_noVerb hf Hs
+  have hs := SprintfOut_noVerb (fun c hc => by
+    have := List.all_eq_true.1 hf c hc; simpa using this) Hs
   subst hs
   try wp_auto
   wp_apply (fmt.wp_printerBuf s) as %bsl ⟨Hb, %spare, Hspare⟩
