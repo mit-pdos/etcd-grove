@@ -10,7 +10,7 @@ of
 - library data (types and predicates, e.g. an exclusive token `Loc → IProp GF`).
 Never the system's code or globals (but a precondition may take a system global's points-to), the
 kit's protocol or ghost state, or the conclusion. Each premise must be true of the real library: its
-precondition what the Go code needs (`TRUST.md`). `etc/premcheck.py etc/dsv/{{KIT}}-premcheck.conf`
+precondition what the Go code needs (`TRUST.md`). `etc/kitlibs-check.py etc/dsv/{{KIT}}-kitlibs-check.conf`
 checks the rules.
 
 This file may hold only `def`/`abbrev`/`structure`/`class` declarations (and `namespace`, `section`,
