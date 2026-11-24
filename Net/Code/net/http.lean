@@ -165,6 +165,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   connLRU_instance : connLRU.TypeAssumptions
   hasToken_unfold : FuncUnfold hasToken [] hasToken.impl
   isToken_unfold : FuncUnfold isToken [] isToken.impl
+  parsePattern_unfold : FuncUnfold parsePattern [] parsePattern.impl
+  pathUnescape_unfold : FuncUnfold pathUnescape [] pathUnescape.impl
+  compareSegments_unfold : FuncUnfold compareSegments [] compareSegments.impl
+  combineRelationships_unfold : FuncUnfold combineRelationships [] combineRelationships.impl
   badStringError_unfold : FuncUnfold badStringError [] badStringError.impl
   ParseHTTPVersion_unfold : FuncUnfold ParseHTTPVersion [] ParseHTTPVersion.impl
   validMethod_unfold : FuncUnfold validMethod [] validMethod.impl
@@ -173,7 +177,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   readRequestLimit_unfold : FuncUnfold readRequestLimit [] readRequestLimit.impl
   ReadResponse_unfold : FuncUnfold ReadResponse [] ReadResponse.impl
   fixPragmaCacheControl_unfold : FuncUnfold fixPragmaCacheControl [] fixPragmaCacheControl.impl
+  firstSegment_unfold : FuncUnfold firstSegment [] firstSegment.impl
   «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
+  appendSorted_unfold : FuncUnfold appendSorted [] appendSorted.impl
   bufioWriterPool_unfold : FuncUnfold bufioWriterPool [] bufioWriterPool.impl
   newBufioReader_unfold : FuncUnfold newBufioReader [] newBufioReader.impl
   putBufioReader_unfold : FuncUnfold putBufioReader [] putBufioReader.impl
@@ -182,6 +188,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   http1ServerSupportsRequest_unfold : FuncUnfold http1ServerSupportsRequest [] http1ServerSupportsRequest.impl
   badRequestError_unfold : FuncUnfold badRequestError [] badRequestError.impl
   isCommonNetReadError_unfold : FuncUnfold isCommonNetReadError [] isCommonNetReadError.impl
+  urlFromEscaped_unfold : FuncUnfold urlFromEscaped [] urlFromEscaped.impl
+  exactMatch_unfold : FuncUnfold exactMatch [] exactMatch.impl
   Handle_unfold : FuncUnfold Handle [] Handle.impl
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   ListenAndServe_unfold : FuncUnfold ListenAndServe [] ListenAndServe.impl
@@ -223,7 +231,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_multipart_Assumption : _root_.Perennial.mime.multipart.Assumptions
   import_textproto_Assumption : _root_.Perennial.net.textproto.Assumptions
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  import_math_Assumption : _root_.Perennial.math.Assumptions
   import_path_Assumption : _root_.Perennial.path.Assumptions
+  import_sort_Assumption : _root_.Perennial.sort.Assumptions
   import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
   import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
 
@@ -371,6 +381,10 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.connLRU_instance
   Assumptions.hasToken_unfold
   Assumptions.isToken_unfold
+  Assumptions.parsePattern_unfold
+  Assumptions.pathUnescape_unfold
+  Assumptions.compareSegments_unfold
+  Assumptions.combineRelationships_unfold
   Assumptions.badStringError_unfold
   Assumptions.ParseHTTPVersion_unfold
   Assumptions.validMethod_unfold
@@ -379,7 +393,9 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.readRequestLimit_unfold
   Assumptions.ReadResponse_unfold
   Assumptions.fixPragmaCacheControl_unfold
+  Assumptions.firstSegment_unfold
   Assumptions.«init.1_unfold»
+  Assumptions.appendSorted_unfold
   Assumptions.bufioWriterPool_unfold
   Assumptions.newBufioReader_unfold
   Assumptions.putBufioReader_unfold
@@ -388,6 +404,8 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.http1ServerSupportsRequest_unfold
   Assumptions.badRequestError_unfold
   Assumptions.isCommonNetReadError_unfold
+  Assumptions.urlFromEscaped_unfold
+  Assumptions.exactMatch_unfold
   Assumptions.Handle_unfold
   Assumptions.Serve_unfold
   Assumptions.ListenAndServe_unfold
@@ -429,7 +447,9 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.import_multipart_Assumption
   Assumptions.import_textproto_Assumption
   Assumptions.import_strconv_Assumption
+  Assumptions.import_math_Assumption
   Assumptions.import_path_Assumption
+  Assumptions.import_sort_Assumption
   Assumptions.import_bufio_Assumption
   Assumptions.import_runtime_Assumption
 

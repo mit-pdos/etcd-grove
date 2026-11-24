@@ -29,6 +29,8 @@ public import Perennial.Proof.sync.atomic.Base
 public import Perennial.Proof.runtime.Base
 public import Perennial.Proof.slices.Base
 public import Perennial.Proof.log.Base
+public import Perennial.Proof.sort.Base
+public import Perennial.Proof.math.Base
 
 @[expose] public section
 

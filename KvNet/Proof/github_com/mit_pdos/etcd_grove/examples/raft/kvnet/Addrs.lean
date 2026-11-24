@@ -11,7 +11,9 @@ and their laws:
   digits, at most `m`; `decimalM_iff`: for `m = 65535` it is the net extension's `decNat`, bounded.
 * `scanGo` (`AddrOk`'s first loop: the address's pieces between its three dots and one colon, in
   that order) and `goAddrOk a` (what `AddrOk` computes); `goAddrOk_eq`: it is the net extension's
-  `addrOk a` (`GooseLang/Ext/Net/Impl.lean`), the top-level theorem's premise on an address.
+  `addrOk a` (`GooseLang/Ext/Net/Impl.lean`), the net extension's condition on an address.
+* `validAddrs`, `validCluster` (`ValidAddrs`, `ValidCluster`) and `runNodeOk` (`RunNode`'s check, with
+  the id and the directory's length).
 -/
 module
 
@@ -608,6 +610,16 @@ theorem not_mem_take_of {l : List GoString} {j : Nat} {y : GoString}
 /-- `ValidCluster(addrs, voters, maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs)`. -/
 def validCluster (l : List GoString) (voters msz mcs mif : Nat) : Bool :=
   validAddrs l voters && !(msz = 0 && mcs = 0) && decide (0 < mif) && decide (mif < 2 ^ 62)
+
+/-- **`RunNode`'s check**: what `RunNode` checks before it runs a replica (else it returns at once):
+the cluster valid (`ValidCluster`), the id one of its replicas (`1 ≤ id ≤ len(addrs)`), and the
+directory's name shorter than `MaxDirLen = 2^39` bytes. -/
+def runNodeOk (l : List GoString) (id : Nat) (dir : GoString) (voters msz mcs mif : Nat) : Prop :=
+  validCluster l voters msz mcs mif = true ∧ 1 ≤ id ∧ id ≤ l.length ∧ dir.length < 2 ^ 39
+
+instance (l : List GoString) (id : Nat) (dir : GoString) (voters msz mcs mif : Nat) :
+    Decidable (runNodeOk l id dir voters msz mcs mif) := by
+  unfold runNodeOk; infer_instance
 
 end EtcdGrove.raft_kvnet
 end Perennial

@@ -38,10 +38,11 @@ variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 attribute [local instance] kdStorageModel
 
 theorem Replica.ticker.wp_proof (wp_NewTicker : time.NewTicker.spec (GF := GF) (hG := hG))
+    (wp_TStop : time.Ticker.Stop.spec (GF := GF) (hG := hG))
     (wp_Tick : node.Tick.spec (GF := GF) (hG := hG)) :
     Replica.ticker.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r n st sts sq ρ
-  wp_start as #HR
+  wp_start as ⟨#HR, Hprod⟩
   ihave #HR' := HR
   iunfold isReplicaR at HR'
   iNamed HR'
@@ -59,12 +60,50 @@ theorem Replica.ticker.wp_proof (wp_NewTicker : time.NewTicker.spec (GF := GF) (
   icases Ht' with ⟨#HtC, #HtI, #HtR, #Htbag⟩
   try wp_auto
   wp_for
-  wp_apply wp_bag_receive (t := time.Time.ty) γt tch _ $$ Htbag as %tm0 -
   try wp_auto
-  wp_apply wp_Tick n γ.r.cluster kdRaftN id $$ [$Hraft $HisNode]
-  try wp_auto
-  wp_for_post
-  iframe
+  wp_apply_core chan.wp_select_blocking
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- a tick
+    simp only [chan.blockingClausePre]
+    iexists time.Time, inferInstance, inferInstance, inferInstance, inferInstance, tch, γt
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply is_bag_is_chan $$ Htbag
+    iapply bag_recv_au $$ [$Hlc1 $Hlc2] Htbag
+    inext
+    iintro %tm0 -
+    wp_auto_lc 2
+    wp_apply wp_Tick n γ.r.cluster kdRaftN id $$ [$Hraft $HisNode]
+    try wp_auto
+    wp_for_post
+    iframe
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- `stopc` closed
+    simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, ρ.stopc, ρ.sc
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply ownBroadcastChan_is_chan $$ HstopB
+    iapply broadcast_chan_receive _ _ _ _ _ $$ HstopB
+    iintro ⟨-, -⟩
+    try wp_auto
+    wp_apply wp_TStop t $$ []
+    · iexists tch, γt; iexact Ht
+    try wp_auto
+    wp_apply wp_handoff_send ρ.td ρ.tdc (fun _ => iprop(True)) iprop(True) iprop(False) ()
+      $$ [$HtdH $Hprod] as -
+    · isplitl <;> itrivial
+    try wp_auto
+    wp_for_post
+    try wp_auto
+    iapply HΦ
+    itrivial
+  iapply BigAndL.bigAndL_nil.2
+  itrivial
 
 end proof
 

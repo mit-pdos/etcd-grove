@@ -1,22 +1,24 @@
 /-
-The proof of `KvNet/Spec/.../kvnet/Transport__servePeer.lean`: a loop whose invariant is the reader's
-token after whole frames (`recvTokL cn true (kvP F id) (helloPeerB :: rawFrames bs)`); each frame
-read (`readFrame`, its accessor `rAcc_of_recvTokL`) is a message's encoding with its fact
-(`server_peer`, the token's fact a step later: a later credit), read back (`getMsg`), checked to be
-for `id`, and stepped (`stepLaw`, `node.Step`).
+The proof of `KvNet/Spec/.../kvnet/Node__servePeer.lean` (moved from `Transport.servePeer`,
+2026-11-24, G5): a loop whose invariant is the reader's token after whole frames
+(`recvTokL cn true (kvP F id) (helloPeerB :: rawFrames bs)`); each frame read (`readFrame`, its
+accessor `rAcc_of_recvTokL`) is a message's encoding with its fact (`server_peer`, the token's fact a
+step later: a later credit), read back (`getMsg`), checked to be for `id` (the configuration's), and
+stepped on the current incarnation (`Node.stepPeer`).
 -/
 module
 
-public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport__servePeer
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__servePeer
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__stepPeer
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Stats__add
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.readFrame
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getMsg
-public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.withTimeout
 public import KvNet.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
-public import KvNet.Spec.go_etcd_io.raft.v3.node__Step
 public import KvNet.Spec.net.Conn__Close
 
 @[expose] public section
+
+set_option linter.iris.style.nameCheck false
 
 noncomputable section
 
@@ -34,28 +36,28 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
-
-theorem Transport.servePeer.wp_proof (wp_add : Stats.add.spec (GF := GF) (hG := hG))
+theorem Node.servePeer.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF)
+    (wp_stepPeer : Node.stepPeer.spec (GF := GF) (hG := hG) F rep stp)
+    (wp_add : Stats.add.spec (GF := GF) (hG := hG))
     (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_getMsg : getMsg.spec (GF := GF) (hG := hG))
-    (wp_withTimeout : withTimeout.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
-    (wp_Step : node.Step.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG)) :
-    Transport.servePeer.spec (GF := GF) (hG := hG) := by
-  intro F t γ N id n c cn a eof ed
-  wp_start as ⟨#Ht, #Hc, #Heof, #Hed, #Hcc, HR⟩
-  ihave #Ht' := Ht
-  iunfold isTransportCore at Ht'
-  icases Ht' with ⟨%sp, #Hid, #Hnode, #Hstats, #Hs, #Hn, #Hstep, %Htr⟩
+    Node.servePeer.spec (GF := GF) (hG := hG) F rep stp := by
+  intro nd γ N id c cn a eof ed
+  wp_start as ⟨#Hnd, #Hc, #Heof, #Hed, #Hcc, HR⟩
+  ihave #Hnd' := Hnd
+  iunfold isNodeS at Hnd'
+  icases Hnd' with ⟨%cfg, %M, %sp, %f, #Hcfg, %Hid, #HM, #Hst, #Hs, #HnewT, #Hstep, %Htr, -, #Hmu⟩
+  ihave Hcfgs := typedPointsto_split _ _ _ $$ Hcfg
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hcfgs with ⟨#cID, #cDir, #cAddrs, #cOpts, -⟩
   icases recvTokL_connIs _ _ _ _ $$ HR with ⟨HR, #Hci⟩
   ihave #Hca := cAcc_of_connIs cn true $$ Hci
   ihave #Hc' := Hc
   iunfold net.isConn at Hc'
   icases Hc' with ⟨%tc, %la, %ra, %Hct, #Hcat⟩
   subst Hct
-  ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
-  · iPkgInit
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   try wp_auto
@@ -106,19 +108,14 @@ theorem Transport.servePeer.wp_proof (wp_add : Stats.add.spec (GF := GF) (hG := 
   wp_apply wp_GetTo.1 ml _ _ _ _ $$ [$Hpb $Hm] as Hm
   try wp_auto
   wp_if_destruct
-  · -- (`wp_if_destruct` substituted the node's id by the message's destination)
+  · -- for this node: stepped on the current incarnation's node
     try wp_auto
-    wp_apply wp_add sp (W64 18) (by decide) (by decide) $$ [$Hpkg $Hs]
-    try wp_auto
-    wp_apply wp_withTimeout _ $$ [$Hpkg $Hcc] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
-    try wp_auto
-    ihave #Hnc : nodeCtx ctx' cd $$ []
-    · unfold nodeCtx; iright; iexact Hctx
-    iunfold stepLaw at Hstep
-    imod Hstep $$ %src %st %ml %rfl Hmsg Hm with Hin
-    wp_apply wp_Step n γ N _ ml ctx' cd $$ [$Hraft $Hn $Hnc $Hin] as %err -
-    try wp_auto
-    wp_apply Hcancel
+    have HTo : st.msg.To' = id := by
+      first
+        | rfl
+        | (rw [← Hid]; simpa using Hif)
+        | simp_all
+    wp_apply wp_stepPeer nd γ N id ml src st HTo $$ [$Hpkg $Hnd $Hcc $Hmsg $Hm]
     try wp_auto
     wp_for_post
     iframe

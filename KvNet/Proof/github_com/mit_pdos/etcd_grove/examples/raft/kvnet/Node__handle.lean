@@ -13,6 +13,8 @@ public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.deco
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.GetConfChange
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.PutStatus
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__status
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__current
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__restart
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Stats__add
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getUint64
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.getBytes
@@ -41,14 +43,16 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
+theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF)
     (cf : GoInterface → List w8 → IProp GF)
+    (wp_current : Node.current.spec (GF := GF) (hG := hG) F rep stp)
+    (wp_restart : Node.restart.spec (GF := GF) (hG := hG) F rep stp)
     (wp_propose : Replica.propose.spec (GF := GF) (hG := hG) F rep)
     (wp_read : Replica.read.spec (GF := GF) (hG := hG) F rep)
     (wp_decode : decode.spec (GF := GF) (hG := hG))
     (wp_GetConfChange : GetConfChange.spec (GF := GF) (hG := hG) cf)
     (wp_PutStatus : PutStatus.spec (GF := GF) (hG := hG))
-    (wp_status : Node.status.spec (GF := GF) (hG := hG) F rep)
+    (wp_status : Node.status.spec (GF := GF) (hG := hG) F rep stp)
     (wp_add : Stats.add.spec (GF := GF) (hG := hG))
     (wp_getUint64 : getUint64.spec (GF := GF) (hG := hG))
     (wp_getBytes : getBytes.spec (GF := GF) (hG := hG))
@@ -58,17 +62,17 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     (wp_Campaign : node.Campaign.spec (GF := GF) (hG := hG))
     (wp_ForgetLeader : node.ForgetLeader.spec (GF := GF) (hG := hG))
     (wp_Status : node.Status.spec (GF := GF) (hG := hG)) :
-    Node.handle.spec (GF := GF) (hG := hG) F rep cf := by
-  intro nd γ N id n kind p pl dq tmo Hpl
+    Node.handle.spec (GF := GF) (hG := hG) F rep stp cf := by
+  intro nd γ N id kind p pl dq tmo Hpl
   wp_start as ⟨#Hnd, #Hcl, #Hcc, Hp, #Hok⟩
   ihave #Hnd' := Hnd
   iunfold isNodeS at Hnd'
-  icases Hnd' with ⟨%r, %t, %sp, #Hr, #Ht, #Hsp, #Hs, #Hrn, #Hrep, #Htc⟩
-  ihave #Htc' := Htc
-  iunfold isTransportCore at Htc'
-  icases Htc' with ⟨%sp', #Hid, #Hnode, #Hstats, #Hs', #Hn, -, %Htr⟩
+  icases Hnd' with ⟨%cfg, %Mc, %sp, %f, #Hcfg, %Hid, #HMc, #Hsp, #Hs, #HnewT, #Hstep, %Htr, -, #Hmu⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
+  try wp_auto
+  -- (2026-11-24, G5) the current incarnation's replica, read once
+  wp_apply wp_current nd γ N id $$ [$Hpkg $Hnd] as %r ⟨%n, #Hrn, #Hrep, #Hn⟩
   try wp_auto
   wp_if_destruct
   · -- ReqPropose
@@ -177,6 +181,17 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     rw [← List.append_nil (u64Le to)]
     wp_apply wp_getUint64 r1 dq to [] $$ [$Hpkg $Hr1] as %r2 ⟨-, -⟩
     try wp_auto
+    wp_if_destruct
+    · -- (2026-11-24, G5) what = 3: the replica restarted in its process
+      wp_apply wp_restart nd γ N id $$ [$Hpkg $Hnd]
+      try wp_auto
+      iapply HΦ
+      iright
+      iexists []
+      rw [ansOk_other F id (W8 4) _ [] (by decide) (by decide)]
+      ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
+      iframe Hnil
+      ipureintro; rfl
     wp_apply wp_withTimeout _ $$ [$Hpkg $Hcc] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
     try wp_auto
     ihave #Hnc : nodeCtx ctx' cd $$ []
@@ -220,7 +235,7 @@ theorem Node.handle.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
       ipureintro; rfl
   wp_if_destruct
   · -- ReqStatus
-    wp_apply wp_status nd γ N id n $$ [$Hpkg $Hnd] as %s ⟨%M, %c, HM, #Hcs, %HSt⟩
+    wp_apply wp_status nd γ N id $$ [$Hpkg $Hnd] as %s ⟨%M, %c, HM, #Hcs, %HSt⟩
     wp_apply wp_PutStatus s M (DFrac.own 1) c HSt $$ [$Hpkg $HM $Hcs] as %sl ⟨%bs, Hbs, -⟩
     try wp_auto
     iapply HΦ

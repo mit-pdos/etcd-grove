@@ -32,7 +32,7 @@ attribute [local instance] kdStorageModel
 /-- See the file header. -/
 abbrev Replica.ticker.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc) (n : NodeH) (st sts sq : Loc) (ρ : KdRepNames),
-  {{ isReplicaR (GF := GF) γ vs dir id r n st sts sq ρ }}
+  {{ isReplicaR (GF := GF) γ vs dir id r n st sts sq ρ ∗ handoffProducer (GF := GF) ρ.td false }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"ticker")) (Val #()))
   {{ RET #(); True }}
 
