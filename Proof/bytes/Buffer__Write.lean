@@ -29,7 +29,7 @@ theorem bytes.Buffer.Write.wp_proof
     (wp_Write : _root_.Perennial.bytes.Buffer.Write.spec (GF := GF) (hG := hG)) :
     bytes.Buffer.Write.spec (GF := GF) (hG := hG) := by
   intro b bs sl dq d
-  wp_start as ⟨Hb, Hsl⟩
+  iintro %Φ ⟨#Hpkg, Hb, Hsl⟩ HΦ
   simp only [bufferM.ownBuffer_eq]
   wp_apply wp_Write $$ [$Hb $Hsl] as ⟨Hb, Hsl⟩
   iapply HΦ

@@ -30,7 +30,7 @@ theorem bytes.Buffer.Bytes.wp_proof
     (wp_Bytes : _root_.Perennial.bytes.Buffer.Bytes.spec (GF := GF) (hG := hG)) :
     bytes.Buffer.Bytes.spec (GF := GF) (hG := hG) := by
   intro b bs
-  wp_start as Hb
+  iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
   simp only [bufferM.ownBuffer_eq]
   wp_apply wp_Bytes $$ [$Hb] as %s ⟨Hs, -⟩
   iapply HΦ

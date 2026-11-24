@@ -30,7 +30,7 @@ theorem Clone.wp_proof
     (wp_Clone : _root_.Perennial.slices.Clone.spec (GF := GF) (hG := hG)) :
     Clone.spec (GF := GF) (hG := hG) := by
   intro V _ _ E _ s dq xs
-  wp_start as Hs
+  iintro %Φ Hs HΦ
   wp_apply (wp_Clone (S := go.GoType.SliceType E)) $$ [$Hs] as %s' ⟨Hs, Hs', Hcap, -⟩
   iapply HΦ
   iframe

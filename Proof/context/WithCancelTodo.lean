@@ -34,7 +34,7 @@ theorem context.WithCancelTodo.wp_proof
     (wp_cancelCtx_Value : _root_.Perennial.context.cancelCtx.Value.spec (GF := GF) (hG := hG))
     (wp_VLoad : _root_.Perennial.sync.atomic.Value.Load.spec (GF := GF) (hG := hG)) :
     context.WithCancelTodo.spec (GF := GF) (hG := hG) := by
-  wp_start
+  iintro %Φ #Hpkg HΦ
   ihave #Hcci := _root_.Perennial.context.isClosedchanInit_of_init $$ Hpkg
   wp_apply (_root_.Perennial.context.wp_WithCancel_TODO_of wp_withCancel wp_cancelCtx_cancel
       wp_propagateCancel wp_cancelCtx_Done wp_cancelCtx_Err wp_cancelCtx_Value wp_VLoad

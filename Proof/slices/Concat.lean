@@ -30,7 +30,7 @@ theorem Concat.wp_proof
     (wp_Concat : _root_.Perennial.slices.Concat.spec (GF := GF) (hG := hG)) :
     Concat.spec (GF := GF) (hG := hG) := by
   intro ss dq sls xss dq' hlen hsum
-  wp_start as ⟨Hss, Hsls⟩
+  iintro %Φ ⟨Hss, Hsls⟩ HΦ
   wp_apply (wp_Concat (S := go.GoType.SliceType go.string) ss dq sls xss dq' hlen hsum)
     $$ [$Hss $Hsls] as %s' ⟨Hss, Hsls, Hs', Hcap, -⟩
   iapply HΦ
