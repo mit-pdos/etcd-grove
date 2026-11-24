@@ -43,7 +43,7 @@ theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := h
     exact Hpure.1.1 (List.eq_nil_of_length_eq_zero (by rw [h0]; rfl)))]
   wp_auto
   ipersist cfg
-  wp_apply wp_newClient cfg_ptr cfg eps V P $$ [$cfg $Hcfg $Hauth] as %cl %err Hres
+  wp_apply wp_newClient cfg_ptr cfg eps V P $$ [$Hlt $cfg $Hcfg $Hauth] as %cl %err Hres
   · iframe #
   iapply HΦ
   iexact Hres

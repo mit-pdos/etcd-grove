@@ -206,9 +206,9 @@ theorem newClient.wp_proof
   ipersist callOpts
   -- (sweep repairs 1, B5) the endpoints mutex is not nil (`clientCheckFields`)
   icases typedPointsto_not_null_dup _ _ _ $$ «$v5» with ⟨«$v5», %Hv5nn⟩
-  imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
+  imod (sync.init_RWMutex_threadPoolL (fun _ => iprop(True)) (E := ⊤) clientEpN 0 «$v5_ptr»
+    (ThreadBoundLe.threadBound_le (GF := GF))) $$ [] «$v5» with ⟨%γe, #Hguard, #Hpool⟩
   · inext; itrivial
-  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hguard⟩
   wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil eps cfg.Endpoints' eps
     $$ [$epMu $Hguard $endpoints $resolver $Hro $Heps] as ⟨endpoints, Hro⟩
   ipersist endpoints
@@ -219,12 +219,16 @@ theorem newClient.wp_proof
     iframe HcLg'
     iexists [], atb
     iframe Token authTokenBundle
-    ipureintro; intro h; exact absurd rfl h
+    isplitr
+    · ipureintro; intro h; exact absurd rfl h
+    iunfold clientEpPool
+    iexists «$v5_ptr», γe, cfg.Endpoints', eps
+    iframe epMu endpoints Heps Hguard Hpool
   ihave #HDOpt : p.[go_etcd_io.etcd.client.v3.Config, go!"DialOptions"] ↦□ cfg.DialOptions' $$ []
   · iexact DialOptions
   wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps atb P
-    $$ [$Hrc $cfg $Hdo $authTokenBundle $Htb $creds $endpoints $Heps $resolver $Hro]
-    as %conn %derr Hres
+    $$ [$Hlt $Hrc $cfg $Hdo $authTokenBundle $Htb $creds $endpoints $Heps $resolver $Hro]
+    as %conn %derr ⟨Hlt, Hres⟩
   · ipureintro; exact Hplain
   icases Hres with (⟨%Hderr, #HconnG, #Hctok⟩ | %Hderr)
   · subst Hderr
@@ -324,7 +328,7 @@ theorem newClient.wp_proof
       iintro !> %Φ' HΦ'
       wp_auto
       iexact HΦ'
-    wp_apply wp_getToken «$r0_ptr» conn eps cx cd $$ [$Hrc $Hready] as %terr ⟨-, -⟩
+    wp_apply wp_getToken «$r0_ptr» conn eps cx cd $$ [$Hlt $Hrc $Hready] as %terr ⟨Hlt, -, -⟩
     · isplitr
       · inext; iexact Hconn
       iapply ctxOk_of_isContext; iframe Hcx HcxO
@@ -338,6 +342,7 @@ theorem newClient.wp_proof
       inext
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro; exact ⟨by simp, rfl⟩
     | nil =>
@@ -353,6 +358,7 @@ theorem newClient.wp_proof
       · ipureintro; exact Has
       itrivial
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -431,6 +437,7 @@ theorem newClient.wp_proof
       wp_auto
       wp_apply wp_rClose r $$ [$Hcloser]
       iapply HΦ
+      iframe Hlt
       iright
       try (ipureintro; exact ⟨Hderr, rfl⟩)
 

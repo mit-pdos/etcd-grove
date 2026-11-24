@@ -38,7 +38,7 @@ about the watch server (D19f): constructing the watcher only allocates it, so a 
 watches needs none; `isNewClient_watcher` adds `watchAddrFacts V` (with `eps = [V.addr]`: a watch is
 a stream, to one address) before the first `Watch`. -/
 abbrev clientv3.New.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 31)] (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
     (P : GoString → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (clientCfgOk cfg eps ∗
       -- (the auth plan's C1, 2026-10-28) its credentials' tokens
