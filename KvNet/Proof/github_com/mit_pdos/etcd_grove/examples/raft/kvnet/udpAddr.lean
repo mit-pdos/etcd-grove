@@ -32,12 +32,14 @@ theorem udpAddr.wp_proof
     udpAddr.spec (GF := GF) (hG := hG) := by
   intro a ha
   wp_start
+  iapply wp_fupd
   try wp_auto
   wp_apply wp_parseAddr a ha $$ [$Hpkg] as %ip %port %ok %Hres
   obtain ⟨Hok, Hsome⟩ := Hres
   cases ok
   · -- refused
     try wp_auto
+    imodintro
     iapply HΦ
     isplitr
     · ipureintro; exact Hok
@@ -62,9 +64,10 @@ theorem udpAddr.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %slp ⟨Hsl, -⟩
-    imod ownSlice_persist $$ Hsl with #Hsl
     try wp_auto
+    imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
     ipersist «$r0»
+    imodintro
     iapply HΦ
     isplitr
     · ipureintro; exact Hok

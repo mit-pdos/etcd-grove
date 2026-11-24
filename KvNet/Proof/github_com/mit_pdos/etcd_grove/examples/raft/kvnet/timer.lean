@@ -37,6 +37,7 @@ theorem timer.wp_proof :
   ihave Hoc : ownChan γ Unit (.Buffered []) $$ Hoc
   imod start_bag (fun _ : Unit => iprop(True)) (.Buffered []) ch γ trivial $$ Hch Hoc with #Hbag
   try wp_auto
+  ipersist c
   wp_apply time.wp_AfterFunc $$ [] as %tm -
   · try wp_auto
     wp_apply wp_bag_send γ ch () (fun _ : Unit => iprop(True)) $$ [$Hbag]

@@ -83,7 +83,7 @@ theorem parseAddr.wp_proof
   intro a ha
   wp_start
   try wp_auto
-  wp_apply wp_AddrOk a ha $$ [$Hpkg] as -
+  wp_apply wp_AddrOk a ha $$ [$Hpkg]
   try wp_auto
   cases hok : addrOk a
   · -- refused
@@ -177,23 +177,22 @@ theorem parseAddr.wp_proof
         intro sep hs hcs
         subst hcs
         rw [hdrop, splitAny.eq_2, if_pos hs] at Hsplit
-        have hlen : sint.nat n < 5 := by
-          have := congrArg List.length Hsplit
-          simp only [List.length_cons, List.length_drop] at this
-          omega
+        have hlen : sint.nat n < [x1, x2, x3, x4, p].length := Nat.lt_succ_of_le Hn4
         have hd : [x1, x2, x3, x4, p].drop (sint.nat n) =
             [x1, x2, x3, x4, p][sint.nat n] :: [x1, x2, x3, x4, p].drop (sint.nat n + 1) :=
-          List.drop_eq_getElem_cons (by simp; omega)
+          List.drop_eq_getElem_cons hlen
         rw [hd, List.cons.injEq] at Hsplit
-        refine ⟨by rw [List.getElem?_eq_getElem (by simp; omega), Hsplit.1], ?_, fun h => absurd h (by omega)⟩
+        refine ⟨?_, ?_, ?_⟩
+        · rw [List.getElem?_eq_getElem hlen, Hsplit.1]
+        rotate_left
+        · intro h; exact absurd h (by omega)
         intro _
         refine ⟨?_, Hsplit.2⟩
         have hne := splitAny_ne_nil (a.drop (sint.nat i + 1)) []
         rw [Hsplit.2] at hne
-        intro hcon
-        apply hne
-        apply List.drop_eq_nil_of_le
-        simp; omega
+        refine Classical.byContradiction fun hcon => hne (List.drop_eq_nil_of_le ?_)
+        show 5 ≤ sint.nat n + 1
+        omega
       by_cases h46 : c = W8 46
       · rw [decide_eq_true h46]
         repeat (first | (simp only [Hi0, ↓reduceIte, hc]) | wp_auto)
@@ -268,10 +267,10 @@ theorem parseAddr.wp_proof
     ipureintro
     refine ⟨rfl, fun _ => ?_⟩
     rw [parseAddrM_parts hok h58 h46 d1 d2 d3 d4 dp]
-    have c0 : W8 (n1 : Int) = W8 (uint.Z w0) := by rw [← v0]; word
-    have c1 : W8 (n2 : Int) = W8 (uint.Z w1) := by rw [← v1]; word
-    have c2 : W8 (n3 : Int) = W8 (uint.Z w2) := by rw [← v2]; word
-    have c3 : W8 (n4 : Int) = W8 (uint.Z w3) := by rw [← v3]; word
+    have c0 : W8 (n1 : Int) = W8 (uint.Z w0) := by rw [← v0]; try word
+    have c1 : W8 (n2 : Int) = W8 (uint.Z w1) := by rw [← v1]; try word
+    have c2 : W8 (n3 : Int) = W8 (uint.Z w2) := by rw [← v2]; try word
+    have c3 : W8 (n4 : Int) = W8 (uint.Z w3) := by rw [← v3]; try word
     have c4 : W64 (pt : Int) = w4 := by rw [← v4]; word
     rw [c0, c1, c2, c3, c4]
 
