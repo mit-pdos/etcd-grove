@@ -4812,6 +4812,8 @@ class batchTxBuffered.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   ptr_safePending_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"safePending" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"safePending"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (Var "$r"))))
   ptr_unsafeCommit_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"unsafeCommit" batchTxBuffered.unsafeCommit.impl
+  ptr_unsafePut_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"unsafePut" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"unsafePut"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (Var "$r"))))
 
 attribute [instance] batchTxBuffered.TypeAssumptions.type_repr
   batchTxBuffered.TypeAssumptions.underlying
@@ -4841,6 +4843,7 @@ attribute [instance] batchTxBuffered.TypeAssumptions.type_repr
   batchTxBuffered.TypeAssumptions.ptr_lock_unfold
   batchTxBuffered.TypeAssumptions.ptr_safePending_unfold
   batchTxBuffered.TypeAssumptions.ptr_unsafeCommit_unfold
+  batchTxBuffered.TypeAssumptions.ptr_unsafePut_unfold
 
 abbrev HookFunc [GooseExts] : Type := GoFunc
 

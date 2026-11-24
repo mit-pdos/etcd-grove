@@ -11783,6 +11783,22 @@ class watchableStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
   Rev_unfold : MethodUnfold watchableStore.ty go!"Rev" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"Rev"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
+  checkPrevCompactionCompleted_unfold : MethodUnfold watchableStore.ty go!"checkPrevCompactionCompleted" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"checkPrevCompactionCompleted"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
+  compact_unfold : MethodUnfold watchableStore.ty go!"compact" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"compact"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
+  compactBarrier_unfold : MethodUnfold watchableStore.ty go!"compactBarrier" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"compactBarrier"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
+  compactLockfree_unfold : MethodUnfold watchableStore.ty go!"compactLockfree" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"compactLockfree"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
+  restore_unfold : MethodUnfold watchableStore.ty go!"restore" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"restore"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
+  scheduleCompaction_unfold : MethodUnfold watchableStore.ty go!"scheduleCompaction" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"scheduleCompaction"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
+  setupMetricsReporter_unfold : MethodUnfold watchableStore.ty go!"setupMetricsReporter" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"setupMetricsReporter"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
+  updateCompactRev_unfold : MethodUnfold watchableStore.ty go!"updateCompactRev" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"updateCompactRev"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"Close" watchableStore.Close.impl
   ptr_Commit_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"Commit" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
@@ -11807,15 +11823,31 @@ class watchableStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   ptr_Write_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"Write" watchableStore.Write.impl
   ptr_addVictim_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"addVictim" watchableStore.addVictim.impl
   ptr_cancelWatcher_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"cancelWatcher" watchableStore.cancelWatcher.impl
+  ptr_checkPrevCompactionCompleted_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"checkPrevCompactionCompleted" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"checkPrevCompactionCompleted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
+  ptr_compact_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"compact" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"compact"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
+  ptr_compactBarrier_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"compactBarrier" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"compactBarrier"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
+  ptr_compactLockfree_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"compactLockfree" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"compactLockfree"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
   ptr_moveVictims_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"moveVictims" watchableStore.moveVictims.impl
   ptr_notify_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"notify" watchableStore.notify.impl
   ptr_progress_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"progress" watchableStore.progress.impl
   ptr_progressAll_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"progressAll" watchableStore.progressAll.impl
   ptr_progressIfSync_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"progressIfSync" watchableStore.progressIfSync.impl
+  ptr_restore_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"restore" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"restore"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
   ptr_rev_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"rev" watchableStore.rev.impl
+  ptr_scheduleCompaction_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"scheduleCompaction" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"scheduleCompaction"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
+  ptr_setupMetricsReporter_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"setupMetricsReporter" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"setupMetricsReporter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
   ptr_syncVictimsLoop_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"syncVictimsLoop" watchableStore.syncVictimsLoop.impl
   ptr_syncWatchers_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"syncWatchers" watchableStore.syncWatchers.impl
   ptr_syncWatchersLoop_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"syncWatchersLoop" watchableStore.syncWatchersLoop.impl
+  ptr_updateCompactRev_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"updateCompactRev" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"updateCompactRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
   ptr_watch_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"watch" watchableStore.watch.impl
 
 attribute [instance] watchableStore.TypeAssumptions.type_repr
@@ -11847,6 +11879,14 @@ attribute [instance] watchableStore.TypeAssumptions.type_repr
   watchableStore.TypeAssumptions.Range_unfold
   watchableStore.TypeAssumptions.Read_unfold
   watchableStore.TypeAssumptions.Rev_unfold
+  watchableStore.TypeAssumptions.checkPrevCompactionCompleted_unfold
+  watchableStore.TypeAssumptions.compact_unfold
+  watchableStore.TypeAssumptions.compactBarrier_unfold
+  watchableStore.TypeAssumptions.compactLockfree_unfold
+  watchableStore.TypeAssumptions.restore_unfold
+  watchableStore.TypeAssumptions.scheduleCompaction_unfold
+  watchableStore.TypeAssumptions.setupMetricsReporter_unfold
+  watchableStore.TypeAssumptions.updateCompactRev_unfold
   watchableStore.TypeAssumptions.ptr_Close_unfold
   watchableStore.TypeAssumptions.ptr_Commit_unfold
   watchableStore.TypeAssumptions.ptr_Compact_unfold
@@ -11862,15 +11902,23 @@ attribute [instance] watchableStore.TypeAssumptions.type_repr
   watchableStore.TypeAssumptions.ptr_Write_unfold
   watchableStore.TypeAssumptions.ptr_addVictim_unfold
   watchableStore.TypeAssumptions.ptr_cancelWatcher_unfold
+  watchableStore.TypeAssumptions.ptr_checkPrevCompactionCompleted_unfold
+  watchableStore.TypeAssumptions.ptr_compact_unfold
+  watchableStore.TypeAssumptions.ptr_compactBarrier_unfold
+  watchableStore.TypeAssumptions.ptr_compactLockfree_unfold
   watchableStore.TypeAssumptions.ptr_moveVictims_unfold
   watchableStore.TypeAssumptions.ptr_notify_unfold
   watchableStore.TypeAssumptions.ptr_progress_unfold
   watchableStore.TypeAssumptions.ptr_progressAll_unfold
   watchableStore.TypeAssumptions.ptr_progressIfSync_unfold
+  watchableStore.TypeAssumptions.ptr_restore_unfold
   watchableStore.TypeAssumptions.ptr_rev_unfold
+  watchableStore.TypeAssumptions.ptr_scheduleCompaction_unfold
+  watchableStore.TypeAssumptions.ptr_setupMetricsReporter_unfold
   watchableStore.TypeAssumptions.ptr_syncVictimsLoop_unfold
   watchableStore.TypeAssumptions.ptr_syncWatchers_unfold
   watchableStore.TypeAssumptions.ptr_syncWatchersLoop_unfold
+  watchableStore.TypeAssumptions.ptr_updateCompactRev_unfold
   watchableStore.TypeAssumptions.ptr_watch_unfold
 
 abbrev cancelFunc [GooseExts] : Type := GoFunc

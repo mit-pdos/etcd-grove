@@ -2743,10 +2743,86 @@ class fileWithoutReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_File : ∀ (x : fileWithoutReadFrom) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutReadFrom.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileWithoutReadFrom)))
   method_set : go.MethodSetIs fileWithoutReadFrom.ty [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileWithoutReadFrom.ty) [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
+  Close_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  Fd_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Fd" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Fd"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  Name_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Name" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Name"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  Read_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  ReadAt_unfold : MethodUnfold fileWithoutReadFrom.ty go!"ReadAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"ReadAt"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  Readdirnames_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Readdirnames" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Readdirnames"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  Seek_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Seek" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Seek"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  Stat_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Stat" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Stat"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  Sync_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Sync" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Sync"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  SyscallConn_unfold : MethodUnfold fileWithoutReadFrom.ty go!"SyscallConn" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  Truncate_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Truncate" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Truncate"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
   Write_unfold : MethodUnfold fileWithoutReadFrom.ty go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  WriteAt_unfold : MethodUnfold fileWithoutReadFrom.ty go!"WriteAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"WriteAt"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  WriteTo_unfold : MethodUnfold fileWithoutReadFrom.ty go!"WriteTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"WriteTo"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  checkValid_unfold : MethodUnfold fileWithoutReadFrom.ty go!"checkValid" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  copyFileRange_unfold : MethodUnfold fileWithoutReadFrom.ty go!"copyFileRange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"copyFileRange"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  readFrom_unfold : MethodUnfold fileWithoutReadFrom.ty go!"readFrom" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"readFrom"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  spliceToFile_unfold : MethodUnfold fileWithoutReadFrom.ty go!"spliceToFile" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"spliceToFile"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  wrapErr_unfold : MethodUnfold fileWithoutReadFrom.ty go!"wrapErr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"wrapErr"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  writeTo_unfold : MethodUnfold fileWithoutReadFrom.ty go!"writeTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"writeTo"))) (App (Val (GoInstruction (StructFieldGet fileWithoutReadFrom.ty go!"File"))) (Var "$r"))))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_Fd_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Fd" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Name" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_ReadAt_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"ReadAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"ReadAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_Readdirnames_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Readdirnames" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Readdirnames"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_Seek_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Seek" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Seek"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_Stat_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Stat" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Stat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Sync" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Sync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_SyscallConn_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"SyscallConn" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_Truncate_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Truncate" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Truncate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
   ptr_Write_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_WriteAt_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"WriteAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"WriteAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"WriteTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"WriteTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_checkValid_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"checkValid" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_copyFileRange_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"copyFileRange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"copyFileRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_readFrom_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"readFrom" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"readFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_spliceToFile_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"spliceToFile" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"spliceToFile"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_wrapErr_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"wrapErr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"wrapErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
+  ptr_writeTo_unfold : MethodUnfold (go.GoType.PointerType fileWithoutReadFrom.ty) go!"writeTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"writeTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutReadFrom.ty go!"File"))) (Var "$r")))))
 
 attribute [instance] fileWithoutReadFrom.TypeAssumptions.type_repr
   fileWithoutReadFrom.TypeAssumptions.underlying
@@ -2756,8 +2832,46 @@ attribute [instance] fileWithoutReadFrom.TypeAssumptions.type_repr
   fileWithoutReadFrom.TypeAssumptions.set_File
   fileWithoutReadFrom.TypeAssumptions.method_set
   fileWithoutReadFrom.TypeAssumptions.ptr_method_set
+  fileWithoutReadFrom.TypeAssumptions.Close_unfold
+  fileWithoutReadFrom.TypeAssumptions.Fd_unfold
+  fileWithoutReadFrom.TypeAssumptions.Name_unfold
+  fileWithoutReadFrom.TypeAssumptions.Read_unfold
+  fileWithoutReadFrom.TypeAssumptions.ReadAt_unfold
+  fileWithoutReadFrom.TypeAssumptions.Readdirnames_unfold
+  fileWithoutReadFrom.TypeAssumptions.Seek_unfold
+  fileWithoutReadFrom.TypeAssumptions.Stat_unfold
+  fileWithoutReadFrom.TypeAssumptions.Sync_unfold
+  fileWithoutReadFrom.TypeAssumptions.SyscallConn_unfold
+  fileWithoutReadFrom.TypeAssumptions.Truncate_unfold
   fileWithoutReadFrom.TypeAssumptions.Write_unfold
+  fileWithoutReadFrom.TypeAssumptions.WriteAt_unfold
+  fileWithoutReadFrom.TypeAssumptions.WriteTo_unfold
+  fileWithoutReadFrom.TypeAssumptions.checkValid_unfold
+  fileWithoutReadFrom.TypeAssumptions.copyFileRange_unfold
+  fileWithoutReadFrom.TypeAssumptions.readFrom_unfold
+  fileWithoutReadFrom.TypeAssumptions.spliceToFile_unfold
+  fileWithoutReadFrom.TypeAssumptions.wrapErr_unfold
+  fileWithoutReadFrom.TypeAssumptions.writeTo_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Close_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Fd_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Name_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Read_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_ReadAt_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Readdirnames_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Seek_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Stat_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Sync_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_SyscallConn_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_Truncate_unfold
   fileWithoutReadFrom.TypeAssumptions.ptr_Write_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_WriteAt_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_WriteTo_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_checkValid_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_copyFileRange_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_readFrom_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_spliceToFile_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_wrapErr_unfold
+  fileWithoutReadFrom.TypeAssumptions.ptr_writeTo_unfold
 
 structure noWriteTo [GooseExts] where
   mk ::
@@ -2825,14 +2939,86 @@ class fileWithoutWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_File : ∀ (x : fileWithoutWriteTo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fileWithoutWriteTo.underlying go!"File") (PairV #x #y) (Val #(({ x with File' := y } : fileWithoutWriteTo)))
   method_set : go.MethodSetIs fileWithoutWriteTo.ty [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileWithoutWriteTo.ty) [(go!"Chdir", (some (go.signature.Signature [] false [go.error]))), (go!"Chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"Chown", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"ReadDir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType DirEntry.ty), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"Readdir", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType FileInfo.ty), go.error]))), (go!"Readdirnames", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.string), go.error]))), (go!"Seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Stat", (some (go.signature.Signature [] false [FileInfo.ty, go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Truncate", (some (go.signature.Signature [go.int64] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteAt", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"os.checkValid", (some (go.signature.Signature [go.string] false [go.error]))), (go!"os.chmod", (some (go.signature.Signature [FileMode.ty] false [go.error]))), (go!"os.close", (some (go.signature.Signature [] false [go.error]))), (go!"os.copyFileRange", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.fd", (some (go.signature.Signature [] false [go.uintptr]))), (go!"os.lstatat", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.lstatatNolog", (some (go.signature.Signature [go.string] false [FileInfo.ty, go.error]))), (go!"os.pread", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.pwrite", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [go.int, go.error]))), (go!"os.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.readdir", (some (go.signature.Signature [go.int, readdirMode.ty] false [(go.GoType.SliceType go.string), (go.GoType.SliceType DirEntry.ty), (go.GoType.SliceType FileInfo.ty), go.error]))), (go!"os.seek", (some (go.signature.Signature [go.int64, go.int] false [go.int64, go.error]))), (go!"os.setDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.setWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"os.spliceToFile", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.bool, go.error]))), (go!"os.wrapErr", (some (go.signature.Signature [go.string, go.error] false [go.error]))), (go!"os.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"os.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.bool, go.error])))]
+  Close_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  Fd_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Fd" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Fd"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  Name_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Name" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Name"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
   Read_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  ReadAt_unfold : MethodUnfold fileWithoutWriteTo.ty go!"ReadAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"ReadAt"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  ReadFrom_unfold : MethodUnfold fileWithoutWriteTo.ty go!"ReadFrom" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"ReadFrom"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  Readdirnames_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Readdirnames" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Readdirnames"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  Seek_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Seek" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Seek"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  Stat_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Stat" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Stat"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  Sync_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Sync" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Sync"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
   SyscallConn_unfold : MethodUnfold fileWithoutWriteTo.ty go!"SyscallConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  Truncate_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Truncate" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Truncate"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  Write_unfold : MethodUnfold fileWithoutWriteTo.ty go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  WriteAt_unfold : MethodUnfold fileWithoutWriteTo.ty go!"WriteAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"WriteAt"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  checkValid_unfold : MethodUnfold fileWithoutWriteTo.ty go!"checkValid" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  copyFileRange_unfold : MethodUnfold fileWithoutWriteTo.ty go!"copyFileRange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"copyFileRange"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  readFrom_unfold : MethodUnfold fileWithoutWriteTo.ty go!"readFrom" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"readFrom"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  spliceToFile_unfold : MethodUnfold fileWithoutWriteTo.ty go!"spliceToFile" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"spliceToFile"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  wrapErr_unfold : MethodUnfold fileWithoutWriteTo.ty go!"wrapErr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"wrapErr"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  writeTo_unfold : MethodUnfold fileWithoutWriteTo.ty go!"writeTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"writeTo"))) (App (Val (GoInstruction (StructFieldGet fileWithoutWriteTo.ty go!"File"))) (Var "$r"))))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_Fd_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Fd" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Name" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
   ptr_Read_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Read" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_ReadAt_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"ReadAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"ReadAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_ReadFrom_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"ReadFrom" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"ReadFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_Readdirnames_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Readdirnames" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Readdirnames"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_Seek_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Seek" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Seek"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_Stat_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Stat" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Stat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Sync" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Sync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
   ptr_SyscallConn_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"SyscallConn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_Truncate_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Truncate" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Truncate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_WriteAt_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"WriteAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"WriteAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_checkValid_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"checkValid" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_copyFileRange_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"copyFileRange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"copyFileRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_readFrom_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"readFrom" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"readFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_spliceToFile_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"spliceToFile" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"spliceToFile"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_wrapErr_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"wrapErr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"wrapErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
+  ptr_writeTo_unfold : MethodUnfold (go.GoType.PointerType fileWithoutWriteTo.ty) go!"writeTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"writeTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef fileWithoutWriteTo.ty go!"File"))) (Var "$r")))))
 
 attribute [instance] fileWithoutWriteTo.TypeAssumptions.type_repr
   fileWithoutWriteTo.TypeAssumptions.underlying
@@ -2842,10 +3028,46 @@ attribute [instance] fileWithoutWriteTo.TypeAssumptions.type_repr
   fileWithoutWriteTo.TypeAssumptions.set_File
   fileWithoutWriteTo.TypeAssumptions.method_set
   fileWithoutWriteTo.TypeAssumptions.ptr_method_set
+  fileWithoutWriteTo.TypeAssumptions.Close_unfold
+  fileWithoutWriteTo.TypeAssumptions.Fd_unfold
+  fileWithoutWriteTo.TypeAssumptions.Name_unfold
   fileWithoutWriteTo.TypeAssumptions.Read_unfold
+  fileWithoutWriteTo.TypeAssumptions.ReadAt_unfold
+  fileWithoutWriteTo.TypeAssumptions.ReadFrom_unfold
+  fileWithoutWriteTo.TypeAssumptions.Readdirnames_unfold
+  fileWithoutWriteTo.TypeAssumptions.Seek_unfold
+  fileWithoutWriteTo.TypeAssumptions.Stat_unfold
+  fileWithoutWriteTo.TypeAssumptions.Sync_unfold
   fileWithoutWriteTo.TypeAssumptions.SyscallConn_unfold
+  fileWithoutWriteTo.TypeAssumptions.Truncate_unfold
+  fileWithoutWriteTo.TypeAssumptions.Write_unfold
+  fileWithoutWriteTo.TypeAssumptions.WriteAt_unfold
+  fileWithoutWriteTo.TypeAssumptions.checkValid_unfold
+  fileWithoutWriteTo.TypeAssumptions.copyFileRange_unfold
+  fileWithoutWriteTo.TypeAssumptions.readFrom_unfold
+  fileWithoutWriteTo.TypeAssumptions.spliceToFile_unfold
+  fileWithoutWriteTo.TypeAssumptions.wrapErr_unfold
+  fileWithoutWriteTo.TypeAssumptions.writeTo_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Close_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Fd_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Name_unfold
   fileWithoutWriteTo.TypeAssumptions.ptr_Read_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_ReadAt_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_ReadFrom_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Readdirnames_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Seek_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Stat_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Sync_unfold
   fileWithoutWriteTo.TypeAssumptions.ptr_SyscallConn_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Truncate_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_Write_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_WriteAt_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_checkValid_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_copyFileRange_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_readFrom_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_spliceToFile_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_wrapErr_unfold
+  fileWithoutWriteTo.TypeAssumptions.ptr_writeTo_unfold
 
 abbrev dirFS [GooseExts] : Type := GoString
 

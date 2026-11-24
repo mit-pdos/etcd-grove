@@ -1900,6 +1900,62 @@ class ReadWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_Writer : ∀ (x : ReadWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ReadWriter.underlying go!"Writer") (PairV #x #y) (Val #(({ x with Writer' := y } : ReadWriter)))
   method_set : go.MethodSetIs ReadWriter.ty [(go!"Available", (some (go.signature.Signature [] false [go.int]))), (go!"AvailableBuffer", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteRune", (some (go.signature.Signature [go.rune] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReadWriter.ty) [(go!"Available", (some (go.signature.Signature [] false [go.int]))), (go!"AvailableBuffer", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteByte", (some (go.signature.Signature [go.byte] false [go.error]))), (go!"WriteRune", (some (go.signature.Signature [go.rune] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
+  Available_unfold : MethodUnfold ReadWriter.ty go!"Available" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"Available"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Writer"))) (Var "$r"))))
+  Flush_unfold : MethodUnfold ReadWriter.ty go!"Flush" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"Flush"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Writer"))) (Var "$r"))))
+  Peek_unfold : MethodUnfold ReadWriter.ty go!"Peek" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"Peek"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Reader"))) (Var "$r"))))
+  Read_unfold : MethodUnfold ReadWriter.ty go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Reader"))) (Var "$r"))))
+  ReadByte_unfold : MethodUnfold ReadWriter.ty go!"ReadByte" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"ReadByte"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Reader"))) (Var "$r"))))
+  ReadSlice_unfold : MethodUnfold ReadWriter.ty go!"ReadSlice" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"ReadSlice"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Reader"))) (Var "$r"))))
+  ReadString_unfold : MethodUnfold ReadWriter.ty go!"ReadString" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"ReadString"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Reader"))) (Var "$r"))))
+  Write_unfold : MethodUnfold ReadWriter.ty go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Writer"))) (Var "$r"))))
+  WriteByte_unfold : MethodUnfold ReadWriter.ty go!"WriteByte" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"WriteByte"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Writer"))) (Var "$r"))))
+  WriteString_unfold : MethodUnfold ReadWriter.ty go!"WriteString" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"WriteString"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Writer"))) (Var "$r"))))
+  collectFragments_unfold : MethodUnfold ReadWriter.ty go!"collectFragments" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"collectFragments"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Reader"))) (Var "$r"))))
+  fill_unfold : MethodUnfold ReadWriter.ty go!"fill" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"fill"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Reader"))) (Var "$r"))))
+  readErr_unfold : MethodUnfold ReadWriter.ty go!"readErr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"readErr"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Reader"))) (Var "$r"))))
+  reset_unfold : MethodUnfold ReadWriter.ty go!"reset" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"reset"))) (App (Val (GoInstruction (StructFieldGet ReadWriter.ty go!"Reader"))) (Var "$r"))))
+  ptr_Available_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"Available" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"Available"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Writer"))) (Var "$r")))))
+  ptr_Flush_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"Flush" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"Flush"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Writer"))) (Var "$r")))))
+  ptr_Peek_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"Peek" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"Peek"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Reader"))) (Var "$r")))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Reader"))) (Var "$r")))))
+  ptr_ReadByte_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"ReadByte" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"ReadByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Reader"))) (Var "$r")))))
+  ptr_ReadSlice_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"ReadSlice" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"ReadSlice"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Reader"))) (Var "$r")))))
+  ptr_ReadString_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"ReadString" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"ReadString"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Reader"))) (Var "$r")))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Writer"))) (Var "$r")))))
+  ptr_WriteByte_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"WriteByte" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"WriteByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Writer"))) (Var "$r")))))
+  ptr_WriteString_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"WriteString" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Writer.ty) go!"WriteString"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writer.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Writer"))) (Var "$r")))))
+  ptr_collectFragments_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"collectFragments" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"collectFragments"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Reader"))) (Var "$r")))))
+  ptr_fill_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"fill" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"fill"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Reader"))) (Var "$r")))))
+  ptr_readErr_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"readErr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"readErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Reader"))) (Var "$r")))))
+  ptr_reset_unfold : MethodUnfold (go.GoType.PointerType ReadWriter.ty) go!"reset" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reader.ty) go!"reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reader.ty)))) (App (Val (GoInstruction (StructFieldRef ReadWriter.ty go!"Reader"))) (Var "$r")))))
 
 attribute [instance] ReadWriter.TypeAssumptions.type_repr
   ReadWriter.TypeAssumptions.underlying
@@ -1909,6 +1965,34 @@ attribute [instance] ReadWriter.TypeAssumptions.type_repr
   ReadWriter.TypeAssumptions.set_Writer
   ReadWriter.TypeAssumptions.method_set
   ReadWriter.TypeAssumptions.ptr_method_set
+  ReadWriter.TypeAssumptions.Available_unfold
+  ReadWriter.TypeAssumptions.Flush_unfold
+  ReadWriter.TypeAssumptions.Peek_unfold
+  ReadWriter.TypeAssumptions.Read_unfold
+  ReadWriter.TypeAssumptions.ReadByte_unfold
+  ReadWriter.TypeAssumptions.ReadSlice_unfold
+  ReadWriter.TypeAssumptions.ReadString_unfold
+  ReadWriter.TypeAssumptions.Write_unfold
+  ReadWriter.TypeAssumptions.WriteByte_unfold
+  ReadWriter.TypeAssumptions.WriteString_unfold
+  ReadWriter.TypeAssumptions.collectFragments_unfold
+  ReadWriter.TypeAssumptions.fill_unfold
+  ReadWriter.TypeAssumptions.readErr_unfold
+  ReadWriter.TypeAssumptions.reset_unfold
+  ReadWriter.TypeAssumptions.ptr_Available_unfold
+  ReadWriter.TypeAssumptions.ptr_Flush_unfold
+  ReadWriter.TypeAssumptions.ptr_Peek_unfold
+  ReadWriter.TypeAssumptions.ptr_Read_unfold
+  ReadWriter.TypeAssumptions.ptr_ReadByte_unfold
+  ReadWriter.TypeAssumptions.ptr_ReadSlice_unfold
+  ReadWriter.TypeAssumptions.ptr_ReadString_unfold
+  ReadWriter.TypeAssumptions.ptr_Write_unfold
+  ReadWriter.TypeAssumptions.ptr_WriteByte_unfold
+  ReadWriter.TypeAssumptions.ptr_WriteString_unfold
+  ReadWriter.TypeAssumptions.ptr_collectFragments_unfold
+  ReadWriter.TypeAssumptions.ptr_fill_unfold
+  ReadWriter.TypeAssumptions.ptr_readErr_unfold
+  ReadWriter.TypeAssumptions.ptr_reset_unfold
 
 abbrev SplitFunc [GooseExts] : Type := GoFunc
 

@@ -16,6 +16,262 @@ noncomputable section
 
 namespace k8s_io.client_go.tools.cache
 
+class ExplicitKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ExplicitKey.ty ExplicitKey.underlying
+  method_set : go.MethodSetIs ExplicitKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExplicitKey.ty) []
+
+attribute [instance] ExplicitKey.TypeAssumptions.underlying
+  ExplicitKey.TypeAssumptions.method_set
+  ExplicitKey.TypeAssumptions.ptr_method_set
+
+class cache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying cache.underlying cache
+  underlying : go.UnderlyingDirectedEq cache.ty cache.underlying
+  get_cacheStorage : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"cacheStorage") #x (Val #(x.cacheStorage'))
+  set_cacheStorage : ∀ (x : cache) (y : ThreadSafeStore), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"cacheStorage") (PairV #x #y) (Val #(({ x with cacheStorage' := y } : cache)))
+  get_keyFunc : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"keyFunc") #x (Val #(x.keyFunc'))
+  set_keyFunc : ∀ (x : cache) (y : KeyFunc), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"keyFunc") (PairV #x #y) (Val #(({ x with keyFunc' := y } : cache)))
+  get_transformer : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"transformer") #x (Val #(x.transformer'))
+  set_transformer : ∀ (x : cache) (y : TransformFunc), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"transformer") (PairV #x #y) (Val #(({ x with transformer' := y } : cache)))
+  get_identifier : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"identifier") #x (Val #(x.identifier'))
+  set_identifier : ∀ (x : cache) (y : InformerNameAndResource), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"identifier") (PairV #x #y) (Val #(({ x with identifier' := y } : cache)))
+  get_metrics : ∀ (x : cache), go.IsGoStepPureDetTagged under (StructFieldGet cache.underlying go!"metrics") #x (Val #(x.metrics'))
+  set_metrics : ∀ (x : cache) (y : InformerMetricsProvider), go.IsGoStepPureDetTagged under (StructFieldSet cache.underlying go!"metrics") (PairV #x #y) (Val #(({ x with metrics' := y } : cache)))
+  method_set : go.MethodSetIs cache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cache.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transaction", (some (go.signature.Signature [(go.GoType.SliceType Transaction.ty)] true [(go.GoType.PointerType TransactionError.ty)]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Add" cache.Add.impl
+  ptr_AddIndexers_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"AddIndexers" cache.AddIndexers.impl
+  ptr_Bookmark_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Bookmark" cache.Bookmark.impl
+  ptr_ByIndex_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"ByIndex" cache.ByIndex.impl
+  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Delete" cache.Delete.impl
+  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Get" cache.Get.impl
+  ptr_GetByKey_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"GetByKey" cache.GetByKey.impl
+  ptr_GetIndexers_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"GetIndexers" cache.GetIndexers.impl
+  ptr_Index_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Index" cache.Index.impl
+  ptr_IndexKeys_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"IndexKeys" cache.IndexKeys.impl
+  ptr_LastStoreSyncResourceVersion_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"LastStoreSyncResourceVersion" cache.LastStoreSyncResourceVersion.impl
+  ptr_List_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"List" cache.List.impl
+  ptr_ListIndexFuncValues_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"ListIndexFuncValues" cache.ListIndexFuncValues.impl
+  ptr_ListKeys_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"ListKeys" cache.ListKeys.impl
+  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Replace" cache.Replace.impl
+  ptr_Resync_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Resync" cache.Resync.impl
+  ptr_Transaction_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Transaction" cache.Transaction.impl
+  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType cache.ty) go!"Update" cache.Update.impl
+
+attribute [instance] cache.TypeAssumptions.type_repr
+  cache.TypeAssumptions.underlying
+  cache.TypeAssumptions.get_cacheStorage
+  cache.TypeAssumptions.set_cacheStorage
+  cache.TypeAssumptions.get_keyFunc
+  cache.TypeAssumptions.set_keyFunc
+  cache.TypeAssumptions.get_transformer
+  cache.TypeAssumptions.set_transformer
+  cache.TypeAssumptions.get_identifier
+  cache.TypeAssumptions.set_identifier
+  cache.TypeAssumptions.get_metrics
+  cache.TypeAssumptions.set_metrics
+  cache.TypeAssumptions.method_set
+  cache.TypeAssumptions.ptr_method_set
+  cache.TypeAssumptions.ptr_Add_unfold
+  cache.TypeAssumptions.ptr_AddIndexers_unfold
+  cache.TypeAssumptions.ptr_Bookmark_unfold
+  cache.TypeAssumptions.ptr_ByIndex_unfold
+  cache.TypeAssumptions.ptr_Delete_unfold
+  cache.TypeAssumptions.ptr_Get_unfold
+  cache.TypeAssumptions.ptr_GetByKey_unfold
+  cache.TypeAssumptions.ptr_GetIndexers_unfold
+  cache.TypeAssumptions.ptr_Index_unfold
+  cache.TypeAssumptions.ptr_IndexKeys_unfold
+  cache.TypeAssumptions.ptr_LastStoreSyncResourceVersion_unfold
+  cache.TypeAssumptions.ptr_List_unfold
+  cache.TypeAssumptions.ptr_ListIndexFuncValues_unfold
+  cache.TypeAssumptions.ptr_ListKeys_unfold
+  cache.TypeAssumptions.ptr_Replace_unfold
+  cache.TypeAssumptions.ptr_Resync_unfold
+  cache.TypeAssumptions.ptr_Transaction_unfold
+  cache.TypeAssumptions.ptr_Update_unfold
+
+class RealFIFOOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying RealFIFOOptions.underlying RealFIFOOptions
+  underlying : go.UnderlyingDirectedEq RealFIFOOptions.ty RealFIFOOptions.underlying
+  get_Logger : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"Logger") #x (Val #(x.Logger'))
+  set_Logger : ∀ (x : RealFIFOOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : RealFIFOOptions)))
+  get_Name : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : RealFIFOOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : RealFIFOOptions)))
+  get_KeyFunction : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"KeyFunction") #x (Val #(x.KeyFunction'))
+  set_KeyFunction : ∀ (x : RealFIFOOptions) (y : KeyFunc), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"KeyFunction") (PairV #x #y) (Val #(({ x with KeyFunction' := y } : RealFIFOOptions)))
+  get_KnownObjects : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"KnownObjects") #x (Val #(x.KnownObjects'))
+  set_KnownObjects : ∀ (x : RealFIFOOptions) (y : KeyListerGetter), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"KnownObjects") (PairV #x #y) (Val #(({ x with KnownObjects' := y } : RealFIFOOptions)))
+  get_Transformer : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"Transformer") #x (Val #(x.Transformer'))
+  set_Transformer : ∀ (x : RealFIFOOptions) (y : TransformFunc), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"Transformer") (PairV #x #y) (Val #(({ x with Transformer' := y } : RealFIFOOptions)))
+  get_AtomicEvents : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"AtomicEvents") #x (Val #(x.AtomicEvents'))
+  set_AtomicEvents : ∀ (x : RealFIFOOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"AtomicEvents") (PairV #x #y) (Val #(({ x with AtomicEvents' := y } : RealFIFOOptions)))
+  get_UnlockWhileProcessing : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"UnlockWhileProcessing") #x (Val #(x.UnlockWhileProcessing'))
+  set_UnlockWhileProcessing : ∀ (x : RealFIFOOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"UnlockWhileProcessing") (PairV #x #y) (Val #(({ x with UnlockWhileProcessing' := y } : RealFIFOOptions)))
+  get_Identifier : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"Identifier") #x (Val #(x.Identifier'))
+  set_Identifier : ∀ (x : RealFIFOOptions) (y : InformerNameAndResource), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"Identifier") (PairV #x #y) (Val #(({ x with Identifier' := y } : RealFIFOOptions)))
+  get_MetricsProvider : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"MetricsProvider") #x (Val #(x.MetricsProvider'))
+  set_MetricsProvider : ∀ (x : RealFIFOOptions) (y : InformerMetricsProvider), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"MetricsProvider") (PairV #x #y) (Val #(({ x with MetricsProvider' := y } : RealFIFOOptions)))
+  get_EmitDeltaTypeBookmark : ∀ (x : RealFIFOOptions), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFOOptions.underlying go!"EmitDeltaTypeBookmark") #x (Val #(x.EmitDeltaTypeBookmark'))
+  set_EmitDeltaTypeBookmark : ∀ (x : RealFIFOOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFOOptions.underlying go!"EmitDeltaTypeBookmark") (PairV #x #y) (Val #(({ x with EmitDeltaTypeBookmark' := y } : RealFIFOOptions)))
+  method_set : go.MethodSetIs RealFIFOOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealFIFOOptions.ty) []
+
+attribute [instance] RealFIFOOptions.TypeAssumptions.type_repr
+  RealFIFOOptions.TypeAssumptions.underlying
+  RealFIFOOptions.TypeAssumptions.get_Logger
+  RealFIFOOptions.TypeAssumptions.set_Logger
+  RealFIFOOptions.TypeAssumptions.get_Name
+  RealFIFOOptions.TypeAssumptions.set_Name
+  RealFIFOOptions.TypeAssumptions.get_KeyFunction
+  RealFIFOOptions.TypeAssumptions.set_KeyFunction
+  RealFIFOOptions.TypeAssumptions.get_KnownObjects
+  RealFIFOOptions.TypeAssumptions.set_KnownObjects
+  RealFIFOOptions.TypeAssumptions.get_Transformer
+  RealFIFOOptions.TypeAssumptions.set_Transformer
+  RealFIFOOptions.TypeAssumptions.get_AtomicEvents
+  RealFIFOOptions.TypeAssumptions.set_AtomicEvents
+  RealFIFOOptions.TypeAssumptions.get_UnlockWhileProcessing
+  RealFIFOOptions.TypeAssumptions.set_UnlockWhileProcessing
+  RealFIFOOptions.TypeAssumptions.get_Identifier
+  RealFIFOOptions.TypeAssumptions.set_Identifier
+  RealFIFOOptions.TypeAssumptions.get_MetricsProvider
+  RealFIFOOptions.TypeAssumptions.set_MetricsProvider
+  RealFIFOOptions.TypeAssumptions.get_EmitDeltaTypeBookmark
+  RealFIFOOptions.TypeAssumptions.set_EmitDeltaTypeBookmark
+  RealFIFOOptions.TypeAssumptions.method_set
+  RealFIFOOptions.TypeAssumptions.ptr_method_set
+
+class RealFIFO.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying RealFIFO.underlying RealFIFO
+  underlying : go.UnderlyingDirectedEq RealFIFO.ty RealFIFO.underlying
+  get_logger : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"logger") #x (Val #(x.logger'))
+  set_logger : ∀ (x : RealFIFO) (y : _root_.Perennial.github_com.go_logr.logr.Logger), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"logger") (PairV #x #y) (Val #(({ x with logger' := y } : RealFIFO)))
+  get_name : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"name") #x (Val #(x.name'))
+  set_name : ∀ (x : RealFIFO) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : RealFIFO)))
+  get_lock : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"lock") #x (Val #(x.lock'))
+  set_lock : ∀ (x : RealFIFO) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : RealFIFO)))
+  get_cond : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"cond") #x (Val #(x.cond'))
+  set_cond : ∀ (x : RealFIFO) (y : _root_.Perennial.sync.Cond), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"cond") (PairV #x #y) (Val #(({ x with cond' := y } : RealFIFO)))
+  get_items : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"items") #x (Val #(x.items'))
+  set_items : ∀ (x : RealFIFO) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : RealFIFO)))
+  get_synced : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"synced") #x (Val #(x.synced'))
+  set_synced : ∀ (x : RealFIFO) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"synced") (PairV #x #y) (Val #(({ x with synced' := y } : RealFIFO)))
+  get_syncedClosed : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"syncedClosed") #x (Val #(x.syncedClosed'))
+  set_syncedClosed : ∀ (x : RealFIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"syncedClosed") (PairV #x #y) (Val #(({ x with syncedClosed' := y } : RealFIFO)))
+  get_populated : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"populated") #x (Val #(x.populated'))
+  set_populated : ∀ (x : RealFIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"populated") (PairV #x #y) (Val #(({ x with populated' := y } : RealFIFO)))
+  get_initialPopulationCount : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"initialPopulationCount") #x (Val #(x.initialPopulationCount'))
+  set_initialPopulationCount : ∀ (x : RealFIFO) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"initialPopulationCount") (PairV #x #y) (Val #(({ x with initialPopulationCount' := y } : RealFIFO)))
+  get_keyFunc : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"keyFunc") #x (Val #(x.keyFunc'))
+  set_keyFunc : ∀ (x : RealFIFO) (y : KeyFunc), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"keyFunc") (PairV #x #y) (Val #(({ x with keyFunc' := y } : RealFIFO)))
+  get_knownObjects : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"knownObjects") #x (Val #(x.knownObjects'))
+  set_knownObjects : ∀ (x : RealFIFO) (y : KeyListerGetter), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"knownObjects") (PairV #x #y) (Val #(({ x with knownObjects' := y } : RealFIFO)))
+  get_closed : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"closed") #x (Val #(x.closed'))
+  set_closed : ∀ (x : RealFIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"closed") (PairV #x #y) (Val #(({ x with closed' := y } : RealFIFO)))
+  get_transformer : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"transformer") #x (Val #(x.transformer'))
+  set_transformer : ∀ (x : RealFIFO) (y : TransformFunc), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"transformer") (PairV #x #y) (Val #(({ x with transformer' := y } : RealFIFO)))
+  get_batchSize : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"batchSize") #x (Val #(x.batchSize'))
+  set_batchSize : ∀ (x : RealFIFO) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"batchSize") (PairV #x #y) (Val #(({ x with batchSize' := y } : RealFIFO)))
+  get_emitAtomicEvents : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"emitAtomicEvents") #x (Val #(x.emitAtomicEvents'))
+  set_emitAtomicEvents : ∀ (x : RealFIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"emitAtomicEvents") (PairV #x #y) (Val #(({ x with emitAtomicEvents' := y } : RealFIFO)))
+  get_unlockWhileProcessing : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"unlockWhileProcessing") #x (Val #(x.unlockWhileProcessing'))
+  set_unlockWhileProcessing : ∀ (x : RealFIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"unlockWhileProcessing") (PairV #x #y) (Val #(({ x with unlockWhileProcessing' := y } : RealFIFO)))
+  get_identifier : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"identifier") #x (Val #(x.identifier'))
+  set_identifier : ∀ (x : RealFIFO) (y : InformerNameAndResource), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"identifier") (PairV #x #y) (Val #(({ x with identifier' := y } : RealFIFO)))
+  get_metrics : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"metrics") #x (Val #(x.metrics'))
+  set_metrics : ∀ (x : RealFIFO) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"metrics") (PairV #x #y) (Val #(({ x with metrics' := y } : RealFIFO)))
+  get_emitDeltaTypeBookmark : ∀ (x : RealFIFO), go.IsGoStepPureDetTagged under (StructFieldGet RealFIFO.underlying go!"emitDeltaTypeBookmark") #x (Val #(x.emitDeltaTypeBookmark'))
+  set_emitDeltaTypeBookmark : ∀ (x : RealFIFO) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet RealFIFO.underlying go!"emitDeltaTypeBookmark") (PairV #x #y) (Val #(({ x with emitDeltaTypeBookmark' := y } : RealFIFO)))
+  method_set : go.MethodSetIs RealFIFO.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealFIFO.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsClosed", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"PopBatch", (some (go.signature.Signature [ProcessBatchFunc.ty, PopProcessFunc.ty] false [go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transformer", (some (go.signature.Signature [] false [TransformFunc.ty]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addReplaceToItemsLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addResyncToItemsLocked", (some (go.signature.Signature [] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addToItems_locked", (some (go.signature.Signature [DeltaType.ty, go.bool, (go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.checkSynced_locked", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.hasSynced_locked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/tools/cache.keyOf", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.string, go.error]))), (go!"k8s.io/client-go/tools/cache.whileProcessing_locked", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [go.error]))] false [go.error])))]
+  ptr_Add_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Add" RealFIFO.Add.impl
+  ptr_Bookmark_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Bookmark" RealFIFO.Bookmark.impl
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Close" RealFIFO.Close.impl
+  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Delete" RealFIFO.Delete.impl
+  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Done" RealFIFO.Done.impl
+  ptr_HasSynced_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"HasSynced" RealFIFO.HasSynced.impl
+  ptr_HasSyncedChecker_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"HasSyncedChecker" RealFIFO.HasSyncedChecker.impl
+  ptr_IsClosed_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"IsClosed" RealFIFO.IsClosed.impl
+  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Name" RealFIFO.Name.impl
+  ptr_Pop_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Pop" RealFIFO.Pop.impl
+  ptr_Replace_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Replace" RealFIFO.Replace.impl
+  ptr_Resync_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Resync" RealFIFO.Resync.impl
+  ptr_Transformer_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Transformer" RealFIFO.Transformer.impl
+  ptr_Update_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"Update" RealFIFO.Update.impl
+  ptr_addReplaceToItemsLocked_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"addReplaceToItemsLocked" RealFIFO.addReplaceToItemsLocked.impl
+  ptr_addResyncToItemsLocked_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"addResyncToItemsLocked" RealFIFO.addResyncToItemsLocked.impl
+  ptr_addToItems_locked_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"addToItems_locked" RealFIFO.addToItems_locked.impl
+  ptr_checkSynced_locked_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"checkSynced_locked" RealFIFO.checkSynced_locked.impl
+  ptr_hasSynced_locked_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"hasSynced_locked" RealFIFO.hasSynced_locked.impl
+  ptr_keyOf_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"keyOf" RealFIFO.keyOf.impl
+  ptr_whileProcessing_locked_unfold : MethodUnfold (go.GoType.PointerType RealFIFO.ty) go!"whileProcessing_locked" RealFIFO.whileProcessing_locked.impl
+
+attribute [instance] RealFIFO.TypeAssumptions.type_repr
+  RealFIFO.TypeAssumptions.underlying
+  RealFIFO.TypeAssumptions.get_logger
+  RealFIFO.TypeAssumptions.set_logger
+  RealFIFO.TypeAssumptions.get_name
+  RealFIFO.TypeAssumptions.set_name
+  RealFIFO.TypeAssumptions.get_lock
+  RealFIFO.TypeAssumptions.set_lock
+  RealFIFO.TypeAssumptions.get_cond
+  RealFIFO.TypeAssumptions.set_cond
+  RealFIFO.TypeAssumptions.get_items
+  RealFIFO.TypeAssumptions.set_items
+  RealFIFO.TypeAssumptions.get_synced
+  RealFIFO.TypeAssumptions.set_synced
+  RealFIFO.TypeAssumptions.get_syncedClosed
+  RealFIFO.TypeAssumptions.set_syncedClosed
+  RealFIFO.TypeAssumptions.get_populated
+  RealFIFO.TypeAssumptions.set_populated
+  RealFIFO.TypeAssumptions.get_initialPopulationCount
+  RealFIFO.TypeAssumptions.set_initialPopulationCount
+  RealFIFO.TypeAssumptions.get_keyFunc
+  RealFIFO.TypeAssumptions.set_keyFunc
+  RealFIFO.TypeAssumptions.get_knownObjects
+  RealFIFO.TypeAssumptions.set_knownObjects
+  RealFIFO.TypeAssumptions.get_closed
+  RealFIFO.TypeAssumptions.set_closed
+  RealFIFO.TypeAssumptions.get_transformer
+  RealFIFO.TypeAssumptions.set_transformer
+  RealFIFO.TypeAssumptions.get_batchSize
+  RealFIFO.TypeAssumptions.set_batchSize
+  RealFIFO.TypeAssumptions.get_emitAtomicEvents
+  RealFIFO.TypeAssumptions.set_emitAtomicEvents
+  RealFIFO.TypeAssumptions.get_unlockWhileProcessing
+  RealFIFO.TypeAssumptions.set_unlockWhileProcessing
+  RealFIFO.TypeAssumptions.get_identifier
+  RealFIFO.TypeAssumptions.set_identifier
+  RealFIFO.TypeAssumptions.get_metrics
+  RealFIFO.TypeAssumptions.set_metrics
+  RealFIFO.TypeAssumptions.get_emitDeltaTypeBookmark
+  RealFIFO.TypeAssumptions.set_emitDeltaTypeBookmark
+  RealFIFO.TypeAssumptions.method_set
+  RealFIFO.TypeAssumptions.ptr_method_set
+  RealFIFO.TypeAssumptions.ptr_Add_unfold
+  RealFIFO.TypeAssumptions.ptr_Bookmark_unfold
+  RealFIFO.TypeAssumptions.ptr_Close_unfold
+  RealFIFO.TypeAssumptions.ptr_Delete_unfold
+  RealFIFO.TypeAssumptions.ptr_Done_unfold
+  RealFIFO.TypeAssumptions.ptr_HasSynced_unfold
+  RealFIFO.TypeAssumptions.ptr_HasSyncedChecker_unfold
+  RealFIFO.TypeAssumptions.ptr_IsClosed_unfold
+  RealFIFO.TypeAssumptions.ptr_Name_unfold
+  RealFIFO.TypeAssumptions.ptr_Pop_unfold
+  RealFIFO.TypeAssumptions.ptr_Replace_unfold
+  RealFIFO.TypeAssumptions.ptr_Resync_unfold
+  RealFIFO.TypeAssumptions.ptr_Transformer_unfold
+  RealFIFO.TypeAssumptions.ptr_Update_unfold
+  RealFIFO.TypeAssumptions.ptr_addReplaceToItemsLocked_unfold
+  RealFIFO.TypeAssumptions.ptr_addResyncToItemsLocked_unfold
+  RealFIFO.TypeAssumptions.ptr_addToItems_locked_unfold
+  RealFIFO.TypeAssumptions.ptr_checkSynced_locked_unfold
+  RealFIFO.TypeAssumptions.ptr_hasSynced_locked_unfold
+  RealFIFO.TypeAssumptions.ptr_keyOf_unfold
+  RealFIFO.TypeAssumptions.ptr_whileProcessing_locked_unfold
+
 class ReplacedAllInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplacedAllInfo.underlying ReplacedAllInfo
   underlying : go.UnderlyingDirectedEq ReplacedAllInfo.ty ReplacedAllInfo.underlying

@@ -3113,12 +3113,42 @@ class IPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   isUnderlying : go.IsUnderlying IPConn.underlying IPConn.underlying
   method_set : go.MethodSetIs IPConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IPConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, Addr.ty, go.error]))), (go!"ReadFromIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType IPAddr.ty), go.error]))), (go!"ReadMsgIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType IPAddr.ty), go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteMsgIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType IPAddr.ty)] false [go.int, go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Addr.ty] false [go.int, go.error]))), (go!"WriteToIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType IPAddr.ty)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType IPAddr.ty), go.error]))), (go!"net.readMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType IPAddr.ty), go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType IPAddr.ty)] false [go.int, go.int, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType IPAddr.ty)] false [go.int, go.error])))]
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_LocalAddr_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"LocalAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"LocalAddr"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_RemoteAddr_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"RemoteAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"SetDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"SetReadBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"SetReadDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"SetWriteBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"SetWriteDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType IPConn.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldRef IPConn.ty go!"conn"))) (Var "$r"))))
 
 attribute [instance] IPConn.TypeAssumptions.type_repr
   IPConn.TypeAssumptions.underlying
   IPConn.TypeAssumptions.isUnderlying
   IPConn.TypeAssumptions.method_set
   IPConn.TypeAssumptions.ptr_method_set
+  IPConn.TypeAssumptions.ptr_Close_unfold
+  IPConn.TypeAssumptions.ptr_LocalAddr_unfold
+  IPConn.TypeAssumptions.ptr_Read_unfold
+  IPConn.TypeAssumptions.ptr_RemoteAddr_unfold
+  IPConn.TypeAssumptions.ptr_SetDeadline_unfold
+  IPConn.TypeAssumptions.ptr_SetReadBuffer_unfold
+  IPConn.TypeAssumptions.ptr_SetReadDeadline_unfold
+  IPConn.TypeAssumptions.ptr_SetWriteBuffer_unfold
+  IPConn.TypeAssumptions.ptr_SetWriteDeadline_unfold
+  IPConn.TypeAssumptions.ptr_Write_unfold
 
 opaque ipStackCapabilities.nonempty_type : NonemptyType.{0}
 def ipStackCapabilities : Type := ipStackCapabilities.nonempty_type.type
@@ -3666,12 +3696,102 @@ class tcpConnWithoutReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   isUnderlying : go.IsUnderlying tcpConnWithoutReadFrom.underlying tcpConnWithoutReadFrom.underlying
   method_set : go.MethodSetIs tcpConnWithoutReadFrom.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tcpConnWithoutReadFrom.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
+  Close_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  CloseWrite_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"CloseWrite" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"CloseWrite"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  LocalAddr_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"LocalAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"LocalAddr"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  Read_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  RemoteAddr_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"RemoteAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  SetDeadline_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"SetDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  SetKeepAlive_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"SetKeepAlive" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlive"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  SetKeepAlivePeriod_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"SetKeepAlivePeriod" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlivePeriod"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  SetLinger_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"SetLinger" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetLinger"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  SetNoDelay_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"SetNoDelay" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetNoDelay"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  SetReadBuffer_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"SetReadBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  SetReadDeadline_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"SetReadDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  SetWriteBuffer_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"SetWriteBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  SetWriteDeadline_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"SetWriteDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  Write_unfold : MethodUnfold tcpConnWithoutReadFrom.ty go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r"))))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_CloseWrite_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"CloseWrite" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"CloseWrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_LocalAddr_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"LocalAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"LocalAddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_RemoteAddr_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"RemoteAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"SetDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetKeepAlive_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"SetKeepAlive" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlive"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetKeepAlivePeriod_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"SetKeepAlivePeriod" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlivePeriod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetLinger_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"SetLinger" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetLinger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetNoDelay_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"SetNoDelay" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetNoDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"SetReadBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"SetReadDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"SetWriteBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"SetWriteDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutReadFrom.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutReadFrom.ty go!"TCPConn"))) (Var "$r")))))
 
 attribute [instance] tcpConnWithoutReadFrom.TypeAssumptions.type_repr
   tcpConnWithoutReadFrom.TypeAssumptions.underlying
   tcpConnWithoutReadFrom.TypeAssumptions.isUnderlying
   tcpConnWithoutReadFrom.TypeAssumptions.method_set
   tcpConnWithoutReadFrom.TypeAssumptions.ptr_method_set
+  tcpConnWithoutReadFrom.TypeAssumptions.Close_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.CloseWrite_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.LocalAddr_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.Read_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.RemoteAddr_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.SetDeadline_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.SetKeepAlive_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.SetKeepAlivePeriod_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.SetLinger_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.SetNoDelay_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.SetReadBuffer_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.SetReadDeadline_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.SetWriteBuffer_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.SetWriteDeadline_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.Write_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_Close_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_CloseWrite_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_LocalAddr_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_Read_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_RemoteAddr_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_SetDeadline_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_SetKeepAlive_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_SetKeepAlivePeriod_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_SetLinger_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_SetNoDelay_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_SetReadBuffer_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_SetReadDeadline_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_SetWriteBuffer_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_SetWriteDeadline_unfold
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_Write_unfold
 
 opaque noWriteTo.nonempty_type : NonemptyType.{0}
 def noWriteTo : Type := noWriteTo.nonempty_type.type
@@ -3704,12 +3824,102 @@ class tcpConnWithoutWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   isUnderlying : go.IsUnderlying tcpConnWithoutWriteTo.underlying tcpConnWithoutWriteTo.underlying
   method_set : go.MethodSetIs tcpConnWithoutWriteTo.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType tcpConnWithoutWriteTo.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
+  Close_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  CloseWrite_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"CloseWrite" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"CloseWrite"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  LocalAddr_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"LocalAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"LocalAddr"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  Read_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  RemoteAddr_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"RemoteAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  SetDeadline_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"SetDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  SetKeepAlive_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"SetKeepAlive" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlive"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  SetKeepAlivePeriod_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"SetKeepAlivePeriod" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlivePeriod"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  SetLinger_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"SetLinger" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetLinger"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  SetNoDelay_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"SetNoDelay" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetNoDelay"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  SetReadBuffer_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"SetReadBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  SetReadDeadline_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"SetReadDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  SetWriteBuffer_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"SetWriteBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  SetWriteDeadline_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"SetWriteDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  Write_unfold : MethodUnfold tcpConnWithoutWriteTo.ty go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldGet tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r"))))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_CloseWrite_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"CloseWrite" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"CloseWrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_LocalAddr_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"LocalAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"LocalAddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_RemoteAddr_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"RemoteAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"SetDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetKeepAlive_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"SetKeepAlive" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlive"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetKeepAlivePeriod_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"SetKeepAlivePeriod" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlivePeriod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetLinger_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"SetLinger" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetLinger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetNoDelay_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"SetNoDelay" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetNoDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"SetReadBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"SetReadDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"SetWriteBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"SetWriteDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType tcpConnWithoutWriteTo.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType TCPConn.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TCPConn.ty)))) (App (Val (GoInstruction (StructFieldRef tcpConnWithoutWriteTo.ty go!"TCPConn"))) (Var "$r")))))
 
 attribute [instance] tcpConnWithoutWriteTo.TypeAssumptions.type_repr
   tcpConnWithoutWriteTo.TypeAssumptions.underlying
   tcpConnWithoutWriteTo.TypeAssumptions.isUnderlying
   tcpConnWithoutWriteTo.TypeAssumptions.method_set
   tcpConnWithoutWriteTo.TypeAssumptions.ptr_method_set
+  tcpConnWithoutWriteTo.TypeAssumptions.Close_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.CloseWrite_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.LocalAddr_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.Read_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.RemoteAddr_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.SetDeadline_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.SetKeepAlive_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.SetKeepAlivePeriod_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.SetLinger_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.SetNoDelay_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.SetReadBuffer_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.SetReadDeadline_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.SetWriteBuffer_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.SetWriteDeadline_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.Write_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_Close_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_CloseWrite_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_LocalAddr_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_Read_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_RemoteAddr_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_SetDeadline_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_SetKeepAlive_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_SetKeepAlivePeriod_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_SetLinger_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_SetNoDelay_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_SetReadBuffer_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_SetReadDeadline_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_SetWriteBuffer_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_SetWriteDeadline_unfold
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_Write_unfold
 
 opaque buffersWriter.nonempty_type : NonemptyType.{0}
 def buffersWriter : Type := buffersWriter.nonempty_type.type
@@ -4146,12 +4356,42 @@ class UDPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   isUnderlying : go.IsUnderlying UDPConn.underlying UDPConn.underlying
   method_set : go.MethodSetIs UDPConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UDPConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, Addr.ty, go.error]))), (go!"ReadFromUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"ReadFromUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"ReadMsgUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"ReadMsgUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteMsgUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.int, go.error]))), (go!"WriteMsgUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Addr.ty] false [go.int, go.error]))), (go!"WriteToUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.error]))), (go!"WriteToUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"net.readFromAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"net.readFromUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"net.readMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.int, go.error]))), (go!"net.writeMsgAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.int, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.error]))), (go!"net.writeToAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.error])))]
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_LocalAddr_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"LocalAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"LocalAddr"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_RemoteAddr_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"RemoteAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetReadBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetReadDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetWriteBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetWriteDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
 
 attribute [instance] UDPConn.TypeAssumptions.type_repr
   UDPConn.TypeAssumptions.underlying
   UDPConn.TypeAssumptions.isUnderlying
   UDPConn.TypeAssumptions.method_set
   UDPConn.TypeAssumptions.ptr_method_set
+  UDPConn.TypeAssumptions.ptr_Close_unfold
+  UDPConn.TypeAssumptions.ptr_LocalAddr_unfold
+  UDPConn.TypeAssumptions.ptr_Read_unfold
+  UDPConn.TypeAssumptions.ptr_RemoteAddr_unfold
+  UDPConn.TypeAssumptions.ptr_SetDeadline_unfold
+  UDPConn.TypeAssumptions.ptr_SetReadBuffer_unfold
+  UDPConn.TypeAssumptions.ptr_SetReadDeadline_unfold
+  UDPConn.TypeAssumptions.ptr_SetWriteBuffer_unfold
+  UDPConn.TypeAssumptions.ptr_SetWriteDeadline_unfold
+  UDPConn.TypeAssumptions.ptr_Write_unfold
 
 opaque UnixAddr.nonempty_type : NonemptyType.{0}
 def UnixAddr : Type := UnixAddr.nonempty_type.type
@@ -4184,12 +4424,42 @@ class UnixConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   isUnderlying : go.IsUnderlying UnixConn.underlying UnixConn.underlying
   method_set : go.MethodSetIs UnixConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnixConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, Addr.ty, go.error]))), (go!"ReadFromUnix", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType UnixAddr.ty), go.error]))), (go!"ReadMsgUnix", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType UnixAddr.ty), go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteMsgUnix", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UnixAddr.ty)] false [go.int, go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Addr.ty] false [go.int, go.error]))), (go!"WriteToUnix", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UnixAddr.ty)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType UnixAddr.ty), go.error]))), (go!"net.readMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType UnixAddr.ty), go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UnixAddr.ty)] false [go.int, go.int, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UnixAddr.ty)] false [go.int, go.error])))]
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
+  ptr_LocalAddr_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"LocalAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"LocalAddr"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
+  ptr_RemoteAddr_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"RemoteAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"SetDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"SetReadBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"SetReadDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"SetWriteBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"SetWriteDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType UnixConn.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldRef UnixConn.ty go!"conn"))) (Var "$r"))))
 
 attribute [instance] UnixConn.TypeAssumptions.type_repr
   UnixConn.TypeAssumptions.underlying
   UnixConn.TypeAssumptions.isUnderlying
   UnixConn.TypeAssumptions.method_set
   UnixConn.TypeAssumptions.ptr_method_set
+  UnixConn.TypeAssumptions.ptr_Close_unfold
+  UnixConn.TypeAssumptions.ptr_LocalAddr_unfold
+  UnixConn.TypeAssumptions.ptr_Read_unfold
+  UnixConn.TypeAssumptions.ptr_RemoteAddr_unfold
+  UnixConn.TypeAssumptions.ptr_SetDeadline_unfold
+  UnixConn.TypeAssumptions.ptr_SetReadBuffer_unfold
+  UnixConn.TypeAssumptions.ptr_SetReadDeadline_unfold
+  UnixConn.TypeAssumptions.ptr_SetWriteBuffer_unfold
+  UnixConn.TypeAssumptions.ptr_SetWriteDeadline_unfold
+  UnixConn.TypeAssumptions.ptr_Write_unfold
 
 opaque UnixListener.nonempty_type : NonemptyType.{0}
 def UnixListener : Type := UnixListener.nonempty_type.type

@@ -3625,6 +3625,10 @@ class Status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_Code : ∀ (x : Status) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Status.underlying go!"Code") (PairV #x #y) (Val #(({ x with Code' := y } : Status)))
   method_set : go.MethodSetIs Status.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Status.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Status.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Status.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_GetContinue_unfold : MethodUnfold (go.GoType.PointerType Status.ty) go!"GetContinue" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListMeta.ty) go!"GetContinue"))) (App (Val (GoInstruction (StructFieldRef Status.ty go!"ListMeta"))) (Var "$r"))))
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType Status.ty) go!"GetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListMeta.ty) go!"GetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef Status.ty go!"ListMeta"))) (Var "$r"))))
 
 attribute [instance] Status.TypeAssumptions.type_repr
   Status.TypeAssumptions.underlying
@@ -3644,6 +3648,8 @@ attribute [instance] Status.TypeAssumptions.type_repr
   Status.TypeAssumptions.set_Code
   Status.TypeAssumptions.method_set
   Status.TypeAssumptions.ptr_method_set
+  Status.TypeAssumptions.ptr_GetContinue_unfold
+  Status.TypeAssumptions.ptr_GetResourceVersion_unfold
 
 structure StatusDetails [GooseExts] where
   mk ::
@@ -3806,6 +3812,10 @@ class List.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_Items : ∀ (x : List') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet List'.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : List')))
   method_set : go.MethodSetIs List'.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType List'.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType List'.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType List'.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_GetContinue_unfold : MethodUnfold (go.GoType.PointerType List'.ty) go!"GetContinue" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListMeta.ty) go!"GetContinue"))) (App (Val (GoInstruction (StructFieldRef List'.ty go!"ListMeta"))) (Var "$r"))))
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType List'.ty) go!"GetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListMeta.ty) go!"GetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef List'.ty go!"ListMeta"))) (Var "$r"))))
 
 attribute [instance] List.TypeAssumptions.type_repr
   List.TypeAssumptions.underlying
@@ -3817,6 +3827,8 @@ attribute [instance] List.TypeAssumptions.type_repr
   List.TypeAssumptions.set_Items
   List.TypeAssumptions.method_set
   List.TypeAssumptions.ptr_method_set
+  List.TypeAssumptions.ptr_GetContinue_unfold
+  List.TypeAssumptions.ptr_GetResourceVersion_unfold
 
 structure APIVersions [GooseExts] where
   mk ::
@@ -4555,6 +4567,10 @@ class Table.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Rows : ∀ (x : Table) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Table.underlying go!"Rows") (PairV #x #y) (Val #(({ x with Rows' := y } : Table)))
   method_set : go.MethodSetIs Table.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Table.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Table.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Table.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType ShardInfo.ty)] false []))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
+  ptr_GetContinue_unfold : MethodUnfold (go.GoType.PointerType Table.ty) go!"GetContinue" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListMeta.ty) go!"GetContinue"))) (App (Val (GoInstruction (StructFieldRef Table.ty go!"ListMeta"))) (Var "$r"))))
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType Table.ty) go!"GetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListMeta.ty) go!"GetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef Table.ty go!"ListMeta"))) (Var "$r"))))
 
 attribute [instance] Table.TypeAssumptions.type_repr
   Table.TypeAssumptions.underlying
@@ -4568,6 +4584,8 @@ attribute [instance] Table.TypeAssumptions.type_repr
   Table.TypeAssumptions.set_Rows
   Table.TypeAssumptions.method_set
   Table.TypeAssumptions.ptr_method_set
+  Table.TypeAssumptions.ptr_GetContinue_unfold
+  Table.TypeAssumptions.ptr_GetResourceVersion_unfold
 
 structure TableColumnDefinition [GooseExts] where
   mk ::
@@ -4848,6 +4866,68 @@ class PartialObjectMetadata.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   set_ObjectMeta : ∀ (x : PartialObjectMetadata) (y : ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet PartialObjectMetadata.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : PartialObjectMetadata)))
   method_set : go.MethodSetIs PartialObjectMetadata.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PartialObjectMetadata.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PartialObjectMetadata.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PartialObjectMetadata.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [Object.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetAnnotations" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetAnnotations"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetCreationTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetDeletionGracePeriodSeconds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetDeletionTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetFinalizers_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetFinalizers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetFinalizers"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetGenerateName_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetGenerateName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetGenerateName"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetGeneration_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetGeneration" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetGeneration"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetLabels_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetLabels" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetLabels"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetManagedFields_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetManagedFields" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetManagedFields"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetName"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetNamespace" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetNamespace"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetObjectMeta_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetObjectMeta" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetObjectMeta"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetOwnerReferences" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetSelfLink_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetSelfLink" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetSelfLink"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetUID_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"GetUID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"GetUID"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetAnnotations_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetAnnotations" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetAnnotations"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetCreationTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetDeletionGracePeriodSeconds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetDeletionTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetFinalizers_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetFinalizers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetFinalizers"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGenerateName_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetGenerateName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetGenerateName"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGeneration_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetGeneration" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetGeneration"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetLabels_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetLabels" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetLabels"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetManagedFields_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetManagedFields" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetManagedFields"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetName_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetName"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetNamespace_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetNamespace" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetNamespace"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetOwnerReferences" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetSelfLink_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetSelfLink" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetSelfLink"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetUID_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadata.ty) go!"SetUID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ObjectMeta.ty) go!"SetUID"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadata.ty go!"ObjectMeta"))) (Var "$r"))))
 
 attribute [instance] PartialObjectMetadata.TypeAssumptions.type_repr
   PartialObjectMetadata.TypeAssumptions.underlying
@@ -4857,6 +4937,37 @@ attribute [instance] PartialObjectMetadata.TypeAssumptions.type_repr
   PartialObjectMetadata.TypeAssumptions.set_ObjectMeta
   PartialObjectMetadata.TypeAssumptions.method_set
   PartialObjectMetadata.TypeAssumptions.ptr_method_set
+  PartialObjectMetadata.TypeAssumptions.ptr_GetAnnotations_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetCreationTimestamp_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetDeletionTimestamp_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetFinalizers_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetGenerateName_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetGeneration_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetLabels_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetManagedFields_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetName_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetNamespace_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetObjectMeta_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetOwnerReferences_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetResourceVersion_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetSelfLink_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_GetUID_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetAnnotations_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetCreationTimestamp_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetDeletionGracePeriodSeconds_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetDeletionTimestamp_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetFinalizers_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetGenerateName_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetGeneration_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetLabels_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetManagedFields_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetName_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetNamespace_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetOwnerReferences_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetResourceVersion_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetSelfLink_unfold
+  PartialObjectMetadata.TypeAssumptions.ptr_SetUID_unfold
 
 structure PartialObjectMetadataList [GooseExts] where
   mk ::
@@ -4893,6 +5004,10 @@ class PartialObjectMetadataList.TypeAssumptions [GooseExts] [GoGlobalContext] [G
   set_Items : ∀ (x : PartialObjectMetadataList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PartialObjectMetadataList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : PartialObjectMetadataList)))
   method_set : go.MethodSetIs PartialObjectMetadataList.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PartialObjectMetadataList.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType PartialObjectMetadataList.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType PartialObjectMetadataList.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetContinue", (some (go.signature.Signature [] false [go.string]))), (go!"GetListMeta", (some (go.signature.Signature [] false [ListInterface.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetRemainingItemCount", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetShardInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType ShardInfo.ty)]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetContinue", (some (go.signature.Signature [go.string] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))), (go!"SetRemainingItemCount", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetShardInfo", (some (go.signature.Signature [(go.GoType.PointerType ShardInfo.ty)] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_GetContinue_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadataList.ty) go!"GetContinue" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListMeta.ty) go!"GetContinue"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadataList.ty go!"ListMeta"))) (Var "$r"))))
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType PartialObjectMetadataList.ty) go!"GetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ListMeta.ty) go!"GetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef PartialObjectMetadataList.ty go!"ListMeta"))) (Var "$r"))))
 
 attribute [instance] PartialObjectMetadataList.TypeAssumptions.type_repr
   PartialObjectMetadataList.TypeAssumptions.underlying
@@ -4904,6 +5019,8 @@ attribute [instance] PartialObjectMetadataList.TypeAssumptions.type_repr
   PartialObjectMetadataList.TypeAssumptions.set_Items
   PartialObjectMetadataList.TypeAssumptions.method_set
   PartialObjectMetadataList.TypeAssumptions.ptr_method_set
+  PartialObjectMetadataList.TypeAssumptions.ptr_GetContinue_unfold
+  PartialObjectMetadataList.TypeAssumptions.ptr_GetResourceVersion_unfold
 
 structure Condition [GooseExts] where
   mk ::

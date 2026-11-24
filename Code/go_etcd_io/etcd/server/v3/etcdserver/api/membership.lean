@@ -7114,6 +7114,8 @@ class ConfigChangeContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   method_set : go.MethodSetIs ConfigChangeContext.ty [(go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfigChangeContext.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Member.ty)]))), (go!"IsStarted", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelMarshalPtr", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"JSONModelUnmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error])))]
   JSONModelMarshal_unfold : MethodUnfold ConfigChangeContext.ty go!"JSONModelMarshal" ConfigChangeContext.JSONModelMarshal.impl
+  ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType ConfigChangeContext.ty) go!"Clone" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Member.ty) go!"Clone"))) (App (Val (GoInstruction (StructFieldRef ConfigChangeContext.ty go!"Member"))) (Var "$r"))))
   ptr_JSONModelMarshal_unfold : MethodUnfold (go.GoType.PointerType ConfigChangeContext.ty) go!"JSONModelMarshal" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConfigChangeContext.ty go!"JSONModelMarshal"))) (App (Val (GoInstruction (GoLoad ConfigChangeContext.ty))) (Var "$r"))))
   ptr_JSONModelMarshalPtr_unfold : MethodUnfold (go.GoType.PointerType ConfigChangeContext.ty) go!"JSONModelMarshalPtr" ConfigChangeContext.JSONModelMarshalPtr.impl
@@ -7128,6 +7130,7 @@ attribute [instance] ConfigChangeContext.TypeAssumptions.type_repr
   ConfigChangeContext.TypeAssumptions.method_set
   ConfigChangeContext.TypeAssumptions.ptr_method_set
   ConfigChangeContext.TypeAssumptions.JSONModelMarshal_unfold
+  ConfigChangeContext.TypeAssumptions.ptr_Clone_unfold
   ConfigChangeContext.TypeAssumptions.ptr_JSONModelMarshal_unfold
   ConfigChangeContext.TypeAssumptions.ptr_JSONModelMarshalPtr_unfold
   ConfigChangeContext.TypeAssumptions.ptr_JSONModelUnmarshal_unfold

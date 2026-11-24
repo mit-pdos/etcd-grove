@@ -1343,6 +1343,18 @@ class nonRecordingSpan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_sc : ∀ (x : nonRecordingSpan) (y : SpanContext), go.IsGoStepPureDetTagged under (StructFieldSet nonRecordingSpan.underlying go!"sc") (PairV #x #y) (Val #(({ x with sc' := y } : nonRecordingSpan)))
   method_set : go.MethodSetIs nonRecordingSpan.ty [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType nonRecordingSpan.ty) [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
+  AddEvent_unfold : MethodUnfold nonRecordingSpan.ty go!"AddEvent" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopSpan.ty go!"AddEvent"))) (App (Val (GoInstruction (StructFieldGet nonRecordingSpan.ty go!"noopSpan"))) (Var "$r"))))
+  End_unfold : MethodUnfold nonRecordingSpan.ty go!"End" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopSpan.ty go!"End"))) (App (Val (GoInstruction (StructFieldGet nonRecordingSpan.ty go!"noopSpan"))) (Var "$r"))))
+  RecordError_unfold : MethodUnfold nonRecordingSpan.ty go!"RecordError" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noopSpan.ty go!"RecordError"))) (App (Val (GoInstruction (StructFieldGet nonRecordingSpan.ty go!"noopSpan"))) (Var "$r"))))
+  ptr_AddEvent_unfold : MethodUnfold (go.GoType.PointerType nonRecordingSpan.ty) go!"AddEvent" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType noopSpan.ty) go!"AddEvent"))) (App (Val (GoInstruction (StructFieldRef nonRecordingSpan.ty go!"noopSpan"))) (Var "$r"))))
+  ptr_End_unfold : MethodUnfold (go.GoType.PointerType nonRecordingSpan.ty) go!"End" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType noopSpan.ty) go!"End"))) (App (Val (GoInstruction (StructFieldRef nonRecordingSpan.ty go!"noopSpan"))) (Var "$r"))))
+  ptr_RecordError_unfold : MethodUnfold (go.GoType.PointerType nonRecordingSpan.ty) go!"RecordError" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType noopSpan.ty) go!"RecordError"))) (App (Val (GoInstruction (StructFieldRef nonRecordingSpan.ty go!"noopSpan"))) (Var "$r"))))
 
 attribute [instance] nonRecordingSpan.TypeAssumptions.type_repr
   nonRecordingSpan.TypeAssumptions.underlying
@@ -1352,6 +1364,12 @@ attribute [instance] nonRecordingSpan.TypeAssumptions.type_repr
   nonRecordingSpan.TypeAssumptions.set_sc
   nonRecordingSpan.TypeAssumptions.method_set
   nonRecordingSpan.TypeAssumptions.ptr_method_set
+  nonRecordingSpan.TypeAssumptions.AddEvent_unfold
+  nonRecordingSpan.TypeAssumptions.End_unfold
+  nonRecordingSpan.TypeAssumptions.RecordError_unfold
+  nonRecordingSpan.TypeAssumptions.ptr_AddEvent_unfold
+  nonRecordingSpan.TypeAssumptions.ptr_End_unfold
+  nonRecordingSpan.TypeAssumptions.ptr_RecordError_unfold
 
 structure noopTracerProvider [GooseExts] where
   mk ::

@@ -3464,9 +3464,77 @@ class TypedBucketRateLimiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   set_Limiter : ∀ (T : go.GoType) (T' : Type) (x : (TypedBucketRateLimiter T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (TypedBucketRateLimiter.underlying T) go!"Limiter") (PairV #x #y) (Val #(({ x with Limiter' := y } : (TypedBucketRateLimiter T'))))
   method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedBucketRateLimiter.ty T) [(go!"Allow", (some (go.signature.Signature [] false [go.bool]))), (go!"AllowN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [go.bool]))), (go!"Burst", (some (go.signature.Signature [] false [go.int]))), (go!"Limit", (some (go.signature.Signature [] false [_root_.Perennial.golang_org.x.time.rate.Limit.ty]))), (go!"Reserve", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty)]))), (go!"ReserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty)]))), (go!"SetBurst", (some (go.signature.Signature [go.int] false []))), (go!"SetBurstAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false []))), (go!"SetLimit", (some (go.signature.Signature [_root_.Perennial.golang_org.x.time.rate.Limit.ty] false []))), (go!"SetLimitAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, _root_.Perennial.golang_org.x.time.rate.Limit.ty] false []))), (go!"Tokens", (some (go.signature.Signature [] false [go.float64]))), (go!"TokensAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitN", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int] false [go.error]))), (go!"golang.org/x/time/rate.advance", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"golang.org/x/time/rate.reserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.golang_org.x.time.rate.Reservation.ty]))), (go!"golang.org/x/time/rate.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int, _root_.Perennial.time.Time.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))] false [go.error])))]
   ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) [(go!"Allow", (some (go.signature.Signature [] false [go.bool]))), (go!"AllowN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [go.bool]))), (go!"Burst", (some (go.signature.Signature [] false [go.int]))), (go!"Forget", (some (go.signature.Signature [T] false []))), (go!"Limit", (some (go.signature.Signature [] false [_root_.Perennial.golang_org.x.time.rate.Limit.ty]))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"Reserve", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty)]))), (go!"ReserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Reservation.ty)]))), (go!"SetBurst", (some (go.signature.Signature [go.int] false []))), (go!"SetBurstAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false []))), (go!"SetLimit", (some (go.signature.Signature [_root_.Perennial.golang_org.x.time.rate.Limit.ty] false []))), (go!"SetLimitAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, _root_.Perennial.golang_org.x.time.rate.Limit.ty] false []))), (go!"Tokens", (some (go.signature.Signature [] false [go.float64]))), (go!"TokensAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitN", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int] false [go.error]))), (go!"When", (some (go.signature.Signature [T] false [_root_.Perennial.time.Duration.ty]))), (go!"golang.org/x/time/rate.advance", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"golang.org/x/time/rate.reserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.golang_org.x.time.rate.Reservation.ty]))), (go!"golang.org/x/time/rate.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int, _root_.Perennial.time.Time.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))] false [go.error])))]
+  Allow_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"Allow" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Allow"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  AllowN_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"AllowN" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"AllowN"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  Burst_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"Burst" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Burst"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  Limit_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"Limit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Limit"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  Reserve_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"Reserve" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Reserve"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  ReserveN_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"ReserveN" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"ReserveN"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  SetBurst_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"SetBurst" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"SetBurst"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  SetBurstAt_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"SetBurstAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"SetBurstAt"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  SetLimit_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"SetLimit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"SetLimit"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  SetLimitAt_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"SetLimitAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"SetLimitAt"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  Tokens_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"Tokens" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Tokens"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  TokensAt_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"TokensAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"TokensAt"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  Wait_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"Wait" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Wait"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  WaitN_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"WaitN" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"WaitN"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  advance_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"advance" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"advance"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  reserveN_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"reserveN" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"reserveN"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  wait_unfold : ∀ (T : go.GoType), MethodUnfold (TypedBucketRateLimiter.ty T) go!"wait" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"wait"))) (App (Val (GoInstruction (StructFieldGet (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r"))))
+  ptr_Allow_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"Allow" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Allow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_AllowN_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"AllowN" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"AllowN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_Burst_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"Burst" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Burst"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
   ptr_Forget_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"Forget" (TypedBucketRateLimiter.Forget.impl T)
+  ptr_Limit_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"Limit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
   ptr_NumRequeues_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"NumRequeues" (TypedBucketRateLimiter.NumRequeues.impl T)
+  ptr_Reserve_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"Reserve" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Reserve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_ReserveN_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"ReserveN" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"ReserveN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_SetBurst_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"SetBurst" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"SetBurst"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_SetBurstAt_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"SetBurstAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"SetBurstAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_SetLimit_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"SetLimit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"SetLimit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_SetLimitAt_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"SetLimitAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"SetLimitAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_Tokens_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"Tokens" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_TokensAt_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"TokensAt" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"TokensAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_Wait_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"Wait" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"Wait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_WaitN_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"WaitN" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"WaitN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
   ptr_When_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"When" (TypedBucketRateLimiter.When.impl T)
+  ptr_advance_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"advance" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"advance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_reserveN_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"reserveN" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"reserveN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
+  ptr_wait_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) go!"wait" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty) go!"wait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.golang_org.x.time.rate.Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef (TypedBucketRateLimiter.ty T) go!"Limiter"))) (Var "$r")))))
 
 attribute [instance] TypedBucketRateLimiter.TypeAssumptions.type_repr
   TypedBucketRateLimiter.TypeAssumptions.underlying
@@ -3474,9 +3542,43 @@ attribute [instance] TypedBucketRateLimiter.TypeAssumptions.type_repr
   TypedBucketRateLimiter.TypeAssumptions.set_Limiter
   TypedBucketRateLimiter.TypeAssumptions.method_set
   TypedBucketRateLimiter.TypeAssumptions.ptr_method_set
+  TypedBucketRateLimiter.TypeAssumptions.Allow_unfold
+  TypedBucketRateLimiter.TypeAssumptions.AllowN_unfold
+  TypedBucketRateLimiter.TypeAssumptions.Burst_unfold
+  TypedBucketRateLimiter.TypeAssumptions.Limit_unfold
+  TypedBucketRateLimiter.TypeAssumptions.Reserve_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ReserveN_unfold
+  TypedBucketRateLimiter.TypeAssumptions.SetBurst_unfold
+  TypedBucketRateLimiter.TypeAssumptions.SetBurstAt_unfold
+  TypedBucketRateLimiter.TypeAssumptions.SetLimit_unfold
+  TypedBucketRateLimiter.TypeAssumptions.SetLimitAt_unfold
+  TypedBucketRateLimiter.TypeAssumptions.Tokens_unfold
+  TypedBucketRateLimiter.TypeAssumptions.TokensAt_unfold
+  TypedBucketRateLimiter.TypeAssumptions.Wait_unfold
+  TypedBucketRateLimiter.TypeAssumptions.WaitN_unfold
+  TypedBucketRateLimiter.TypeAssumptions.advance_unfold
+  TypedBucketRateLimiter.TypeAssumptions.reserveN_unfold
+  TypedBucketRateLimiter.TypeAssumptions.wait_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_Allow_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_AllowN_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_Burst_unfold
   TypedBucketRateLimiter.TypeAssumptions.ptr_Forget_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_Limit_unfold
   TypedBucketRateLimiter.TypeAssumptions.ptr_NumRequeues_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_Reserve_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_ReserveN_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_SetBurst_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_SetBurstAt_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_SetLimit_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_SetLimitAt_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_Tokens_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_TokensAt_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_Wait_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_WaitN_unfold
   TypedBucketRateLimiter.TypeAssumptions.ptr_When_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_advance_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_reserveN_unfold
+  TypedBucketRateLimiter.TypeAssumptions.ptr_wait_unfold
 
 structure TypedItemExponentialFailureRateLimiter [GooseExts] (T : Type) where
   mk ::
