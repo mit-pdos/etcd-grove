@@ -5,6 +5,7 @@
 module
 
 public import Net.Spec.net.rpc.HandleHTTP
+public import Net.Proof.net.rpc.HTTPPaths
 
 @[expose] public section
 
@@ -24,12 +25,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS]
-
-theorem litPattern_rpc : net.http.litPattern defaultRPCPath := by
-  unfold net.http.litPattern defaultRPCPath; decide
-
-theorem litPattern_debug : net.http.litPattern defaultDebugPath := by
-  unfold net.http.litPattern defaultDebugPath; decide
 
 theorem HandleHTTP.wp_proof (wp_HandleHTTP : Server.HandleHTTP.spec (GF := GF) (hG := hG)) :
     HandleHTTP.spec (GF := GF) (hG := hG) := by

@@ -10,6 +10,7 @@ listens at serves the registered service (`srvServes`, from `drvSS_only`).
 -/
 module
 
+public import Net.Proof.net.rpc.HTTPPaths
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Server
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.New
 public import Net.Spec.net.rpc.Register
@@ -72,7 +73,7 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
       (by decide) $$ [Hown] as %err1 ⟨%He1, #Hreg, Hown⟩
   · iframe Hds Hown Hset
     isplitr
-    · ipureintro; simp
+    · ipureintro; simp [GMap.mem_iff]
     iapply svcRcv
     iframe Hset Hsvc
     ipureintro; exact Hsnn
@@ -82,17 +83,20 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
   ihave #Hsrvh := drv_srvServes γid reg γs httpAddr $$ Hreg
   ihave #Hdsa := net.rpc.defaultServerO_any γs γf $$ Hds
   -- `&NoMethods{}` refused
+  wp_alloc pn as Hpn
+  icases typedPointsto_not_null_dup _ _ _ $$ Hpn with ⟨-, %Hpnn⟩
+  try wp_auto
   wp_apply wp_RegisterNone γs drvCodec _ go!"NoMethods" (W8 78) go!"oMethods" rfl (by decide)
       $$ [] as %err2 %He2
   · iframe Hdsa Hset Hlog
-    iapply noMethodsRcv
-    ipureintro; exact ?_
+    iapply (noMethodsRcv pn)
+    ipureintro; exact Hpnn
   cases err2 with
   | nil => exact absurd rfl He2
   | ok e2 =>
-  try wp_auto
   iunfold drvFacts at Hf
   icases Hf with ⟨-, %fr, #Hrg, #Hrf⟩
+  try wp_auto
   wp_bind (App (Val #fr) (Val _))
   iapply wp_wand $$ (Hrf $$ %go!"register")
   iintro %v %Hv
@@ -137,7 +141,7 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
   iintro Htok
   isplitl [Htok]
   · wp_apply (wp_Serve (drvWorld γid reg) httpAddr net.rpc.defaultRPCPath hv hl
-      net.rpc.HandleHTTP.litPattern_rpc) $$ [Htok] as %e3 Htok
+      net.rpc.litPattern_rpc) $$ [Htok] as %e3 Htok
     · iframe Hhttp Hsenv Hhli Hhon Hhinv Htok
       isplitr
       · ipureintro; exact Hb
@@ -176,7 +180,7 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
   iapply fupd_wp
   imod (lisInv_alloc ⊤ _ tl tcpAddr true) $$ Htnl with #Htinv
   imodintro
-  wp_apply wp_Accept γs drvCodec (drvWorld γid reg) tcpAddr tv tl $$ [] as -
+  wp_apply wp_Accept γs drvCodec (drvWorld γid reg) tcpAddr tv tl $$ []
   · iframe Hdsa Henv Hset Hlog Htli Hton Htinv
     isplitr
     · ipureintro; exact Hb
@@ -185,6 +189,7 @@ theorem Server.wp_proof (svcRcv : svcRcv.spec (GF := GF) (hG := hG))
     have ha : a = tcpAddr := ((lisAccepts_addrOk (by decide)).1 hacc).symm
     subst ha
     iframe Hsrv
+    unfold net.rpc.rpcAddr
     iapply net.rpc.rpcLisP_addr _ _ _ _ _ hok hacc
     iexact Htl
   try wp_auto
