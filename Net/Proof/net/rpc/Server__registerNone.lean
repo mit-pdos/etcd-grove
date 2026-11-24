@@ -105,7 +105,7 @@ theorem Server.register.wp_proof_none (wp_getCodec : getCodec.spec (GF := GF) (h
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
       wp_apply wp_Println _ _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil) $$ [$Hlog $Hsl] as -
-      wp_auto
+      (try wp_auto)
       wp_apply wp_errors_New' as %x #-
       (try wp_auto)
       iapply HΦ

@@ -81,7 +81,9 @@ theorem rpcdriver_robust : rpcdriver_robust.spec := by
   · inext
     unfold net.rpc.regInv
     iexists ∅
-    iframe Hw
+    isplitl [Hw]
+    · rw [show (drvWorld (GF := netGF) γid γw).reg = γw from rfl]
+      iexact Hw
     iapply BigSepM.bigSepM_empty.2; iempintro
   imod net.rpc.rpcLisP_set (π := π) ⊤ (drvWorld γid γw) tcpAddr [] [] (by decide)
     (fun a ha => by
@@ -112,38 +114,41 @@ theorem rpcdriver_robust : rpcdriver_robust.spec := by
     | 0, hm =>
       cases hm
       dsimp only
+      rw [if_pos rfl]
       iintro ⟨#Htl, #Hhl⟩ - Hgs Htok
       imodintro
       unfold boot_server boot
       wp_apply cmd.server.wp_boot hTb $$ Hgs as ⟨Hown, #Hpkg, Hres⟩
-      wp_auto
+      try wp_auto
       wp_apply (cmd.server.wp_main wp_Register wp_Server γid γw) $$ [Hres]
-      · iframe Hpkg Hres Htl Hhl
+      · iframe Hres Htl Hhl
         ipureintro; omega
-      wp_auto
+      try wp_auto
       itrivial
     | 1, hm =>
       cases hm
       dsimp only
+      rw [if_neg (by decide)]
       iintro ⟨⟨#Htl, #Hhl⟩, Hids⟩ - Hgs Htok
       imodintro
       unfold boot_client boot
       wp_apply cmd.client.wp_boot hTb $$ Hgs as ⟨Hown, #Hpkg, Hres⟩
-      wp_auto
+      try wp_auto
       ihave #Htcp := net.rpc.rpcLisP_addrOk _ _ _ _ (by decide) $$ Htl
       ihave #Hha := net.rpc.rpcLisP_addrOk _ _ _ _ (by decide) $$ Hhl
       wp_apply (cmd.client.wp_main wp_Register wp_Client γid γw) $$ [Hres Htok Hids] as -
-      · iframe Hpkg Hres Htok Htcp Hha Hids
+      · unfold net.rpc.rpcAddr
+        iframe Hres Htok Htcp Hha Hids
         ipureintro; exact ⟨by omega, hRb⟩
-      wp_auto
+      try wp_auto
       itrivial
   · simp only [system]
     iapply BigSepL.bigSepL_cons.2
     isplitr
-    · iframe Htl Hhl
+    · rw [if_pos rfl]; simp only [Pl]; iframe Htl Hhl
     iapply BigSepL.bigSepL_cons.2
     isplitl [Hids]
-    · iframe Htl Hhl Hids
+    · rw [if_neg (by decide)]; simp only [Pl]; iframe Htl Hhl Hids
     iapply BigSepL.bigSepL_nil.2
     iempintro
 
