@@ -33,7 +33,7 @@ abbrev entriesOf.spec : Prop :=
   ∀ (sl : GoSlice) (dq : DFrac) (els : List Loc) (es : List EntryM), AllNormal es →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗ sl ↦*{dq} els ∗ [∗list] p;e ∈ els;es, entRO p e }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.entriesOf)) (Val #sl))
-  {{ (out : GoSlice), RET #out; sl ↦*{dq} els ∗ AntCheck.logRO out (es.map entOfE) }}
+  {{ (out : GoSlice), RET #out; sl ↦*{dq} els ∗ AntCheck.logRO out (es.map entOfE) ∗ ⧗ es.length }}
 
 end spec
 

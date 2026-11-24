@@ -36,7 +36,8 @@ abbrev msgOf.spec : Prop :=
   st.msg.Type' ≠ MsgSnap → AllNormal st.ents →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗ msgPtsC ml dq dqe cap st }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.msgOf)) (Val #ml)) (Val #to))
-  {{ (g : AntCheck.G.Msg), RET #g; msgPtsC ml dq dqe cap st ∗ AntCheck.msgRO g (msgOfSt st to) }}
+  {{ (g : AntCheck.G.Msg), RET #g; msgPtsC ml dq dqe cap st ∗ AntCheck.msgRO g (msgOfSt st to) ∗
+      ⧗ st.ents.length }}
 
 end spec
 
