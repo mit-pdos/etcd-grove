@@ -47,7 +47,7 @@ theorem connReader.startBackgroundRead.wp_proof
   simp only [Bool.false_eq_true, ite_false]
   wp_apply wp_SetReadDeadline t cn true a la ra _
       (fun _ => iprop(∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b)) $$ [$Hca Hrdl]
-    as %err0 Hrdl
+    as %err0 ⟨%rres, Hrdl, -⟩
   · icases Hrdl with ⟨%rb, Hrdl⟩
     imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 1) _ $$ Hrdl with ⟨%st, Hend, Hcl⟩
     imodintro
