@@ -144,6 +144,13 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
 # theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
 # and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
+# (fmt1-errno, 2026-11-24, #9 decision (B) 7127751995) the osfs examples (crashlog, walfs, bboltfs),
+# whose closed theorems took their initializer as a hypothesis (`Hinit_wp`; bboltfs: its spec with
+# `pkgFacts` as its post): now `os`'s path specs take `isPkgInit os`, and their `wp_initialize'` is
+# generated (facts in their `PkgInit.lean`; bboltfs's `SPECIAL` below), with their package tables
+ROOTS += ['github_com.mit_pdos.etcd_grove.examples.osfs.crashlog',
+          'github_com.mit_pdos.etcd_grove.examples.osfs.walfs',
+          'github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs']
 # (WAL W4c, 2026-11-12, until 2026-11-15) the WAL robustness tester was a root here; it is the part
 # `WalTester/`'s now (`wt_inits`), and the WAL reaches the closure through the server
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
@@ -765,6 +772,17 @@ function, which calls the trusted model of
     finish=['ipersist HStderr', 'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish'],
 )
+
+# (fmt1-errno, 2026-11-24) minibolt (examples/osfs/bboltfs): its three `errors.New` variables, non-nil
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs'] = newvars_cfg(dict(
+    doc='''Its fact (`bboltfsInit`, `PkgInit.lean`): `errFailed`, `errPageSize` and `errMapTooLarge` hold
+non-nil errors, read-only for good. Its initializer allocates its variables (those and `envErrors`, zero),
+initializes its imports and runs its variables' translated initializers (`errors.New` calls).''',
+    alloc_types={'envErrors': 'w64'},
+    finish=['ipersist HerrFailed', 'ipersist HerrPageSize', 'ipersist HerrMapTooLarge'] + FIN_PRE + [
+            'unfold bboltfsInit', 'iexists _, _, _', 'iframe HerrFailed HerrPageSize HerrMapTooLarge',
+            'ipureintro', 'exact ⟨nofun, nofun, nofun⟩'],
+), ['errPageSize', 'errFailed', 'errMapTooLarge'])
 
 # (2026-11-07) this repository's `syscall`, `io/fs`, `internal/poll` and `internal/syscall/unix`
 # (project bboltfs's) translate their variables' initializers, as Perennial's (fix-semantics Case
@@ -5231,6 +5249,11 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget'] = \
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
+
+# (fmt1-errno, 2026-11-24) the osfs examples' boot programs, for their closed (crash) theorems
+for _ex in ['crashlog', 'walfs', 'bboltfs']:
+    PROGRAMS[f'github_com.mit_pdos.etcd_grove.examples.osfs.{_ex}'] = \
+        f'Proof/github_com/mit_pdos/etcd_grove/examples/osfs/{_ex}/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

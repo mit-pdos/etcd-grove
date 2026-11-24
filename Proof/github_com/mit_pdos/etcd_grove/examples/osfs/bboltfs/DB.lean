@@ -60,13 +60,15 @@ records the failure (`dbFailed`). Once closed, `rwlock`'s resource is the commit
 is closed with the whole of its token: `mmaplock`'s resource has `q/2` of it, the writer the
 other half (`MapInv.lean`).
 
-`pkgFacts` stands for the package's `isPkgInit` (`sync`'s, and the error values), until the
-packages minibolt imports (`os`, `syscall`, `golang.org/x/sys/unix`) have `IsPkgInit` instances.
+`pkgFacts` is what the proofs take of the package's `isPkgInit` (`sync`'s, and the error values),
+which gives it (`pkgFacts_of_isPkgInit`, 2026-11-24; until then it was the post of the initializer's
+assumed spec).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.MapCells
 public import Proof.os.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.PkgInit
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.Proof.sync.RWMutexThreads
 public import Perennial.Ghost.GhostVar
@@ -377,11 +379,11 @@ instance mapR_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) :
       icombine H1 H2 gives % ⟨_, Heq⟩
       ipureintro; exact Heq)
 
-/-- What minibolt's code needs of the initialized program: `sync`'s initialization, the package's
+/-- What minibolt's code needs of the initialized program: `sync`'s and `os`'s initialization, the package's
 error values (`errFailed`, `errPageSize`, `errMapTooLarge`), which are not nil, and `io.EOF`, which
 is not nil, not a `*PathError`, and a pointer error (a `*T`, as `errors.New`'s `*errorString`):
-`Snapshot` compares `ReadAt`'s error with it, which takes its dynamic type to be comparable. (The package's `isPkgInit` would give them, once
-`os`, `syscall` and `golang.org/x/sys/unix`, which it imports, have `IsPkgInit` instances.) -/
+`Snapshot` compares `ReadAt`'s error with it, which takes its dynamic type to be comparable. The package's `isPkgInit` gives them
+(`pkgFacts_of_isPkgInit`). -/
 def pkgFacts : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗ ∃ (e1 e2 : GoInterface),
     globalAddr errFailed ↦□ e1 ∗ globalAddr errPageSize ↦□ e2 ∗
@@ -390,16 +392,66 @@ def pkgFacts : IProp GF :=
       ⌜eof ≠ interface.nil ∧
         (∀ pe : Loc, eof ≠ interface.mkOk (go.GoType.PointerType _root_.Perennial.io.fs.PathError.ty) #pe) ∧
         ∃ (T : go.GoType) (l : Loc), eof = interface.mkOk (go.GoType.PointerType T) #l⌝ ∗
-    ∃ e3 : GoInterface, globalAddr errMapTooLarge ↦□ e3 ∗ ⌜e3 ≠ interface.nil⌝)
+    (∃ e3 : GoInterface, globalAddr errMapTooLarge ↦□ e3 ∗ ⌜e3 ≠ interface.nil⌝) ∗
+    isPkgInit (PROP := IProp GF) pkg_id.os)
 
 instance pkgFacts_persistent : Persistent (pkgFacts (GF := GF)) := by
   unfold pkgFacts; infer_instance
+
+/-- **`pkgFacts` from the package's `isPkgInit`** (2026-11-24; until then the post of the
+initializer's spec, a hypothesis of the top-level theorem): `sync`'s and `io`'s facts are its
+imports' (`io.EOF` an `*errorString`, so no `*PathError`), the error variables its own
+(`bboltfsInit`, `PkgInit.lean`). -/
+theorem pkgFacts_of_isPkgInit :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs ⊢
+      pkgFacts (GF := GF) := by
+  iintro #Hpkg
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
+  · iPkgInit
+  ihave #Hb := bboltfsInit_access $$ Hpkg
+  iunfold github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.bboltfsInit at Hb
+  icases Hb with ⟨%e1, %e2, %e3, #H1, #H2, #H3, %Hne⟩
+  ihave #Hn := _root_.Perennial.io.eof_of_init $$ Hio
+  iunfold _root_.Perennial.errors.newVar at Hn
+  icases Hn with ⟨%x, #Hx, -⟩
+  iunfold pkgFacts
+  iframe Hsync
+  iexists e1, e2
+  iframe H1 H2
+  isplitr
+  · ipureintro; exact ⟨Hne.1, Hne.2.1⟩
+  iexists _
+  iframe Hx
+  isplitr
+  · ipureintro
+    refine ⟨nofun, fun pe h => ?_, _, _, rfl⟩
+    unfold interface.mkOk at h
+    injection h with h
+    injection h with h
+    injection h with h
+    rw [io.fs.PathError.ty.eq_1, _root_.Perennial.errors.errorString.ty.eq_1] at h
+    injection h with h
+    revert h; decide
+  ihave #Hos : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+  · iPkgInit
+  iframe Hos
+  iexists e3
+  iframe H3
+  ipureintro; exact Hne.2.2
 
 /-- `errMapTooLarge`'s value, from `pkgFacts`. -/
 theorem pkgFacts_errMapTooLarge :
     pkgFacts (GF := GF) ⊢ ∃ e3 : GoInterface, globalAddr errMapTooLarge ↦□ e3 ∗ ⌜e3 ≠ interface.nil⌝ := by
   unfold pkgFacts
-  iintro ⟨-, %e1, %e2, -, -, -, %eof, -, -, H⟩
+  iintro ⟨-, %e1, %e2, -, -, -, %eof, -, -, H, -⟩
+  iexact H
+
+/-- `os`'s initialization, from `pkgFacts` (the path specs of `os` take it, 2026-11-24). -/
+theorem pkgFacts_os : pkgFacts (GF := GF) ⊢ isPkgInit (PROP := IProp GF) pkg_id.os := by
+  unfold pkgFacts
+  iintro ⟨-, %e1, %e2, -, -, -, %eof, -, -, -, H⟩
   iexact H
 
 /-- `metalock`'s resource (see the file header). -/

@@ -73,7 +73,7 @@ there. -/
 theorem wp_OpenFile_db (wp_Create : os.OpenFile.specCreateS (GF := GF) (hG := hG))
     (d b : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (h : NamesH) (t : Nat)
     (vo : Option w64) (n : Nat) (hb : NameOk b) :
-    {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R d dq j ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R d dq j ∗
         osCallPerm (GF := GF) (callKey R d) qc ∗ osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ∗
         (⌜h.cur !! b = none ∧ t = 1 ∧ vo = none ∧ n = 4⌝ ∨
           ∃ (i : Ino) (m : OsMeta), ⌜h.cur !! b = some (.file i)⌝ ∗
@@ -87,7 +87,7 @@ theorem wp_OpenFile_db (wp_Create : os.OpenFile.specCreateS (GF := GF) (hG := hG
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
             osMeta i (DFrac.own 1) m ∗ openSt (GF := GF) i t vo n m) ∨
          (⌜err ≠ interface.nil ∧ f = null⌝ ∗ openFail (GF := GF) h' b)) }} := by
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hf⟩ HΦ
+  iintro %Φ ⟨#Hospkg, #Hos, #Hsi, Hp, Hperm, Hn, Hf⟩ HΦ
   obtain ⟨hfl, hcr, htr⟩ := minibolt_openFlag
   icases openPre_notDir h b t vo n $$ Hf with ⟨%hnd, Hf⟩
   icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
@@ -170,6 +170,7 @@ theorem Open.wp_proof (wp_Create : os.OpenFile.specCreateS (GF := GF) (hG := hG)
   wp_start as ⟨#Hpkg, #Hos, #Hsi, Hp, Hperm, Ht, Hfile⟩
   imod dbFile_norm h nm t vo n $$ Hfile with Hfile
   ihave ⟨%e2, #He2, %He2⟩ := pkgFacts_errPageSize $$ Hpkg
+  ihave #Hospkg := pkgFacts_os $$ Hpkg
   (try wp_auto)
   irename «$r0» => Hdb
   generalize «$r0_ptr» = db at *
